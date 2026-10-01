@@ -28,7 +28,7 @@
   .cd-banner h1{color:var(--gold);font-size:26px;margin:6px 0 2px;letter-spacing:1px;}
   .cd-banner .kicker{color:var(--muted);font-size:11px;letter-spacing:2px;}
   .cd-banner .frase{color:var(--cream);font-size:13px;margin-top:8px;}
-  .cd-categorias{display:flex;gap:8px;overflow-x:auto;padding:4px 2px 12px;-webkit-overflow-scrolling:touch;}
+  .cd-categorias{display:flex;flex-wrap:wrap;gap:8px;padding:4px 2px 12px;}
   .cd-categorias button{flex:0 0 auto;background:var(--panel-2);border:1px solid var(--line);color:var(--muted);padding:9px 16px;border-radius:20px;font-size:13px;font-weight:600;white-space:nowrap;cursor:pointer;}
   .cd-categorias button.active{background:var(--gold);color:#241a10;border-color:var(--gold);}
   .cd-secao-titulo{font-size:15px;font-weight:700;color:var(--cream);margin:18px 2px 8px;}
@@ -77,12 +77,15 @@
   header.brand .status.offline{color:#f2c2be;}
   header.brand .status.syncing{color:#f0d78c;}
   header.brand .status.contingencia{color:#f5a35c;}
-  header.brand .userbar{display:flex;justify-content:center;align-items:center;gap:10px;margin-top:10px;font-size:12px;color:var(--muted);}
+  header.brand .userbar{flex-wrap:wrap;display:flex;justify-content:center;align-items:center;gap:10px;margin-top:10px;font-size:12px;color:var(--muted);}
+  header.brand .userbar button{white-space:nowrap;}
+  header.brand .userbar button.pendente::after{content:'';display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--gold);margin-left:6px;vertical-align:middle;}
   header.brand .userbar button{background:var(--panel-2);border:1px solid var(--line);color:var(--muted);padding:4px 10px;border-radius:20px;font-size:11px;cursor:pointer;}
 
-  nav.tabs{display:flex;background:var(--panel-2);border:1px solid var(--line);border-radius:6px;padding:4px;margin-bottom:18px;overflow-x:auto;}
-  nav.tabs button{flex:0 0 auto;background:transparent;border:none;color:var(--muted);font-size:12.5px;font-weight:600;padding:10px 14px;border-radius:4px;cursor:pointer;white-space:nowrap;position:relative;}
-  nav.tabs button.active{background:var(--red);color:var(--cream);}
+  /* Menus em colunas (sem rolagem lateral): todos os botões aparecem de uma vez, soltos e arredondados, sem cara de tabela */
+  nav.tabs{display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:8px;background:transparent;border:none;padding:0;margin-bottom:18px;}
+  nav.tabs button{background:var(--panel-2);border:1px solid var(--line);color:var(--muted);font-size:13px;font-weight:600;padding:10px 8px;border-radius:12px;cursor:pointer;white-space:normal;line-height:1.2;text-align:center;position:relative;min-height:46px;}
+  nav.tabs button.active{background:var(--red);border-color:var(--red);color:var(--cream);}
   nav.tabs button.hidden-tab{display:none;}
   nav.tabs button .dot{position:absolute;top:5px;right:5px;width:7px;height:7px;border-radius:50%;background:var(--gold);display:none;}
   nav.tabs button.has-alert .dot{display:block;}
@@ -90,8 +93,8 @@
   section.tab{display:none;}
   section.tab.active{display:block;}
 
-  .admin-subnav{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;}
-  .admin-subnav button{background:var(--panel-2);border:1px solid var(--line);color:var(--muted);padding:8px 12px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;}
+  .admin-subnav{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-bottom:16px;}
+  .admin-subnav button{background:var(--panel-2);border:1px solid var(--line);color:var(--muted);padding:9px 8px;border-radius:12px;font-size:12px;font-weight:600;cursor:pointer;white-space:normal;line-height:1.2;text-align:center;min-height:44px;}
   .admin-subnav button.active{background:var(--gold);color:#241a10;border-color:var(--gold);}
 
   .card{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:16px;margin-bottom:16px;}
@@ -107,6 +110,13 @@
   input[type=text],input[type=tel],input[type=number],input[type=date],input[type=month],input[type=password],input:not([type]),select,textarea{
     width:100%;background:var(--bg);border:1px solid var(--line);color:var(--cream);padding:10px 11px;border-radius:4px;font-size:14.5px;font-family:inherit;}
   textarea{resize:vertical;min-height:64px;}
+  #apiCarregando{position:fixed;inset:0;z-index:100000;display:none;align-items:flex-start;justify-content:center;pointer-events:none;padding-top:calc(env(safe-area-inset-top,0px) + 14px);}
+  #apiCarregando.show{display:flex;}
+  #apiCarregando.trava{pointer-events:auto;background:rgba(10,6,4,.55);align-items:center;padding-top:0;}
+  .api-car-caixa{display:flex;align-items:center;gap:10px;background:var(--card,#1d1510);color:var(--cream);border:1px solid var(--gold-dim,#8a6d2f);border-radius:999px;padding:10px 18px;font-size:14px;box-shadow:0 6px 22px rgba(0,0,0,.45);}
+  #apiCarregando.trava .api-car-caixa{border-radius:12px;padding:16px 22px;font-size:15px;}
+  .api-car-spin{width:16px;height:16px;border:2px solid var(--gold-dim,#8a6d2f);border-top-color:var(--gold,#e0b252);border-radius:50%;animation:apiGira .8s linear infinite;flex:none;}
+  @keyframes apiGira{to{transform:rotate(360deg);}}
   input::placeholder,textarea::placeholder{color:var(--muted);opacity:.7;}
   input:focus,select:focus,textarea:focus{outline:2px solid var(--gold-dim);outline-offset:1px;}
   input:disabled{opacity:.5;}
@@ -255,9 +265,8 @@
   button:focus-visible,a:focus-visible{outline:2px solid var(--gold);outline-offset:2px;}
   @media (max-width:640px){
     input[type=text],input[type=tel],input[type=number],input[type=date],input[type=month],input[type=password],select,textarea{font-size:16px;}
-    nav.tabs button{min-height:44px;}
-    .admin-subnav{flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch;}
-    .admin-subnav button{flex:0 0 auto;white-space:nowrap;min-height:40px;}
+    nav.tabs{grid-template-columns:repeat(3,1fr);}
+    .admin-subnav{grid-template-columns:repeat(3,1fr);}
     button.ghost,button.small-gold,button.atalho-btn,button.toggle-mode{min-height:40px;}
     .row2{flex-wrap:wrap;} .row2>div{flex:1 1 140px;}
     .btnrow{flex-wrap:wrap;}
@@ -288,12 +297,36 @@
   @keyframes czPisca{0%,100%{box-shadow:none}50%{box-shadow:0 0 0 3px var(--gold)}}
   #cozinhaBoard.cz-flash{animation:czPisca .8s ease-in-out 4;}
   #cozinhaBoard{display:none;}
+  .caixa-topo{flex-wrap:wrap;gap:8px;}
+  .caixa-topo-btns{display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
+  .caixa-topo-btns .ghost{width:auto;padding:9px 11px;font-size:12.5px;min-height:42px;}
+  #caixaStatusBtn.caixa-fechado{border-color:var(--red);color:var(--gold);}
+  .resumo-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;}
+  .resumo-box{display:block;width:100%;text-align:left;background:var(--panel-2);border:1px solid var(--line);border-radius:12px;padding:12px;color:var(--cream);cursor:pointer;font:inherit;}
+  .resumo-box b{display:block;font-size:20px;color:var(--gold);font-family:Georgia,serif;line-height:1.15;margin-top:2px;}
+  .resumo-box span.rot{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;}
+  .resumo-box small{display:block;font-size:12px;color:var(--muted);margin-top:2px;}
+  .resumo-box.largo{grid-column:1 / -1;}
+  .resumo-box.atencao{border-color:var(--red);}
+  .resumo-etapas{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:6px;}
+  .resumo-etapas div{text-align:center;background:rgba(0,0,0,.18);border-radius:8px;padding:8px 2px;}
+  .resumo-etapas b{font-size:20px;margin:0;}
+  .resumo-etapas small{font-size:10.5px;text-transform:uppercase;letter-spacing:.03em;}
+  .resumo-alerta{font-size:13px;padding:4px 0;color:var(--cream);}
+  .ped-subnav{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;}
+  .ped-subnav button{background:var(--panel-2);border:1px solid var(--line);color:var(--muted);padding:10px 8px;border-radius:12px;font-size:13px;font-weight:600;cursor:pointer;position:relative;min-height:44px;}
+  .ped-subnav button.active{background:var(--gold);color:#241a10;border-color:var(--gold);}
+  .ped-subnav button .dot{position:absolute;top:6px;right:8px;width:7px;height:7px;border-radius:50%;background:var(--red);display:none;}
+  .ped-subnav button.has-alert .dot{display:block;}
+  body.perfil-cozinha #pedidosSubnav, body.perfil-garcom #pedidosSubnav, body.perfil-entregador #pedidosSubnav,
+  body.perfil-cozinha #pedidosPainelEntregas, body.perfil-garcom #pedidosPainelEntregas, body.perfil-entregador #pedidosPainelPedidos,
+  body.perfil-entregador .atalho-pedidos{display:none !important;}
   body.perfil-cozinha #cozinhaBoard{display:block;}
   body.perfil-cozinha #pedidosCardAndamento, body.perfil-cozinha #pedidosCardConcluidos{display:none;}
   #garcomMesaAcoes, #btnEnviarCozinha{display:none;}
   body.perfil-garcom #garcomMesaAcoes{display:block;}
   body.perfil-garcom #btnEnviarCozinha{display:block;}
-  body.perfil-garcom #btnProximoPagamento, body.perfil-garcom #caixaStatusCard, body.perfil-garcom #painelFormaBtn,
+  body.perfil-garcom #btnProximoPagamento, body.perfil-garcom #caixaStatusCard, body.perfil-garcom #caixaStatusBtn, body.perfil-garcom #painelFormaBtn,
   body.perfil-garcom #painelFinalizarBtn, body.perfil-garcom #painelForma, body.perfil-garcom #painelFinalizar,
   body.perfil-garcom #tipoRetiradaBtn, body.perfil-garcom #tipoEntregaBtn, body.perfil-garcom #btnFecharContaAgora,
   body.perfil-garcom #btnRepetirVenda{display:none !important;}
@@ -355,6 +388,34 @@
 </button>
 
 <!-- MODAL: adicionais no Caixa interno (Item 20 aplicado ao balcão/garçom) -->
+<div class="modal-overlay" id="caixaStatusModal">
+  <div class="modal-box">
+    <div class="modal-header"><h2>Caixa</h2><button class="close-btn" onclick="fecharCaixaStatus_()">✕</button></div>
+    <div class="card" id="caixaStatusCard" style="margin:0;"><div id="caixaStatusConteudo"></div></div>
+  </div>
+</div>
+<div class="modal-overlay" id="lancamentosModal">
+  <div class="modal-box">
+    <div class="modal-header"><h2>Lançamentos desde a abertura</h2><button class="close-btn" onclick="fecharLancamentos_()">✕</button></div>
+    <div class="btnrow" style="margin:0 0 10px;">
+      <button class="ghost" style="padding:10px 14px;width:auto;" onclick="abrirModalSangria()">− Sangria</button>
+      <button class="small-gold" style="padding:10px 16px;width:auto;" onclick="abrirModalDespesa()">+ Despesa</button>
+    </div>
+    <div id="lancamentosSessao"><div class="notif-empty">Caixa fechado.</div></div>
+  </div>
+</div>
+<div class="modal-overlay" id="cxConfirmarModal">
+  <div class="modal-box">
+    <div class="modal-header"><h2>Fechar o caixa</h2><button class="close-btn" onclick="fecharModalConfirmarCaixa_()">✕</button></div>
+    <p class="sub">Saldo esperado em dinheiro: <b id="fcEsperado" style="color:var(--gold);"></b></p>
+    <label for="fcContado">Dinheiro contado na gaveta (R$)</label>
+    <input type="number" id="fcContado" inputmode="decimal" step="0.01" min="0">
+    <label for="fcSenha">Sua senha, para confirmar o fechamento</label>
+    <input type="password" id="fcSenha" autocomplete="current-password">
+    <div class="msg" id="cxConfirmarMsg"></div>
+    <button class="primary" id="fcBtn" onclick="confirmarFecharCaixa_()" style="margin-top:10px;">Confirmar fechamento</button>
+  </div>
+</div>
 <div class="modal-overlay" id="caixaAdicionaisModal">
   <div class="modal-box">
     <div class="modal-header"><h2 id="caixaAdicionaisTitulo">Adicionais</h2><button class="close-btn" onclick="fecharCaixaAdicionaisModal()">✕</button></div>
@@ -465,6 +526,7 @@
     <div class="status" id="connStatus">conectando à planilha...</div>
     <div class="userbar">
       <span id="userbarTexto"></span>
+      <button id="avisosBtnTopo" onclick="abrirModalAvisos_()">🔔 Avisos</button>
       <button onclick="abrirAjuda()">❓ Ajuda</button>
       <button onclick="abrirModalTrocarSenha()">🔑 Senha</button>
       <button onclick="sair()">Sair</button>
@@ -474,8 +536,7 @@
   <nav class="tabs">
     <button class="tab-btn active" data-tab="inicio" data-entregador-ok="1">Início</button>
     <button class="tab-btn" data-tab="caixa">Caixa</button>
-    <button class="tab-btn" data-tab="pedidos">Pedidos<span class="dot" id="pedidosDot"></span></button>
-    <button class="tab-btn" data-tab="entregas" data-entregador-ok="1">Entregas<span class="dot" id="entregasDot"></span></button>
+    <button class="tab-btn" data-tab="pedidos" data-entregador-ok="1">Pedidos<span class="dot" id="pedidosDot"></span></button>
     <button class="tab-btn" data-tab="clientes">Clientes</button>
     <button class="tab-btn" data-tab="notificacoes">Notificações<span class="dot" id="notifDot"></span></button>
     <button class="tab-btn" data-tab="administrador" data-admin="1">Administrador<span class="dot" id="adminDot"></span></button>
@@ -484,24 +545,16 @@
   <!-- =========================== CLIENTES =========================== -->
   <section class="tab active" id="tab-inicio">
     <div class="card">
-      <h2>Bem-vindo(a)</h2>
-      <p class="sub" id="inicioSaudacao">Use os atalhos abaixo para ir direto ao que precisa.</p>
-      <div class="btnrow" style="flex-wrap:wrap;">
+      <h2 style="margin-bottom:2px;">Resumo do restaurante</h2>
+      <p class="sub" id="inicioSaudacao" style="margin-top:0;"></p>
+      <div id="inicioResumo"></div>
+      <div class="btnrow" style="flex-wrap:wrap;margin-top:14px;">
         <button class="atalho-btn" onclick="document.querySelector('[data-tab=caixa]').click()">🧾 Abrir Caixa</button>
-        <button class="atalho-btn" onclick="document.querySelector('[data-tab=pedidos]').click()">📋 Ver Pedidos</button>
-        <button class="atalho-btn" onclick="document.querySelector('[data-tab=entregas]').click()">🛵 Entregas</button>
+        <button class="atalho-btn atalho-pedidos" onclick="abrirPedidosPainel_('pedidos')">📋 Ver Pedidos</button>
+        <button class="atalho-btn" onclick="abrirPedidosPainel_('entregas')">🛵 Entregas</button>
         <button class="atalho-btn" onclick="document.querySelector('[data-tab=clientes]').click()">👤 Clientes</button>
         <button class="atalho-btn" onclick="abrirAjuda()">❓ Ajuda</button>
       </div>
-    </div>
-    <div class="card" id="avisosCard">
-      <h2>🔔 Avisos de novos pedidos</h2>
-      <p class="sub" id="avisosTexto"></p>
-      <div class="btnrow" style="flex-wrap:wrap;">
-        <button class="primary" id="avisosAtivarBtn" onclick="ativarAvisos_()">🔔 Ativar avisos</button>
-        <button class="ghost" onclick="testarSomAviso_()">🔊 Testar som</button>
-      </div>
-      <div class="msg" id="avisosMsg"></div>
     </div>
   </section>
 
@@ -751,12 +804,14 @@
 
   <!-- =========================== CAIXA =========================== -->
   <section class="tab" id="tab-caixa">
-    <div class="card-header">
+    <div class="card-header caixa-topo">
       <h2 style="margin:0;">Caixa</h2>
-      <button class="calc-btn" onclick="abrirCalculadora()" title="Calculadora">🧮</button>
+      <div class="caixa-topo-btns">
+        <button type="button" class="ghost" id="caixaStatusBtn" onclick="abrirCaixaStatus_()">🔒 Caixa fechado</button>
+        <button type="button" class="ghost" id="caixaLancBtn" onclick="abrirLancamentos_()">🧾 Lançamentos</button>
+        <button class="calc-btn" onclick="abrirCalculadora()" title="Calculadora">🧮</button>
+      </div>
     </div>
-
-    <div class="card" id="caixaStatusCard"><div id="caixaStatusConteudo"></div></div>
 
     <!-- INICIAR VENDA -->
     <div class="card">
@@ -915,21 +970,15 @@
       </div>
     </div>
 
-    <!-- LANÇAR DESPESA -->
-    <div class="card">
-      <div class="card-header" style="margin-bottom:4px;">
-        <h2 style="margin:0;">Lançamentos desde a abertura</h2>
-        <div style="display:flex;gap:6px;">
-          <button class="ghost" style="padding:8px 12px;width:auto;" onclick="abrirModalSangria()">− Sangria</button>
-          <button class="small-gold" style="padding:8px 14px;width:auto;" onclick="abrirModalDespesa()">+ Despesa</button>
-        </div>
-      </div>
-      <div id="lancamentosSessao"><div class="notif-empty">Caixa fechado.</div></div>
-    </div>
   </section>
 
   <!-- =========================== PEDIDOS (RETIRADA) =========================== -->
   <section class="tab" id="tab-pedidos">
+    <div class="ped-subnav" id="pedidosSubnav">
+      <button type="button" id="pedSubPedidos" class="active" onclick="pedidosPainel_('pedidos')">📋 Pedidos<span class="dot"></span></button>
+      <button type="button" id="pedSubEntregas" onclick="pedidosPainel_('entregas')">🛵 Entregas<span class="dot" id="entregasDot"></span></button>
+    </div>
+    <div id="pedidosPainelPedidos">
     <!-- ETAPA 4: tela da Cozinha (só aparece para o perfil Cozinha) -->
     <div id="cozinhaBoard">
       <div class="cz-topo">
@@ -966,10 +1015,8 @@
       <h2>Retiradas concluídas hoje</h2>
       <div id="pedidosConcluidosLista"></div>
     </div>
-  </section>
-
-  <!-- =========================== ENTREGAS =========================== -->
-  <section class="tab" id="tab-entregas">
+    </div>
+    <div id="pedidosPainelEntregas" style="display:none;">
     <div class="card">
       <div class="card-header" style="margin-bottom:8px;">
         <h2 style="margin:0;">Entregas em andamento</h2>
@@ -986,7 +1033,9 @@
       <h2>💰 Meu dia</h2>
       <div id="entregasMeuDia"></div>
     </div>
+    </div>
   </section>
+
 
   <!-- =========================== FINANCEIRO (ADMIN) =========================== -->
   <section class="tab" id="tab-financeiro">
@@ -1710,6 +1759,17 @@
 </div>
 
 <!-- MODAL TROCAR MINHA SENHA (ETAPA C) -->
+<div class="modal-overlay" id="avisosModal">
+  <div class="modal-box">
+    <div class="modal-header"><h2>🔔 Avisos de novos pedidos</h2><button class="close-btn" onclick="fecharModalAvisos_()">✕</button></div>
+    <p class="sub" id="avisosTexto" style="font-size:14px;line-height:1.5;"></p>
+    <div class="btnrow" style="flex-wrap:wrap;margin-top:12px;">
+      <button class="primary" id="avisosAtivarBtn" onclick="ativarAvisos_()" style="flex:1 1 100%;min-height:48px;">🔔 Ativar avisos</button>
+      <button class="ghost" onclick="testarSomAviso_()" style="flex:1 1 100%;min-height:48px;">🔊 Testar som</button>
+    </div>
+    <div class="msg" id="avisosMsg"></div>
+  </div>
+</div>
 <div class="modal-overlay" id="senhaPropriaModal">
   <div class="modal-box">
     <div class="modal-header"><h2>Trocar minha senha</h2><button class="close-btn" onclick="fecharModalTrocarSenha()">✕</button></div>
@@ -2059,7 +2119,48 @@ function idemLimpar_(chave){ if(chave && _idemMapa[chave]){ delete _idemMapa[cha
    Se outra pessoa alterou o mesmo registro no meio tempo, o servidor recusa (conflito) e o app puxa o estado real. */
 const VERSAO_FRONT_ = { editarProduto:()=>produtos, editarCombo:()=>combos, editarAdicional:()=>adicionais, editarFormaPagamento:()=>formasPagamento,
   editarCategoria:()=>categorias, editarDespesa:()=>despesas, editarDespesaRecorrente:()=>despesasRecorrentes, salvarCliente:()=>clientes };
+/* ---- Aviso de carregamento (#15) ----
+   Toda ação que fala com a planilha mostra um aviso se demorar mais de ~0,4 s. Ações de gravação importantes (venda, pedido, caixa,
+   conta da mesa, pagamento...) também travam a tela por trás, para evitar toque duplo. Atualizações em segundo plano ficam de fora. */
+const API_SILENCIOSAS_ = new Set(['getAll','detectarNovosPedidos','obterStatusBackup','getCardapio','getStatusPedidoPublico','autenticar','verificarSenhaAdmin']);
+const API_ROTULOS_ = {
+  iniciarVenda:'Registrando a venda…', criarPedidoCardapio:'Enviando seu pedido…', fecharCaixa:'Fechando o caixa…', abrirCaixa:'Abrindo o caixa…',
+  fecharContaMesa:'Fechando a conta da mesa…', cancelarVenda:'Cancelando a venda…', editarVenda:'Salvando a venda…', pagarDespesa:'Registrando o pagamento…',
+  avancarStatusPedido:'Atualizando o pedido…', aceitarPedido:'Aceitando o pedido…', rejeitarPedido:'Recusando o pedido…', fazerBackupAgora:'Fazendo o backup…',
+  restaurarBackup:'Restaurando o backup…', fecharPeriodoEntregador:'Fechando o período…', atribuirEntregador:'Atribuindo o entregador…',
+  uploadFotoProduto:'Enviando a foto…', uploadFotoCombo:'Enviando a foto…', sincronizarContingenciaAgora:'Sincronizando…', reconciliarContingenciaAgora:'Reconciliando…'
+};
+const API_TRAVAM_TELA_ = new Set(['iniciarVenda','criarPedidoCardapio','fecharCaixa','abrirCaixa','fecharContaMesa','cancelarVenda','editarVenda','pagarDespesa',
+  'avancarStatusPedido','aceitarPedido','rejeitarPedido','fazerBackupAgora','restaurarBackup','fecharPeriodoEntregador','addSangria','resgatarPremioFidelidade']);
+let _apiAtivas = 0, _apiTravaTela = 0, _apiRotulo = '', _apiTimerAviso = null;
+function _carregandoAtualizar_(){
+  let el = document.getElementById('apiCarregando');
+  if(!el){
+    el = document.createElement('div'); el.id = 'apiCarregando';
+    el.innerHTML = '<div class="api-car-caixa" role="status" aria-live="polite"><span class="api-car-spin"></span><span id="apiCarregandoTxt">Salvando…</span></div>';
+    document.body.appendChild(el);
+  }
+  const txt = document.getElementById('apiCarregandoTxt'); if(txt) txt.textContent = _apiRotulo || 'Salvando…';
+  el.classList.toggle('trava', _apiTravaTela > 0);
+  el.classList.toggle('show', _apiAtivas > 0);
+}
+function _carregandoInicio_(action){
+  _apiAtivas++; if(API_TRAVAM_TELA_.has(action)) _apiTravaTela++;
+  _apiRotulo = API_ROTULOS_[action] || 'Salvando…';
+  if(_apiAtivas === 1){ clearTimeout(_apiTimerAviso); _apiTimerAviso = setTimeout(_carregandoAtualizar_, 400); } else _carregandoAtualizar_();
+}
+function _carregandoFim_(action){
+  _apiAtivas = Math.max(0,_apiAtivas-1); if(API_TRAVAM_TELA_.has(action)) _apiTravaTela = Math.max(0,_apiTravaTela-1);
+  if(_apiAtivas === 0){ clearTimeout(_apiTimerAviso); const el = document.getElementById('apiCarregando'); if(el) el.classList.remove('show','trava'); }
+  else _carregandoAtualizar_();
+}
 async function apiCall(action, payload, _tentativa, _idemChave){
+  if(_tentativa !== undefined || API_SILENCIOSAS_.has(action)) return _apiCallRaw(action, payload, _tentativa, _idemChave);
+  _carregandoInicio_(action);
+  try{ return await _apiCallRaw(action, payload, _tentativa, _idemChave); }
+  finally{ _carregandoFim_(action); }
+}
+async function _apiCallRaw(action, payload, _tentativa, _idemChave){
   payload = payload || {};
   if(_tentativa === undefined && VERSAO_FRONT_[action] && payload.id && payload.versaoEsperada === undefined){
     try{ const atual = (VERSAO_FRONT_[action]()||[]).find(x=>x.id === payload.id); if(atual && atual._v) payload = Object.assign({}, payload, { versaoEsperada: atual._v }); }catch(e){}
@@ -2080,7 +2181,7 @@ async function apiCall(action, payload, _tentativa, _idemChave){
   // Servidor ocupado: ele NÃO executou nada, então repetir é sempre seguro (mesmo requisicaoId).
   if(dados && dados.ocupado && (_tentativa||0) < 2){
     await new Promise(r=>setTimeout(r, 1500));
-    return apiCall(action, payload, (_tentativa||0)+1, _idemChave);
+    return _apiCallRaw(action, payload, (_tentativa||0)+1, _idemChave);
   }
   idemLimpar_(_idemChave);
   if(dados && dados.conflito) atualizarAposDuplicado_(); // alguém alterou o registro antes: traz o estado real
@@ -2176,6 +2277,7 @@ function aplicarPermissoesNivel(){
   const abasDoPerfil = NAV_POR_PERFIL_[nivelAtual];
   document.body.classList.toggle('perfil-cozinha', nivelAtual==='Cozinha');
   document.body.classList.toggle('perfil-garcom', nivelAtual==='Garçom');
+  document.body.classList.toggle('perfil-entregador', nivelAtual==='Entregador');
   document.querySelectorAll('.tab-btn').forEach(btn=>{
     let visivel;
     if(abasDoPerfil) visivel = abasDoPerfil.indexOf(btn.dataset.tab) !== -1;
@@ -2192,6 +2294,7 @@ function aplicarPermissoesNivel(){
   });
   if(nivelAtual==='Garçom'){ setTipoEntrega('Mesa'); setModoCliente('sem'); mudarPainelCaixa('cliente'); }
   if(['Cozinha','Admin','Operador'].indexOf(nivelAtual)!==-1) iniciarDetectorCozinha();
+  pedidosPainel_(nivelAtual==='Entregador' ? 'entregas' : 'pedidos');
   atualizarCardAvisos_();
 }
 /* ETAPA 7 / 11B: quem fez login (Admin, Operador, Garçom) recebe da planilha principal a chave INTERNA da contingência
@@ -2320,11 +2423,12 @@ document.querySelectorAll('.tab-btn').forEach(btn=>{
     document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
     btn.classList.add('active');
     ativarApenasSecao_('tab-'+btn.dataset.tab);
-    if(btn.dataset.tab==='pedidos' || btn.dataset.tab==='entregas') atualizarAoEntrar_();
+    if(btn.dataset.tab==='inicio') { try{ renderInicio(); }catch(e){} }
   });
 });
-/* FASE 14 (ITEM 92): ao entrar em Pedidos ou Entregas, atualiza uma vez. Sem sync a cada 20–30 s.
-   Se acabou de sincronizar (< 15 s), não repete. Respeita seguroParaSincronizar() (não mexe em venda em andamento). */
+/* Pedidos e Entregas NÃO atualizam mais ao abrir a aba. A atualização é: botão "Atualizar" (na hora) ou o timer de 3 minutos
+   (só quando seguroParaSincronizar() permite, para não mexer em venda ou formulário em andamento). */
+const SYNC_INTERVALO_MS = 3*60*1000; // 3 minutos: usado pelo timer geral e pelo detector da Cozinha (menos chamadas ao Apps Script)
 let ultimaSyncMs = 0;
 function atualizarAoEntrar_(){
   if(!apiConfigurada() || Date.now()-ultimaSyncMs < 15000) return;
@@ -2338,7 +2442,7 @@ async function atualizarAgora_(){
 }
 function mostrarUltimaSync_(){
   const t = new Date(ultimaSyncMs), pad = n=>String(n).padStart(2,'0');
-  const txt = ultimaSyncMs ? 'Atualizado às '+pad(t.getHours())+':'+pad(t.getMinutes()) : 'Atualiza ao entrar nesta tela.';
+  const txt = ultimaSyncMs ? 'Atualizado às '+pad(t.getHours())+':'+pad(t.getMinutes()) : 'Atualiza sozinho a cada 3 min.';
   document.querySelectorAll('[data-ultima-sync]').forEach(el=>{ el.textContent = txt; });
 }
 
@@ -2392,13 +2496,25 @@ function setFiltroClientes(modo){
   document.getElementById('diasInativoBox').style.display = modo==='inativos' ? 'block' : 'none';
   renderClientes();
 }
+/* Última venda de cada telefone, montada uma única vez (antes, cada cliente varria todas as vendas: 300 clientes x 3000 vendas).
+   Refaz sozinha se a lista de vendas mudar. */
+let _cacheUltVendaTel = null, _cacheUltVendaChave = '';
+function ultimaVendaPorTel_(){
+  const chave = vendas.length+'|'+(vendas.length? (vendas[0].id||'')+(vendas[vendas.length-1].id||'') : '');
+  if(_cacheUltVendaTel && _cacheUltVendaChave===chave) return _cacheUltVendaTel;
+  const m = {};
+  vendas.forEach(v=>{ const t = normTel(v.clienteTelefone); if(!t || !v.timestamp) return; if(!m[t] || v.timestamp>m[t]) m[t] = v.timestamp; });
+  _cacheUltVendaTel = m; _cacheUltVendaChave = chave;
+  return m;
+}
 function ultimaAtividadeCliente(cliente){
   const tel = normTel(cliente.telefone);
   const candidatos = [];
   if(cliente.primeiroContato) candidatos.push(parseDataBR(cliente.primeiroContato));
   const fid = fidelidadeClientes.find(f=>normTel(f.telefone)===tel);
   if(fid && fid.atualizado) candidatos.push(parseDataBR(fid.atualizado));
-  vendas.filter(v=>normTel(v.clienteTelefone)===tel).forEach(v=>candidatos.push(v.timestamp));
+  const ultVenda = ultimaVendaPorTel_()[tel];
+  if(ultVenda) candidatos.push(ultVenda);
   const validos = candidatos.filter(Boolean);
   return validos.length ? Math.max(...validos) : null;
 }
@@ -3544,8 +3660,7 @@ function renderPedidos(){
       return `<div class="notif-card"><b>#${rotuloPedido(v)}</b> — 🥡 ${escH(v.clienteNome||'Sem cadastro')} — Retirada${tPreparo?' · preparo: '+tPreparo:''}</div>`;
     }).join('') : '<div class="notif-empty">Nenhuma retirada concluída ainda hoje.</div>';
   }
-  const dot = document.getElementById('pedidosDot');
-  if(dot) dot.parentElement.classList.toggle('has-alert', pendentes.length>0);
+  _alertaPed_.pedidos = pendentes.length>0; _atualizarAlertaPedidos_();
 }
 function popularSelectEntregadoresHtml(vendaId, atual){
   const ativos = usuarios.filter(u=>u.nivel==='Entregador' && u.ativo);
@@ -3637,7 +3752,7 @@ function renderCozinha(){
   document.getElementById('czNovosN').textContent = novos.length ? '('+novos.length+')' : '';
   document.getElementById('czPrepN').textContent = preparo.length ? '('+preparo.length+')' : '';
   document.getElementById('czProntosN').textContent = prontos.length ? '('+prontos.length+')' : '';
-  const dot = document.getElementById('pedidosDot'); if(dot) dot.parentElement.classList.toggle('has-alert', novos.length>0);
+  _alertaPed_.pedidos = novos.length>0; _atualizarAlertaPedidos_();
   const fm = document.getElementById('czComandaFmt'); if(fm) fm.value = lerFormato('comanda','80mm');
   const au = document.getElementById('czComandaAuto'); if(au) au.checked = comandaAuto_();
 }
@@ -3652,14 +3767,14 @@ async function cozinhaIniciar(vendaId){
   finally { finalizarOperacaoUnica(chave); }
 }
 
-/* ---- Cozinha: detector próprio (consulta leve a cada 30 s, alerta visual + beep) ---- */
+/* ---- Cozinha: detector próprio (consulta leve a cada 3 min, alerta visual + beep) ---- */
 let cozinhaVistos = null, cozinhaTimer = null, cozinhaSyncPendente = false, cozinhaUltimaChecagem = null, cozinhaAudio = null;
 let cozinhaSomLigado = localStorage.getItem('cozinhaSom') !== '0';
 function atualizarStatusDetector_(erro){
   const el = document.getElementById('czStatus'); const btn = document.getElementById('czSomBtn');
   if(btn) btn.textContent = cozinhaSomLigado ? '🔊 Som: ligado' : '🔇 Som: desligado';
   if(!el) return;
-  el.textContent = erro ? '⚠️ Sem conexão com a planilha — tentando de novo em 30 s.' : (cozinhaUltimaChecagem ? '🔔 Detector ligado · última verificação às '+cozinhaUltimaChecagem.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',second:'2-digit'})+' · '+vendas.length+' pedidos carregados' : 'Detector iniciando…');
+  el.textContent = erro ? '⚠️ Sem conexão com a planilha — tentando de novo em 3 min. Toque em “Verificar agora”.' : (cozinhaUltimaChecagem ? '🔔 Detector ligado · última verificação às '+cozinhaUltimaChecagem.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',second:'2-digit'})+' · '+vendas.length+' pedidos carregados' : 'Detector iniciando…');
   atualizarTelaLigadaUI_();
 }
 function beepCozinha_(){ if(!cozinhaSomLigado) return; somAlerta_(); }
@@ -3715,7 +3830,7 @@ function avisarNovoPedido_(qtd){
   mostrarNotificacao_('🍔 Novo pedido!', qtd>1 ? qtd+' pedidos novos esperando.' : 'Chegou um pedido novo.');
 }
 /* ETAPA E: mantém a tela ligada e MOSTRA se está funcionando. Se o sistema soltar o bloqueio com a página visível (economia de
-   bateria, por exemplo), tenta de novo uma vez; o vigia de 30 s do detector tenta outra vez. Sem suporte, orienta a configurar o aparelho. */
+   bateria, por exemplo), tenta de novo uma vez; o vigia de 30 s (só local) tenta outra vez. Sem suporte, orienta a configurar o aparelho. */
 async function manterTelaLigada_(){
   try{
     if(!('wakeLock' in navigator)){ telaLigadaEstado_ = 'nao-suportada'; atualizarTelaLigadaUI_(); return; }
@@ -3743,7 +3858,7 @@ function atualizarTelaLigadaUI_(){
   if(_czLacuna){ linhas.push('⏸ A tela ficou apagada ou em outro app por '+_czLacuna+' min. Verificando os pedidos desse período…'); aviso = true; }
   else if(cozinhaUltimaChecagem && !document.hidden){
     const minSem = Math.floor((Date.now()-cozinhaUltimaChecagem.getTime())/60000);
-    if(minSem >= 2){ linhas.push('⚠️ Sem verificação há '+minSem+' min. Toque em “Verificar agora”.'); aviso = true; }
+    if(minSem >= 5){ linhas.push('⚠️ Sem verificação há '+minSem+' min. Toque em “Verificar agora”.'); aviso = true; }
   }
   el.textContent = linhas.join('\n');
   el.style.color = aviso ? 'var(--gold)' : '';
@@ -3760,10 +3875,13 @@ function testarSomAviso_(){
   showMsg('avisosMsg','Se não ouviu nada: aumente o volume de mídia do celular, tire o modo silencioso e confira se o som do navegador não está desligado.','ok');
   mostrarNotificacao_('🔔 Teste de aviso','É assim que você será avisado de um pedido novo.');
 }
+function abrirModalAvisos_(){ atualizarCardAvisos_(); const m = document.getElementById('avisosModal'); if(m) m.classList.add('open'); }
+function fecharModalAvisos_(){ const m = document.getElementById('avisosModal'); if(m) m.classList.remove('open'); }
 function atualizarCardAvisos_(){
-  const card = document.getElementById('avisosCard'); if(!card) return;
+  const botao = document.getElementById('avisosBtnTopo'); if(!botao) return;
   const nivel = currentUser && currentUser.nivel;
-  card.style.display = nivel==='Garçom' ? 'none' : '';
+  botao.style.display = nivel==='Garçom' ? 'none' : '';
+  botao.classList.toggle('pendente', avisosSuportado_() && Notification.permission==='default'); // ainda não ativou: chama atenção
   const txt = document.getElementById('avisosTexto'), btn = document.getElementById('avisosAtivarBtn');
   let t, mostrar = false;
   if(!avisosSuportado_()) t = 'Este navegador não mostra notificações. O som e a vibração funcionam com o app aberto e a tela ligada.';
@@ -3818,7 +3936,8 @@ function iniciarDetectorCozinha(){
   if(!souDetector_() || cozinhaTimer) return;
   atualizarStatusDetector_();
   manterTelaLigada_();
-  cozinhaTimer = setInterval(()=>{ detectarNovosCozinha_(false); manterTelaLigada_(); }, 30000);
+  cozinhaTimer = setInterval(()=>detectarNovosCozinha_(false), SYNC_INTERVALO_MS); // 3 min (era 30 s): menos chamadas ao Apps Script
+  setInterval(manterTelaLigada_, 30000); // só local (bloqueio de tela), não chama a planilha
   setInterval(atualizarTelaLigadaUI_, 15000); // recalcula o aviso de "sem verificação há N min"
   document.addEventListener('visibilitychange', ()=>{
     if(document.hidden){ _czOcultoDesde = Date.now(); return; }
@@ -3926,8 +4045,7 @@ function renderEntregas(){
       return `<div class="notif-card"><b>#${rotuloPedido(v)}</b> — 🛵 ${escH(v.clienteNome||'Sem cadastro')}${escH(v.entregador?' · '+v.entregador:'')}${v.taxaEntrega>0?' · taxa '+formatarMoeda(v.taxaEntrega):''}${v.fechamentoEntregaId?' · ✔ fechada':''}${tPreparo?' · preparo: '+tPreparo:''}${tEntrega?' · entrega: '+tEntrega:''}</div>`;
     }).join('') : '<div class="notif-empty">Nenhuma entrega concluída ainda hoje.</div>';
   }
-  const dot = document.getElementById('entregasDot');
-  if(dot) dot.parentElement.classList.toggle('has-alert', pendentes.length>0);
+  _alertaPed_.entregas = pendentes.length>0; _atualizarAlertaPedidos_();
   renderEntregasFinanceiro();
 }
 
@@ -4046,7 +4164,75 @@ function renderDesempenhoEntregas(){
   box.innerHTML = linhas ? `<div style="overflow-x:auto;"><table style="width:100%;font-size:12.5px;"><thead><tr><th align="left">Entregador</th><th align="left">Entregas</th><th align="left">Taxas</th><th align="left">Tempo na rua</th><th align="left">Pedido→entrega</th></tr></thead><tbody>${linhas}</tbody></table></div>` : '<div class="notif-empty">Nenhuma entrega concluída no período.</div>';
 }
 
+function abrirCaixaStatus_(){ document.getElementById('caixaStatusModal').classList.add('open'); }
+function fecharCaixaStatus_(){ document.getElementById('caixaStatusModal').classList.remove('open'); }
+function abrirLancamentos_(){ document.getElementById('lancamentosModal').classList.add('open'); }
+function fecharLancamentos_(){ document.getElementById('lancamentosModal').classList.remove('open'); }
+function _rotuloBotaoCaixa_(){
+  const b = document.getElementById('caixaStatusBtn'); if(!b) return;
+  b.textContent = sessaoCaixa ? '🟢 Caixa aberto' : '🔒 Caixa fechado';
+  b.classList.toggle('caixa-fechado', !sessaoCaixa);
+}
+/* ---- Início: resumo do que está acontecendo no restaurante (muda conforme o perfil) ---- */
+function renderInicio(){
+  const box = document.getElementById('inicioResumo'); if(!box || !currentUser) return;
+  const nivel = currentUser.nivel;
+  const staff = nivel==='Admin' || nivel==='Operador';
+  const agora = new Date();
+  const inicioDia = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate()).getTime();
+  const fmt = (n)=>formatarMoeda(n);
+  const sd = document.getElementById('inicioSaudacao');
+  if(sd) sd.textContent = 'Olá, '+currentUser.login+' · '+agora.toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'2-digit'});
+
+  const ativos = vendas.filter(v=>v.status==='Confirmada' && v.statusPedido && !['Retirada','Entregue','Servida'].includes(v.statusPedido));
+  const meusAtivos = nivel==='Entregador' ? ativos.filter(v=>v.tipoEntrega==='Entrega' && v.entregador===currentUser.login) : ativos;
+  const conta = (st)=>meusAtivos.filter(v=>v.statusPedido===st).length;
+  const novos = conta('Recebido'), preparo = conta('Em preparo'), prontos = conta('Pronta'), naRua = conta('Saiu para entrega');
+  const blocos = [];
+  const clique = (js)=>`onclick="${js}"`;
+
+  if(staff){
+    // Caixa e vendas do dia
+    const caixaTxt = sessaoCaixa ? '🟢 Aberto' : '🔒 Fechado';
+    const caixaSub = sessaoCaixa ? ('desde '+String(sessaoCaixa.abertura||'').split(' ').pop()) : 'toque para abrir';
+    blocos.push(`<button type="button" class="resumo-box ${sessaoCaixa?'':'atencao'}" ${clique("document.querySelector('[data-tab=caixa]').click();abrirCaixaStatus_()")}><span class="rot">Caixa</span><b>${caixaTxt}</b><small>${escH(caixaSub)}</small></button>`);
+    const hoje = vendas.filter(v=>v.status==='Confirmada' && v.timestamp>=inicioDia);
+    const faturado = hoje.filter(v=>v.statusPagamento!=='A Receber').reduce((t,v)=>t+(Number(v.valorTotal)||0),0);
+    const aReceber = hoje.filter(v=>v.statusPagamento==='A Receber').reduce((t,v)=>t+(Number(v.valorTotal)||0),0);
+    blocos.push(`<div class="resumo-box" ${nivel==='Admin' ? clique("abrirAdministrador('visaogeral')") : ''}><span class="rot">Vendas hoje</span><b>${fmt(faturado)}</b><small>${hoje.length} pedido(s)${aReceber>0?' · '+fmt(aReceber)+' a receber':''}</small></div>`);
+  }
+  if(nivel!=='Entregador'){
+    blocos.push(`<div class="resumo-box largo"><span class="rot">Pedidos em andamento</span>
+      <div class="resumo-etapas">
+        <div ${clique("abrirPedidosPainel_('pedidos')")}><b>${novos}</b><small>Novos</small></div>
+        <div ${clique("abrirPedidosPainel_('pedidos')")}><b>${preparo}</b><small>Preparo</small></div>
+        <div ${clique("abrirPedidosPainel_('pedidos')")}><b>${prontos}</b><small>Prontos</small></div>
+        <div ${clique("abrirPedidosPainel_('entregas')")}><b>${naRua}</b><small>Na rua</small></div>
+      </div></div>`);
+  } else {
+    blocos.push(`<button type="button" class="resumo-box largo" ${clique("abrirPedidosPainel_('entregas')")}><span class="rot">Minhas entregas</span><b>${meusAtivos.length}</b><small>${prontos} pronta(s) para sair · ${naRua} na rua</small></button>`);
+  }
+  if(nivel==='Admin' || nivel==='Operador' || nivel==='Garçom'){
+    const ocup = (mesas||[]).filter(m=>m.status==='Ocupada').length;
+    const aguard = (mesas||[]).filter(m=>m.status==='Aguardando fechamento').length;
+    const contaMesas = vendas.filter(v=>v.status==='Confirmada' && v.tipoEntrega==='Mesa' && v.statusPagamento==='A Receber').reduce((t,v)=>t+(Number(v.valorTotal)||0),0);
+    blocos.push(`<button type="button" class="resumo-box ${aguard?'atencao':''}" ${clique("document.querySelector('[data-tab=caixa]').click()")}><span class="rot">Mesas</span><b>${ocup+aguard} de ${(mesas||[]).length}</b><small>${ocup} ocupada(s)${aguard?' · '+aguard+' pedindo a conta':''}</small></button>`);
+    if(staff) blocos.push(`<div class="resumo-box"><span class="rot">Contas das mesas</span><b>${fmt(contaMesas)}</b><small>a receber no caixa</small></div>`);
+  }
+  if(staff){
+    const alertas = [];
+    const baixos = estoque.filter(e=>e.quantidade<=e.minimo).length; if(baixos) alertas.push(`📦 ${baixos} item(ns) de estoque no mínimo`);
+    const ocs = ocorrenciasAbertas_().length; if(ocs) alertas.push(`⚠️ ${ocs} ocorrência(s) aberta(s)`);
+    const hojeISO = dataLocalISO(new Date());
+    const venc = despesas.filter(d=>d.status!=='Cancelada' && d.situacao==='A pagar' && d.vencimento && d.vencimento<hojeISO).length; if(venc) alertas.push(`💸 ${venc} conta(s) vencida(s)`);
+    alertasDeEntregas().forEach(a=>alertas.push('🛵 '+a.replace(/<[^>]+>/g,'')));
+    const errosFila = (typeof _fila!=='undefined' ? _fila : []).filter(i=>i.estado==='erro').length; if(errosFila) alertas.push(`📡 ${errosFila} envio(s) com erro na fila`);
+    blocos.push(`<button type="button" class="resumo-box largo ${alertas.length?'atencao':''}" ${clique("document.querySelector('[data-tab=notificacoes]').click()")}><span class="rot">Alertas</span>${alertas.length ? alertas.slice(0,5).map(a=>`<div class="resumo-alerta">${escH(a)}</div>`).join('')+(alertas.length>5?`<small>+ ${alertas.length-5} outro(s)</small>`:'') : '<div class="resumo-alerta">✅ Tudo em ordem.</div>'}</button>`);
+  }
+  box.innerHTML = '<div class="resumo-grid">'+blocos.join('')+'</div>';
+}
 function renderStatusCaixa(){
+  _rotuloBotaoCaixa_();
   const card = document.getElementById('caixaStatusCard');
   const box = document.getElementById('caixaStatusConteudo');
   if(!sessaoCaixa){
@@ -4111,22 +4297,34 @@ async function confirmarAbrirCaixa(){
   } catch(e){ showMsg('abrirCaixaMsg','Não foi possível abrir o caixa.','warn'); }
   finally { finalizarOperacaoUnica('abrirCaixa'); }
 }
-async function fecharCaixaAgora(){
-  if(!confirm('Fechar o caixa agora? Isso vai gerar o relatório final.')) return;
+/* Fechar o caixa: pede o dinheiro contado e a SENHA de quem está logado (Operador: a dele; Admin operando o caixa: a dele).
+   A senha é conferida no servidor. */
+function fecharCaixaAgora(){
+  if(!sessaoCaixa) return;
   const esperado = saldoEsperadoGaveta();
-  const contadoStr = prompt('Confira o dinheiro físico na gaveta.\nQuanto tem, contando na mão? (esperado: '+formatarMoeda(esperado)+')', esperado.toFixed(2));
-  if(contadoStr===null) return;
-  const contado = Number(String(contadoStr).replace(',','.'));
-  if(isNaN(contado) || contado<0){ alert('Valor inválido. Digite quanto dinheiro há na gaveta (pode ser zero).'); return; }
+  document.getElementById('fcEsperado').textContent = formatarMoeda(esperado);
+  document.getElementById('fcContado').value = esperado.toFixed(2);
+  document.getElementById('fcSenha').value = '';
+  const m = document.getElementById('cxConfirmarMsg'); m.textContent = ''; m.className = 'msg';
+  document.getElementById('fcBtn').disabled = false;
+  document.getElementById('cxConfirmarModal').classList.add('open');
+}
+function fecharModalConfirmarCaixa_(){ document.getElementById('cxConfirmarModal').classList.remove('open'); document.getElementById('fcSenha').value = ''; }
+async function confirmarFecharCaixa_(){
+  const contado = Number(String(document.getElementById('fcContado').value).replace(',','.'));
+  const senha = document.getElementById('fcSenha').value;
+  if(document.getElementById('fcContado').value==='' || isNaN(contado) || contado<0) return showMsg('cxConfirmarMsg','Digite quanto dinheiro há na gaveta (pode ser zero).','warn');
+  if(!senha) return showMsg('cxConfirmarMsg','Digite a sua senha para confirmar.','warn');
   if(!iniciarOperacaoUnica('fecharCaixa')) return;
+  const btn = document.getElementById('fcBtn'); btn.disabled = true;
   try{
-    const r = await apiCall('fecharCaixa', { id: sessaoCaixa.id, valorContado: contado });
+    const r = await apiCall('fecharCaixa', { id: sessaoCaixa.id, valorContado: contado, senhaConfirmacao: senha });
     if(r.ok){
+      fecharModalConfirmarCaixa_(); fecharCaixaStatus_(); fecharLancamentos_();
       sessaoCaixa = null; salvarCache(); renderStatusCaixa(); await recarregarHistoricoCaixa();
       mostrarRelatorioFechamento(r.relatorio, r.relatorio.valorContado);
-    }
-    else alert(r.message);
-  } catch(e){ alert('Não foi possível fechar o caixa.'); }
+    } else { document.getElementById('fcSenha').value = ''; showMsg('cxConfirmarMsg', r.message, 'warn'); btn.disabled = false; }
+  } catch(e){ showMsg('cxConfirmarMsg','Não foi possível fechar o caixa. Tente de novo.','warn'); btn.disabled = false; }
   finally { finalizarOperacaoUnica('fecharCaixa'); }
 }
 async function recarregarHistoricoCaixa(){
@@ -5404,7 +5602,7 @@ Cozinha:{ nome:'Cozinha', secoes:[
   _aj.ocorr('O Administrador e o Caixa são avisados. Use para falta de ingrediente ou pedido que não pode ser produzido.'),
   { t:'Notificações', itens:['É o mural de avisos do dia a dia. Você só vê os que o Administrador liberou para a Cozinha.'] }
  ], erros:[
-  { q:'A internet caiu', a:'O topo mostra “⚠️ Sem conexão com a planilha — tentando de novo em 30 s.” Continue os pedidos que já estão na tela. Se o toque em “Iniciar preparo” disser “Sem conexão — o preparo não foi registrado”, repita quando voltar o 🟢. Ao voltar, toque em “↻ Verificar agora” para ver os pedidos novos.' },
+  { q:'A internet caiu', a:'O topo mostra “⚠️ Sem conexão com a planilha — tentando de novo em 3 min.” Continue os pedidos que já estão na tela. Se o toque em “Iniciar preparo” disser “Sem conexão — o preparo não foi registrado”, repita quando voltar o 🟢. Ao voltar, toque em “↻ Verificar agora” para ver os pedidos novos.' },
   { q:'Não chega nenhum pedido', a:'Confira o status no topo (🟢). Com o caixa fechado, o Cardápio Digital não recebe pedidos; avise o Caixa. Toque em “↻ Verificar agora”.' },
   { q:'Pedido duplicado', a:'Se aparecerem dois pedidos iguais, faça só um e avise o Caixa, que cancela o repetido. Você também pode registrar uma Ocorrência no pedido. Tocar duas vezes em “Iniciar preparo” não gera problema.' }
  ]},
@@ -6441,6 +6639,7 @@ window.addEventListener('online', ()=>{ sincronizarEmSegundoPlano(); });
 window.addEventListener('offline', ()=>{ setConexaoStatus('offline', 'conexão do celular caiu'); });
 
 function aplicarDadosRecebidos(dados){
+  _cacheUltVendaTel = null; // os dados mudaram: refaz a tabela de última venda por telefone
   configNotificacoes = dados.configNotificacoes || configNotificacoes;
   clientes = dados.clientes || []; promocoes = dados.promocoes || []; cupons = dados.cupons || []; eventos = dados.eventos || [];
   indicacoes = dados.indicacoes || [];
@@ -6515,8 +6714,34 @@ function configurarSincronizacaoAutomatica(){
     }
   });
   /* ETAPA 6 (ITENS 91/92): sem atualização periódica. Os dados são atualizados ao entrar em Pedidos/Entregas/Visão Geral/Relatórios,
-     ao voltar para o app (mais de 1 min fora) e no botão "🔄 Atualizar". A Cozinha continua com o detector próprio. */
+     ao voltar para o app (mais de 1 min fora), no botão "🔄 Atualizar" e no timer de 3 min. A Cozinha continua com o detector próprio. */
   document.addEventListener('visibilitychange', ()=>{ if(!document.hidden && Date.now()-ultimaSyncMs > 60000 && currentUser) sincronizarEmSegundoPlano(); });
+  /* Timer de 3 min: só atualiza com o app visível, logado e quando nada está sendo feito (venda, formulário, janela aberta).
+     Se não for seguro agora, simplesmente pula e tenta na próxima rodada. A Cozinha usa o detector próprio. */
+  setInterval(()=>{
+    if(!currentUser || document.hidden || currentUser.nivel==='Cozinha') return;
+    if(Date.now()-ultimaSyncMs < SYNC_INTERVALO_MS - 10000) return; // já atualizou há pouco (botão, volta ao app, detector)
+    sincronizarEmSegundoPlano(); // já confere apiConfigurada() e seguroParaSincronizar()
+  }, SYNC_INTERVALO_MS);
+}
+/* Pedidos e Entregas agora são uma aba só: dois painéis dentro de Pedidos (Entregador vê só Entregas; Cozinha e Garçom só Pedidos). */
+let _painelPedidosAtual = 'pedidos';
+function pedidosPainel_(qual){
+  _painelPedidosAtual = qual;
+  const ped = document.getElementById('pedidosPainelPedidos'), ent = document.getElementById('pedidosPainelEntregas');
+  if(ped) ped.style.display = qual==='pedidos' ? '' : 'none';
+  if(ent) ent.style.display = qual==='entregas' ? '' : 'none';
+  const bp = document.getElementById('pedSubPedidos'), be = document.getElementById('pedSubEntregas');
+  if(bp) bp.classList.toggle('active', qual==='pedidos');
+  if(be) be.classList.toggle('active', qual==='entregas');
+}
+function abrirPedidosPainel_(qual){ const b = document.querySelector('[data-tab=pedidos]'); if(b) b.click(); pedidosPainel_(qual); }
+const _alertaPed_ = { pedidos:false, entregas:false };
+function _atualizarAlertaPedidos_(){
+  const t = document.querySelector('[data-tab=pedidos]'); if(t) t.classList.toggle('has-alert', _alertaPed_.pedidos || _alertaPed_.entregas);
+  const bp = document.getElementById('pedSubPedidos'), be = document.getElementById('pedSubEntregas');
+  if(bp) bp.classList.toggle('has-alert', _alertaPed_.pedidos);
+  if(be) be.classList.toggle('has-alert', _alertaPed_.entregas);
 }
 function seguroParaSincronizar(){
   if(usuarioNoMeioDeFormulario) return false;
@@ -6722,6 +6947,7 @@ function renderVisaoGeral(){
    impedia que as telas seguintes (como a da Cozinha) fossem desenhadas. */
 function _desenhar(fn){ try{ fn(); }catch(e){ console.warn('Falha ao desenhar uma tela:', e); } }
 function renderizarTudo(){
+  _desenhar(()=>renderInicio());
   _desenhar(()=>renderVisaoGeral()); _desenhar(()=>renderRelatorio());
   _desenhar(()=>renderDesempenhoEntregas());
   if(!formaPrecoAtual && formasPagamento.length) formaPrecoAtual = (formasPagamento.find(f=>f.ativa) || formasPagamento[0]).id;
