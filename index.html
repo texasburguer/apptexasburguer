@@ -28,8 +28,9 @@
   .cd-banner h1{color:var(--gold);font-size:26px;margin:6px 0 2px;letter-spacing:1px;}
   .cd-banner .kicker{color:var(--muted);font-size:11px;letter-spacing:2px;}
   .cd-banner .frase{color:var(--cream);font-size:13px;margin-top:8px;}
-  .cd-categorias{display:flex;flex-wrap:wrap;gap:8px;padding:4px 2px 12px;}
-  .cd-categorias button{flex:0 0 auto;background:var(--panel-2);border:1px solid var(--line);color:var(--muted);padding:9px 16px;border-radius:20px;font-size:13px;font-weight:600;white-space:nowrap;cursor:pointer;}
+  .cd-categorias{display:flex;flex-wrap:nowrap;gap:8px;padding:8px 2px 10px;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none;position:sticky;top:0;z-index:20;background:var(--bg);border-bottom:1px solid var(--line);margin-bottom:6px;scroll-snap-type:x proximity;}
+  .cd-categorias::-webkit-scrollbar{display:none;}
+  .cd-categorias button{flex:0 0 auto;scroll-snap-align:start;background:var(--panel-2);border:1px solid var(--line);color:var(--muted);padding:9px 16px;border-radius:20px;font-size:13px;font-weight:600;white-space:nowrap;cursor:pointer;}
   .cd-categorias button.active{background:var(--gold);color:#241a10;border-color:var(--gold);}
   .cd-secao-titulo{font-size:15px;font-weight:700;color:var(--cream);margin:18px 2px 8px;}
   .cd-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
@@ -83,8 +84,8 @@
   header.brand .userbar button{background:var(--panel-2);border:1px solid var(--line);color:var(--muted);padding:4px 10px;border-radius:20px;font-size:11px;cursor:pointer;}
 
   /* Menus em colunas (sem rolagem lateral): todos os botões aparecem de uma vez, soltos e arredondados, sem cara de tabela */
-  nav.tabs{display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:8px;background:transparent;border:none;padding:0;margin-bottom:18px;}
-  nav.tabs button{background:var(--panel-2);border:1px solid var(--line);color:var(--muted);font-size:13px;font-weight:600;padding:10px 8px;border-radius:12px;cursor:pointer;white-space:normal;line-height:1.2;text-align:center;position:relative;min-height:46px;}
+  nav.tabs{display:grid;grid-template-columns:repeat(auto-fit,minmax(104px,1fr));gap:6px;background:transparent;border:none;padding:0;margin-bottom:18px;}
+  nav.tabs button{background:var(--panel-2);border:1px solid var(--line);color:var(--muted);font-size:12px;font-weight:600;padding:6px 6px;border-radius:10px;cursor:pointer;white-space:normal;line-height:1.15;text-align:center;position:relative;min-height:36px;}
   nav.tabs button.active{background:var(--red);border-color:var(--red);color:var(--cream);}
   nav.tabs button.hidden-tab{display:none;}
   nav.tabs button .dot{position:absolute;top:5px;right:5px;width:7px;height:7px;border-radius:50%;background:var(--gold);display:none;}
@@ -93,8 +94,8 @@
   section.tab{display:none;}
   section.tab.active{display:block;}
 
-  .admin-subnav{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-bottom:16px;}
-  .admin-subnav button{background:var(--panel-2);border:1px solid var(--line);color:var(--muted);padding:9px 8px;border-radius:12px;font-size:12px;font-weight:600;cursor:pointer;white-space:normal;line-height:1.2;text-align:center;min-height:44px;}
+  .admin-subnav{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:6px;margin-bottom:14px;}
+  .admin-subnav button{background:var(--panel-2);border:1px solid var(--line);color:var(--muted);padding:6px 6px;border-radius:10px;font-size:11.5px;font-weight:600;cursor:pointer;white-space:normal;line-height:1.15;text-align:center;min-height:34px;}
   .admin-subnav button.active{background:var(--gold);color:#241a10;border-color:var(--gold);}
 
   .card{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:16px;margin-bottom:16px;}
@@ -430,6 +431,7 @@
     <div class="modal-header"><h2 id="cdItemNome">Item</h2><button class="close-btn" onclick="fecharCdItemModal()">✕</button></div>
     <p class="sub" id="cdItemDesc"></p>
     <div id="cdItemAdicionais"></div>
+    <div id="cdItemAvisoAdic" class="obs-line" style="display:none;margin-top:10px;color:var(--gold);">ℹ️ Os adicionais escolhidos valem para todos os lanches desta quantidade. Para personalizar cada um, adicione-os separadamente.</div>
     <div class="cd-qtd-row" style="margin-top:14px;">
       <div class="cd-qtd-ctrl">
         <button onclick="alterarQtdCdItem(-1)">−</button>
@@ -553,7 +555,6 @@
         <button class="atalho-btn atalho-pedidos" onclick="abrirPedidosPainel_('pedidos')">📋 Ver Pedidos</button>
         <button class="atalho-btn" onclick="abrirPedidosPainel_('entregas')">🛵 Entregas</button>
         <button class="atalho-btn" onclick="document.querySelector('[data-tab=clientes]').click()">👤 Clientes</button>
-        <button class="atalho-btn" onclick="abrirAjuda()">❓ Ajuda</button>
       </div>
     </div>
   </section>
@@ -5547,7 +5548,7 @@ Admin:{ nome:'Administrador', secoes:[
     comuns:['Entregador não aparece na escolha de entregas: o usuário está inativo ou não tem o perfil Entregador.','Funcionário esqueceu a senha: só você troca, não existe “esqueci minha senha”.','Você esqueceu a sua: rode redefinirSenhaAdminEmergencia no editor do Apps Script; ele gera uma senha temporária.'] },
   { t:'Cadastrar produtos e estoque', passos:['Administrador → Produtos e Estoque → “Cadastrar produto”.','Informe nome, categoria, preço e custo (a margem aparece sozinha). O preço vale para todas as formas de pagamento.','Só abra “⚙️ Opções avançadas” para preço diferente numa forma (ex.: iFood) ou para a ficha técnica (ingredientes).','Se o item tem estoque próprio (bebida, por exemplo), marque a opção e informe quantidade e mínimo.'],
     comuns:['“Importar cardápio inicial” só precisa rodar uma vez; o que já existe pelo nome não é duplicado.','Cada venda baixa o estoque pela ficha técnica. Ingrediente no mínimo gera aviso em Notificações, sem bloquear a venda.'] },
-  { t:'Cardápio Digital, promoções e eventos', itens:['Cardápio Digital: escolha o que aparece para o cliente, destaques, ordem e frase de abertura. “Mais Pedidos” é automático.','O cardápio só recebe pedidos com o caixa aberto; fechado, o cliente vê “Estamos fechados no momento”.','Promoções: cupons. Eventos: custos e recebimentos de cada evento. Custos e Precificação: simulador para achar o preço certo.'] },
+  { t:'Cardápio Digital, promoções e eventos', itens:['Cardápio Digital: escolha o que aparece para o cliente, destaques, ordem e frase de abertura. “Mais Pedidos” é automático. As categorias aparecem numa faixa fixa no topo do cardápio do cliente (deslize para o lado).','Se o cliente pedir mais de 1 lanche com adicionais, os adicionais valem para todos; o cardápio avisa isso. Para lanches diferentes, ele adiciona separado.','O cardápio só recebe pedidos com o caixa aberto; fechado, o cliente vê “Estamos fechados no momento”.','Promoções: cupons. Eventos: custos e recebimentos de cada evento. Custos e Precificação: simulador para achar o preço certo.'] },
   { t:'Caixa: abrir, vender e fechar', passos:['Aba Caixa → “Abrir caixa” e informe o fundo de troco.','Em “Iniciar venda”: 1. Cliente (cadastrado ou “Venda sem cadastro”; Retirada, Entrega ou Mesa) → 2. Itens → 3. Pagamento → 4. Finalizar.','Depois escolha 58mm, 80mm ou A4 e toque em Imprimir, Copiar ou WhatsApp.','Para encerrar, feche o caixa, informe o dinheiro contado e confira a diferença.'],
     comuns:['“Abra o caixa antes de registrar uma venda”: abra o caixa primeiro.','“A soma dos pagamentos precisa bater com o total”: ajuste os valores ao dividir o pagamento.','O desconto nunca pode zerar a venda. Você lança desconto sem digitar senha; o Caixa precisa da sua.'] },
   { t:'Pedidos e entregas', passos:['Pedido do Cardápio chega como “novo — aguardando aceite”: toque em “✅ Aceitar” ou “❌ Rejeitar”.','Quando o pedido ficar “Pronta” (retirada ou entrega) ou “Saiu para entrega”, e o cliente tiver telefone, toque em “📲 Avisar cliente”: abre o WhatsApp com a mensagem pronta e você só envia. Depois aparece “✔ avisado às…”.','Avance com “Marcar como…”: Em preparo → Pronta → Retirada (Servida, se for mesa).','Em Entregas, escolha o entregador no campo “Entregador” do pedido; ele avança até “Entregue”.','“⏸ Suspender” pausa o pedido (pede motivo) e “▶️ Retomar pedido” volta.','Venda “A Receber” só entra no caixa quando você toca em “marcar como recebido”.'],
@@ -7196,6 +7197,7 @@ function abrirCdItemModal(tipo, id){
   document.getElementById('cdItemNome').textContent = item.nome;
   document.getElementById('cdItemDesc').textContent = item.descricao || '';
   document.getElementById('cdItemQtd').textContent = '1';
+  { const av = document.getElementById('cdItemAvisoAdic'); if(av) av.style.display = 'none'; }
   const cont = document.getElementById('cdItemAdicionais');
   cont.innerHTML = adicionaisDoItem.length ? ('<div class="cd-secao-titulo" style="margin-top:6px;">Adicionais</div>' +
     adicionaisDoItem.map(a=>`<label class="cd-adicional-linha"><span><input type="checkbox" data-adid="${a.id}" onchange="toggleCdAdicional('${a.id}')"> ${escH(a.nome)}</span><span>+ ${cdFormatarPreco(a.preco)}</span></label>`).join('')) : '';
@@ -7208,13 +7210,20 @@ function toggleCdAdicional(adId){
   const ad = cdItemAtual.adicionaisDisponiveis.find(a=>a.id===adId);
   const idx = cdItemAtual.adicionaisEscolhidos.findIndex(a=>a.id===adId);
   if(idx>=0) cdItemAtual.adicionaisEscolhidos.splice(idx,1); else cdItemAtual.adicionaisEscolhidos.push(ad);
+  atualizarAvisoAdicionaisCd_();
   atualizarCdItemTotal();
 }
 function alterarQtdCdItem(delta){
   if(!cdItemAtual) return;
   cdItemAtual.qtd = Math.max(1, cdItemAtual.qtd + delta);
   document.getElementById('cdItemQtd').textContent = cdItemAtual.qtd;
+  atualizarAvisoAdicionaisCd_();
   atualizarCdItemTotal();
+}
+/* Aviso: com mais de 1 unidade e adicionais marcados, eles valem para todas as unidades. */
+function atualizarAvisoAdicionaisCd_(){
+  const el = document.getElementById('cdItemAvisoAdic'); if(!el) return;
+  el.style.display = (cdItemAtual && cdItemAtual.qtd > 1 && cdItemAtual.adicionaisDisponiveis.length) ? 'block' : 'none';
 }
 function atualizarCdItemTotal(){
   if(!cdItemAtual) return;
