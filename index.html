@@ -930,6 +930,14 @@
         </div>
       </div>
       <div class="cz-status" id="czStatus">Detector iniciando…</div>
+      <div class="cz-status" id="czTela" style="white-space:pre-line;margin-top:2px;"></div>
+      <button type="button" class="ghost" id="czTelaBtn" style="display:none;margin-top:6px;" onclick="manterTelaLigada_()">📱 Manter a tela ligada</button>
+      <div class="btnrow" style="margin:8px 0 0;flex-wrap:wrap;align-items:center;">
+        <button type="button" class="ghost" onclick="imprimirNovosCozinha(false)">🖨️ Imprimir novos</button>
+        <select id="czComandaFmt" style="width:auto;" onchange="salvarFormato('comanda', this.value)"><option value="80mm">80mm</option><option value="58mm">58mm</option></select>
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;"><input type="checkbox" id="czComandaAuto" style="width:auto;margin:0;" onchange="alternarComandaAuto(this.checked)"> Imprimir sozinho quando chegar pedido</label>
+      </div>
+      <div class="cz-status" id="czComandaMsg"></div>
       <div class="cz-grid" style="margin-top:10px;">
         <div class="cz-col"><h3>🆕 Novos <span id="czNovosN"></span></h3><div id="czNovos"></div></div>
         <div class="cz-col"><h3>🔥 Em preparo <span id="czPrepN"></span></h3><div id="czPreparo"></div></div>
@@ -3433,6 +3441,43 @@ function tempoEntre(ts1, ts2){
   const h = Math.floor(min/60), m = min%60;
   return h+'h'+(m?m+'min':'');
 }
+/* ETAPA H: avisar o cliente do andamento do pedido pelo WhatsApp (wa.me, mensagem pronta). Não é envio automático: a API oficial do
+   WhatsApp Business exige conta Meta, modelos aprovados e custo. Quem avisa é o Admin/Caixa, que toca no botão e confirma no WhatsApp. */
+const AVISOS_CLIENTE_KEY_ = 'txbAvisosCliente';
+function telefoneWhatsApp_(tel){
+  const d = normTel(tel);
+  if(/^\d{10,11}$/.test(d)) return '55'+d;          // DDD + número
+  if(/^55\d{10,11}$/.test(d)) return d;             // já vem com o 55
+  return null;
+}
+function lerAvisosCliente_(){ try{ return JSON.parse(localStorage.getItem(AVISOS_CLIENTE_KEY_)||'{}'); }catch(e){ return {}; } }
+function mensagemStatusCliente_(v){
+  const nome = String(v.clienteNome||'').trim().split(/\s+/)[0];
+  const ola = 'Olá'+(nome ? ', '+nome : '')+'! ';
+  const n = rotuloPedido(v);
+  if(v.statusPedido==='Pronta' && v.tipoEntrega==='Retirada') return ola+'Seu pedido #'+n+' na Texas Burger está pronto para retirada. 🍔 Pode vir buscar!';
+  if(v.statusPedido==='Pronta' && v.tipoEntrega==='Entrega') return ola+'Seu pedido #'+n+' na Texas Burger está pronto e já vai sair para entrega. 🛵';
+  if(v.statusPedido==='Saiu para entrega') return ola+'Seu pedido #'+n+' da Texas Burger saiu para entrega. 🛵 Logo chega até você!';
+  return null;
+}
+function podeAvisarCliente_(){ return !!(currentUser && (currentUser.nivel==='Admin' || currentUser.nivel==='Operador')); }
+function botaoAvisarCliente_(v){
+  if(!podeAvisarCliente_() || v.status!=='Confirmada' || v.tipoEntrega==='Mesa') return '';
+  if(!mensagemStatusCliente_(v) || !telefoneWhatsApp_(v.clienteTelefone)) return '';
+  const feito = lerAvisosCliente_()[v.id+'|'+v.statusPedido];
+  const hora = feito ? new Date(feito).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) : '';
+  return `<div class="btnrow" style="margin-top:6px;align-items:center;"><button type="button" class="ghost" onclick="avisarClienteWhatsApp('${v.id}')">📲 ${feito?'Avisar de novo':'Avisar cliente'}</button>${feito?`<span class="obs-line" style="margin:0;">✔ avisado às ${hora}</span>`:''}</div>`;
+}
+function avisarClienteWhatsApp(vendaId){
+  const v = vendas.find(x=>x.id===vendaId); if(!v || !podeAvisarCliente_()) return;
+  const msg = mensagemStatusCliente_(v), fone = telefoneWhatsApp_(v.clienteTelefone);
+  if(!msg || !fone){ alert('Este pedido não tem telefone válido ou não está em um status que se avisa ao cliente.'); return; }
+  try{ const a = lerAvisosCliente_(); a[v.id+'|'+v.statusPedido] = Date.now();
+    const chaves = Object.keys(a); if(chaves.length>200) chaves.sort((x,y)=>a[x]-a[y]).slice(0,chaves.length-200).forEach(k=>delete a[k]);
+    localStorage.setItem(AVISOS_CLIENTE_KEY_, JSON.stringify(a)); }catch(e){}
+  window.open('https://wa.me/'+fone+'?text='+encodeURIComponent(msg), '_blank');
+  renderPedidos(); renderEntregas();
+}
 function renderPedidos(){
   renderCozinha();
   const pendentes = vendas.filter(v=>v.status==='Confirmada' && (v.tipoEntrega==='Retirada' || v.tipoEntrega==='Mesa') &&
@@ -3455,6 +3500,7 @@ function renderPedidos(){
         <div class="obs-line">${itensDoPedido(v.id)}</div>
         ${botaoOcorrenciaPedido(v)}
         <div class="obs-line">Status: <b>${v.statusPedido}</b> — há ${tempoDecorridoDesde(v.timestamp)}</div>
+        ${botaoAvisarCliente_(v)}
         ${aReceber}
         ${botoesAceite}
         ${jaFinalizado ? '' : botoesSuspensao(v)}
@@ -3503,7 +3549,52 @@ function cardCozinha_(v, acao){
     ${itens}${obs}
     ${botaoOcorrenciaPedido(v)}
     ${acao||''}
+    <button type="button" class="ghost" style="margin-top:6px;" onclick="imprimirComandaPedido('${v.id}')">🖨️ Comanda</button>
   </div>`;
+}
+/* ETAPA G: comanda impressa na cozinha. Botão por pedido, "Imprimir novos" (um único trabalho de impressão, uma comanda por página)
+   e, opcional, impressão automática. Sem toque só funciona com o navegador em modo quiosque de impressão; senão o aparelho pergunta. */
+const COMANDAS_KEY_ = 'txbComandasImpressas', COMANDA_AUTO_KEY_ = 'txbComandaAuto';
+function comandasImpressas_(){ try{ return JSON.parse(localStorage.getItem(COMANDAS_KEY_)||'[]'); }catch(e){ return []; } }
+function comandaJaImpressa_(id){ return comandasImpressas_().indexOf(id)!==-1; }
+function marcarComandasImpressas_(ids){ try{ const a = comandasImpressas_(); ids.forEach(id=>{ if(a.indexOf(id)===-1) a.push(id); }); localStorage.setItem(COMANDAS_KEY_, JSON.stringify(a.slice(-300))); }catch(e){} }
+function comandaAuto_(){ try{ return localStorage.getItem(COMANDA_AUTO_KEY_)==='1'; }catch(e){ return false; } }
+function pedidosNovosCozinha_(){
+  const limite = Date.now() - 24*3600*1000;
+  return vendas.filter(v=>v.status==='Confirmada' && v.timestamp>=limite && (v.statusPedido==='Recebido' || (v.statusPedido==='Em preparo' && !v.timestampInicioPreparo))).sort((a,b)=>a.timestamp-b.timestamp);
+}
+function comandaHtml_(v){
+  const itens = itensVenda.filter(it=>it.vendaId===v.id).map(it=>{
+    const ad = (it.adicionaisIds||[]).map(id=>{ const a = adicionais.find(x=>x.id===id); return a ? a.nome : ''; }).filter(Boolean);
+    return `<div style="font-size:1.25em;margin-top:5px;"><b>${escR(it.quantidade)}x</b> ${escR(it.descricao)}</div>` + (ad.length ? `<div>&nbsp;&nbsp;+ ${escR(ad.join(', '))}</div>` : '');
+  }).join('') || '<div>(itens não carregados — confira na tela)</div>';
+  const destino = v.tipoEntrega==='Mesa' ? 'MESA '+nomeMesa(v.mesaId) : (v.tipoEntrega==='Entrega' ? 'ENTREGA' : 'RETIRADA'+(v.clienteNome ? ' · '+v.clienteNome : ''));
+  const hora = new Date(v.timestamp).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  return `<h4>COMANDA #${escR(rotuloPedido(v))}</h4><div class="sub-c"><b>${escR(destino)}</b></div><div class="sub-c">${escR(hora)} · ${escR(v.origem||'Balcão')}</div><hr>${itens}` +
+    (v.observacoesEntrega ? `<hr><div><b>OBS:</b> ${escR(v.observacoesEntrega)}</div>` : '') + '<hr>';
+}
+function imprimirComandas_(lista){
+  const corpo = lista.map(comandaHtml_).join('<div style="page-break-after:always;break-after:page;"></div>');
+  imprimirDocumento(corpo, 'Comanda', lerFormato('comanda','80mm'));
+}
+function avisoComanda_(t){ const el = document.getElementById('czComandaMsg'); if(el) el.textContent = t; }
+function imprimirComandaPedido(vendaId){
+  const v = vendas.find(x=>x.id===vendaId); if(!v) return;
+  marcarComandasImpressas_([v.id]); imprimirComandas_([v]);
+  avisoComanda_('🖨️ Comanda #'+rotuloPedido(v)+' enviada à impressora.');
+}
+function imprimirNovosCozinha(auto){
+  const lista = pedidosNovosCozinha_().filter(v=>!comandaJaImpressa_(v.id) && (!auto || Date.now()-v.timestamp < 3600000));
+  if(!lista.length){ if(!auto) avisoComanda_('Nenhuma comanda nova para imprimir.'); return; }
+  marcarComandasImpressas_(lista.map(v=>v.id)); imprimirComandas_(lista);
+  avisoComanda_('🖨️ '+lista.length+' comanda(s) enviada(s) à impressora às '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})+'.');
+}
+function alternarComandaAuto(ligado){
+  try{ localStorage.setItem(COMANDA_AUTO_KEY_, ligado ? '1' : '0'); }catch(e){}
+  if(ligado){
+    marcarComandasImpressas_(pedidosNovosCozinha_().map(v=>v.id)); // só imprime o que chegar daqui para frente
+    avisoComanda_('Ligado: imprime sozinho só os pedidos que chegarem a partir de agora. Para imprimir sem perguntar, o navegador precisa estar em modo quiosque de impressão; senão o aparelho abre a tela de impressão a cada pedido.');
+  } else avisoComanda_('Impressão automática desligada. Use “Imprimir novos” ou o botão de cada pedido.');
 }
 function renderCozinha(){
   if(!souCozinha_() || !document.getElementById('czNovos')) return;
@@ -3520,6 +3611,8 @@ function renderCozinha(){
   document.getElementById('czPrepN').textContent = preparo.length ? '('+preparo.length+')' : '';
   document.getElementById('czProntosN').textContent = prontos.length ? '('+prontos.length+')' : '';
   const dot = document.getElementById('pedidosDot'); if(dot) dot.parentElement.classList.toggle('has-alert', novos.length>0);
+  const fm = document.getElementById('czComandaFmt'); if(fm) fm.value = lerFormato('comanda','80mm');
+  const au = document.getElementById('czComandaAuto'); if(au) au.checked = comandaAuto_();
 }
 async function cozinhaIniciar(vendaId){
   const chave = 'iniciar-preparo-'+vendaId;
@@ -3540,6 +3633,7 @@ function atualizarStatusDetector_(erro){
   if(btn) btn.textContent = cozinhaSomLigado ? '🔊 Som: ligado' : '🔇 Som: desligado';
   if(!el) return;
   el.textContent = erro ? '⚠️ Sem conexão com a planilha — tentando de novo em 30 s.' : (cozinhaUltimaChecagem ? '🔔 Detector ligado · última verificação às '+cozinhaUltimaChecagem.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',second:'2-digit'}) : 'Detector iniciando…');
+  atualizarTelaLigadaUI_();
 }
 function beepCozinha_(){ if(!cozinhaSomLigado) return; somAlerta_(); }
 
@@ -3549,7 +3643,7 @@ function beepCozinha_(){ if(!cozinhaSomLigado) return; somAlerta_(); }
    áudio sozinho, no meio da busca automática; (2) só a Cozinha tinha bipe — Caixa e Administrador não tinham nenhum;
    (3) com a tela apagada o navegador pausa a página e a busca para.
    ============================================================ */
-let _audioCtx = null, _wakeLock = null;
+let _audioCtx = null, _wakeLock = null, telaLigadaEstado_ = 'verificando', _wlUltimaTentativa = 0, _czLacuna = null, _czOcultoDesde = 0;
 function audioCtx_(){ try{ if(!_audioCtx) _audioCtx = new (window.AudioContext||window.webkitAudioContext)(); return _audioCtx; }catch(e){ return null; } }
 function desbloquearAudio_(){
   const ctx = audioCtx_(); if(!ctx) return;
@@ -3593,13 +3687,40 @@ function avisarNovoPedido_(qtd){
   alertaVisualCozinha_(qtd);
   mostrarNotificacao_('🍔 Novo pedido!', qtd>1 ? qtd+' pedidos novos esperando.' : 'Chegou um pedido novo.');
 }
+/* ETAPA E: mantém a tela ligada e MOSTRA se está funcionando. Se o sistema soltar o bloqueio com a página visível (economia de
+   bateria, por exemplo), tenta de novo uma vez; o vigia de 30 s do detector tenta outra vez. Sem suporte, orienta a configurar o aparelho. */
 async function manterTelaLigada_(){
   try{
-    if(!('wakeLock' in navigator) || document.hidden) return;
-    if(_wakeLock && !_wakeLock.released) return;
-    _wakeLock = await navigator.wakeLock.request('screen');
-    _wakeLock.addEventListener('release', ()=>{ _wakeLock = null; });
-  }catch(e){}
+    if(!('wakeLock' in navigator)){ telaLigadaEstado_ = 'nao-suportada'; atualizarTelaLigadaUI_(); return; }
+    if(document.hidden) return;
+    if(_wakeLock && !_wakeLock.released){ telaLigadaEstado_ = 'ativa'; atualizarTelaLigadaUI_(); return; }
+    _wlUltimaTentativa = Date.now();
+    const lock = await navigator.wakeLock.request('screen');
+    _wakeLock = lock; telaLigadaEstado_ = 'ativa';
+    lock.addEventListener('release', ()=>{
+      if(_wakeLock === lock) _wakeLock = null;
+      telaLigadaEstado_ = 'inativa'; atualizarTelaLigadaUI_();
+      if(!document.hidden) setTimeout(()=>{ if(Date.now()-_wlUltimaTentativa > 5000) manterTelaLigada_(); }, 1000);
+    });
+  }catch(e){ _wakeLock = null; telaLigadaEstado_ = 'inativa'; }
+  atualizarTelaLigadaUI_();
+}
+function atualizarTelaLigadaUI_(){
+  const el = document.getElementById('czTela'); if(!el) return;
+  const btn = document.getElementById('czTelaBtn');
+  const linhas = []; let aviso = false;
+  if(telaLigadaEstado_==='ativa') linhas.push('📱 Tela mantida ligada');
+  else if(telaLigadaEstado_==='nao-suportada'){ linhas.push('⚠️ Este navegador não mantém a tela ligada sozinho. Nas configurações do aparelho, deixe o apagamento de tela em “Nunca” e o carregador ligado.'); aviso = true; }
+  else if(telaLigadaEstado_==='inativa'){ linhas.push('⚠️ A tela NÃO está sendo mantida ligada: ela pode apagar e o detector para de buscar pedidos novos.'); aviso = true; }
+  else linhas.push('📱 Verificando o bloqueio de tela…');
+  if(_czLacuna){ linhas.push('⏸ A tela ficou apagada ou em outro app por '+_czLacuna+' min. Verificando os pedidos desse período…'); aviso = true; }
+  else if(cozinhaUltimaChecagem && !document.hidden){
+    const minSem = Math.floor((Date.now()-cozinhaUltimaChecagem.getTime())/60000);
+    if(minSem >= 2){ linhas.push('⚠️ Sem verificação há '+minSem+' min. Toque em “Verificar agora”.'); aviso = true; }
+  }
+  el.textContent = linhas.join('\n');
+  el.style.color = aviso ? 'var(--gold)' : '';
+  if(btn) btn.style.display = (telaLigadaEstado_==='inativa') ? '' : 'none';
 }
 async function ativarAvisos_(){
   desbloquearAudio_();
@@ -3656,12 +3777,13 @@ async function detectarNovosCozinha_(manual){
       if(caixaVistos === null){ caixaVistos = new Set(r.recebidos); }
       else { novosCaixa = r.recebidos.filter(id=>!caixaVistos.has(id)); r.recebidos.forEach(id=>caixaVistos.add(id)); }
     }
-    cozinhaUltimaChecagem = new Date();
+    cozinhaUltimaChecagem = new Date(); _czLacuna = null;
     if(souCozinha_()){ if(novos.length){ avisarNovoPedido_(novos.length); cozinhaSyncPendente = true; } }
     else if(novosCaixa.length){ avisarNovoPedido_(novosCaixa.length); cozinhaSyncPendente = true; }
     if(cozinhaSyncPendente || (manual && souCozinha_())){
       if(seguroParaSincronizar()){ cozinhaSyncPendente = false; await sincronizarEmSegundoPlano(); }
     }
+    if(souCozinha_() && comandaAuto_()) imprimirNovosCozinha(true);
     atualizarStatusDetector_();
   } catch(e){ atualizarStatusDetector_(true); }
 }
@@ -3669,8 +3791,14 @@ function iniciarDetectorCozinha(){
   if(!souDetector_() || cozinhaTimer) return;
   atualizarStatusDetector_();
   manterTelaLigada_();
-  cozinhaTimer = setInterval(()=>detectarNovosCozinha_(false), 30000);
-  document.addEventListener('visibilitychange', ()=>{ if(!document.hidden){ detectarNovosCozinha_(false); manterTelaLigada_(); } });
+  cozinhaTimer = setInterval(()=>{ detectarNovosCozinha_(false); manterTelaLigada_(); }, 30000);
+  setInterval(atualizarTelaLigadaUI_, 15000); // recalcula o aviso de "sem verificação há N min"
+  document.addEventListener('visibilitychange', ()=>{
+    if(document.hidden){ _czOcultoDesde = Date.now(); return; }
+    const min = _czOcultoDesde ? Math.round((Date.now()-_czOcultoDesde)/60000) : 0;
+    _czOcultoDesde = 0; if(min >= 1) _czLacuna = min;
+    detectarNovosCozinha_(false); manterTelaLigada_(); atualizarTelaLigadaUI_();
+  });
   detectarNovosCozinha_(true);
 }
 
@@ -3751,6 +3879,7 @@ function renderEntregas(){
         <div class="obs-line">Total: <b>${formatarMoeda(v.valorTotal)}</b>${v.taxaEntrega>0?` · 🛵 Taxa: <b>${formatarMoeda(v.taxaEntrega)}</b>`:''}</div>
         ${endereco}${obs}${linkMaps}
         <div class="obs-line">Status: <b>${v.statusPedido}</b> — há ${tempoDecorridoDesde(v.timestamp)}</div>
+        ${botaoAvisarCliente_(v)}
         ${aReceber}
         ${botoesAceite}
         ${!souEntregador ? botoesSuspensao(v) : ''}
@@ -4624,7 +4753,7 @@ async function venderEmContingencia_(ctx){
    Um único motor para comprovantes, relatórios e fechamento de caixa. Imprime por um quadro invisível
    (não depende de pop-up, que o celular costuma bloquear) e lembra o tamanho escolhido neste aparelho. */
 const FORMATOS_IMPRESSAO = ['58mm','80mm','A4'];
-const FMT_KEYS = { comp:'txbFmtComprovante', rel:'txbFmtRelatorio' };
+const FMT_KEYS = { comp:'txbFmtComprovante', rel:'txbFmtRelatorio', comanda:'txbFmtComanda' };
 function lerFormato(k, padrao){ try{ const v = localStorage.getItem(FMT_KEYS[k]); return FORMATOS_IMPRESSAO.includes(v) ? v : padrao; }catch(e){ return padrao; } }
 function salvarFormato(k, v){ try{ localStorage.setItem(FMT_KEYS[k], v); }catch(e){} }
 function classeRecibo(f){ return 'recibo ' + (f==='A4' ? 'wA4' : (f==='58mm' ? 'w58' : 'w80')); }
@@ -5196,7 +5325,7 @@ Admin:{ nome:'Administrador', secoes:[
   { t:'Cardápio Digital, promoções e eventos', itens:['Cardápio Digital: escolha o que aparece para o cliente, destaques, ordem e frase de abertura. “Mais Pedidos” é automático.','O cardápio só recebe pedidos com o caixa aberto; fechado, o cliente vê “Estamos fechados no momento”.','Promoções: cupons. Eventos: custos e recebimentos de cada evento. Custos e Precificação: simulador para achar o preço certo.'] },
   { t:'Caixa: abrir, vender e fechar', passos:['Aba Caixa → “Abrir caixa” e informe o fundo de troco.','Em “Iniciar venda”: 1. Cliente (cadastrado ou “Venda sem cadastro”; Retirada, Entrega ou Mesa) → 2. Itens → 3. Pagamento → 4. Finalizar.','Depois escolha 58mm, 80mm ou A4 e toque em Imprimir, Copiar ou WhatsApp.','Para encerrar, feche o caixa, informe o dinheiro contado e confira a diferença.'],
     comuns:['“Abra o caixa antes de registrar uma venda”: abra o caixa primeiro.','“A soma dos pagamentos precisa bater com o total”: ajuste os valores ao dividir o pagamento.','O desconto nunca pode zerar a venda. Você lança desconto sem digitar senha; o Caixa precisa da sua.'] },
-  { t:'Pedidos e entregas', passos:['Pedido do Cardápio chega como “novo — aguardando aceite”: toque em “✅ Aceitar” ou “❌ Rejeitar”.','Avance com “Marcar como…”: Em preparo → Pronta → Retirada (Servida, se for mesa).','Em Entregas, escolha o entregador no campo “Entregador” do pedido; ele avança até “Entregue”.','“⏸ Suspender” pausa o pedido (pede motivo) e “▶️ Retomar pedido” volta.','Venda “A Receber” só entra no caixa quando você toca em “marcar como recebido”.'],
+  { t:'Pedidos e entregas', passos:['Pedido do Cardápio chega como “novo — aguardando aceite”: toque em “✅ Aceitar” ou “❌ Rejeitar”.','Quando o pedido ficar “Pronta” (retirada ou entrega) ou “Saiu para entrega”, e o cliente tiver telefone, toque em “📲 Avisar cliente”: abre o WhatsApp com a mensagem pronta e você só envia. Depois aparece “✔ avisado às…”.','Avance com “Marcar como…”: Em preparo → Pronta → Retirada (Servida, se for mesa).','Em Entregas, escolha o entregador no campo “Entregador” do pedido; ele avança até “Entregue”.','“⏸ Suspender” pausa o pedido (pede motivo) e “▶️ Retomar pedido” volta.','Venda “A Receber” só entra no caixa quando você toca em “marcar como recebido”.'],
     comuns:['Só dá para editar os itens com o pedido “Em preparo”.','Entregador esqueceu de marcar: marque você mesmo pelo botão do pedido.','Sem aviso de pedido novo: no Início, toque em “🔔 Ativar avisos” e “🔊 Testar som”. O aviso só chega com o app aberto e a tela ligada.'] },
   { t:'Taxas e fechamento de entregadores', passos:['Administrador → Taxas e Fechamento.','Defina a taxa padrão e a ajuda diária e salve.','No fechamento, escolha entregador e data, confira o total (taxas + ajuda diária) e informe o valor pago.','Confirme. A diferença fica registrada e o período fechado não muda mais, mesmo que a taxa mude depois.'],
     comuns:['A ajuda diária conta uma vez por dia e só se houve entrega.','Se a conexão cair ao fechar, confira o histórico antes de tentar de novo, para não fechar duas vezes.'] },
@@ -5215,7 +5344,7 @@ Operador:{ nome:'Caixa', secoes:[
   { t:'Abrir o caixa', passos:['Aba Caixa → “Abrir caixa”.','Informe o fundo de troco e confirme.'], comuns:['Sem caixa aberto não há venda, despesa nem sangria, e o Cardápio Digital não recebe pedidos.','“Já existe um caixa aberto”: feche o anterior antes.'] },
   { t:'Fazer uma venda', passos:['1. Cliente: busque por nome ou telefone, ou toque em “Venda sem cadastro”. Escolha Retirada, Entrega (endereço, complemento, referência) ou Mesa.','2. Itens: toque nos produtos; os adicionais abrem numa janela. Confira a contagem em “2. Itens”.','3. Pagamento: escolha a forma. Em dinheiro, informe o valor recebido e veja o troco. Para dividir, marque “Dividir pagamento”. “A Receber” deixa a venda pendente.','4. Finalizar: confira o total e finalize. Escolha 58mm, 80mm ou A4 e toque em Imprimir, Copiar ou WhatsApp.','“↺ Repetir última venda” recarrega o carrinho anterior.'],
     comuns:['“Abra o caixa antes de registrar uma venda.”','“A soma dos pagamentos precisa bater com o total”: ajuste os valores.','Desconto (% ou R$) pede a senha do administrador e nunca pode zerar a venda.'] },
-  { t:'Pedidos e entregas', passos:['Pedido do Cardápio chega como “novo — aguardando aceite”: toque em “✅ Aceitar” ou “❌ Rejeitar”.','Avance com “Marcar como…”: Em preparo → Pronta → Retirada (Servida, se for mesa).','Em Entregas, escolha o entregador no campo “Entregador”.','Venda “A Receber”: quando o cliente pagar, toque em “marcar como recebido”.','“⏸ Suspender” pausa o pedido (pede motivo) e “▶️ Retomar pedido” volta.'], comuns:['Só dá para editar os itens com o pedido “Em preparo”.','O entregador esqueceu de marcar: marque você pelo botão do pedido.','Sem aviso de pedido novo: no Início, toque em “🔔 Ativar avisos” e “🔊 Testar som”. O aviso só chega com o app aberto e a tela ligada.'] },
+  { t:'Pedidos e entregas', passos:['Pedido do Cardápio chega como “novo — aguardando aceite”: toque em “✅ Aceitar” ou “❌ Rejeitar”.','Quando o pedido ficar “Pronta” (retirada ou entrega) ou “Saiu para entrega”, e o cliente tiver telefone, toque em “📲 Avisar cliente”: abre o WhatsApp com a mensagem pronta e você só envia. Depois aparece “✔ avisado às…”.','Avance com “Marcar como…”: Em preparo → Pronta → Retirada (Servida, se for mesa).','Em Entregas, escolha o entregador no campo “Entregador”.','Venda “A Receber”: quando o cliente pagar, toque em “marcar como recebido”.','“⏸ Suspender” pausa o pedido (pede motivo) e “▶️ Retomar pedido” volta.'], comuns:['Só dá para editar os itens com o pedido “Em preparo”.','O entregador esqueceu de marcar: marque você pelo botão do pedido.','Sem aviso de pedido novo: no Início, toque em “🔔 Ativar avisos” e “🔊 Testar som”. O aviso só chega com o app aberto e a tela ligada.'] },
   { t:'Fechar a conta de uma mesa', passos:['Quando o garçom pede a conta, a mesa fica “Aguardando fechamento”.','Caixa → etapa 1 → Mesa → escolha a mesa → “💳 Fechar conta desta mesa agora”.','O caixa precisa estar aberto. Confira o total, escolha a forma de pagamento na lista e, para dividir, marque “Dividir em duas formas” e informe o valor da primeira.'], comuns:['“Abra o caixa antes de fechar a conta da mesa”: abra o caixa primeiro.','“A soma dos pagamentos não bate com a conta”: refaça com o total exato.'] },
   { t:'Editar ou cancelar uma venda', passos:['Caixa → “Lançamentos desde a abertura”.','Toque em “editar” ou “excluir”.','Cancelar pede motivo e a senha do administrador. Se o pedido já estava pronto, diga se a mercadoria foi perdida ou volta ao estoque.'] },
   { t:'Despesa e sangria', passos:['Caixa → “+ Despesa” ou “− Sangria”.','Informe valor e motivo e confirme.'], comuns:['Sangria é retirada de dinheiro do caixa e não conta como despesa.'] },
@@ -5243,8 +5372,8 @@ Operador:{ nome:'Caixa', secoes:[
  ]},
 Cozinha:{ nome:'Cozinha', secoes:[
   _aj.entrar('Início, Pedidos e Notificações'),
-  { t:'Preparar os pedidos', passos:['Aba Pedidos: três colunas, Novos, Em preparo e Prontos, com itens, adicionais e observações.','Na aba Início, toque em “🔊 Testar som” para conferir se o celular toca e em “🔔 Ativar avisos” para receber notificações.','Pedido novo chega com beep e piscada (o sistema confere a cada 30 segundos). “↻ Verificar agora” confere na hora.','Toque em “▶️ Iniciar preparo” (no pedido do Cardápio aparece “Aceitar e iniciar preparo”).','Terminou? Toque em “✅ Pronto”. O pedido espera o garçom, o entregador ou a retirada.'],
-    comuns:['Sem beep: toque em “🔊 Testar som” no Início, aumente o volume de mídia e tire o modo silencioso.','O sistema mantém a tela ligada enquanto o app está aberto. Se a tela apagar ou outro app ficar na frente, os avisos param.'] },
+  { t:'Preparar os pedidos', passos:['Aba Pedidos: três colunas, Novos, Em preparo e Prontos, com itens, adicionais e observações.','Para imprimir: toque em “🖨️ Comanda” no pedido ou em “🖨️ Imprimir novos” (todas as comandas novas de uma vez). Marque “Imprimir sozinho quando chegar pedido” para imprimir automático; para não aparecer a tela de impressão a cada pedido, o navegador do aparelho precisa estar em modo quiosque de impressão.','Na aba Início, toque em “🔊 Testar som” para conferir se o celular toca e em “🔔 Ativar avisos” para receber notificações.','Pedido novo chega com beep e piscada (o sistema confere a cada 30 segundos). “↻ Verificar agora” confere na hora.','Toque em “▶️ Iniciar preparo” (no pedido do Cardápio aparece “Aceitar e iniciar preparo”).','Terminou? Toque em “✅ Pronto”. O pedido espera o garçom, o entregador ou a retirada.'],
+    comuns:['Sem beep: toque em “🔊 Testar som” no Início, aumente o volume de mídia e tire o modo silencioso.','O sistema mantém a tela ligada enquanto o app está aberto e mostra “📱 Tela mantida ligada” na tela da Cozinha. Se aparecer o aviso “⚠️ A tela NÃO está sendo mantida ligada”, toque em “📱 Manter a tela ligada”. Se a tela apagar ou outro app ficar na frente, os avisos param: use um aparelho só para a cozinha, com o carregador ligado e o apagamento de tela em “Nunca”.'] },
   _aj.ocorr('O Administrador e o Caixa são avisados. Use para falta de ingrediente ou pedido que não pode ser produzido.'),
   { t:'Notificações', itens:['É o mural de avisos do dia a dia. Você só vê os que o Administrador liberou para a Cozinha.'] }
  ], erros:[
@@ -6434,6 +6563,33 @@ function relPorFuncionario(r, origem, vazio){
   const rows = Object.keys(g).map(k=>[nomeLogin(k), g[k].length, formatarMoeda(somaR(g[k],v=>v.valorTotal)), formatarMoeda(somaR(g[k],v=>v.valorTotal)/g[k].length)]).sort((a,b)=>b[1]-a[1]);
   return { cols:['Funcionário','Pedidos','Faturamento','Ticket médio'], rows, nota: rows.some(x=>x[0]==='(sem registro)') ? 'Vendas antigas podem aparecer como "(sem registro)" quando não houver responsável gravado no registro.' : (rows.length ? '' : vazio) };
 }
+/* ETAPA F: vendas e tempos por garçom. Tempos = MEDIANA em minutos (um pedido esquecido aberto por horas não distorce o resultado).
+   "Até ficar pronto" depende da cozinha; "Pronto → servido" é o tempo do garçom levar à mesa; "Até o pagamento" vai do pedido ao recebimento. */
+function medianaMin_(ms){
+  const a = ms.filter(x=>x!=null && x>=0).map(x=>Math.round(x/60000)).sort((x,y)=>x-y);
+  if(!a.length) return null;
+  const m = Math.floor(a.length/2); return a.length%2 ? a[m] : Math.round((a[m-1]+a[m])/2);
+}
+function fmtMinR_(m){ if(m==null) return '—'; if(m<60) return m+' min'; return Math.floor(m/60)+'h'+(m%60 ? String(m%60).padStart(2,'0')+'min' : ''); }
+function temposGarcom_(vs){
+  const d = (a,b)=> (a && b) ? (b-a) : null;
+  return [
+    fmtMinR_(medianaMin_(vs.map(v=>d(v.timestamp, v.timestampPronta)))),
+    fmtMinR_(medianaMin_(vs.map(v=>d(v.timestampPronta, v.timestampConcluida)))),
+    fmtMinR_(medianaMin_(vs.filter(v=>v.statusPagamento==='Pago').map(v=>d(v.timestamp, v.timestampRecebimento))))
+  ];
+}
+function relGarcons_(r){
+  const vs = r.vs.filter(v=>(v.origem||'Balcão')==='Garçom');
+  const g = grp(vs, v=>v.registradoPor||'');
+  const linha = (nome, a)=>[nome, a.length, formatarMoeda(somaR(a,v=>v.valorTotal)), formatarMoeda(somaR(a,v=>v.valorTotal)/a.length)].concat(temposGarcom_(a));
+  const rows = Object.keys(g).map(k=>({ k, n:g[k].length, l:linha(nomeLogin(k), g[k]) })).sort((a,b)=>b.n-a.n).map(x=>x.l);
+  const nota = ['Tempos = mediana por pedido; pedidos sem o horário gravado ficam de fora. “Até ficar pronto” depende da cozinha; “Pronto → servido” é o tempo do garçom até a mesa.'];
+  if(rows.some(x=>x[0]==='(sem registro)')) nota.push('Vendas antigas podem aparecer como "(sem registro)" quando não houver responsável gravado.');
+  if(!rows.length) nota.unshift('Nenhum pedido de garçom no período.');
+  return { cols:['Garçom','Pedidos','Faturamento','Ticket médio','Até ficar pronto','Pronto → servido','Até o pagamento'], rows,
+    total: rows.length>1 ? linha('Total', vs) : undefined, nota: nota.join(' ') };
+}
 const REL = {
   vendasDia:{ g:'Vendas e pedidos', t:'Vendas por dia', f:(p,r)=>{ const g = grp(r.vs, v=>dataLocalISO(new Date(v.timestamp)));
     const rows = Object.keys(g).sort().map(k=>[fmtDiaISO(k), g[k].length, formatarMoeda(somaR(g[k],v=>v.valorTotal)), formatarMoeda(somaR(g[k],v=>v.valorTotal)/g[k].length)]);
@@ -6478,7 +6634,7 @@ const REL = {
     return { cols:['Cliente','Pedidos','Total','Ticket médio','Último'], rows, nota:'Vendas sem cliente identificado: '+(r.vs.length-com.length)+' de '+r.vs.length+'.' }; } },
   fidelidade:{ g:'Clientes', t:'Fidelidade (carimbos e prêmios)', f:()=>{ const rows = fidelidadeClientes.slice().sort((a,b)=>(Number(b.carimbos)||0)-(Number(a.carimbos)||0)).slice(0,30).map(f=>[f.nome, f.carimbos||0, f.premios||0]);
     return { cols:['Cliente','Carimbos','Prêmios resgatados'], rows, nota:'Posição de hoje — não depende do período escolhido.' }; } },
-  garcons:{ g:'Equipe e mesas', t:'Vendas por garçom', f:(p,r)=>relPorFuncionario(r, 'Garçom', 'Nenhum pedido de garçom no período.') },
+  garcons:{ g:'Equipe e mesas', t:'Vendas e tempos por garçom', f:(p,r)=>relGarcons_(r) },
   operadores:{ g:'Equipe e mesas', t:'Vendas por operador de caixa', f:(p,r)=>relPorFuncionario(r, 'Balcão', 'Nenhuma venda de balcão no período.') },
   mesas:{ g:'Equipe e mesas', t:'Mesas', f:(p,r)=>{ const g = grp(r.vs.filter(v=>v.tipoEntrega==='Mesa'), v=>{ const m = mesas.find(x=>x.id===v.mesaId); return m ? 'Mesa '+m.numero : '(mesa removida)'; });
     const rows = Object.keys(g).sort((a,b)=>g[b].length-g[a].length).map(k=>[k, g[k].length, formatarMoeda(somaR(g[k],v=>v.valorTotal)), formatarMoeda(somaR(g[k],v=>v.valorTotal)/g[k].length)]);
