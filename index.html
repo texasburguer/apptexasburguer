@@ -32,6 +32,18 @@
   .cd-categorias::-webkit-scrollbar{display:none;}
   .cd-categorias button{flex:0 0 auto;scroll-snap-align:start;background:var(--panel-2);border:1px solid var(--line);color:var(--muted);padding:9px 16px;border-radius:20px;font-size:13px;font-weight:600;white-space:nowrap;cursor:pointer;}
   .cd-categorias button.active{background:var(--gold);color:#241a10;border-color:var(--gold);}
+  .btn-mesas{position:relative;}
+  .btn-mesas.has-alert::after{content:'';position:absolute;top:4px;right:4px;width:9px;height:9px;border-radius:50%;background:var(--gold);box-shadow:0 0 0 2px var(--panel);}
+  .mesa-card{background:var(--panel-2);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:8px;}
+  .mesa-card.aguardando{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold-dim) inset;}
+  .mesa-cab{display:flex;justify-content:space-between;align-items:center;gap:8px;}
+  .mesa-badge{font-size:11px;font-weight:700;padding:3px 9px;border-radius:12px;}
+  .mesa-badge.b-aguard{background:var(--gold);color:#241a10;} .mesa-badge.b-ocup{background:var(--red-dim);color:var(--cream);}
+  .mesa-total{font-size:20px;font-weight:700;color:var(--gold);margin:4px 0 6px;}
+  .mesa-det{margin-top:8px;border-top:1px solid var(--line);padding-top:6px;font-size:12.5px;color:var(--cream);}
+  .mesa-det div{padding:3px 0;}
+  .mesa-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;} .mesa-chips span{background:var(--panel);border:1px solid var(--line);color:var(--muted);border-radius:14px;padding:4px 10px;font-size:12px;}
+  .cd-card.esgotado{opacity:.6;} .cd-card.esgotado img{filter:grayscale(1);}
   .cd-secao-titulo{font-size:15px;font-weight:700;color:var(--cream);margin:18px 2px 8px;}
   .cd-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
   @keyframes cdPulse{0%{opacity:.55;}50%{opacity:1;}100%{opacity:.55;}}
@@ -431,6 +443,7 @@
     <div class="modal-header"><h2 id="cdItemNome">Item</h2><button class="close-btn" onclick="fecharCdItemModal()">✕</button></div>
     <p class="sub" id="cdItemDesc"></p>
     <div id="cdItemAdicionais"></div>
+    <input type="text" id="cdItemObs" maxlength="100" placeholder="Observação (ex.: sem cebola, ponto da carne)" style="margin-top:10px;width:100%;">
     <div id="cdItemAvisoAdic" class="obs-line" style="display:none;margin-top:10px;color:var(--gold);">ℹ️ Os adicionais escolhidos valem para todos os lanches desta quantidade. Para personalizar cada um, adicione-os separadamente.</div>
     <div class="cd-qtd-row" style="margin-top:14px;">
       <div class="cd-qtd-ctrl">
@@ -537,7 +550,7 @@
 
   <nav class="tabs">
     <button class="tab-btn active" data-tab="inicio" data-entregador-ok="1">Início</button>
-    <button class="tab-btn" data-tab="caixa">Caixa</button>
+    <button class="tab-btn" data-tab="caixa">Caixa<span class="dot"></span></button>
     <button class="tab-btn" data-tab="pedidos" data-entregador-ok="1">Pedidos<span class="dot" id="pedidosDot"></span></button>
     <button class="tab-btn" data-tab="clientes">Clientes</button>
     <button class="tab-btn" data-tab="notificacoes">Notificações<span class="dot" id="notifDot"></span></button>
@@ -554,6 +567,7 @@
         <button class="atalho-btn" onclick="document.querySelector('[data-tab=caixa]').click()">🧾 Abrir Caixa</button>
         <button class="atalho-btn atalho-pedidos" onclick="abrirPedidosPainel_('pedidos')">📋 Ver Pedidos</button>
         <button class="atalho-btn" onclick="abrirPedidosPainel_('entregas')">🛵 Entregas</button>
+        <button class="atalho-btn btn-mesas" id="atalhoMesas" style="display:none;" onclick="abrirMesasPopup_()">🍽️ Mesas</button>
         <button class="atalho-btn" onclick="document.querySelector('[data-tab=clientes]').click()">👤 Clientes</button>
       </div>
     </div>
@@ -808,6 +822,7 @@
     <div class="card-header caixa-topo">
       <h2 style="margin:0;">Caixa</h2>
       <div class="caixa-topo-btns">
+        <button type="button" class="ghost btn-mesas" id="btnMesasCaixa" style="display:none;" onclick="abrirMesasPopup_()">🍽️ Mesas</button>
         <button type="button" class="ghost" id="caixaStatusBtn" onclick="abrirCaixaStatus_()">🔒 Caixa fechado</button>
         <button type="button" class="ghost" id="caixaLancBtn" onclick="abrirLancamentos_()">🧾 Lançamentos</button>
         <button class="calc-btn" onclick="abrirCalculadora()" title="Calculadora">🧮</button>
@@ -1740,6 +1755,15 @@
 </div>
 
 <!-- MODAL FECHAR CONTA DA MESA (ETAPA A) -->
+<div class="modal-overlay" id="mesasModal">
+  <div class="modal-box">
+    <div class="modal-header"><h2>🍽️ Mesas</h2><button class="close-btn" onclick="fecharMesasPopup_()" aria-label="Fechar">✕</button></div>
+    <div class="obs-line" id="mesasResumo"></div>
+    <div id="mesasLista" style="margin-top:8px;"></div>
+    <div class="msg" id="mesasMsg"></div>
+    <div class="btnrow" style="margin-top:8px;"><button class="ghost" onclick="atualizarMesasPopup_(true)">↻ Atualizar</button></div>
+  </div>
+</div>
 <div class="modal-overlay" id="fcmModal">
   <div class="modal-box">
     <div class="modal-header"><h2 id="fcmTitulo">Fechar conta</h2><button class="close-btn" onclick="fecharModalFecharConta()">✕</button></div>
@@ -3680,7 +3704,9 @@ function souGarcom_(){ return !!(currentUser && currentUser.nivel==='Garçom'); 
 function cardCozinha_(v, acao){
   const itens = itensVenda.filter(it=>it.vendaId===v.id).map(it=>{
     const ad = (it.adicionaisIds||[]).map(id=>{ const a = adicionais.find(x=>x.id===id); return a ? a.nome : ''; }).filter(Boolean);
-    return `<div class="cz-item"><b>${it.quantidade}x</b> ${escOc_(it.descricao)}${ad.length?`<div class="cz-ad">+ ${escOc_(ad.join(', '))}</div>`:''}</div>`;
+    const _d = String(it.descricao||''), _k = _d.indexOf(' — Obs: ');
+    const descHtml = _k<0 ? escOc_(_d) : escOc_(_d.slice(0,_k)) + `<div class="cz-obs">📝 ${escOc_(_d.slice(_k+8))}</div>`;
+    return `<div class="cz-item"><b>${it.quantidade}x</b> ${descHtml}${ad.length?`<div class="cz-ad">+ ${escOc_(ad.join(', '))}</div>`:''}</div>`;
   }).join('');
   const destino = v.tipoEntrega==='Mesa' ? '🍽️ Mesa '+escOc_(nomeMesa(v.mesaId)) : (v.tipoEntrega==='Entrega' ? '🛵 Entrega' : '🥡 Retirada'+(v.clienteNome?' · '+escOc_(v.clienteNome):''));
   const min = Math.floor((Date.now()-v.timestamp)/60000);
@@ -3709,7 +3735,7 @@ function pedidosNovosCozinha_(){
 function comandaHtml_(v){
   const itens = itensVenda.filter(it=>it.vendaId===v.id).map(it=>{
     const ad = (it.adicionaisIds||[]).map(id=>{ const a = adicionais.find(x=>x.id===id); return a ? a.nome : ''; }).filter(Boolean);
-    return `<div style="font-size:1.25em;margin-top:5px;"><b>${escR(it.quantidade)}x</b> ${escR(it.descricao)}</div>` + (ad.length ? `<div>&nbsp;&nbsp;+ ${escR(ad.join(', '))}</div>` : '');
+    return `<div style="font-size:1.25em;margin-top:5px;"><b>${escR(it.quantidade)}x</b> ${escR(it.descricao).replace(' — Obs: ','<br>&nbsp;&nbsp;📝 ')}</div>` + (ad.length ? `<div>&nbsp;&nbsp;+ ${escR(ad.join(', '))}</div>` : '');
   }).join('') || '<div>(itens não carregados — confira na tela)</div>';
   const destino = v.tipoEntrega==='Mesa' ? 'MESA '+nomeMesa(v.mesaId) : (v.tipoEntrega==='Entrega' ? 'ENTREGA' : 'RETIRADA'+(v.clienteNome ? ' · '+v.clienteNome : ''));
   const hora = new Date(v.timestamp).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
@@ -4217,7 +4243,7 @@ function renderInicio(){
     const ocup = (mesas||[]).filter(m=>m.status==='Ocupada').length;
     const aguard = (mesas||[]).filter(m=>m.status==='Aguardando fechamento').length;
     const contaMesas = vendas.filter(v=>v.status==='Confirmada' && v.tipoEntrega==='Mesa' && v.statusPagamento==='A Receber').reduce((t,v)=>t+(Number(v.valorTotal)||0),0);
-    blocos.push(`<button type="button" class="resumo-box ${aguard?'atencao':''}" ${clique("document.querySelector('[data-tab=caixa]').click()")}><span class="rot">Mesas</span><b>${ocup+aguard} de ${(mesas||[]).length}</b><small>${ocup} ocupada(s)${aguard?' · '+aguard+' pedindo a conta':''}</small></button>`);
+    blocos.push(`<button type="button" class="resumo-box ${aguard?'atencao':''}" ${clique("abrirMesasPopup_()")}><span class="rot">Mesas</span><b>${ocup+aguard} de ${(mesas||[]).length}</b><small>${ocup} ocupada(s)${aguard?' · '+aguard+' pedindo a conta':''}</small></button>`);
     if(staff) blocos.push(`<div class="resumo-box"><span class="rot">Contas das mesas</span><b>${fmt(contaMesas)}</b><small>a receber no caixa</small></div>`);
   }
   if(staff){
@@ -4519,14 +4545,15 @@ let fcmTotal = 0, fcmMesaId = '', fcmOcupado = false;
 function fcmOpcoesForma_(excluirId){
   return formasPagamento.filter(f=>f.ativa && f.id!==excluirId).map(f=>`<option value="${f.id}">${escH(f.nome)}</option>`).join('');
 }
-function fecharContaMesaUI(){
-  const mesaId = document.getElementById('vMesaSelect').value;
-  if(!mesaId){ showMsg('vMsg','Escolha a mesa primeiro.','warn'); return; }
+function fecharContaMesaUI(mesaIdParam, msgIdParam){
+  const msgId = msgIdParam || 'vMsg';
+  const mesaId = mesaIdParam || document.getElementById('vMesaSelect').value;
+  if(!mesaId){ showMsg(msgId,'Escolha a mesa primeiro.','warn'); return; }
   const mesa = mesas.find(m=>m.id===mesaId);
   const vendasDaMesa = vendas.filter(v=>v.mesaId===mesaId && v.status==='Confirmada' && v.statusPagamento==='A Receber');
   if(!vendasDaMesa.length){ if(confirm('Essa mesa não tem conta pendente. Liberar a mesa mesmo assim?')){ mudarStatusMesa(mesaId,'Livre'); } return; }
-  if(!sessaoCaixa){ showMsg('vMsg','Abra o caixa antes de fechar a conta da mesa.','warn'); return; }
-  if(!formasPagamento.some(f=>f.ativa)){ showMsg('vMsg','Não há forma de pagamento ativa. Cadastre uma em Administrador → Financeiro.','warn'); return; }
+  if(!sessaoCaixa){ showMsg(msgId,'Abra o caixa antes de fechar a conta da mesa.','warn'); return; }
+  if(!formasPagamento.some(f=>f.ativa)){ showMsg(msgId,'Não há forma de pagamento ativa. Cadastre uma em Administrador → Financeiro.','warn'); return; }
   fcmMesaId = mesaId;
   fcmTotal = Math.round(vendasDaMesa.reduce((s,v)=>s+v.valorTotal,0)*100)/100;
   document.getElementById('fcmTitulo').textContent = 'Fechar conta — Mesa '+(mesa?mesa.numero:'');
@@ -4576,10 +4603,104 @@ async function confirmarFecharConta(){
   fcmOcupado = true; document.getElementById('fcmBtn').disabled = true; msg.textContent = 'Fechando a conta...';
   try{
     const r = await apiCall('fecharContaMesa', { mesaId: fcmMesaId, pagamentos });
-    if(r && r.ok){ vendas = r.vendas||vendas; mesas = r.mesas||mesas; salvarCache(); renderMesasPickerCaixa(); renderMesas(); renderVendas(); fecharModalFecharConta(); showMsg('vMsg', r.message, 'ok'); }
+    if(r && r.ok){ vendas = r.vendas||vendas; mesas = r.mesas||mesas; salvarCache(); renderMesasPickerCaixa(); renderMesas(); renderVendas(); fecharModalFecharConta(); showMsg('vMsg', r.message, 'ok'); showMsg('mesasMsg', r.message, 'ok'); renderMesasPopup_(); atualizarAlertaMesas_(); }
     else { msg.textContent = (r && r.message) || 'Não foi possível fechar a conta.'; fcmOcupado = false; document.getElementById('fcmBtn').disabled = false; }
   } catch(e){ msg.textContent = 'Não foi possível fechar a conta agora. Confira a conexão e tente de novo.'; fcmOcupado = false; document.getElementById('fcmBtn').disabled = false; }
 }
+/* ---------- POP-UP "MESAS" (Etapa 3) ----------
+   Visão das mesas para quem cobra: quem pediu a conta aparece primeiro e em destaque, com total em tempo real.
+   Operador/Admin fecham a conta (mesma janela de pagamento de sempre); o garçom vê só as dele e pode pedir o fechamento. */
+let _mesasPopupTimer = null, _mesasAguardandoVistas = null, _mesasDetAbertos = new Set(), _mesasAtualizando = false;
+function souStaffCaixa_(){ return !!(currentUser && (currentUser.nivel==='Admin' || currentUser.nivel==='Operador')); }
+function podeVerMesas_(){ return !!(currentUser && ['Admin','Operador','Garçom'].indexOf(currentUser.nivel)!==-1); }
+function mesasVisiveis_(){
+  const todas = mesas || [];
+  if(souGarcom_()) return todas.filter(m=>m.status!=='Livre' && String(m.garcomResponsavel||'').toLowerCase()===String(currentUser.login).toLowerCase());
+  return todas;
+}
+function contaDaMesa_(mesaId){
+  const pedidos = (vendas||[]).filter(v=>v.mesaId===mesaId && v.status==='Confirmada' && v.statusPagamento==='A Receber');
+  return { pedidos, total: arred2(pedidos.reduce((s,v)=>s+Number(v.valorTotal||0),0)), desde: pedidos.length ? Math.min.apply(null, pedidos.map(v=>v.timestamp||Date.now())) : 0 };
+}
+function renderMesasPopup_(){
+  const box = document.getElementById('mesasLista'); if(!box || !podeVerMesas_()) return;
+  const staff = souStaffCaixa_();
+  const vis = mesasVisiveis_();
+  const ordem = { 'Aguardando fechamento': 0, 'Ocupada': 1 };
+  const ativas = vis.filter(m=>ordem[m.status]!==undefined).map(m=>({ m, c: contaDaMesa_(m.id) }))
+    .sort((a,b)=> (ordem[a.m.status]-ordem[b.m.status]) || ((a.c.desde||Infinity)-(b.c.desde||Infinity)));
+  const livres = vis.filter(m=>m.status==='Livre');
+  const aguard = ativas.filter(x=>x.m.status==='Aguardando fechamento').length;
+  const totalReceber = arred2(ativas.reduce((s,x)=>s+x.c.total,0));
+  const resumo = document.getElementById('mesasResumo');
+  if(resumo) resumo.textContent = (aguard ? aguard+' pedindo a conta · ' : '') + (ativas.length-aguard) + ' ocupada(s) · a receber ' + formatarMoeda(totalReceber);
+  let html = '';
+  ativas.forEach(({m,c})=>{
+    const ag = m.status==='Aguardando fechamento';
+    const aberto = _mesasDetAbertos.has(m.id);
+    const botoes = [];
+    if(c.pedidos.length) botoes.push(`<button class="ghost" style="width:auto;padding:8px 12px;" onclick="alternarDetalheMesa_('${m.id}')">${aberto?'Ocultar pedidos':'Ver pedidos'}</button>`);
+    if(staff) botoes.push(c.pedidos.length ? `<button class="small-gold" style="width:auto;padding:8px 14px;" onclick="fecharContaMesaUI('${m.id}','mesasMsg')">💳 Fechar conta</button>` : `<button class="ghost" style="width:auto;padding:8px 12px;" onclick="fecharContaMesaUI('${m.id}','mesasMsg')">Liberar mesa</button>`);
+    else if(m.status==='Ocupada') botoes.push(`<button class="small-gold" style="width:auto;padding:8px 14px;" onclick="garcomPedirFechamentoMesa_('${m.id}')">Pedir fechamento</button>`);
+    const det = aberto ? `<div class="mesa-det">${c.pedidos.slice().sort((a,b)=>(a.timestamp||0)-(b.timestamp||0)).map(v=>`<div>#${escH(rotuloPedido(v))} · ${new Date(v.timestamp).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})} · ${itensDoPedido(v.id)} · <b>${formatarMoeda(v.valorTotal)}</b>${v.statusPedido?' · '+escH(v.statusPedido):''}</div>`).join('')}</div>` : '';
+    html += `<div class="mesa-card${ag?' aguardando':''}">
+      <div class="mesa-cab"><b>Mesa ${escH(m.numero)}</b><span class="mesa-badge ${ag?'b-aguard':'b-ocup'}">${ag?'Pediu a conta':'Ocupada'}</span></div>
+      <div class="obs-line">${m.garcomResponsavel?'👤 '+escH(m.garcomResponsavel)+' · ':''}${c.desde?'⏱ '+tempoDecorridoDesde(c.desde)+' · ':''}${c.pedidos.length} pedido(s)</div>
+      <div class="mesa-total">${formatarMoeda(c.total)}</div>
+      <div class="btnrow" style="margin:0;flex-wrap:wrap;">${botoes.join('')}</div>${det}
+    </div>`;
+  });
+  if(!ativas.length) html = '<div class="notif-empty">Nenhuma mesa ocupada agora.</div>';
+  if(livres.length) html += `<div class="obs-line" style="margin-top:10px;">Livres:</div><div class="mesa-chips">${livres.map(m=>`<span>${escH(m.numero)}</span>`).join('')}</div>`;
+  box.innerHTML = html;
+}
+function alternarDetalheMesa_(id){ if(_mesasDetAbertos.has(id)) _mesasDetAbertos.delete(id); else _mesasDetAbertos.add(id); renderMesasPopup_(); }
+/* Atualiza SÓ mesas, pedidos e caixa — não mexe em preços/produtos, então é seguro mesmo com uma venda em andamento. */
+async function atualizarMesasPopup_(manual){
+  if(_mesasAtualizando || !apiConfigurada()) return;
+  _mesasAtualizando = true;
+  try{
+    const d = await apiCall('getAll', {});
+    if(d && d.mesas){ mesas = d.mesas; vendas = d.vendas || vendas; itensVenda = d.itensVenda || itensVenda; pagamentosVenda = d.pagamentosVenda || pagamentosVenda; sessaoCaixa = d.sessaoCaixa || null; }
+    renderMesasPopup_(); atualizarAlertaMesas_();
+    if(manual) showMsg('mesasMsg','Atualizado.','ok');
+  }catch(e){ if(manual) showMsg('mesasMsg','Sem conexão — mostrando os últimos dados.','warn'); }
+  finally{ _mesasAtualizando = false; }
+}
+function abrirMesasPopup_(){
+  if(!podeVerMesas_()) return;
+  showMsg('mesasMsg','','');
+  renderMesasPopup_();
+  document.getElementById('mesasModal').classList.add('open');
+  atualizarMesasPopup_(false);
+  clearInterval(_mesasPopupTimer);
+  _mesasPopupTimer = setInterval(()=>{ if(document.visibilityState==='visible') atualizarMesasPopup_(false); }, 30000);
+}
+function fecharMesasPopup_(){ document.getElementById('mesasModal').classList.remove('open'); clearInterval(_mesasPopupTimer); _mesasPopupTimer = null; }
+async function garcomPedirFechamentoMesa_(id){
+  const m = (mesas||[]).find(x=>x.id===id);
+  if(!m || m.status!=='Ocupada'){ showMsg('mesasMsg','Só dá para pedir o fechamento de uma mesa ocupada.','warn'); return; }
+  if(!confirm('Pedir o fechamento da mesa '+m.numero+'? O caixa vai receber a conta.')) return;
+  try{
+    const r = await apiCall('editarStatusMesa', { id: m.id, novoStatus: 'Aguardando fechamento' });
+    if(r.ok){ mesas = r.mesas || mesas; salvarCache(); renderMesasPickerCaixa(); renderMesas(); renderMesasPopup_(); showMsg('mesasMsg','Fechamento da mesa '+m.numero+' solicitado ao caixa.','ok'); }
+    else showMsg('mesasMsg', r.message || 'Não foi possível pedir o fechamento.', 'warn');
+  } catch(e){ showMsg('mesasMsg','Sem conexão — o fechamento não foi solicitado.','warn'); }
+}
+/* Ponto de aviso (aba Caixa, botão Mesas) + som/notificação quando uma mesa NOVA pede a conta. */
+function atualizarAlertaMesas_(){
+  const visivel = podeVerMesas_(), staff = souStaffCaixa_();
+  ['btnMesasCaixa','atalhoMesas'].forEach(id=>{ const el = document.getElementById(id); if(el) el.style.display = visivel ? '' : 'none'; });
+  const aguard = staff ? (mesas||[]).filter(m=>m.status==='Aguardando fechamento') : [];
+  const tab = document.querySelector('[data-tab=caixa]'); if(tab) tab.classList.toggle('has-alert', aguard.length>0);
+  ['btnMesasCaixa','atalhoMesas'].forEach(id=>{ const el = document.getElementById(id); if(el) el.classList.toggle('has-alert', aguard.length>0); });
+  const ids = aguard.map(m=>m.id);
+  if(_mesasAguardandoVistas===null){ _mesasAguardandoVistas = new Set(ids); return; } // primeira leitura: só registra, não apita
+  const novas = aguard.filter(m=>!_mesasAguardandoVistas.has(m.id));
+  _mesasAguardandoVistas = new Set(ids);
+  if(novas.length){ try{ somAlerta_(); mostrarNotificacao_('🍽️ Conta pedida', 'Mesa '+novas.map(m=>m.numero).join(', ')+' pediu a conta.'); }catch(e){} }
+}
+
 function limparCamposEntrega(){
   tipoEntregaAtual = 'Retirada';
   setTipoEntrega('Retirada');
@@ -5548,8 +5669,8 @@ Admin:{ nome:'Administrador', secoes:[
     comuns:['Entregador não aparece na escolha de entregas: o usuário está inativo ou não tem o perfil Entregador.','Funcionário esqueceu a senha: só você troca, não existe “esqueci minha senha”.','Você esqueceu a sua: rode redefinirSenhaAdminEmergencia no editor do Apps Script; ele gera uma senha temporária.'] },
   { t:'Cadastrar produtos e estoque', passos:['Administrador → Produtos e Estoque → “Cadastrar produto”.','Informe nome, categoria, preço e custo (a margem aparece sozinha). O preço vale para todas as formas de pagamento.','Só abra “⚙️ Opções avançadas” para preço diferente numa forma (ex.: iFood) ou para a ficha técnica (ingredientes).','Se o item tem estoque próprio (bebida, por exemplo), marque a opção e informe quantidade e mínimo.'],
     comuns:['“Importar cardápio inicial” só precisa rodar uma vez; o que já existe pelo nome não é duplicado.','Cada venda baixa o estoque pela ficha técnica. Ingrediente no mínimo gera aviso em Notificações, sem bloquear a venda.'] },
-  { t:'Cardápio Digital, promoções e eventos', itens:['Cardápio Digital: escolha o que aparece para o cliente, destaques, ordem e frase de abertura. “Mais Pedidos” é automático. As categorias aparecem numa faixa fixa no topo do cardápio do cliente (deslize para o lado).','Se o cliente pedir mais de 1 lanche com adicionais, os adicionais valem para todos; o cardápio avisa isso. Para lanches diferentes, ele adiciona separado.','O cardápio só recebe pedidos com o caixa aberto; fechado, o cliente vê “Estamos fechados no momento”.','Promoções: cupons. Eventos: custos e recebimentos de cada evento. Custos e Precificação: simulador para achar o preço certo.'] },
-  { t:'Caixa: abrir, vender e fechar', passos:['Aba Caixa → “Abrir caixa” e informe o fundo de troco.','Em “Iniciar venda”: 1. Cliente (cadastrado ou “Venda sem cadastro”; Retirada, Entrega ou Mesa) → 2. Itens → 3. Pagamento → 4. Finalizar.','Depois escolha 58mm, 80mm ou A4 e toque em Imprimir, Copiar ou WhatsApp.','Para encerrar, feche o caixa, informe o dinheiro contado e confira a diferença.'],
+  { t:'Cardápio Digital, promoções e eventos', itens:['Cardápio Digital: escolha o que aparece para o cliente, destaques, ordem e frase de abertura. “Mais Pedidos” é automático. As categorias aparecem numa faixa fixa no topo do cardápio do cliente (deslize para o lado).','Se o cliente pedir mais de 1 lanche com adicionais, os adicionais valem para todos; o cardápio avisa isso. Para lanches diferentes, ele adiciona separado.','O cliente pode escrever uma observação em cada item (ex.: “sem cebola”); ela aparece na comanda da cozinha e no pedido.','Item “Esgotado”: se “bloquear venda sem estoque” estiver ligado (Produtos e Estoque), o cardápio mostra “Esgotado” no que o estoque não cobre mais.','O cardápio abre rápido porque guarda uma cópia: mudanças suas aparecem para o cliente em instantes (no máximo ~10 min se você editar direto na planilha).','O cardápio só recebe pedidos com o caixa aberto; fechado, o cliente vê “Estamos fechados no momento”.','Promoções: cupons. Eventos: custos e recebimentos de cada evento. Custos e Precificação: simulador para achar o preço certo.'] },
+  { t:'Caixa: abrir, vender e fechar', passos:['Aba Caixa → “Abrir caixa” e informe o fundo de troco.','Em “Iniciar venda”: 1. Cliente (cadastrado ou “Venda sem cadastro”; Retirada, Entrega ou Mesa) → 2. Itens → 3. Pagamento → 4. Finalizar.','Depois escolha 58mm, 80mm ou A4 e toque em Imprimir, Copiar ou WhatsApp.','Para encerrar, feche o caixa, informe o dinheiro contado e confira a diferença.','Mesas: o botão “🍽️ Mesas” mostra todas as mesas, quem pediu a conta e permite fechar a conta e cobrar.'],
     comuns:['“Abra o caixa antes de registrar uma venda”: abra o caixa primeiro.','“A soma dos pagamentos precisa bater com o total”: ajuste os valores ao dividir o pagamento.','O desconto nunca pode zerar a venda. Você lança desconto sem digitar senha; o Caixa precisa da sua.'] },
   { t:'Pedidos e entregas', passos:['Pedido do Cardápio chega como “novo — aguardando aceite”: toque em “✅ Aceitar” ou “❌ Rejeitar”.','Quando o pedido ficar “Pronta” (retirada ou entrega) ou “Saiu para entrega”, e o cliente tiver telefone, toque em “📲 Avisar cliente”: abre o WhatsApp com a mensagem pronta e você só envia. Depois aparece “✔ avisado às…”.','Avance com “Marcar como…”: Em preparo → Pronta → Retirada (Servida, se for mesa).','Em Entregas, escolha o entregador no campo “Entregador” do pedido; ele avança até “Entregue”.','“⏸ Suspender” pausa o pedido (pede motivo) e “▶️ Retomar pedido” volta.','Venda “A Receber” só entra no caixa quando você toca em “marcar como recebido”.'],
     comuns:['Só dá para editar os itens com o pedido “Em preparo”.','Entregador esqueceu de marcar: marque você mesmo pelo botão do pedido.','Sem aviso de pedido novo: no Início, toque em “🔔 Ativar avisos” e “🔊 Testar som”. O aviso só chega com o app aberto e a tela ligada.'] },
@@ -5571,7 +5692,7 @@ Operador:{ nome:'Caixa', secoes:[
   { t:'Fazer uma venda', passos:['1. Cliente: busque por nome ou telefone, ou toque em “Venda sem cadastro”. Escolha Retirada, Entrega (endereço, complemento, referência) ou Mesa.','2. Itens: toque nos produtos; os adicionais abrem numa janela. Confira a contagem em “2. Itens”.','3. Pagamento: escolha a forma. Em dinheiro, informe o valor recebido e veja o troco. Para dividir, marque “Dividir pagamento”. “A Receber” deixa a venda pendente.','4. Finalizar: confira o total e finalize. Escolha 58mm, 80mm ou A4 e toque em Imprimir, Copiar ou WhatsApp.','“↺ Repetir última venda” recarrega o carrinho anterior.'],
     comuns:['“Abra o caixa antes de registrar uma venda.”','“A soma dos pagamentos precisa bater com o total”: ajuste os valores.','Desconto (% ou R$) pede a senha do administrador e nunca pode zerar a venda.'] },
   { t:'Pedidos e entregas', passos:['Pedido do Cardápio chega como “novo — aguardando aceite”: toque em “✅ Aceitar” ou “❌ Rejeitar”.','Quando o pedido ficar “Pronta” (retirada ou entrega) ou “Saiu para entrega”, e o cliente tiver telefone, toque em “📲 Avisar cliente”: abre o WhatsApp com a mensagem pronta e você só envia. Depois aparece “✔ avisado às…”.','Avance com “Marcar como…”: Em preparo → Pronta → Retirada (Servida, se for mesa).','Em Entregas, escolha o entregador no campo “Entregador”.','Venda “A Receber”: quando o cliente pagar, toque em “marcar como recebido”.','“⏸ Suspender” pausa o pedido (pede motivo) e “▶️ Retomar pedido” volta.'], comuns:['Só dá para editar os itens com o pedido “Em preparo”.','O entregador esqueceu de marcar: marque você pelo botão do pedido.','Sem aviso de pedido novo: no Início, toque em “🔔 Ativar avisos” e “🔊 Testar som”. O aviso só chega com o app aberto e a tela ligada.'] },
-  { t:'Fechar a conta de uma mesa', passos:['Quando o garçom pede a conta, a mesa fica “Aguardando fechamento”.','Caixa → etapa 1 → Mesa → escolha a mesa → “💳 Fechar conta desta mesa agora”.','O caixa precisa estar aberto. Confira o total, escolha a forma de pagamento na lista e, para dividir, marque “Dividir em duas formas” e informe o valor da primeira.'], comuns:['“Abra o caixa antes de fechar a conta da mesa”: abra o caixa primeiro.','“A soma dos pagamentos não bate com a conta”: refaça com o total exato.'] },
+  { t:'Fechar a conta de uma mesa', passos:['Quando o garçom pede a conta, a mesa fica “Aguardando fechamento”.','Toque em “🍽️ Mesas” (no topo do Caixa ou na tela Início). Quem pediu a conta aparece primeiro, em destaque, e o botão ganha um pontinho de aviso (com som, se estiver ativado em Avisos).','Em cada mesa você vê garçom, tempo, pedidos e o total. “Ver pedidos” mostra o detalhe; “💳 Fechar conta” abre o pagamento.','O caixa precisa estar aberto. Confira o total, escolha a forma de pagamento na lista e, para dividir, marque “Dividir em duas formas” e informe o valor da primeira.'], comuns:['“Abra o caixa antes de fechar a conta da mesa”: abra o caixa primeiro.','“A soma dos pagamentos não bate com a conta”: refaça com o total exato.'] },
   { t:'Editar ou cancelar uma venda', passos:['Caixa → “Lançamentos desde a abertura”.','Toque em “editar” ou “excluir”.','Cancelar pede motivo e a senha do administrador. Se o pedido já estava pronto, diga se a mercadoria foi perdida ou volta ao estoque.'] },
   { t:'Despesa e sangria', passos:['Caixa → “+ Despesa” ou “− Sangria”.','Informe valor e motivo e confirme.'], comuns:['Sangria é retirada de dinheiro do caixa e não conta como despesa.'] },
   { t:'Fechar o caixa', passos:['Caixa → fechar caixa.','Informe o dinheiro contado.','Confira o total por forma de pagamento, despesas, sangrias e a diferença; copie ou envie por WhatsApp.'], comuns:['Ao tocar em “Sair” com o caixa aberto, o sistema pergunta se você quer mesmo sair.'] },
@@ -5587,7 +5708,7 @@ Operador:{ nome:'Caixa', secoes:[
   _aj.entrar('Início, Caixa, Pedidos e Clientes'),
   { t:'Lançar pedido de uma mesa', passos:['Aba Caixa → etapa “1. Cliente” → escolha a mesa. Se estiver Livre, toque em “Abrir mesa”.','Vá em “2. Itens”, toque nos itens e escolha os adicionais.','Toque em “Enviar para a cozinha”. Repita quantas vezes o cliente pedir mais.'],
     comuns:['“A mesa N está … — não aceita novos itens”: ela já está aguardando fechamento.','“Esta mesa está sob responsabilidade de outro garçom”: a mesa é de quem a abriu; peça ao Caixa.','Você só lança pedido de mesa, sem desconto e sem receber pagamento.'] },
-  { t:'Pedir a conta', passos:['Caixa → escolha a mesa.','Toque em “Pedir fechamento” e confirme.','A mesa passa para “Aguardando fechamento”; o pagamento é recebido pelo Caixa.'], comuns:['Só dá para pedir fechamento de mesa “Ocupada”.'] },
+  { t:'Pedir a conta', passos:['Caixa → escolha a mesa (ou toque em “🍽️ Mesas”, veja as suas e use “Pedir fechamento”).','Toque em “Pedir fechamento” e confirme.','A mesa passa para “Aguardando fechamento”; o pagamento é recebido pelo Caixa.'], comuns:['Só dá para pedir fechamento de mesa “Ocupada”.'] },
   { t:'Acompanhar e servir', passos:['Aba Pedidos: veja o andamento de cada pedido.','Quando estiver “Pronta”, leve à mesa e toque em “Marcar como “Servida””.'] },
   { t:'Clientes', passos:['Aba Clientes → “+ Novo cliente”.','Só nome e telefone são obrigatórios.'] },
   _aj.ocorr('O Administrador é avisado e resolve.')
@@ -5598,7 +5719,7 @@ Operador:{ nome:'Caixa', secoes:[
  ]},
 Cozinha:{ nome:'Cozinha', secoes:[
   _aj.entrar('Início, Pedidos e Notificações'),
-  { t:'Preparar os pedidos', passos:['Aba Pedidos: três colunas, Novos, Em preparo e Prontos, com itens, adicionais e observações.','Para imprimir: toque em “🖨️ Comanda” no pedido ou em “🖨️ Imprimir novos” (todas as comandas novas de uma vez). Marque “Imprimir sozinho quando chegar pedido” para imprimir automático; para não aparecer a tela de impressão a cada pedido, o navegador do aparelho precisa estar em modo quiosque de impressão.','Na aba Início, toque em “🔊 Testar som” para conferir se o celular toca e em “🔔 Ativar avisos” para receber notificações.','Pedido novo chega com beep e piscada (o sistema confere a cada 30 segundos). “↻ Verificar agora” confere na hora.','Toque em “▶️ Iniciar preparo” (no pedido do Cardápio aparece “Aceitar e iniciar preparo”).','Terminou? Toque em “✅ Pronto”. O pedido espera o garçom, o entregador ou a retirada.'],
+  { t:'Preparar os pedidos', passos:['Aba Pedidos: três colunas, Novos, Em preparo e Prontos, com itens, adicionais e observações.','Observação do cliente em um item (ex.: “sem cebola”) aparece em destaque com 📝 abaixo do item.','Para imprimir: toque em “🖨️ Comanda” no pedido ou em “🖨️ Imprimir novos” (todas as comandas novas de uma vez). Marque “Imprimir sozinho quando chegar pedido” para imprimir automático; para não aparecer a tela de impressão a cada pedido, o navegador do aparelho precisa estar em modo quiosque de impressão.','Na aba Início, toque em “🔊 Testar som” para conferir se o celular toca e em “🔔 Ativar avisos” para receber notificações.','Pedido novo chega com beep e piscada (o sistema confere a cada 30 segundos). “↻ Verificar agora” confere na hora.','Toque em “▶️ Iniciar preparo” (no pedido do Cardápio aparece “Aceitar e iniciar preparo”).','Terminou? Toque em “✅ Pronto”. O pedido espera o garçom, o entregador ou a retirada.'],
     comuns:['Sem beep: toque em “🔊 Testar som” no Início, aumente o volume de mídia e tire o modo silencioso.','O sistema mantém a tela ligada enquanto o app está aberto e mostra “📱 Tela mantida ligada” na tela da Cozinha. Se aparecer o aviso “⚠️ A tela NÃO está sendo mantida ligada”, toque em “📱 Manter a tela ligada”. Se a tela apagar ou outro app ficar na frente, os avisos param: use um aparelho só para a cozinha, com o carregador ligado e o apagamento de tela em “Nunca”.'] },
   _aj.ocorr('O Administrador e o Caixa são avisados. Use para falta de ingrediente ou pedido que não pode ser produzido.'),
   { t:'Notificações', itens:['É o mural de avisos do dia a dia. Você só vê os que o Administrador liberou para a Cozinha.'] }
@@ -6440,7 +6561,7 @@ async function registrarMesa(){
   } catch(e){ showMsg('mesaMsg','Não foi possível cadastrar.','warn'); }
 }
 async function mudarStatusMesa(id, novoStatus){
-  try{ const r = await apiCall('editarStatusMesa', { id, novoStatus }); if(r.ok){ mesas = r.mesas || mesas; salvarCache(); renderMesas(); renderMesasPickerCaixa(); } }
+  try{ const r = await apiCall('editarStatusMesa', { id, novoStatus }); if(r.ok){ mesas = r.mesas || mesas; salvarCache(); renderMesas(); renderMesasPickerCaixa(); renderMesasPopup_(); atualizarAlertaMesas_(); } }
   catch(e){ showMsg('mesaMsg','Não foi possível atualizar.','warn'); }
 }
 async function excluirMesaConfirm(id){
@@ -6949,6 +7070,7 @@ function renderVisaoGeral(){
 function _desenhar(fn){ try{ fn(); }catch(e){ console.warn('Falha ao desenhar uma tela:', e); } }
 function renderizarTudo(){
   _desenhar(()=>renderInicio());
+  _desenhar(()=>renderMesasPopup_()); _desenhar(()=>atualizarAlertaMesas_());
   _desenhar(()=>renderVisaoGeral()); _desenhar(()=>renderRelatorio());
   _desenhar(()=>renderDesempenhoEntregas());
   if(!formaPrecoAtual && formasPagamento.length) formaPrecoAtual = (formasPagamento.find(f=>f.ativa) || formasPagamento[0]).id;
@@ -7070,30 +7192,25 @@ function mostrarLinkAcompanhamento(vendaId, nomeCliente, numero){
   const codigo = vendaId.slice(-8);
   salvarPedidoNoHistoricoCliente(codigo, nomeCliente, numero);
 }
-async function carregarCardapioPublico(){
+/* ---------- CACHE DO CARDÁPIO NO CELULAR (Etapa 2) ----------
+   Abre na hora com o último cardápio salvo e atualiza em segundo plano. Preço e disponibilidade são
+   sempre conferidos pelo servidor quando o pedido é enviado, então um cache velho nunca vende errado. */
+const CD_CACHE_KEY_ = 'cdCache_v1';
+function cdLerCache_(){ try{ const r = JSON.parse(localStorage.getItem(CD_CACHE_KEY_)||'null'); return (r && r.dados && r.dados.produtos) ? r : null; }catch(e){ return null; } }
+function cdSalvarCache_(dados){ try{ localStorage.setItem(CD_CACHE_KEY_, JSON.stringify({ t: Date.now(), dados })); }catch(e){} }
+/* Busca leve (GET): não entra na fila única do sistema e usa o cache do servidor. */
+async function cdBuscarGet_(){
+  const ctl = new AbortController(); const to = setTimeout(()=>ctl.abort(), 15000);
   try{
-    cdDados = await apiCall('getCardapio', {});
-    modoContingenciaAtivo = false;
-  } catch(e){
-    // Principal fora do ar — tenta a contingência antes de desistir.
-    try{
-      const respEspelho = await fetch(CONTINGENCIA_API_URL, {
-        method: 'post', body: JSON.stringify({ action: 'getEspelhoPublico', chave: CONTINGENCIA_CHAVE_PUBLICA })
-      });
-      const rEspelho = await respEspelho.json();
-      if(!rEspelho.ok || !rEspelho.espelho || !rEspelho.espelho.produtos){
-        document.getElementById('cdListaProdutos').innerHTML = '<p class="sub">Não foi possível carregar o cardápio agora. Tente novamente em instantes.</p>';
-        return;
-      }
-      cdDados = adaptarEspelhoParaCardapio(rEspelho.espelho);
-      modoContingenciaAtivo = true;
-      setConexaoStatus('contingencia');
-    } catch(e2){
-      document.getElementById('cdListaProdutos').innerHTML = '<p class="sub">Não foi possível carregar o cardápio agora. Tente novamente em instantes.</p>';
-      return;
-    }
-  }
-  document.getElementById('cdStatusCaixa').textContent = modoContingenciaAtivo ? '🟠 Estamos com instabilidade — seu pedido pode demorar um pouco mais pra ser confirmado' : (cdDados.caixaAberto ? '🟢 Estamos abertos' : '🔴 Estamos fechados no momento');
+    const res = await fetch(API_URL + (API_URL.indexOf('?')===-1?'?':'&') + 'cd=' + Date.now(), { signal: ctl.signal });
+    if(!res.ok) throw new Error('Falha na requisição');
+    const d = await res.json();
+    if(!d || !d.produtos) throw new Error('Resposta inválida');
+    return d;
+  } finally { clearTimeout(to); }
+}
+function cdPintar_(deCache){
+  document.getElementById('cdStatusCaixa').textContent = modoContingenciaAtivo ? '🟠 Estamos com instabilidade — seu pedido pode demorar um pouco mais pra ser confirmado' : (deCache ? '⏳ Atualizando…' : (cdDados.caixaAberto ? '🟢 Estamos abertos' : '🔴 Estamos fechados no momento'));
   if(cdDados.config){
     document.getElementById('cdKicker').textContent = cdDados.config.kicker;
     document.getElementById('cdFrase').textContent = cdDados.config.frase;
@@ -7101,8 +7218,33 @@ async function carregarCardapioPublico(){
   renderCdCategorias();
   renderCdSecoes();
   const selForma = document.getElementById('cdFormaPagamento');
+  const formaAtual = selForma.value;
   selForma.innerHTML = (cdDados.formasPagamento||[]).map(f=>`<option value="${f.id}">${escH(f.nome)}</option>`).join('');
+  if(formaAtual && Array.from(selForma.options).some(o=>o.value===formaAtual)) selForma.value = formaAtual;
   onMudarFormaPagamentoCd();
+}
+async function carregarCardapioPublico(){
+  const cache = cdLerCache_();
+  if(cache){ cdDados = cache.dados; modoContingenciaAtivo = false; cdPintar_(true); }
+  try{
+    const fresco = await cdBuscarGet_();
+    cdDados = fresco; modoContingenciaAtivo = false;
+    cdSalvarCache_(fresco);
+    cdPintar_(false);
+    return;
+  } catch(e){ /* principal fora do ar: tenta a contingência abaixo */ }
+  const semCardapio = ()=>{ if(!cache) document.getElementById('cdListaProdutos').innerHTML = '<p class="sub">Não foi possível carregar o cardápio agora. Tente novamente em instantes.</p>'; };
+  try{
+    const respEspelho = await fetch(CONTINGENCIA_API_URL, {
+      method: 'post', body: JSON.stringify({ action: 'getEspelhoPublico', chave: CONTINGENCIA_CHAVE_PUBLICA })
+    });
+    const rEspelho = await respEspelho.json();
+    if(!rEspelho.ok || !rEspelho.espelho || !rEspelho.espelho.produtos){ semCardapio(); return; }
+    cdDados = adaptarEspelhoParaCardapio(rEspelho.espelho);
+    modoContingenciaAtivo = true;
+    setConexaoStatus('contingencia');
+  } catch(e2){ semCardapio(); return; }
+  cdPintar_(false);
 }
 /* Transforma o espelho (dados brutos das tabelas) no mesmo formato que
    getCardapioPublico() devolveria — pra reaproveitar toda a renderização
@@ -7116,7 +7258,7 @@ function adaptarEspelhoParaCardapio(espelho){
     categorias, produtos, combos, formasPagamento,
     produtoPrecos: espelho.produtoPrecos||[], comboPrecos: espelho.comboPrecos||[],
     adicionais: (espelho.adicionais||[]).filter(a=>a.ativo), produtoAdicionais: espelho.produtoAdicionais||[], comboItens: espelho.comboItens||[],
-    maisPedidos: [], config: espelho.configCardapio || { kicker:'', frase:'' },
+    maisPedidos: [], esgotados: { produtos: [], combos: [] }, config: espelho.configCardapio || { kicker:'', frase:'' },
     caixaAberto: true
   };
 }
@@ -7137,16 +7279,18 @@ function cdPrecoDe(tipo, id){
 }
 function cdFormatarPreco(v){ return v==null ? 'Consulte' : 'R$ '+v.toFixed(2).replace('.',','); }
 
+function cdEsgotado_(tipo, id){ const e = (cdDados && cdDados.esgotados) || {}; return ((tipo==='produto' ? e.produtos : e.combos) || []).indexOf(id) !== -1; }
 function cdCardHTML(tipo, item){
   const preco = cdPrecoDe(tipo, item.id);
   const foto = item.fotoUrl || '';
-  return `<div class="cd-card">
-    ${foto?`<img src="${foto}" loading="lazy">`:''}
+  const esg = cdEsgotado_(tipo, item.id);
+  return `<div class="cd-card${esg?' esgotado':''}">
+    ${foto?`<img src="${foto}" loading="lazy" decoding="async" alt="">`:''}
     <div class="cd-info">
       <div class="cd-nome">${escH(item.nome)}</div>
       ${item.descricao?`<div class="cd-desc">${escH(item.descricao)}</div>`:''}
       <div class="cd-preco">${cdFormatarPreco(preco)}</div>
-      <button onclick="abrirCdItemModal('${tipo}','${item.id}')">Adicionar</button>
+      ${esg?'<button disabled style="opacity:.6;cursor:not-allowed;">Esgotado</button>':`<button onclick="abrirCdItemModal('${tipo}','${item.id}')">Adicionar</button>`}
     </div>
   </div>`;
 }
@@ -7185,6 +7329,7 @@ function abrirCdItemModal(tipo, id){
   const lista = tipo==='produto' ? cdDados.produtos : cdDados.combos;
   const item = lista.find(x=>x.id===id);
   if(!item) return;
+  if(cdEsgotado_(tipo, id)) return;
   const preco = cdPrecoDe(tipo, id) || 0;
   let adicionaisDoItem = [];
   {
@@ -7197,7 +7342,7 @@ function abrirCdItemModal(tipo, id){
   document.getElementById('cdItemNome').textContent = item.nome;
   document.getElementById('cdItemDesc').textContent = item.descricao || '';
   document.getElementById('cdItemQtd').textContent = '1';
-  { const av = document.getElementById('cdItemAvisoAdic'); if(av) av.style.display = 'none'; }
+  { const av = document.getElementById('cdItemAvisoAdic'); if(av) av.style.display = 'none'; const ob = document.getElementById('cdItemObs'); if(ob) ob.value = ''; }
   const cont = document.getElementById('cdItemAdicionais');
   cont.innerHTML = adicionaisDoItem.length ? ('<div class="cd-secao-titulo" style="margin-top:6px;">Adicionais</div>' +
     adicionaisDoItem.map(a=>`<label class="cd-adicional-linha"><span><input type="checkbox" data-adid="${a.id}" onchange="toggleCdAdicional('${a.id}')"> ${escH(a.nome)}</span><span>+ ${cdFormatarPreco(a.preco)}</span></label>`).join('')) : '';
@@ -7233,7 +7378,7 @@ function atualizarCdItemTotal(){
 }
 function confirmarAddCarrinho(){
   if(!cdItemAtual) return;
-  cdCarrinho.push({ tipo: cdItemAtual.tipo, id: cdItemAtual.id, nome: cdItemAtual.nome, precoBase: cdItemAtual.precoBase, qtd: cdItemAtual.qtd, adicionais: cdItemAtual.adicionaisEscolhidos.slice() });
+  cdCarrinho.push({ tipo: cdItemAtual.tipo, id: cdItemAtual.id, nome: cdItemAtual.nome, precoBase: cdItemAtual.precoBase, qtd: cdItemAtual.qtd, adicionais: cdItemAtual.adicionaisEscolhidos.slice(), obs: ((document.getElementById('cdItemObs')||{}).value||'').trim().slice(0,100) });
   fecharCdItemModal();
   atualizarFabCarrinho();
 }
@@ -7281,7 +7426,7 @@ function renderCdCarrinho(){
   const cont = document.getElementById('cdCarrinhoItens');
   if(!cdCarrinho.length){ cont.innerHTML = '<p class="sub">Seu carrinho está vazio.</p>'; }
   else cont.innerHTML = cdCarrinho.map((it,i)=>`<div class="cd-adicional-linha">
-      <span>${it.qtd}x ${escH(it.nome)}${it.adicionais.length?' ('+it.adicionais.map(a=>a.nome).join(', ')+')':''}</span>
+      <span>${it.qtd}x ${escH(it.nome)}${it.adicionais.length?' ('+it.adicionais.map(a=>escH(a.nome)).join(', ')+')':''}${it.obs?'<br><small style="color:var(--muted);">📝 '+escH(it.obs)+'</small>':''}</span>
       <span>${cdFormatarPreco(cdPrecoItemCarrinho(it))} <button class="link-btn" onclick="removerDoCarrinho(${i})">remover</button></span>
     </div>`).join('');
   document.getElementById('cdCarrinhoTotal').textContent = cdFormatarPreco(cdCarrinho.reduce((s,it)=>s+cdPrecoItemCarrinho(it),0));
@@ -7335,7 +7480,7 @@ async function finalizarPedidoPublico(){
       const idFila = (_idFilaContingencia = _idFilaContingencia || ('cd-' + Date.now() + '-' + Math.random().toString(36).slice(2,8))); // mesmo id em toda nova tentativa: a fila da contingência não duplica
       const itens = cdCarrinho.map(it=>{
         const extra = it.adicionais.reduce((s,a)=>s+a.preco,0);
-        const nomeComAdicionais = it.nome + (it.adicionais.length ? ' + '+it.adicionais.map(a=>a.nome).join(', ') : '');
+        const nomeComAdicionais = it.nome + (it.adicionais.length ? ' + '+it.adicionais.map(a=>a.nome).join(', ') : '') + (it.obs ? ' — Obs: '+it.obs : '');
         const base = { descricao: nomeComAdicionais, quantidade: it.qtd, valorUnitario: it.precoBase + extra, custoUnitario: 0, adicionaisIds: it.adicionais.map(a=>a.id) };
         return it.tipo==='produto' ? Object.assign({produtoId: it.id}, base) : Object.assign({comboId: it.id}, base);
       });
@@ -7364,7 +7509,8 @@ async function finalizarPedidoPublico(){
     produtoId: it.tipo==='produto' ? it.id : undefined,
     comboId: it.tipo==='combo' ? it.id : undefined,
     quantidade: it.qtd,
-    adicionaisIds: it.adicionais.map(a=>a.id)
+    adicionaisIds: it.adicionais.map(a=>a.id),
+    observacao: it.obs || ''
   }));
   try{
     const r = await apiCall('criarPedidoCardapio', { requisicaoId: (_reqPedidoCardapio = _reqPedidoCardapio || novaRequisicao_()), itens, clienteNome: nome, clienteTelefone: telefone, tipoEntrega, dadosEntrega, formaPagamentoId, observacaoTroco: trocoParaObs, codigoCupom: cdCupomAplicado ? cdCupomAplicado.codigo : '', observacoes: (document.getElementById('cdObservacoes')||{}).value.trim() });
