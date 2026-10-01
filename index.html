@@ -104,9 +104,11 @@
   .caixa-status-fechado{border-color:var(--red);}
 
   label{display:block;font-size:11.5px;color:var(--muted);margin:10px 0 4px;}
-  input[type=text],input[type=tel],input[type=number],input[type=date],input[type=month],input[type=password],select{
-    width:100%;background:var(--bg);border:1px solid var(--line);color:var(--cream);padding:10px 11px;border-radius:4px;font-size:14.5px;}
-  input:focus,select:focus{outline:2px solid var(--gold-dim);outline-offset:1px;}
+  input[type=text],input[type=tel],input[type=number],input[type=date],input[type=month],input[type=password],input:not([type]),select,textarea{
+    width:100%;background:var(--bg);border:1px solid var(--line);color:var(--cream);padding:10px 11px;border-radius:4px;font-size:14.5px;font-family:inherit;}
+  textarea{resize:vertical;min-height:64px;}
+  input::placeholder,textarea::placeholder{color:var(--muted);opacity:.7;}
+  input:focus,select:focus,textarea:focus{outline:2px solid var(--gold-dim);outline-offset:1px;}
   input:disabled{opacity:.5;}
 
   .row2{display:flex;gap:10px;}
@@ -735,6 +737,14 @@
         <thead><tr><th>Adicional</th><th>Preço</th><th></th></tr></thead>
         <tbody id="adCadastroTable"></tbody>
       </table>
+    </div>
+
+    <div class="card">
+      <h2>Liberar adicionais nos produtos</h2>
+      <p class="sub">O adicional só aparece no cardápio para os produtos aos quais ele está ligado. Escolha as categorias e todos os adicionais ativos passam a valer para os produtos delas. Os combos usam os adicionais dos lanches que levam.</p>
+      <div id="adVincCategorias"></div>
+      <button class="primary" onclick="vincularAdicionaisCategorias()">Liberar adicionais nessas categorias</button>
+      <div class="msg" id="adVincMsg"></div>
     </div>
 
   </section>
@@ -1422,9 +1432,8 @@
       <div id="backupStatus" style="font-size:13px;margin-bottom:10px;">Carregando status...</div>
       <button class="small-gold" style="width:100%;padding:10px;" onclick="fazerBackupAgora()">Fazer backup agora</button>
       <div class="msg" id="backupMsg"></div>
-    </div>
-    <div class="card">
-      <h2>Backup automático</h2>
+      <div style="border-top:1px solid var(--line);margin-top:16px;padding-top:14px;">
+      <h3 style="margin:0 0 10px;font-size:15px;color:var(--cream);">Agendamento automático</h3>
       <label style="display:flex;gap:8px;align-items:center;font-size:14px;margin-bottom:8px;"><input type="checkbox" id="bkAutoAtivo" style="width:auto;"> Ativar backup automático</label>
       <label for="bkAutoFreq">Frequência</label>
       <select id="bkAutoFreq" style="width:100%;margin-bottom:8px;"><option value="12h">A cada 12 horas</option><option value="diaria">Diário</option><option value="semanal">Semanal (segunda-feira)</option></select>
@@ -1432,6 +1441,7 @@
       <select id="bkAutoHora" style="width:100%;margin-bottom:8px;"></select>
       <button class="small-gold" style="width:100%;padding:10px;" onclick="salvarBackupAutomatico()">Salvar configuração</button>
       <div class="msg" id="bkAutoMsg"></div>
+      </div>
     </div>
     <div class="card">
       <h2>Histórico e restauração</h2>
@@ -1966,7 +1976,7 @@
    ========================================================= */
 const API_URL = "https://script.google.com/macros/s/AKfycbwCftUm-1pxhA8XLNqMB7dMUJxbj5GOsYHgFHZDqlbAH0XXRkUlsOKJkGTlGzR1LWxVpQ/exec";
 const CONTINGENCIA_API_URL = "https://script.google.com/macros/s/AKfycby3WljBnr7gpJrHdkbTvBCh5uIXqS4KCS6wkBYB5idxf5gI04efoDumQj264kR_smoW/exec";
-const CONTINGENCIA_CHAVE_PUBLICA = "txbpub-ZAXyZnNHU3JCdpvJ2fVDI776vcjBVfnx"; // ETAPA 7: so permite enviar pedido validado e ler o catalogo publico (sem custos/clientes)
+const CONTINGENCIA_CHAVE_PUBLICA = "txbpub-6b2084b8d433496eaebaee0588e6a4d5b2bd4139"; // ETAPA 7: so permite enviar pedido validado e ler o catalogo publico (sem custos/clientes)
 const CONTINGENCIA_CHAVE_KEY = 'txbContChaveInterna'; // chave interna (clientes): guardada so depois do login, apagada ao sair
 let modoContingenciaAtivo = false;
 
@@ -2740,6 +2750,7 @@ function atualizarLabelQtdAdicional(){
   if(temVinculo && opt) label.textContent = 'Em ' + (opt.dataset.unidade||'un') + ' — ex: 0.03 se o ingrediente é em kg e o adicional gasta 30g.';
 }
 function renderAdicionais(){
+  renderAdVincCategorias();
   const tbodyCadastro = document.getElementById('adCadastroTable');
   if(tbodyCadastro){
     tbodyCadastro.innerHTML = adicionais.length ? adicionais.map(a=>`<tr>
@@ -2755,6 +2766,22 @@ function renderAdicionais(){
       <td><label style="display:flex;align-items:center;gap:6px;justify-content:center;"><input type="checkbox" style="width:auto;" ${a.ativo?'checked':''} onchange="toggleAdicionalAtivo('${a.id}', this.checked)"></label></td>
     </tr>`).join('') : '<tr class="empty-row"><td colspan="2">Nenhum adicional cadastrado.</td></tr>';
   }
+}
+function renderAdVincCategorias(){
+  const cont = document.getElementById('adVincCategorias'); if(!cont) return;
+  const marcadas = Array.from(cont.querySelectorAll('input:checked')).map(i=>i.value);
+  cont.innerHTML = categorias.length ? categorias.map(c=>`<label class="cd-adicional-linha" style="cursor:pointer;"><span><input type="checkbox" style="width:auto;" value="${c.id}" ${marcadas.includes(c.id)?'checked':''}> ${escH(c.nome)}</span></label>`).join('') : '<p class="sub">Cadastre as categorias primeiro.</p>';
+}
+async function vincularAdicionaisCategorias(){
+  const cats = Array.from(document.querySelectorAll('#adVincCategorias input:checked')).map(i=>i.value);
+  const adIds = adicionais.filter(a=>a.ativo).map(a=>a.id);
+  if(!cats.length) return showMsg('adVincMsg','Marque ao menos uma categoria.','warn');
+  if(!adIds.length) return showMsg('adVincMsg','Não há adicionais ativos para liberar.','warn');
+  try{
+    const r = await apiCall('vincularAdicionaisEmLote', { categorias: cats, adicionaisIds: adIds });
+    if(r.ok){ produtoAdicionais = r.produtoAdicionais || produtoAdicionais; salvarCache(); }
+    showMsg('adVincMsg', r.message, r.ok?'ok':'warn');
+  }catch(e){ showMsg('adVincMsg','Não foi possível liberar agora. Tente novamente.','warn'); }
 }
 async function registrarAdicional(){
   const nome = document.getElementById('adNome').value.trim();
@@ -3632,7 +3659,7 @@ function atualizarStatusDetector_(erro){
   const el = document.getElementById('czStatus'); const btn = document.getElementById('czSomBtn');
   if(btn) btn.textContent = cozinhaSomLigado ? '🔊 Som: ligado' : '🔇 Som: desligado';
   if(!el) return;
-  el.textContent = erro ? '⚠️ Sem conexão com a planilha — tentando de novo em 30 s.' : (cozinhaUltimaChecagem ? '🔔 Detector ligado · última verificação às '+cozinhaUltimaChecagem.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',second:'2-digit'}) : 'Detector iniciando…');
+  el.textContent = erro ? '⚠️ Sem conexão com a planilha — tentando de novo em 30 s.' : (cozinhaUltimaChecagem ? '🔔 Detector ligado · última verificação às '+cozinhaUltimaChecagem.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',second:'2-digit'})+' · '+vendas.length+' pedidos carregados' : 'Detector iniciando…');
   atualizarTelaLigadaUI_();
 }
 function beepCozinha_(){ if(!cozinhaSomLigado) return; somAlerta_(); }
@@ -6691,20 +6718,23 @@ function renderVisaoGeral(){
     <div class="modal-section"><h3>Mais vendidos no período</h3>${rank.length ? `<table><tbody>${rank.map((x,i)=>`<tr><td>${i+1}º ${escR(x[0])}</td><td style="text-align:right;">${x[1]}</td></tr>`).join('')}</tbody></table>` : '<div class="notif-empty">Sem vendas no período.</div>'}</div>`;
 }
 
+/* Cada tela é desenhada separadamente: se uma falhar (dado inesperado), as demais continuam — antes, um erro no meio da cadeia
+   impedia que as telas seguintes (como a da Cozinha) fossem desenhadas. */
+function _desenhar(fn){ try{ fn(); }catch(e){ console.warn('Falha ao desenhar uma tela:', e); } }
 function renderizarTudo(){
-  renderVisaoGeral(); renderRelatorio();
-  renderDesempenhoEntregas();
+  _desenhar(()=>renderVisaoGeral()); _desenhar(()=>renderRelatorio());
+  _desenhar(()=>renderDesempenhoEntregas());
   if(!formaPrecoAtual && formasPagamento.length) formaPrecoAtual = (formasPagamento.find(f=>f.ativa) || formasPagamento[0]).id;
-  renderFormasPagamento(); popularSelectFormaPreco(); renderFormaCuradoria();
-  renderCategorias(); popularCategoriaSelects(); renderAdicionais(); popularSelectAdicionalIngrediente(); renderAdicionaisChecklist('pAdicionaisLista', []);
-  renderPrecosExcecoes('p'); renderPrecosExcecoes('ko');
-  renderClientes(); renderProdutos(); popularSelectProdutos(); renderProdutoCuradoria(); renderCombos(); popularSelectCombos(); renderComboCuradoria(); renderEstoque(); renderMovimentacoesEstoque();
-  popularSelectIngredientes('pIngredienteSelect'); popularSelectIngredientes('ppIngredienteSelect');
-  popularSelectProdutosParaCombo('koProdutoSelect'); popularSelectProdutosParaCombo('kkProdutoSelect');
-  renderVendas(); renderDespesas(); renderContasPagar(); renderDespesasRecorrentes(); renderResumoPrevisto(); renderFluxoPrevisto(); atualizarMargemPreview(); atualizarMargemPreviewCombo();
-  atualizarMetaUI(); atualizarResumoHoje(); gerarRelatorio(); renderNotificacoes(); renderPedidos(); renderEntregas();
-  renderStatusCaixa(); renderHistoricoCaixa(); renderUsuarios(); renderLog(); renderFeedbacks(); renderConfigCardapio();
-  renderMesas(); renderMesasPickerCaixa();
+  _desenhar(()=>renderFormasPagamento()); _desenhar(()=>popularSelectFormaPreco()); _desenhar(()=>renderFormaCuradoria());
+  _desenhar(()=>renderCategorias()); _desenhar(()=>popularCategoriaSelects()); _desenhar(()=>renderAdicionais()); _desenhar(()=>popularSelectAdicionalIngrediente()); _desenhar(()=>renderAdicionaisChecklist('pAdicionaisLista', []));
+  _desenhar(()=>renderPrecosExcecoes('p')); _desenhar(()=>renderPrecosExcecoes('ko'));
+  _desenhar(()=>renderClientes()); _desenhar(()=>renderProdutos()); _desenhar(()=>popularSelectProdutos()); _desenhar(()=>renderProdutoCuradoria()); _desenhar(()=>renderCombos()); _desenhar(()=>popularSelectCombos()); _desenhar(()=>renderComboCuradoria()); _desenhar(()=>renderEstoque()); _desenhar(()=>renderMovimentacoesEstoque());
+  _desenhar(()=>popularSelectIngredientes('pIngredienteSelect')); _desenhar(()=>popularSelectIngredientes('ppIngredienteSelect'));
+  _desenhar(()=>popularSelectProdutosParaCombo('koProdutoSelect')); _desenhar(()=>popularSelectProdutosParaCombo('kkProdutoSelect'));
+  _desenhar(()=>renderVendas()); _desenhar(()=>renderDespesas()); _desenhar(()=>renderContasPagar()); _desenhar(()=>renderDespesasRecorrentes()); _desenhar(()=>renderResumoPrevisto()); _desenhar(()=>renderFluxoPrevisto()); _desenhar(()=>atualizarMargemPreview()); _desenhar(()=>atualizarMargemPreviewCombo());
+  _desenhar(()=>atualizarMetaUI()); _desenhar(()=>atualizarResumoHoje()); _desenhar(()=>gerarRelatorio()); _desenhar(()=>renderNotificacoes()); _desenhar(()=>renderPedidos()); _desenhar(()=>renderEntregas());
+  _desenhar(()=>renderStatusCaixa()); _desenhar(()=>renderHistoricoCaixa()); _desenhar(()=>renderUsuarios()); _desenhar(()=>renderLog()); _desenhar(()=>renderFeedbacks()); _desenhar(()=>renderConfigCardapio());
+  _desenhar(()=>renderMesas()); _desenhar(()=>renderMesasPickerCaixa());
 }
 
 /* ============================================================
@@ -6858,7 +6888,7 @@ function adaptarEspelhoParaCardapio(espelho){
   return {
     categorias, produtos, combos, formasPagamento,
     produtoPrecos: espelho.produtoPrecos||[], comboPrecos: espelho.comboPrecos||[],
-    adicionais: (espelho.adicionais||[]).filter(a=>a.ativo), produtoAdicionais: espelho.produtoAdicionais||[],
+    adicionais: (espelho.adicionais||[]).filter(a=>a.ativo), produtoAdicionais: espelho.produtoAdicionais||[], comboItens: espelho.comboItens||[],
     maisPedidos: [], config: espelho.configCardapio || { kicker:'', frase:'' },
     caixaAberto: true
   };
@@ -6930,8 +6960,10 @@ function abrirCdItemModal(tipo, id){
   if(!item) return;
   const preco = cdPrecoDe(tipo, id) || 0;
   let adicionaisDoItem = [];
-  if(tipo==='produto'){
-    const ids = (cdDados.produtoAdicionais||[]).filter(pa=>pa.produtoId===id).map(pa=>pa.adicionalId);
+  {
+    // produto: os adicionais vinculados a ele; combo: os adicionais dos produtos que o compõem
+    const produtoIds = tipo==='produto' ? [id] : (cdDados.comboItens||[]).filter(ci=>ci.comboId===id).map(ci=>ci.produtoId);
+    const ids = (cdDados.produtoAdicionais||[]).filter(pa=>produtoIds.includes(pa.produtoId)).map(pa=>pa.adicionalId);
     adicionaisDoItem = (cdDados.adicionais||[]).filter(a=>ids.includes(a.id));
   }
   cdItemAtual = { tipo, id, nome: item.nome, precoBase: preco, qtd: 1, adicionaisDisponiveis: adicionaisDoItem, adicionaisEscolhidos: [] };
@@ -6991,7 +7023,25 @@ function abrirCarrinhoPublico(){
   onMudarTipoCdEntrega();
   document.getElementById('cdCarrinhoModal').classList.add('open');
 }
-function fecharCarrinhoPublico(){ document.getElementById('cdCarrinhoModal').classList.remove('open'); }
+let cdPedidoConcluido = false; // true depois que o pedido foi enviado: ao fechar a janela, o carrinho é esvaziado
+function cdLimparAposPedido_(){
+  cdPararContagemWa_();
+  cdCarrinho = []; cdCupomAplicado = null; cdPedidoConcluido = false;
+  const v = (id, val)=>{ const el=document.getElementById(id); if(el) el.value = val; };
+  v('cdCupom',''); v('cdObservacoes',''); v('cdTrocoPara','');
+  const pt = document.getElementById('cdPrecisaTroco'); if(pt) pt.checked = false;
+  const tb = document.getElementById('cdTrocoParaBox'); if(tb) tb.style.display = 'none';
+  const cm = document.getElementById('cdCupomMsg'); if(cm) cm.textContent = '';
+  const cr = document.getElementById('cdCupomResumo'); if(cr) cr.textContent = '';
+  const ck = document.getElementById('cdCheckoutMsg'); if(ck){ ck.textContent = ''; ck.className = 'msg'; }
+  const cf = document.getElementById('cdConfirmacaoPedido'); if(cf) cf.innerHTML = '';
+  const btn = document.getElementById('cdEnviarPedidoBtn'); if(btn){ btn.disabled = false; btn.textContent = 'Enviar pedido'; }
+  renderCdCarrinho(); atualizarFabCarrinho();
+}
+function fecharCarrinhoPublico(){
+  document.getElementById('cdCarrinhoModal').classList.remove('open');
+  if(cdPedidoConcluido) cdLimparAposPedido_();
+}
 function renderCdCarrinho(){
   const cont = document.getElementById('cdCarrinhoItens');
   if(!cdCarrinho.length){ cont.innerHTML = '<p class="sub">Seu carrinho está vazio.</p>'; }
@@ -7068,6 +7118,7 @@ async function finalizarPedidoPublico(){
       if(r.ok){
         showMsg('cdCheckoutMsg', 'Pedido recebido! Estamos com uma instabilidade — seu pedido foi guardado e vai ser confirmado assim que normalizar. Guarde este código: ' + idFila.slice(-6).toUpperCase(), 'ok');
         cdUltimaVendaId = null; mostrarBotaoWhatsappContingencia({id:idFila,numero:idFila.slice(-6).toUpperCase(),valorTotal:total}); _idFilaContingencia = null;
+        cdPedidoConcluido = true;
         btn.disabled=true; btn.textContent='Pedido guardado';
       } else { showMsg('cdCheckoutMsg', 'Não foi possível registrar o pedido agora. Tente novamente em instantes.', 'warn'); btn.disabled=false; btn.textContent='Enviar pedido'; }
     } catch(e){ showMsg('cdCheckoutMsg','Não foi possível enviar o pedido. Tente novamente.','warn'); btn.disabled=false; btn.textContent='Enviar pedido'; }
@@ -7088,6 +7139,7 @@ async function finalizarPedidoPublico(){
       cdUltimaVendaId = r.id;
       mostrarBotaoWhatsappPedido(r);
       mostrarLinkAcompanhamento(r.id, nome, r.numero);
+      cdPedidoConcluido = true;
       btn.disabled=true; btn.textContent='Pedido enviado';
     } else { showMsg('cdCheckoutMsg', r.message, 'warn'); btn.disabled=false; btn.textContent='Enviar pedido'; }
   } catch(e){ showMsg('cdCheckoutMsg','Não foi possível enviar o pedido. Tente novamente.','warn'); btn.disabled=false; btn.textContent='Enviar pedido'; }
