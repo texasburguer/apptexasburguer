@@ -3041,6 +3041,30 @@ async function salvarNovoIndicado(){
 /* ============================================================
    PRODUTOS
    ============================================================ */
+/* ITEM 14 — foto do Drive que carrega de verdade dentro de <img> */
+function fotoIdDrive_(u){
+  const s = String(u || '');
+  const m = s.match(/[?&]id=([\w-]{10,})/) || s.match(/\/d\/([\w-]{10,})/);
+  return m ? m[1] : '';
+}
+function fotoSrc_(u, largura){
+  const id = fotoIdDrive_(u);
+  if(!id) return u || '';
+  return 'https://drive.google.com/thumbnail?id=' + id + '&sz=w' + (largura || 800);
+}
+function fotoFalhou_(img){
+  if(!img) return;
+  const id = fotoIdDrive_(img.currentSrc || img.src);
+  const tentativa = Number(img.dataset.ft || 0);
+  const alternativas = [
+    'https://lh3.googleusercontent.com/d/' + id,
+    'https://drive.google.com/uc?export=view&id=' + id
+  ];
+  if(!id || tentativa >= alternativas.length){ img.onerror = null; img.style.display = 'none'; return; }
+  img.dataset.ft = String(tentativa + 1);
+  img.src = alternativas[tentativa];
+}
+
 /* ---------- FOTOS: compressão no celular antes de enviar ---------- */
 function comprimirImagem(file, maxDim, qualidade){
   return new Promise((resolve, reject)=>{
@@ -3422,7 +3446,7 @@ function abrirEditarProduto(id){
   document.getElementById('ppAvancadoBox').style.display = 'none'; document.getElementById('ppAvancadoSeta').textContent = '▸';
   const adicionaisDoProduto = produtoAdicionais.filter(pa=>pa.produtoId===id).map(pa=>pa.adicionalId);
   renderAdicionaisChecklist('ppAdicionaisLista', adicionaisDoProduto);
-  document.getElementById('ppFotoAtual').innerHTML = p.fotoUrl ? `<img src="${p.fotoUrl}" style="max-width:140px;border-radius:8px;border:1px solid var(--gold);">` : '<span style="color:var(--muted);font-size:12.5px;">Nenhuma foto cadastrada.</span>';
+  document.getElementById('ppFotoAtual').innerHTML = p.fotoUrl ? `<img src="${fotoSrc_(p.fotoUrl, 400)}" onerror="fotoFalhou_(this)" style="max-width:140px;border-radius:8px;border:1px solid var(--gold);">` : '<span style="color:var(--muted);font-size:12.5px;">Nenhuma foto cadastrada.</span>';
   document.getElementById('ppFoto').value = ''; document.getElementById('ppFotoMsg').innerHTML = '';
   popularSelectIngredientes('ppIngredienteSelect'); atualizarLabelQtdIngrediente('pp');
   ingredientesProdutoEdicao = produtoIngredientes.filter(v=>v.produtoId===id && v.ingredienteId!==p.estoqueProprioIngredienteId).map(v=>({ingredienteId:v.ingredienteId, ingredienteNome:v.ingredienteNome, quantidadePorUnidade:v.quantidadePorUnidade, unidade:(estoque.find(e=>e.id===v.ingredienteId)||{}).unidade||'un'}));
@@ -3440,7 +3464,7 @@ async function trocarFotoProdutoEdicao(){
     if(r.ok){
       produtos = r.produtos || produtos; salvarCache(); renderProdutos();
       const p = produtos.find(x=>x.id===produtoEditandoId);
-      document.getElementById('ppFotoAtual').innerHTML = p && p.fotoUrl ? `<img src="${p.fotoUrl}" style="max-width:140px;border-radius:8px;border:1px solid var(--gold);">` : '';
+      document.getElementById('ppFotoAtual').innerHTML = p && p.fotoUrl ? `<img src="${fotoSrc_(p.fotoUrl, 400)}" onerror="fotoFalhou_(this)" style="max-width:140px;border-radius:8px;border:1px solid var(--gold);">` : '';
       showMsg('ppFotoMsg','Foto atualizada.','ok');
     } else showMsg('ppFotoMsg', r.message, 'warn');
   } catch(e){ showMsg('ppFotoMsg','Não foi possível enviar a foto.','warn'); }
@@ -3499,7 +3523,7 @@ function renderProdutos(){
     const pct = preco>0 ? (margem/preco*100) : 0;
     const ingredientesDoProduto = produtoIngredientes.filter(v=>v.produtoId===p.id);
     const ingredientesTxt = ingredientesDoProduto.length ? ingredientesDoProduto.map(v=>v.quantidadePorUnidade+'x '+v.ingredienteNome).join(', ') : '';
-    const thumb = p.fotoUrl ? `<img src="${p.fotoUrl}" style="width:34px;height:34px;border-radius:6px;object-fit:cover;vertical-align:middle;margin-right:6px;">` : '';
+    const thumb = p.fotoUrl ? `<img src="${fotoSrc_(p.fotoUrl, 100)}" onerror="fotoFalhou_(this)" style="width:34px;height:34px;border-radius:6px;object-fit:cover;vertical-align:middle;margin-right:6px;">` : '';
     return `<tr><td>${thumb}${escH(p.nome)}<span class="obs-line">${nomeCategoria(p.categoria)}${ingredientesTxt?' · '+ingredientesTxt:''}</span></td><td>${formatarMoeda(preco)}</td><td>${formatarMoeda(margem)}<span class="obs-line">${pct.toFixed(0)}%</span></td>
       <td><button class="ghost" onclick="abrirEditarProduto('${p.id}')">editar</button><button class="ghost" onclick="excluirProdutoConfirm('${p.id}')">excluir</button></td></tr>`;
   }).join('');
@@ -3594,7 +3618,7 @@ function abrirEditarCombo(id){
   document.getElementById('kkAtivo').checked = c.ativo;
   document.getElementById('kkDestaque').checked = !!c.destaque;
   document.getElementById('kkAvancadoBox').style.display = 'none'; document.getElementById('kkAvancadoSeta').textContent = '▸';
-  document.getElementById('kkFotoAtual').innerHTML = c.fotoUrl ? `<img src="${c.fotoUrl}" style="max-width:140px;border-radius:8px;border:1px solid var(--gold);">` : '<span style="color:var(--muted);font-size:12.5px;">Nenhuma foto cadastrada.</span>';
+  document.getElementById('kkFotoAtual').innerHTML = c.fotoUrl ? `<img src="${fotoSrc_(c.fotoUrl, 400)}" onerror="fotoFalhou_(this)" style="max-width:140px;border-radius:8px;border:1px solid var(--gold);">` : '<span style="color:var(--muted);font-size:12.5px;">Nenhuma foto cadastrada.</span>';
   document.getElementById('kkFoto').value = ''; document.getElementById('kkFotoMsg').innerHTML = '';
   popularSelectProdutosParaCombo('kkProdutoSelect');
   itensComboEdicao = comboItens.filter(v=>v.comboId===id).map(v=>({produtoId:v.produtoId, produtoNome:(produtos.find(p=>p.id===v.produtoId)||{}).nome||'(produto removido)', quantidade:v.quantidade}));
@@ -3612,7 +3636,7 @@ async function trocarFotoComboEdicao(){
     if(r.ok){
       combos = r.combos || combos; salvarCache(); renderCombos();
       const c = combos.find(x=>x.id===comboEditandoId);
-      document.getElementById('kkFotoAtual').innerHTML = c && c.fotoUrl ? `<img src="${c.fotoUrl}" style="max-width:140px;border-radius:8px;border:1px solid var(--gold);">` : '';
+      document.getElementById('kkFotoAtual').innerHTML = c && c.fotoUrl ? `<img src="${fotoSrc_(c.fotoUrl, 400)}" onerror="fotoFalhou_(this)" style="max-width:140px;border-radius:8px;border:1px solid var(--gold);">` : '';
       showMsg('kkFotoMsg','Foto atualizada.','ok');
     } else showMsg('kkFotoMsg', r.message, 'warn');
   } catch(e){ showMsg('kkFotoMsg','Não foi possível enviar a foto.','warn'); }
@@ -3652,7 +3676,7 @@ function renderCombos(){
   tbody.innerHTML = combos.map(c=>{
     const { preco } = precoDisplayCombo(c.id);
     const itensTxt = descricaoItensCombo(c.id);
-    const thumb = c.fotoUrl ? `<img src="${c.fotoUrl}" style="width:34px;height:34px;border-radius:6px;object-fit:cover;vertical-align:middle;margin-right:6px;">` : '';
+    const thumb = c.fotoUrl ? `<img src="${fotoSrc_(c.fotoUrl, 100)}" onerror="fotoFalhou_(this)" style="width:34px;height:34px;border-radius:6px;object-fit:cover;vertical-align:middle;margin-right:6px;">` : '';
     return `<tr><td>${thumb}${escH(c.nome)}<span class="obs-line">${nomeCategoria(c.categoria)}${itensTxt?' · '+itensTxt:''}</span></td><td>${formatarMoeda(preco)}</td><td><button class="ghost" onclick="abrirEditarCombo('${c.id}')">editar</button><button class="ghost" onclick="excluirComboConfirm('${c.id}')">excluir</button></td></tr>`;
   }).join('');
 }
@@ -7999,7 +8023,7 @@ function cdCardHTML(tipo, item){
   const foto = item.fotoUrl || '';
   const esg = cdEsgotado_(tipo, item.id);
   return `<div class="cd-card${esg?' esgotado':''}">
-    ${foto?`<img src="${foto}" loading="lazy" decoding="async" alt="">`:''}
+    ${foto?`<img src="${fotoSrc_(foto, 500)}" onerror="fotoFalhou_(this)" loading="lazy" decoding="async" alt="">`:''}
     <div class="cd-info">
       <div class="cd-nome">${escH(item.nome)}</div>
       ${item.descricao?`<div class="cd-desc">${escH(item.descricao)}</div>`:''}
