@@ -349,13 +349,14 @@
   .resumo-etapas b{font-size:20px;margin:0;}
   .resumo-etapas small{font-size:10.5px;text-transform:uppercase;letter-spacing:.03em;}
   .resumo-alerta{font-size:13px;padding:4px 0;color:var(--cream);}
-  .ped-subnav{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;}
+  .ped-subnav{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px;}
   .ped-subnav button{background:var(--panel-2);border:1px solid var(--line);color:var(--muted);padding:10px 8px;border-radius:12px;font-size:13px;font-weight:600;cursor:pointer;position:relative;min-height:44px;}
   .ped-subnav button.active{background:var(--gold);color:#241a10;border-color:var(--gold);}
   .ped-subnav button .dot{position:absolute;top:6px;right:8px;width:7px;height:7px;border-radius:50%;background:var(--red);display:none;}
   .ped-subnav button.has-alert .dot{display:block;}
   body.perfil-cozinha #pedidosSubnav, body.perfil-garcom #pedidosSubnav, body.perfil-entregador #pedidosSubnav,
   body.perfil-cozinha #pedidosPainelEntregas, body.perfil-garcom #pedidosPainelEntregas, body.perfil-entregador #pedidosPainelPedidos,
+  body.perfil-cozinha #pedidosPainelMesas, body.perfil-garcom #pedidosPainelMesas, body.perfil-entregador #pedidosPainelMesas, body.perfil-entregador #entFmtBox,
   body.perfil-entregador .atalho-pedidos{display:none !important;}
   body.perfil-cozinha #cozinhaBoard{display:block;}
   body.perfil-cozinha #pedidosCardAndamento, body.perfil-cozinha #pedidosCardConcluidos{display:none;}
@@ -1326,8 +1327,9 @@ body.perfil-garcom #btnFecharContaItens{display:none !important;}
   <!-- =========================== PEDIDOS (RETIRADA) =========================== -->
   <section class="tab" id="tab-pedidos">
     <div class="ped-subnav" id="pedidosSubnav">
-      <button type="button" id="pedSubPedidos" class="active" onclick="pedidosPainel_('pedidos')">📋 Pedidos<span class="dot"></span></button>
+      <button type="button" id="pedSubPedidos" class="active" onclick="pedidosPainel_('pedidos')">📋 Retiradas<span class="dot"></span></button>
       <button type="button" id="pedSubEntregas" onclick="pedidosPainel_('entregas')">🛵 Entregas<span class="dot" id="entregasDot"></span></button>
+      <button type="button" id="pedSubMesas" onclick="pedidosPainel_('mesas')">🍽️ Mesas<span class="dot"></span></button>
     </div>
     <div id="pedidosPainelPedidos">
     <!-- ETAPA 4: tela da Cozinha (só aparece para o perfil Cozinha) -->
@@ -1373,6 +1375,7 @@ body.perfil-garcom #btnFecharContaItens{display:none !important;}
         <h2 style="margin:0;">Entregas em andamento</h2>
       </div>
       <p class="sub">Fluxo: Em preparo → Pronta → Saiu para entrega → Entregue.</p>
+      <div id="entFmtBox" class="btnrow" style="margin:0 0 8px;align-items:center;"><label for="entFmt" style="margin:0;font-size:12px;">🖨️ Papel da impressão do entregador</label><select id="entFmt" style="width:auto;" onchange="salvarFormato('entrega', this.value)"><option value="80mm">80mm</option><option value="58mm">58mm</option><option value="A4">A4</option></select></div>
       <div class="btnrow" style="margin:0 0 8px;align-items:center;"><button type="button" class="ghost" onclick="atualizarAgora_()">🔄 Atualizar</button><span class="sub" style="margin:0 0 0 8px;" data-ultima-sync>Atualiza ao entrar nesta tela.</span></div>
       <div id="entregasLista"></div>
     </div>
@@ -1383,6 +1386,21 @@ body.perfil-garcom #btnFecharContaItens{display:none !important;}
     <div class="card" id="entregasMeuDiaCard" style="display:none;">
       <h2>💰 Meu dia</h2>
       <div id="entregasMeuDia"></div>
+    </div>
+    </div>
+    <div id="pedidosPainelMesas" style="display:none;">
+    <div class="card">
+      <div class="card-header" style="margin-bottom:8px;">
+        <h2 style="margin:0;">Mesas em atendimento</h2>
+      </div>
+      <p class="sub">Mesas ocupadas agora, com os pedidos lançados e o valor a receber.</p>
+      <div class="btnrow" style="margin:0 0 8px;align-items:center;"><button type="button" class="ghost" onclick="atualizarAgora_()">🔄 Atualizar</button><span class="sub" style="margin:0 0 0 8px;" data-ultima-sync>Atualiza ao entrar nesta tela.</span></div>
+      <div class="msg" id="mesasPainelMsg"></div>
+      <div id="mesasAtendimentoLista"></div>
+    </div>
+    <div class="card">
+      <h2>Histórico das mesas hoje</h2>
+      <div id="mesasHistoricoLista"></div>
     </div>
     </div>
   </section>
@@ -2135,6 +2153,36 @@ body.perfil-garcom #btnFecharContaItens{display:none !important;}
   </div>
 </div>
 
+<!-- MODAIS DE EDIÇÃO: CATEGORIA E ADICIONAL -->
+<div class="modal-overlay" id="catEditModal">
+  <div class="modal-box">
+    <div class="modal-header"><h2>Editar categoria</h2><button class="close-btn" onclick="fecharCatEdit_()">✕</button></div>
+    <label for="ceNome">Nome da categoria</label>
+    <input type="text" id="ceNome" maxlength="60">
+    <label style="display:flex;align-items:center;gap:8px;margin-top:10px;"><input type="checkbox" id="ceAtiva" style="width:auto;margin:0;"> Aparece no cardápio</label>
+    <div class="btnrow" style="margin-top:12px;"><button class="primary" id="ceBtn" onclick="salvarCatEdit_()">Salvar</button><button class="ghost" onclick="fecharCatEdit_()">Cancelar</button></div>
+    <div class="msg" id="ceMsg"></div>
+  </div>
+</div>
+<div class="modal-overlay" id="adEditModal">
+  <div class="modal-box">
+    <div class="modal-header"><h2>Editar adicional</h2><button class="close-btn" onclick="fecharAdEdit_()">✕</button></div>
+    <label for="aeNome">Nome</label>
+    <input type="text" id="aeNome" maxlength="80">
+    <label for="aePreco">Preço (R$)</label>
+    <input type="number" id="aePreco" step="0.01" min="0" placeholder="0.00">
+    <label for="aeIngrediente">Ingrediente que baixa do estoque</label>
+    <select id="aeIngrediente" onchange="atualizarQtdAdEdit_()"><option value="">Sem vínculo com estoque</option></select>
+    <div id="aeQtdBox" style="display:none;margin-top:8px;">
+      <label for="aeQtd">Quantidade a descontar por lançamento</label>
+      <input type="number" id="aeQtd" step="0.01" min="0" value="1">
+      <p class="sub" id="aeQtdLabel" style="margin-top:2px;"></p>
+    </div>
+    <label style="display:flex;align-items:center;gap:8px;margin-top:10px;"><input type="checkbox" id="aeAtivo" style="width:auto;margin:0;"> Aparece no cardápio</label>
+    <div class="btnrow" style="margin-top:12px;"><button class="primary" id="aeBtn" onclick="salvarAdEdit_()">Salvar</button><button class="ghost" onclick="fecharAdEdit_()">Cancelar</button></div>
+    <div class="msg" id="aeMsg"></div>
+  </div>
+</div>
 <!-- MODAL TROCAR MINHA SENHA (ETAPA C) -->
 <div class="modal-overlay" id="avisosModal">
   <div class="modal-box">
@@ -3355,7 +3403,7 @@ function renderCategorias(){
   if(tbodyCadastro){
     tbodyCadastro.innerHTML = categorias.length ? categorias.map(c=>`<tr>
       <td>${escH(c.nome)}${c.ativa?'':' <span class="badge">não aparece no cardápio</span>'}</td>
-      <td><button class="ghost" onclick="excluirCategoriaConfirm('${c.id}')">excluir</button></td>
+      <td><button class="ghost" onclick="editarCategoriaUI('${c.id}')">editar</button><button class="ghost" onclick="excluirCategoriaConfirm('${c.id}')">excluir</button></td>
     </tr>`).join('') : '<tr class="empty-row"><td colspan="2">Nenhuma categoria cadastrada.</td></tr>';
   }
   const tbodyCuradoria = document.getElementById('catCuradoriaTable');
@@ -3380,6 +3428,70 @@ async function moverCategoria(id, direcao){
 }
 
 /* ---------- ADICIONAIS (ITEM 20) ---------- */
+/* ---------- EDITAR CATEGORIA E ADICIONAL ---------- */
+let _catEditId = null, _adEditId = null, _catEditOcupado = false, _adEditOcupado = false;
+function editarCategoriaUI(id){
+  const c = categorias.find(x=>x.id===id); if(!c) return;
+  _catEditId = id; _catEditOcupado = false;
+  document.getElementById('ceNome').value = c.nome;
+  document.getElementById('ceAtiva').checked = !!c.ativa;
+  document.getElementById('ceMsg').textContent = ''; document.getElementById('ceBtn').disabled = false;
+  document.getElementById('catEditModal').classList.add('open');
+}
+function fecharCatEdit_(){ document.getElementById('catEditModal').classList.remove('open'); _catEditId = null; }
+async function salvarCatEdit_(){
+  if(_catEditOcupado || !_catEditId) return;
+  const nome = document.getElementById('ceNome').value.trim();
+  if(!nome){ showMsg('ceMsg','Informe o nome da categoria.','warn'); return; }
+  if(categorias.some(c=>c.id!==_catEditId && String(c.nome).trim().toLowerCase()===nome.toLowerCase())){ showMsg('ceMsg','Já existe uma categoria com esse nome.','warn'); return; }
+  _catEditOcupado = true; document.getElementById('ceBtn').disabled = true;
+  try{
+    const r = await apiCall('editarCategoria', { id: _catEditId, novoNome: nome, novoAtivo: document.getElementById('ceAtiva').checked });
+    if(r && r.ok){ categorias = r.categorias || categorias; salvarCache(); renderCategorias(); popularCategoriaSelects(); fecharCatEdit_(); showMsg('catMsg','Categoria atualizada.','ok'); }
+    else showMsg('ceMsg', (r && r.message) || 'Não foi possível salvar.', 'warn');
+  }catch(e){ showMsg('ceMsg','Não foi possível salvar agora. Confira a conexão.','warn'); }
+  _catEditOcupado = false; document.getElementById('ceBtn').disabled = false;
+}
+function atualizarQtdAdEdit_(){
+  const sel = document.getElementById('aeIngrediente'), box = document.getElementById('aeQtdBox'), label = document.getElementById('aeQtdLabel');
+  if(!sel || !box) return;
+  const opt = sel.selectedOptions[0], tem = sel.value !== '';
+  box.style.display = tem ? 'block' : 'none';
+  if(tem && opt) label.textContent = 'Em ' + (opt.dataset.unidade||'un') + ' — ex: 0.03 se o ingrediente é em kg e o adicional gasta 30g.';
+}
+function editarAdicionalUI(id){
+  const a = adicionais.find(x=>x.id===id); if(!a) return;
+  _adEditId = id; _adEditOcupado = false;
+  const sel = document.getElementById('aeIngrediente');
+  sel.innerHTML = '<option value="">Sem vínculo com estoque</option>' + (estoque||[]).map(e=>`<option value="${escH(e.id)}" data-unidade="${escH(e.unidade||'un')}">${escH(e.nome)} (${escH(e.unidade||'un')})</option>`).join('');
+  sel.value = a.ingredienteId || '';
+  if(sel.value !== (a.ingredienteId||'')) sel.value = '';
+  document.getElementById('aeNome').value = a.nome;
+  document.getElementById('aePreco').value = Number(a.preco)||0;
+  document.getElementById('aeQtd').value = Number(a.quantidadeDesconto)||1;
+  document.getElementById('aeAtivo').checked = !!a.ativo;
+  document.getElementById('aeMsg').textContent = ''; document.getElementById('aeBtn').disabled = false;
+  atualizarQtdAdEdit_();
+  document.getElementById('adEditModal').classList.add('open');
+}
+function fecharAdEdit_(){ document.getElementById('adEditModal').classList.remove('open'); _adEditId = null; }
+async function salvarAdEdit_(){
+  if(_adEditOcupado || !_adEditId) return;
+  const nome = document.getElementById('aeNome').value.trim();
+  const preco = Number(document.getElementById('aePreco').value);
+  if(!nome){ showMsg('aeMsg','Informe o nome do adicional.','warn'); return; }
+  if(!(preco>=0)){ showMsg('aeMsg','Informe um preço válido (pode ser 0).','warn'); return; }
+  if(adicionais.some(a=>a.id!==_adEditId && String(a.nome).trim().toLowerCase()===nome.toLowerCase())){ showMsg('aeMsg','Já existe um adicional com esse nome.','warn'); return; }
+  const ingredienteId = document.getElementById('aeIngrediente').value;
+  const quantidadeDesconto = ingredienteId ? (Number(document.getElementById('aeQtd').value) || 1) : 1;
+  _adEditOcupado = true; document.getElementById('aeBtn').disabled = true;
+  try{
+    const r = await apiCall('editarAdicional', { id: _adEditId, nome, preco, ativo: document.getElementById('aeAtivo').checked, ingredienteId, quantidadeDesconto });
+    if(r && r.ok){ adicionais = r.adicionais || adicionais; salvarCache(); renderAdicionais(); try{ renderAdicionaisChecklist('pAdicionaisLista', []); }catch(e){} fecharAdEdit_(); showMsg('adMsg','Adicional atualizado.','ok'); }
+    else showMsg('aeMsg', (r && r.message) || 'Não foi possível salvar.', 'warn');
+  }catch(e){ showMsg('aeMsg','Não foi possível salvar agora. Confira a conexão.','warn'); }
+  _adEditOcupado = false; document.getElementById('aeBtn').disabled = false;
+}
 function popularSelectAdicionalIngrediente(){
   const sel = document.getElementById('adIngredienteSelect');
   if(!sel) return;
@@ -3403,7 +3515,7 @@ function renderAdicionais(){
     tbodyCadastro.innerHTML = adicionais.length ? adicionais.map(a=>`<tr>
       <td>${escH(a.nome)}${a.ativo?'':' <span class="badge">não aparece no cardápio</span>'}</td>
       <td>${formatarMoeda(a.preco)}</td>
-      <td><button class="ghost" onclick="excluirAdicionalConfirm('${a.id}')">excluir</button></td>
+      <td><button class="ghost" onclick="editarAdicionalUI('${a.id}')">editar</button><button class="ghost" onclick="excluirAdicionalConfirm('${a.id}')">excluir</button></td>
     </tr>`).join('') : '<tr class="empty-row"><td colspan="3">Nenhum adicional cadastrado.</td></tr>';
   }
   const tbodyCuradoria = document.getElementById('adCuradoriaTable');
@@ -3446,7 +3558,8 @@ async function registrarAdicional(){
   } catch(e){ showMsg('adMsg','Não foi possível cadastrar.','warn'); }
 }
 async function toggleAdicionalAtivo(id, novoAtivo){
-  try{ const r = await apiCall('editarAdicional', { id, ativo: novoAtivo }); if(r.ok){ adicionais = r.adicionais || adicionais; salvarCache(); renderAdicionais(); } }
+  const a = adicionais.find(x=>x.id===id); if(!a) return;
+  try{ const r = await apiCall('editarAdicional', { id, nome: a.nome, preco: a.preco, ativo: novoAtivo, ingredienteId: a.ingredienteId||'', quantidadeDesconto: a.quantidadeDesconto||1 }); if(r.ok){ adicionais = r.adicionais || adicionais; salvarCache(); renderAdicionais(); } }
   catch(e){ showMsg('adMsg','Não foi possível atualizar.','warn'); }
 }
 async function excluirAdicionalConfirm(id){
@@ -4217,6 +4330,115 @@ function pedidoDetalheHtml_(v){
     + '<div class="pd-bloco">'+pdValoresHtml_(v)+'</div>';
 }
 
+/* ---------- IMPRIMIR A ENTREGA PARA O ENTREGADOR ---------- */
+function botaoImprimirEntrega_(v){
+  if(!podeEnviarEntregador_() || v.tipoEntrega!=='Entrega' || v.statusPedido==='Recebido') return '';
+  return '<div class="btnrow" style="margin-top:6px;"><button type="button" class="ghost" onclick="imprimirEntregaPedido(\''+v.id+'\')">🖨️ Imprimir para o entregador</button></div>';
+}
+function entregaImpressaoHtml_(v){
+  const end = [v.endereco, v.complemento].filter(Boolean).join(', ');
+  const hora = new Date(v.timestamp).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  const itens = itensVenda.filter(it=>it.vendaId===v.id).map(it=>{
+    const d = String(it.descricao||''), k = d.indexOf(' — Obs: ');
+    const nome = k<0 ? d : d.slice(0,k), obs = k<0 ? '' : d.slice(k+8);
+    const ad = (it.adicionaisIds||[]).map(id=>{ const a = adicionais.find(x=>x.id===id); return a ? a.nome : ''; }).filter(Boolean);
+    return `<div style="margin-top:3px;"><b>${escR(Number(it.quantidade)||1)}x</b> ${escR(nome)}</div>` + (ad.length ? `<div>&nbsp;&nbsp;+ ${escR(ad.join(', '))}</div>` : '') + (obs ? `<div>&nbsp;&nbsp;OBS: ${escR(obs)}</div>` : '');
+  }).join('') || '<div>(itens não carregados — confira na tela)</div>';
+  const receber = v.statusPagamento==='A Receber';
+  const taxa = Number(v.taxaEntrega)||0;
+  const entregador = v.entregador ? pdEntregadorNome_(v.entregador) : '';
+  let h = `<h4>ENTREGA #${escR(rotuloPedido(v))}</h4><div class="sub-c">Texas Burger · pedido às ${escR(hora)}</div>`;
+  h += `<hr><div><b>CLIENTE:</b> ${escR(v.clienteNome||'Sem cadastro')}</div>`;
+  if(v.clienteTelefone) h += `<div><b>TEL:</b> ${escR(v.clienteTelefone)}</div>`;
+  h += `<div style="margin-top:4px;"><b>ENDEREÇO:</b><br><span style="font-size:1.15em;">${escR(end||'(não informado)')}</span></div>`;
+  if(v.referencia) h += `<div><b>REFERÊNCIA:</b> ${escR(v.referencia)}</div>`;
+  h += `<hr><div><b>PEDIDO:</b></div>${itens}`;
+  if(v.observacoesEntrega) h += `<hr><div><b>OBS:</b> ${escR(v.observacoesEntrega)}</div>`;
+  h += '<hr>';
+  if(taxa>0) h += `<div class="linha"><span>Taxa de entrega</span><span>${escR(formatarMoeda(taxa))}</span></div>`;
+  h += `<div class="linha total"><span>TOTAL</span><span>${escR(formatarMoeda(v.valorTotal))}</span></div>`;
+  h += receber
+    ? `<div style="margin-top:6px;font-size:1.2em;"><b>COBRAR DO CLIENTE: ${escR(formatarMoeda(v.valorTotal))}</b>${v.formaPagamento?'<br>('+escR(v.formaPagamento)+')':''}</div>`
+    : `<div style="margin-top:6px;font-size:1.1em;"><b>JÁ PAGO — NÃO COBRAR</b>${v.formaPagamento?'<br>('+escR(v.formaPagamento)+')':''}</div>`;
+  if(entregador) h += `<hr><div>Entregador: ${escR(entregador)}</div>`;
+  h += '<div class="foot">Ao entregar, toque em "Já entreguei" no sistema.</div>';
+  return h;
+}
+function imprimirEntregaPedido(vendaId){
+  const v = vendas.find(x=>x.id===vendaId); if(!v || v.tipoEntrega!=='Entrega') return;
+  imprimirDocumento(entregaImpressaoHtml_(v), 'Entrega #'+rotuloPedido(v), lerFormato('entrega','80mm'));
+}
+
+/* ---------- ABA MESAS (dentro de Pedidos): mesas em atendimento + histórico do dia ---------- */
+function cartaoPedidoMesa_(v){
+  const prox = proximoStatusPedido(v);
+  const jaFinalizado = v.statusPedido==='Servida';
+  const aguardandoAceite = v.statusPedido==='Recebido';
+  const hora = new Date(v.timestamp).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  const botoesAceite = aguardandoAceite ? `<div class="btnrow" style="margin-top:6px;">
+      <button class="small-gold" onclick="aceitarPedidoUI('${v.id}')">✅ Aceitar</button>
+      <button class="ghost" onclick="rejeitarPedidoUI('${v.id}')">❌ Rejeitar</button>
+    </div>` : '';
+  return `<div class="notif-card">
+    <div><b>#${escH(rotuloPedido(v))}</b> — ${escH(hora)} — <b>${formatarMoeda(v.valorTotal)}</b>${aguardandoAceite?' <span class="badge baixo">novo — aguardando aceite</span>':''}</div>
+    <div class="obs-line">${itensDoPedido(v.id)}</div>
+    <details class="pd-det"><summary>ver pedido completo</summary>${pedidoDetalheHtml_(v)}</details>
+    ${botaoOcorrenciaPedido(v)}
+    <div class="obs-line">Status: <b>${escH(v.statusPedido||'—')}</b> — há ${tempoDecorridoDesde(v.timestamp)}</div>
+    ${botoesAceite}
+    ${(jaFinalizado || aguardandoAceite) ? '' : botoesSuspensao(v)}
+    ${(!aguardandoAceite && !jaFinalizado && prox) ? `<button class="small-gold" style="margin-top:6px;" onclick="avancarPedido('${v.id}','${prox}')">Marcar como "${prox}"</button>` : ''}
+  </div>`;
+}
+function renderMesasPainel_(){
+  const box = document.getElementById('mesasAtendimentoLista'), hist = document.getElementById('mesasHistoricoLista');
+  if(!box || !hist) return;
+  if(!souStaffCaixa_()){ _alertaPed_.mesas = false; return; }
+  const prio = m => m.status==='Aguardando fechamento' ? 0 : (m.chamadoEm ? 1 : 2);
+  const ativas = (mesas||[]).map(m=>({ m, c: contaDaMesa_(m.id) }))
+    .filter(x=> x.m.status==='Ocupada' || x.m.status==='Aguardando fechamento' || x.c.pedidos.length>0)
+    .sort((a,b)=> (prio(a.m)-prio(b.m)) || ((a.c.desde||Infinity)-(b.c.desde||Infinity)));
+  const totalReceber = arred2(ativas.reduce((s,x)=>s+x.c.total,0));
+  let html = ativas.length ? `<div class="obs-line" style="margin-bottom:8px;">${ativas.length} mesa(s) em atendimento · a receber <b>${formatarMoeda(totalReceber)}</b></div>` : '';
+  ativas.forEach(({m,c})=>{
+    const ag = m.status==='Aguardando fechamento';
+    const pedidos = c.pedidos.slice().sort((a,b)=>(a.timestamp||0)-(b.timestamp||0));
+    const botao = c.pedidos.length
+      ? `<button class="small-gold" style="width:auto;padding:8px 14px;" onclick="fecharContaMesaUI('${m.id}','mesasPainelMsg')">💳 Fechar conta</button>`
+      : `<button class="ghost" style="width:auto;padding:8px 12px;" onclick="fecharContaMesaUI('${m.id}','mesasPainelMsg')">Liberar mesa</button>`;
+    html += `<div class="mesa-card${ag?' aguardando':''}">
+      <div class="mesa-cab"><b>Mesa ${escH(m.numero)}</b><span class="mesa-badge ${(ag||m.chamadoEm)?'b-aguard':'b-ocup'}">${ag?'Pediu a conta':(m.chamadoEm?'🔔 Chamando':'Ocupada')}${(ag&&m.chamadoEm)?' · 🔔':''}</span></div>
+      <div class="obs-line">${m.garcomResponsavel?'👤 '+escH(m.garcomResponsavel)+' · ':''}${c.desde?'⏱ '+tempoDecorridoDesde(c.desde)+' · ':''}${c.pedidos.length} pedido(s)</div>
+      <div class="mesa-total">${formatarMoeda(c.total)}</div>
+      <div class="btnrow" style="margin:0 0 6px;flex-wrap:wrap;">${botao}</div>
+      ${pedidos.map(cartaoPedidoMesa_).join('')}
+    </div>`;
+  });
+  box.innerHTML = html || '<div class="notif-empty">Nenhuma mesa em atendimento agora.</div>';
+
+  // histórico de hoje: tudo que foi lançado em mesas, agrupado por mesa
+  const hoje = dataLocalISO(new Date());
+  const doDia = (vendas||[]).filter(v=>v.status==='Confirmada' && v.tipoEntrega==='Mesa' && v.mesaId && dataLocalISO(new Date(v.timestamp))===hoje);
+  const porMesa = {};
+  doDia.forEach(v=>{ (porMesa[v.mesaId] = porMesa[v.mesaId] || []).push(v); });
+  const grupos = Object.keys(porMesa).map(id=>{
+    const lista = porMesa[id].slice().sort((a,b)=>a.timestamp-b.timestamp);
+    return { id, lista, total: arred2(lista.reduce((s,v)=>s+Number(v.valorTotal||0),0)), aberta: lista.some(v=>v.statusPagamento==='A Receber'), ultimo: lista[lista.length-1].timestamp };
+  }).sort((a,b)=>b.ultimo-a.ultimo);
+  if(!grupos.length){ hist.innerHTML = '<div class="notif-empty">Nenhum pedido de mesa hoje ainda.</div>'; }
+  else {
+    const totalDia = arred2(grupos.reduce((s,g)=>s+g.total,0));
+    hist.innerHTML = `<div class="obs-line" style="margin-bottom:8px;">${grupos.length} mesa(s) atendida(s) hoje · ${doDia.length} pedido(s) · total <b>${formatarMoeda(totalDia)}</b></div>` +
+      grupos.map(g=>`<div class="notif-card">
+        <div><b>Mesa ${escH(nomeMesa(g.id))}</b> — ${g.lista.length} pedido(s) — <b>${formatarMoeda(g.total)}</b> <span class="pd-chip ${g.aberta?'receber':'pago'}">${g.aberta?'Conta aberta':'Conta fechada'}</span></div>
+        <div class="obs-line">primeiro pedido às ${new Date(g.lista[0].timestamp).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})} · último às ${new Date(g.ultimo).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</div>
+        <details class="pd-det"><summary>ver pedidos da mesa</summary>${g.lista.map(v=>`<div class="obs-line">#${escH(rotuloPedido(v))} · ${new Date(v.timestamp).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})} · ${itensDoPedido(v.id)} · <b>${formatarMoeda(v.valorTotal)}</b> · ${v.statusPagamento==='A Receber'?'a receber':'pago'+(v.formaPagamento?' ('+escH(v.formaPagamento)+')':'')}</div>`).join('')}</details>
+      </div>`).join('');
+  }
+  _alertaPed_.mesas = ativas.some(x=>x.m.status==='Aguardando fechamento' || x.m.chamadoEm || x.c.pedidos.some(v=>v.statusPedido==='Recebido'));
+  _atualizarAlertaPedidos_();
+}
+
 /* ---------- ENVIAR A ENTREGA AO ENTREGADOR PELO WHATSAPP ---------- */
 const AVISOS_ENTREGADOR_KEY_ = 'txbAvisosEntregador';
 function lerAvisosEntregador_(){ try{ return JSON.parse(localStorage.getItem(AVISOS_ENTREGADOR_KEY_)||'{}'); }catch(e){ return {}; } }
@@ -4282,7 +4504,7 @@ function enviarEntregaWhatsApp(vendaId){
 
 function renderPedidos(){
   renderCozinha();
-  const pendentes = vendas.filter(v=>v.status==='Confirmada' && (v.tipoEntrega==='Retirada' || v.tipoEntrega==='Mesa') &&
+  const pendentes = vendas.filter(v=>v.status==='Confirmada' && (v.tipoEntrega==='Retirada' || (v.tipoEntrega==='Mesa' && souGarcom_())) &&
     v.statusPedido && !( (v.statusPedido==='Retirada' || v.statusPedido==='Entregue' || v.statusPedido==='Servida') && v.statusPagamento!=='A Receber' )
   ).sort((a,b)=>a.timestamp-b.timestamp);
   const box = document.getElementById('pedidosLista');
@@ -4308,7 +4530,7 @@ function renderPedidos(){
         ${jaFinalizado ? '' : botoesSuspensao(v)}
         ${(!aguardandoAceite && !jaFinalizado && prox) ? `<button class="small-gold" style="margin-top:6px;" onclick="avancarPedido('${v.id}','${prox}')">Marcar como "${prox}"</button>` : ''}
       </div>`;
-    }).join('') : '<div class="notif-empty">Nenhum pedido de retirada ou mesa em andamento.</div>';
+    }).join('') : ('<div class="notif-empty">'+(souGarcom_()?'Nenhum pedido de mesa em andamento.':'Nenhuma retirada em andamento.')+'</div>');
   }
   const hoje = dataLocalISO(new Date());
   const concluidos = vendas.filter(v=>v.status==='Confirmada' && v.tipoEntrega==='Retirada' && v.statusPedido==='Retirada' && v.statusPagamento!=='A Receber' && dataLocalISO(new Date(v.timestamp))===hoje).sort((a,b)=>b.timestamp-a.timestamp);
@@ -4321,6 +4543,7 @@ function renderPedidos(){
     }).join('') : '<div class="notif-empty">Nenhuma retirada concluída ainda hoje.</div>';
   }
   _alertaPed_.pedidos = pendentes.length>0; _atualizarAlertaPedidos_();
+  try{ renderMesasPainel_(); }catch(e){}
 }
 function popularSelectEntregadoresHtml(vendaId, atual){
   const ativos = usuarios.filter(u=>u.nivel==='Entregador' && u.ativo);
@@ -4672,6 +4895,7 @@ async function garcomEnviarPedido(){
 }
 function renderEntregas(){
   const souEntregador = currentUser && currentUser.nivel === 'Entregador';
+  const _ef = document.getElementById('entFmt'); if(_ef) _ef.value = lerFormato('entrega','80mm');
   let pendentes = vendas.filter(v=>v.status==='Confirmada' && v.tipoEntrega==='Entrega' && v.statusPedido && !(v.statusPedido==='Entregue' && v.statusPagamento!=='A Receber')).sort((a,b)=>a.timestamp-b.timestamp);
   if(souEntregador) pendentes = pendentes.filter(v=>v.entregador===currentUser.login);
 
@@ -4710,6 +4934,7 @@ function renderEntregas(){
         ${!souEntregador ? botoesSuspensao(v) : ''}
         ${!souEntregador ? entregadorBox : ''}
         ${!souEntregador ? botaoEnviarEntregador_(v) : ''}
+        ${!souEntregador ? botaoImprimirEntrega_(v) : ''}
         ${(!aguardandoAceite && prox) ? `<button class="small-gold" style="margin-top:6px;" onclick="avancarPedido('${v.id}','${prox}')">${labelBotao}</button>` : ''}
       </div>`;
     }).join('') : `<div class="notif-empty">${souEntregador?'Nenhuma entrega atribuída a você agora.':'Nenhuma entrega em andamento.'}</div>`;
@@ -5516,6 +5741,7 @@ function contaDaMesa_(mesaId){
   return { pedidos, total: arred2(pedidos.reduce((s,v)=>s+Number(v.valorTotal||0),0)), desde: pedidos.length ? Math.min.apply(null, pedidos.map(v=>v.timestamp||Date.now())) : 0 };
 }
 function renderMesasPopup_(){
+  try{ renderMesasPainel_(); }catch(e){}
   const box = document.getElementById('mesasLista'); if(!box || !podeVerMesas_()) return;
   const staff = souStaffCaixa_();
   const vis = mesasVisiveis_();
@@ -6025,7 +6251,7 @@ async function venderEmContingencia_(ctx){
    Um único motor para comprovantes, relatórios e fechamento de caixa. Imprime por um quadro invisível
    (não depende de pop-up, que o celular costuma bloquear) e lembra o tamanho escolhido neste aparelho. */
 const FORMATOS_IMPRESSAO = ['58mm','80mm','A4'];
-const FMT_KEYS = { comp:'txbFmtComprovante', rel:'txbFmtRelatorio', comanda:'txbFmtComanda' };
+const FMT_KEYS = { comp:'txbFmtComprovante', rel:'txbFmtRelatorio', comanda:'txbFmtComanda', entrega:'txbFmtEntrega' };
 function lerFormato(k, padrao){ try{ const v = localStorage.getItem(FMT_KEYS[k]); return FORMATOS_IMPRESSAO.includes(v) ? v : padrao; }catch(e){ return padrao; } }
 function salvarFormato(k, v){ try{ localStorage.setItem(FMT_KEYS[k], v); }catch(e){} }
 function classeRecibo(f){ return 'recibo ' + (f==='A4' ? 'wA4' : (f==='58mm' ? 'w58' : 'w80')); }
@@ -7784,20 +8010,24 @@ function configurarSincronizacaoAutomatica(){
 let _painelPedidosAtual = 'pedidos';
 function pedidosPainel_(qual){
   _painelPedidosAtual = qual;
-  const ped = document.getElementById('pedidosPainelPedidos'), ent = document.getElementById('pedidosPainelEntregas');
+  const ped = document.getElementById('pedidosPainelPedidos'), ent = document.getElementById('pedidosPainelEntregas'), mes = document.getElementById('pedidosPainelMesas');
   if(ped) ped.style.display = qual==='pedidos' ? '' : 'none';
   if(ent) ent.style.display = qual==='entregas' ? '' : 'none';
-  const bp = document.getElementById('pedSubPedidos'), be = document.getElementById('pedSubEntregas');
+  if(mes) mes.style.display = qual==='mesas' ? '' : 'none';
+  const bp = document.getElementById('pedSubPedidos'), be = document.getElementById('pedSubEntregas'), bm = document.getElementById('pedSubMesas');
   if(bp) bp.classList.toggle('active', qual==='pedidos');
   if(be) be.classList.toggle('active', qual==='entregas');
+  if(bm) bm.classList.toggle('active', qual==='mesas');
+  if(qual==='mesas') renderMesasPainel_();
 }
 function abrirPedidosPainel_(qual){ const b = document.querySelector('[data-tab=pedidos]'); if(b) b.click(); pedidosPainel_(qual); }
-const _alertaPed_ = { pedidos:false, entregas:false };
+const _alertaPed_ = { pedidos:false, entregas:false, mesas:false };
 function _atualizarAlertaPedidos_(){
-  const t = document.querySelector('[data-tab=pedidos]'); if(t) t.classList.toggle('has-alert', _alertaPed_.pedidos || _alertaPed_.entregas);
-  const bp = document.getElementById('pedSubPedidos'), be = document.getElementById('pedSubEntregas');
+  const t = document.querySelector('[data-tab=pedidos]'); if(t) t.classList.toggle('has-alert', _alertaPed_.pedidos || _alertaPed_.entregas || _alertaPed_.mesas);
+  const bp = document.getElementById('pedSubPedidos'), be = document.getElementById('pedSubEntregas'), bm = document.getElementById('pedSubMesas');
   if(bp) bp.classList.toggle('has-alert', _alertaPed_.pedidos);
   if(be) be.classList.toggle('has-alert', _alertaPed_.entregas);
+  if(bm) bm.classList.toggle('has-alert', _alertaPed_.mesas);
 }
 function seguroParaSincronizar(){
   if(usuarioNoMeioDeFormulario) return false;
