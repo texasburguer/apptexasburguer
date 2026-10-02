@@ -1,7 +1,8 @@
 {
+  "id": "./",
   "name": "Texas Burger",
   "short_name": "Texas Burger",
-  "description": "Sistema de controle do Texas Burger",
+  "description": "Cardápio digital e pedidos do Texas Burger",
   "lang": "pt-BR",
   "start_url": "./",
   "scope": "./",
