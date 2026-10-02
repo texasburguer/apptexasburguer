@@ -44,6 +44,16 @@ function chaveContingencia_(nome) {
   return v;
 }
 
+/* CONFIGURAÇÃO RÁPIDA DA CONTINGÊNCIA — rode UMA vez no editor (menu de funções -> configurarContingencia -> Executar).
+   Grava as duas chaves nas Propriedades do script (onde o sistema as lê) e já roda a conferência.
+   Depois de rodar com sucesso, APAGUE os valores abaixo (deixe '') para as chaves não ficarem escritas no código. */
+function configurarContingencia() {
+  const SERVIDOR = 'txbsrv-bc2849c9bee9461fb6b606c22c386152d98e51f2';
+  const INTERNA = 'txbint-1396dc14a0f64602a4738828a456e21a9697b414';
+  PropertiesService.getScriptProperties().setProperties({ CONTINGENCIA_CHAVE_SERVIDOR: SERVIDOR, CONTINGENCIA_CHAVE_INTERNA: INTERNA });
+  return conferirChavesContingencia();
+}
+
 /* ITEM 16 — conferência das chaves da contingência.
    Rode no editor do Apps Script (menu de funções -> conferirChavesContingencia -> Executar) e veja o "Registro de execução".
    Nunca mostra a chave inteira. */
