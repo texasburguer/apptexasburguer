@@ -11,6 +11,8 @@
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://drive.google.com">
+<link rel="preconnect" href="https://lh3.googleusercontent.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alfa+Slab+One&display=swap">
 <title>Texas Burger — Sistema Completo</title>
@@ -2467,7 +2469,9 @@ const VERSAO_FRONT_ = { editarProduto:()=>produtos, editarCombo:()=>combos, edit
 /* ---- Aviso de carregamento (#15) ----
    Toda ação que fala com a planilha mostra um aviso se demorar mais de ~0,4 s. Ações de gravação importantes (venda, pedido, caixa,
    conta da mesa, pagamento...) também travam a tela por trás, para evitar toque duplo. Atualizações em segundo plano ficam de fora. */
-const API_SILENCIOSAS_ = new Set(['getAll','detectarNovosPedidos','obterStatusBackup','getCardapio','getStatusPedidoPublico','autenticar','verificarSenhaAdmin','getMesaPublica']);
+/* ITEM 19 — estado da sincronização por versão (var: precisa existir antes de qualquer chamada) */
+var _dadosBrutos = null, _versoesLocais = null, _ultimoFullMs = 0;
+const API_SILENCIOSAS_ = new Set(['getVersoes','getDadosGrupo','getAll','detectarNovosPedidos','obterStatusBackup','getCardapio','getStatusPedidoPublico','autenticar','verificarSenhaAdmin','getMesaPublica']);
 const API_ROTULOS_ = {
   iniciarVenda:'Registrando a venda…', criarPedidoCardapio:'Enviando seu pedido…', fecharCaixa:'Fechando o caixa…', abrirCaixa:'Abrindo o caixa…',
   fecharContaMesa:'Fechando a conta da mesa…', cancelarVenda:'Cancelando a venda…', editarVenda:'Salvando a venda…', pagarDespesa:'Registrando o pagamento…',
@@ -2783,6 +2787,7 @@ function atualizarAoEntrar_(){
 async function atualizarAgora_(){
   if(!apiConfigurada()) return;
   if(!seguroParaSincronizar()){ alert('Termine ou feche o que está aberto (venda, formulário ou janela) e toque em Atualizar de novo.'); return; }
+  _versoesLocais = null; // o botão Atualizar sempre baixa tudo
   await sincronizarEmSegundoPlano();
 }
 function mostrarUltimaSync_(){
@@ -4392,6 +4397,17 @@ function atualizarCardAvisos_(){
   if(btn) btn.style.display = mostrar ? '' : 'none';
 }
 try{ if('serviceWorker' in navigator && location.protocol==='https:') navigator.serviceWorker.register('sw.js').catch(()=>{}); }catch(e){}
+/* ITEM 20 — o service worker avisa quando a página guardada ficou velha; o usuário atualiza quando quiser (nunca no meio de uma venda). */
+try{ if('serviceWorker' in navigator){ navigator.serviceWorker.addEventListener('message', ev=>{ if(ev.data && ev.data.tipo === 'nova-versao') mostrarAvisoNovaVersao_(); }); } }catch(e){}
+function mostrarAvisoNovaVersao_(){
+  if(document.getElementById('avisoNovaVersao')) return;
+  const b = document.createElement('div');
+  b.id = 'avisoNovaVersao'; b.setAttribute('role','status');
+  b.style.cssText = 'position:fixed;left:12px;right:12px;bottom:12px;z-index:99999;background:#1b1b1b;color:#fff;border:1px solid var(--gold,#d9a21b);border-radius:12px;padding:12px 14px;font:600 14px system-ui,sans-serif;display:flex;gap:10px;align-items:center;justify-content:space-between;box-shadow:0 6px 24px rgba(0,0,0,.45)';
+  b.innerHTML = '<span>🍔 Nova versão disponível</span><button type="button" style="background:var(--gold,#d9a21b);color:#111;border:0;border-radius:8px;padding:8px 12px;font-weight:700;cursor:pointer">Atualizar</button>';
+  b.querySelector('button').onclick = ()=> location.reload();
+  document.body.appendChild(b);
+}
 
 function alternarSomCozinha(){
   cozinhaSomLigado = !cozinhaSomLigado;
@@ -4797,8 +4813,24 @@ async function confirmarAbrirCaixa(){
 }
 /* Fechar o caixa: pede o dinheiro contado e a SENHA de quem está logado (Operador: a dele; Admin operando o caixa: a dele).
    A senha é conferida no servidor. */
+function pendenciasCaixaLocal_(){
+  const FIN = ['Entregue','Retirada','Servida'];
+  const ativas = vendas.filter(v=>v.status==='Confirmada');
+  const rot = v => '#'+(v.numero||String(v.id).slice(-4))+(v.clienteNome?' '+String(v.clienteNome).split(/\s+/)[0]:'');
+  const ls = a => a.slice(0,6).join(', ')+(a.length>6?' e mais '+(a.length-6):'');
+  const ms = (mesas||[]).filter(m=>m.status==='Ocupada'||m.status==='Aguardando fechamento').map(m=>'Mesa '+m.numero);
+  const pe = ativas.filter(v=>v.statusPedido && FIN.indexOf(v.statusPedido)===-1).map(v=>rot(v)+' ('+v.statusPedido+')');
+  const nr = ativas.filter(v=>v.statusPagamento==='A Receber').map(rot);
+  const t = [];
+  if(ms.length) t.push('Mesas abertas: '+ls(ms));
+  if(pe.length) t.push('Pedidos pendentes: '+ls(pe));
+  if(nr.length) t.push('Pedidos não recebidos: '+ls(nr));
+  return t.length ? t.join('\n') : '';
+}
 function fecharCaixaAgora(){
   if(!sessaoCaixa) return;
+  const pend = pendenciasCaixaLocal_();
+  if(pend){ alert('Não é possível fechar o caixa enquanto houver pendências:\n\n'+pend+'\n\nFinalize, receba ou cancele e tente de novo.'); return; }
   const esperado = saldoEsperadoGaveta();
   document.getElementById('fcEsperado').textContent = formatarMoeda(esperado);
   document.getElementById('fcContado').value = esperado.toFixed(2);
@@ -4819,8 +4851,11 @@ async function confirmarFecharCaixa_(){
     const r = await apiCall('fecharCaixa', { id: sessaoCaixa.id, valorContado: contado, senhaConfirmacao: senha });
     if(r.ok){
       fecharModalConfirmarCaixa_(); fecharCaixaStatus_(); fecharLancamentos_();
-      sessaoCaixa = null; salvarCache(); renderStatusCaixa(); await recarregarHistoricoCaixa();
-      mostrarRelatorioFechamento(r.relatorio, r.relatorio.valorContado);
+      sessaoCaixa = null;
+      if(r.vendas){ vendas = r.vendas; fechamentosEntrega = r.fechamentosEntrega || fechamentosEntrega; entregasFechadas = r.entregasFechadas || entregasFechadas; }
+      salvarCache(); renderStatusCaixa(); await recarregarHistoricoCaixa();
+      try{ renderEntregas(); renderNotificacoes(); }catch(e){}
+      mostrarRelatorioFechamento(r.relatorio, r.relatorio.valorContado, r.entregasAuto);
     } else { document.getElementById('fcSenha').value = ''; showMsg('cxConfirmarMsg', r.message, 'warn'); btn.disabled = false; }
   } catch(e){ showMsg('cxConfirmarMsg','Não foi possível fechar o caixa. Tente de novo.','warn'); btn.disabled = false; }
   finally { finalizarOperacaoUnica('fecharCaixa'); }
@@ -4828,7 +4863,7 @@ async function confirmarFecharCaixa_(){
 async function recarregarHistoricoCaixa(){
   try{ const r = await apiCall('getAll', {}); historicoCaixa = r.historicoCaixa || historicoCaixa; salvarCache(); renderHistoricoCaixa(); } catch(e){}
 }
-function mostrarRelatorioFechamento(r, contado){
+function mostrarRelatorioFechamento(r, contado, entregasAuto){
   const linhasFormas = Object.keys(r.porForma||{}).map(f=>`${f}: ${formatarMoeda(r.porForma[f])}`).join('\n');
   let reconciliacao = '';
   if(contado !== null && contado !== undefined){
@@ -4854,7 +4889,7 @@ Total de vendas: ${formatarMoeda(r.totalVendas)} (${r.quantidadeVendas} venda(s)
 ${r.totalPendente>0 ? 'A receber (ainda não pago): '+formatarMoeda(r.totalPendente)+'\n' : ''}Despesas: ${formatarMoeda(r.totalDespesas)} (${r.quantidadeDespesas} despesa(s))
 Sangrias: ${formatarMoeda(r.totalSangrias)} (${r.quantidadeSangrias} sangria(s))
 
-💰 Saldo final em caixa: ${formatarMoeda(r.saldoFinal)}${reconciliacao}`;
+💰 Saldo final em caixa: ${formatarMoeda(r.saldoFinal)}${reconciliacao}${entregasAuto && entregasAuto.feitos && entregasAuto.feitos.length ? '\n\n🛵 ENTREGAS FECHADAS AUTOMATICAMENTE\n'+entregasAuto.feitos.join('\n') : ''}${entregasAuto && entregasAuto.falhas && entregasAuto.falhas.length ? '\n\n⚠ Não foi possível fechar: '+entregasAuto.falhas.join(' | ')+' (feche manualmente em Entregas)' : ''}`;
   ultimoRelatorioTexto = texto;
   document.getElementById('relatorioTexto').textContent = texto;
   document.getElementById('fecharCaixaModal').classList.add('open');
@@ -7471,6 +7506,7 @@ window.addEventListener('online', ()=>{ sincronizarEmSegundoPlano(); });
 window.addEventListener('offline', ()=>{ setConexaoStatus('offline', 'conexão do celular caiu'); });
 
 function aplicarDadosRecebidos(dados){
+  if(!dados._parcial){ _dadosBrutos = dados; _versoesLocais = dados.versoes || null; _ultimoFullMs = Date.now(); } // ITEM 19: toda carga completa vira a base
   _cacheUltVendaTel = null; // os dados mudaram: refaz a tabela de última venda por telefone
   configNotificacoes = dados.configNotificacoes || configNotificacoes;
   clientes = dados.clientes || []; promocoes = dados.promocoes || []; cupons = dados.cupons || []; eventos = dados.eventos || [];
@@ -7581,16 +7617,42 @@ function seguroParaSincronizar(){
   if(document.querySelector('.modal-overlay.open')) return false; // algum cadastro/edição aberto
   return true;
 }
+/* ITEM 19 — Admin/Operador: pergunta "mudou algo?" (sem ler planilha) e baixa só a parte que mudou.
+   Os outros perfis, a primeira carga e a cada 15 min continuam baixando tudo (rede de segurança). */
+const FULL_SYNC_MS_ = 15*60*1000;
+function ehGestor_(){ return !!(currentUser && (currentUser.nivel === 'Admin' || currentUser.nivel === 'Operador')); }
 async function sincronizarEmSegundoPlano(){
   if(sincronizacaoEmAndamento || !apiConfigurada() || !seguroParaSincronizar()) return;
   sincronizacaoEmAndamento = true;
   setConexaoStatus('syncing');
   try{
-    const dados = await apiCall('getAll', {});
-    if(!seguroParaSincronizar()){ setConexaoStatus('online'); return; }
-    aplicarDadosRecebidos(dados);
-    salvarCache();
-    renderizarTudo();
+    const completo = !ehGestor_() || !_dadosBrutos || !_versoesLocais || (Date.now() - _ultimoFullMs > FULL_SYNC_MS_);
+    let mudou = true;
+    if(completo){
+      const dados = await apiCall('getAll', {});
+      if(!seguroParaSincronizar()){ setConexaoStatus('online'); return; }
+      aplicarDadosRecebidos(dados);
+    } else {
+      const v = await apiCall('getVersoes', {});
+      if(!v || v.ok === false) throw new Error('versoes');
+      const grupos = [];
+      if(v.cad !== _versoesLocais.cad) grupos.push('cad');
+      if(v.din !== _versoesLocais.din) grupos.push('din');
+      mudou = grupos.length > 0;
+      if(mudou){
+        let junto = Object.assign({}, _dadosBrutos); const novas = Object.assign({}, _versoesLocais);
+        for(const g of grupos){
+          const parte = await apiCall('getDadosGrupo', { grupo: g });
+          if(!parte || parte.ok === false || !parte.versoes) throw new Error('grupo');
+          junto = Object.assign(junto, parte); novas[g] = parte.versoes[g]; // guarda a versão lida ANTES dos dados
+        }
+        if(!seguroParaSincronizar()){ setConexaoStatus('online'); return; }
+        junto.versoes = novas; junto._parcial = true;
+        aplicarDadosRecebidos(junto);
+        _dadosBrutos = junto; _versoesLocais = novas;
+      }
+    }
+    if(mudou){ salvarCache(); renderizarTudo(); }
     ultimaSyncMs = Date.now(); mostrarUltimaSync_();
     setConexaoStatus('online');
   } catch(e){ setConexaoStatus('offline', 'não foi possível atualizar — toque em Atualizar'); }
@@ -7920,12 +7982,13 @@ const CD_CACHE_KEY_ = 'cdCache_v1';
 function cdLerCache_(){ try{ const r = JSON.parse(localStorage.getItem(CD_CACHE_KEY_)||'null'); return (r && r.dados && r.dados.produtos) ? r : null; }catch(e){ return null; } }
 function cdSalvarCache_(dados){ try{ localStorage.setItem(CD_CACHE_KEY_, JSON.stringify({ t: Date.now(), dados })); }catch(e){} }
 /* Busca leve (GET): não entra na fila única do sistema e usa o cache do servidor. */
-async function cdBuscarGet_(){
+async function cdBuscarGet_(versaoAtual){
   const ctl = new AbortController(); const to = setTimeout(()=>ctl.abort(), 15000);
   try{
-    const res = await fetch(API_URL + (API_URL.indexOf('?')===-1?'?':'&') + 'cd=' + Date.now(), { signal: ctl.signal });
+    const res = await fetch(API_URL + (API_URL.indexOf('?')===-1?'?':'&') + 'cd=' + Date.now() + (versaoAtual ? '&v=' + encodeURIComponent(versaoAtual) : ''), { signal: ctl.signal });
     if(!res.ok) throw new Error('Falha na requisição');
     const d = await res.json();
+    if(d && d.igual) return { igual: true };   // ITEM 18: o celular já tem esta versão
     if(!d || !d.produtos) throw new Error('Resposta inválida');
     return d;
   } finally { clearTimeout(to); }
@@ -7949,7 +8012,12 @@ async function carregarCardapioPublico(){
   const cache = cdLerCache_();
   if(cache){ cdDados = cache.dados; modoContingenciaAtivo = false; cdPintar_(true); }
   try{
-    const fresco = await cdBuscarGet_();
+    const fresco = await cdBuscarGet_(cache && cache.dados ? cache.dados.versao : '');
+    if(fresco.igual){ // ITEM 18: nada mudou no servidor — não redesenha (evita "pulo" na rolagem), só confirma aberto/fechado
+      modoContingenciaAtivo = false;
+      document.getElementById('cdStatusCaixa').textContent = cdDados.caixaAberto ? '🟢 Estamos abertos' : '🔴 Estamos fechados no momento';
+      return;
+    }
     cdDados = fresco; modoContingenciaAtivo = false;
     cdSalvarCache_(fresco);
     cdPintar_(false);
