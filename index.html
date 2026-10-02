@@ -4,12 +4,16 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <!-- SEGURANÇA: mesmo que algum texto malicioso escapasse, a página só consegue falar com o Google Apps Script (planilha e contingência). -->
-<meta http-equiv="Content-Security-Policy" content="connect-src https://script.google.com https://script.googleusercontent.com; object-src 'none'; base-uri 'none'; form-action 'none';">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' https: data: blob:; connect-src 'self' https://script.google.com https://script.googleusercontent.com; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none';">
 <meta name="referrer" content="no-referrer">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0b0705">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Texas Burger">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://drive.google.com">
 <link rel="preconnect" href="https://lh3.googleusercontent.com">
@@ -30,6 +34,11 @@
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
     min-height:100vh;padding:18px 14px 60px;}
   .modal-box .sub{margin:0 0 14px;font-size:12.5px;color:var(--muted);line-height:1.4;}
+  .mesa-atend{border-left:4px solid var(--gold-dim);background:rgba(255,255,255,.035);border-radius:8px;padding:8px 10px;margin-top:10px;}
+  .mesa-atend.aberto{border-left-color:var(--gold);}
+  .mesa-atend.fechado{border-left-color:#6dbb2e;}
+  .mesa-atend-cab{display:flex;justify-content:space-between;align-items:center;gap:6px;font-size:14px;}
+  .mesa-atend-tempo{font-size:12.5px;color:var(--cream);margin:5px 0 3px;line-height:1.55;}
   .card-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:6px;}
   .card-head h2{margin:0;}
   .card-head button{width:auto;margin:0;padding:8px 14px;white-space:nowrap;flex:0 0 auto;}
@@ -2679,7 +2688,7 @@ function _carregandoAtualizar_(){
 }
 function _carregandoInicio_(action){
   _apiAtivas++; if(API_TRAVAM_TELA_.has(action)) _apiTravaTela++;
-  _apiRotulo = API_ROTULOS_[action] || 'Salvando…';
+  { const _novoRot = API_ROTULOS_[action] || 'Salvando…'; _apiRotulo = (_apiAtivas > 1 && _apiRotulo && _apiRotulo !== _novoRot) ? 'Salvando…' : _novoRot; } // MELHORIA 6: várias chamadas ao mesmo tempo mostram um rótulo genérico
   if(_apiAtivas === 1){ clearTimeout(_apiTimerAviso); _apiTimerAviso = setTimeout(_carregandoAtualizar_, 400); } else _carregandoAtualizar_();
 }
 function _carregandoFim_(action){
@@ -2767,6 +2776,8 @@ async function _apiCallRaw(action, payload, _tentativa, _idemChave){
     }
   }
   if(dados && dados.sessaoExpirada){
+    /* MELHORIA 5.3 — itens na fila offline não são reenviados sem login: viram "com erro" e o usuário reenvia depois de entrar. */
+    try{ _fila.forEach(i=>{ if(i.estado==='pendente' || i.estado==='retry' || i.estado==='enviando'){ i.estado='erro'; i.erro='Sessão expirada — entre de novo e toque em "Tentar de novo"'; } }); filaSalvar_(); }catch(e){}
     localStorage.removeItem(SESSAO_KEY); localStorage.removeItem(CONTINGENCIA_CHAVE_KEY); localStorage.removeItem(CACHE_KEY);
     currentUser = null;
     alert('Sua sessão expirou. Faça login novamente.');
@@ -3004,6 +3015,8 @@ function ativarApenasSecao_(id){
     sec.style.setProperty('display', ativa ? 'block' : 'none', 'important');
     sec.setAttribute('aria-hidden', ativa ? 'false' : 'true');
   });
+  /* MELHORIA 4.4 — telas pesadas só são desenhadas a cada sincronização quando estão na tela; ao entrar nelas, desenham na hora. */
+  try{ if(id==='tab-notificacoes') renderNotificacoes(); else if(id==='tab-financeiro') gerarRelatorio(); }catch(e){}
 }
 function abrirAdministrador(sub){
   const alvo = ADMIN_SUBABAS.includes(sub) ? sub : 'visaogeral';
@@ -4447,6 +4460,37 @@ function cartaoPedidoMesa_(v){
     ${(!aguardandoAceite && !jaFinalizado && prox) ? `<button class="small-gold" style="margin-top:6px;" onclick="avancarPedido('${v.id}','${prox}')">Marcar como "${prox}"</button>` : ''}
   </div>`;
 }
+/* ---------- HISTÓRICO DAS MESAS: separa cada cliente que usou a mesa ---------- */
+function horaCurta_(t){ return new Date(t).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}); }
+function duracaoCurta_(ms){
+  const min = Math.max(1, Math.round(ms/60000));
+  return min < 60 ? min+' min' : Math.floor(min/60)+'h'+String(min%60).padStart(2,'0');
+}
+/* Um atendimento = pedidos da mesma mesa pagos no mesmo fechamento de conta (horário de recebimento até 2 min de diferença),
+   ou os pedidos ainda a receber (mesa ocupada agora). Cliente novo = novo fechamento. */
+function atendimentosDaMesa_(lista){
+  const TOL = 120000, grupos = [];
+  lista.filter(v=>v.statusPagamento!=='A Receber')
+    .map(v=>({ v, fim: v.timestampRecebimento || v.timestamp }))
+    .sort((a,b)=>a.fim-b.fim)
+    .forEach(p=>{ const g = grupos[grupos.length-1]; if(g && p.fim - g.fim <= TOL){ g.lista.push(p.v); g.fim = Math.max(g.fim, p.fim); } else grupos.push({ lista:[p.v], fim:p.fim, aberto:false }); });
+  const abertos = lista.filter(v=>v.statusPagamento==='A Receber');
+  if(abertos.length) grupos.push({ lista:abertos, fim:0, aberto:true });
+  grupos.forEach(g=>{ g.lista.sort((a,b)=>a.timestamp-b.timestamp); g.inicio = g.lista[0].timestamp; g.total = arred2(g.lista.reduce((s,v)=>s+Number(v.valorTotal||0),0)); });
+  return grupos.sort((a,b)=>a.inicio-b.inicio);
+}
+function atendimentoMesaHtml_(a, i){
+  const formas = Array.from(new Set(a.lista.map(v=>v.formaPagamento).filter(Boolean)));
+  const tempo = a.aberto
+    ? `🟢 Ocupou às <b>${escH(horaCurta_(a.inicio))}</b> · 🟡 ainda ocupada (há ${escH(tempoDecorridoDesde(a.inicio))})`
+    : `🟢 Ocupou às <b>${escH(horaCurta_(a.inicio))}</b> · 🔴 Liberou às <b>${escH(horaCurta_(a.fim))}</b> · ficou ${escH(duracaoCurta_(Math.max(0, a.fim - a.inicio)))}`;
+  return `<div class="mesa-atend ${a.aberto?'aberto':'fechado'}">
+    <div class="mesa-atend-cab"><b>${i===0?'1º atendimento':(i+1)+'º atendimento · novo cliente'}</b><span class="pd-chip ${a.aberto?'receber':'pago'}">${a.aberto?'Em atendimento':'Conta fechada'}</span></div>
+    <div class="mesa-atend-tempo">${tempo}</div>
+    <div class="obs-line">${a.lista.length} pedido(s) · <b>${formatarMoeda(a.total)}</b>${(!a.aberto && formas.length)?' · '+escH(formas.join(' + ')):''}</div>
+    <details class="pd-det"><summary>ver pedidos</summary>${a.lista.map(v=>`<div class="obs-line">#${escH(rotuloPedido(v))} · ${escH(horaCurta_(v.timestamp))} · ${itensDoPedido(v.id)} · <b>${formatarMoeda(v.valorTotal)}</b>${v.statusPagamento==='A Receber'?' · a receber':''}</div>`).join('')}</details>
+  </div>`;
+}
 function renderMesasPainel_(){
   const box = document.getElementById('mesasAtendimentoLista'), hist = document.getElementById('mesasHistoricoLista');
   if(!box || !hist) return;
@@ -4473,23 +4517,24 @@ function renderMesasPainel_(){
   });
   box.innerHTML = html || '<div class="notif-empty">Nenhuma mesa em atendimento agora.</div>';
 
-  // histórico de hoje: tudo que foi lançado em mesas, agrupado por mesa
+  // histórico de hoje: por mesa, separado em ATENDIMENTOS (cada cliente que sentou e pagou = um atendimento)
   const hoje = dataLocalISO(new Date());
   const doDia = (vendas||[]).filter(v=>v.status==='Confirmada' && v.tipoEntrega==='Mesa' && v.mesaId && dataLocalISO(new Date(v.timestamp))===hoje);
   const porMesa = {};
   doDia.forEach(v=>{ (porMesa[v.mesaId] = porMesa[v.mesaId] || []).push(v); });
   const grupos = Object.keys(porMesa).map(id=>{
     const lista = porMesa[id].slice().sort((a,b)=>a.timestamp-b.timestamp);
-    return { id, lista, total: arred2(lista.reduce((s,v)=>s+Number(v.valorTotal||0),0)), aberta: lista.some(v=>v.statusPagamento==='A Receber'), ultimo: lista[lista.length-1].timestamp };
+    const atend = atendimentosDaMesa_(lista);
+    return { id, atend, total: arred2(lista.reduce((s,v)=>s+Number(v.valorTotal||0),0)), ultimo: Math.max.apply(null, atend.map(x=>Math.max(x.inicio, x.fim||0))) };
   }).sort((a,b)=>b.ultimo-a.ultimo);
   if(!grupos.length){ hist.innerHTML = '<div class="notif-empty">Nenhum pedido de mesa hoje ainda.</div>'; }
   else {
     const totalDia = arred2(grupos.reduce((s,g)=>s+g.total,0));
-    hist.innerHTML = `<div class="obs-line" style="margin-bottom:8px;">${grupos.length} mesa(s) atendida(s) hoje · ${doDia.length} pedido(s) · total <b>${formatarMoeda(totalDia)}</b></div>` +
+    const nAtend = grupos.reduce((s,g)=>s+g.atend.length,0);
+    hist.innerHTML = `<div class="obs-line" style="margin-bottom:8px;">${grupos.length} mesa(s) · ${nAtend} atendimento(s) · ${doDia.length} pedido(s) · total <b>${formatarMoeda(totalDia)}</b></div>` +
       grupos.map(g=>`<div class="notif-card">
-        <div><b>Mesa ${escH(nomeMesa(g.id))}</b> — ${g.lista.length} pedido(s) — <b>${formatarMoeda(g.total)}</b> <span class="pd-chip ${g.aberta?'receber':'pago'}">${g.aberta?'Conta aberta':'Conta fechada'}</span></div>
-        <div class="obs-line">primeiro pedido às ${new Date(g.lista[0].timestamp).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})} · último às ${new Date(g.ultimo).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</div>
-        <details class="pd-det"><summary>ver pedidos da mesa</summary>${g.lista.map(v=>`<div class="obs-line">#${escH(rotuloPedido(v))} · ${new Date(v.timestamp).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})} · ${itensDoPedido(v.id)} · <b>${formatarMoeda(v.valorTotal)}</b> · ${v.statusPagamento==='A Receber'?'a receber':'pago'+(v.formaPagamento?' ('+escH(v.formaPagamento)+')':'')}</div>`).join('')}</details>
+        <div><b>Mesa ${escH(nomeMesa(g.id))}</b> — ${g.atend.length} atendimento(s) — <b>${formatarMoeda(g.total)}</b></div>
+        ${g.atend.map((a,i)=>atendimentoMesaHtml_(a,i)).join('')}
       </div>`).join('');
   }
   _alertaPed_.mesas = ativas.some(x=>x.m.status==='Aguardando fechamento' || x.m.chamadoEm || x.c.pedidos.some(v=>v.statusPedido==='Recebido'));
@@ -5465,7 +5510,7 @@ function buscarClienteVenda(){
   const box = document.getElementById('vClienteResultados');
   if(!termo){ box.innerHTML=''; return; }
   const achados = clientes.filter(c=>c.nome.toLowerCase().includes(termo)||normTel(c.telefone).includes(normTel(termo))).slice(0,5);
-  box.innerHTML = achados.map(c=>`<div class="ghost" style="padding:8px;margin-bottom:4px;cursor:pointer;border-radius:4px;" onclick="selecionarClienteVenda(${escH(JSON.stringify(c.nome))}, ${escH(JSON.stringify(c.telefone))})">${escH(c.nome)} — ${escH(c.telefone)}</div>`).join('') || '<div class="notif-empty">Nenhum cliente encontrado.</div>';
+  box.innerHTML = achados.map(c=>`<div class="ghost" style="padding:8px;margin-bottom:4px;cursor:pointer;border-radius:4px;" data-cliente-nome="${escH(c.nome)}" data-cliente-tel="${escH(c.telefone)}">${escH(c.nome)} — ${escH(c.telefone)}</div>`).join('') || '<div class="notif-empty">Nenhum cliente encontrado.</div>';
 }
 function selecionarClienteVenda(nome, telefone){
   clienteVendaSelecionado = {nome, telefone};
@@ -5764,10 +5809,11 @@ async function finalizarPedidoMesa_(){
   if(!confirm('Enviar o pedido da Mesa '+mesaQr.numero+'?\n'+qtdTotal+' item(ns) · '+formatarMoeda(totalCarrinhoCd())+'\nO restaurante vai confirmar antes de preparar.')) return;
   const btn = document.getElementById('cdEnviarPedidoBtn'); btn.disabled = true; btn.textContent = 'Enviando...';
   const itens = cdCarrinho.map(it=>({ produtoId: it.tipo==='produto' ? it.id : undefined, comboId: it.tipo==='combo' ? it.id : undefined, quantidade: it.qtd, adicionaisIds: it.adicionais.map(a=>a.id), observacao: it.obs || '' }));
+  const _reqCont = { mesa: mesaQr.numero, itens, clienteNome: nome };
   try{
-    const r = await apiCall('criarPedidoMesa', { mesa: mesaQr.numero, codigo: mesaQr.codigo, itens, clienteNome: nome, requisicaoId: (_reqPedidoCardapio = _reqPedidoCardapio || novaRequisicao_()) });
+    const r = await apiCall('criarPedidoMesa', { mesa: mesaQr.numero, codigo: mesaQr.codigo, itens, clienteNome: nome, requisicaoId: reqIdPersist_('pedido_mesa', _reqCont) });
     if(r.ok){
-      _reqPedidoCardapio = null; try{ localStorage.setItem('cdNomeMesa', nome); }catch(e){}
+      reqIdConfirmado_('pedido_mesa', _reqCont); try{ localStorage.setItem('cdNomeMesa', nome); }catch(e){}
       cdPedidoConcluido = true; fecharCarrinhoPublico();
       showMsg('cdMesaMsg','Pedido enviado! Aguarde a confirmação do restaurante.','ok');
       atualizarMesaPublica_(false);
@@ -6193,8 +6239,12 @@ async function finalizarVenda(){
 }
 /* FASE 9 — idempotência: o mesmo id acompanha a venda em qualquer nova tentativa (duplo toque, retry, internet caindo)
    e só é descartado quando o backend confirma. */
-let _reqVenda = null, _reqPedidoCardapio = null, _idFilaContingencia = null;
+let _idFilaContingencia = null;
 function novaRequisicao_(){ return 'r-' + Date.now() + '-' + Math.random().toString(36).slice(2,10); }
+/* MELHORIA 3.2 — o id da venda/pedido sobrevive a um recarregar da página (sessionStorage) e só muda quando o CONTEÚDO muda.
+   Mesma venda reenviada = mesmo id (o servidor não duplica). Carrinho alterado = id novo. Apagado só quando o servidor confirma. */
+function reqIdPersist_(escopo, conteudo){ try{ return idemId_(idemChave_('req_'+escopo, conteudo)); }catch(e){ return novaRequisicao_(); } }
+function reqIdConfirmado_(escopo, conteudo){ try{ idemLimpar_(idemChave_('req_'+escopo, conteudo)); }catch(e){} }
 async function finalizarVendaConfirmada(total, desconto, senhaAdminConfirmacao){
   const valorDescontoReal = desconto ? valorDescontoCalculado() : 0;
   const clienteNome = modoCliente==='com' && clienteVendaSelecionado ? clienteVendaSelecionado.nome : '';
@@ -6218,15 +6268,17 @@ async function finalizarVendaConfirmada(total, desconto, senhaAdminConfirmacao){
 
   /* ETAPA 7B / FASE 11D: planilha principal fora do ar -> o Caixa pode registrar a venda na CONTINGÊNCIA (com confirmação dela). */
   const ctxCont = { carrinho: carrinhoAtual.slice(), clienteNome, clienteTelefone, pagamentos: pagamentosParaEnviar, tipoEntrega: tipoEntregaAtual, dadosEntrega, statusPagamento: statusPagamentoParaEnviar, total, valorDescontoReal, subtotal: totalCarrinho() };
+  const _reqVendaCont = { itens: carrinhoAtual.map(i=>[i.produtoId||i.comboId||i.descricao, i.quantidade, i.valorUnitario]), clienteTelefone, tipoEntrega: tipoEntregaAtual, mesaId: mesaEscolhidaId||'', pagamentos: pagamentosParaEnviar };
+  ctxCont.reqConteudo = _reqVendaCont;
   if(conexaoAtual==='offline'){
     if(eraMesa){ showMsg('vMsg','Sem conexão — o pedido da mesa não foi lançado.','warn'); return; }
     await venderEmContingencia_(ctxCont); return;
   }
   setBotoesOcupados(true);
   try{
-    const r = await apiCall('iniciarVenda', { requisicaoId: (_reqVenda = _reqVenda || novaRequisicao_()), itens: carrinhoAtual, clienteNome, clienteTelefone, pagamentos: pagamentosParaEnviar, tipoEntrega: tipoEntregaAtual, dadosEntrega, statusPagamento: statusPagamentoParaEnviar, desconto, senhaAdminConfirmacao, origem: (currentUser && currentUser.nivel==='Garçom') ? 'Garçom' : 'Balcão', mesaId: mesaEscolhidaId });
+    const r = await apiCall('iniciarVenda', { requisicaoId: reqIdPersist_('venda', _reqVendaCont), itens: carrinhoAtual, clienteNome, clienteTelefone, pagamentos: pagamentosParaEnviar, tipoEntrega: tipoEntregaAtual, dadosEntrega, statusPagamento: statusPagamentoParaEnviar, desconto, senhaAdminConfirmacao, origem: (currentUser && currentUser.nivel==='Garçom') ? 'Garçom' : 'Balcão', mesaId: mesaEscolhidaId });
     if(r.ok){
-      _reqVenda = null;
+      reqIdConfirmado_('venda', _reqVendaCont);
       vendas = r.vendas || vendas; itensVenda = r.itensVenda || itensVenda; pagamentosVenda = r.pagamentosVenda || pagamentosVenda;
       if(r.mesas) mesas = r.mesas;
       if(r.fidelidade) fidelidadeClientes = r.fidelidade;
@@ -6280,7 +6332,7 @@ function podeVenderContingencia_(){
 async function venderEmContingencia_(ctx){
   if(!podeVenderContingencia_()){ showMsg('vMsg','🔴 Sem conexão com a planilha e sem contingência disponível para esta venda (desconto e mesa não são aceitos).','warn'); return; }
   if(!confirm('A planilha principal não respondeu.\n\nRegistrar esta venda na CONTINGÊNCIA?\n• Ela fica guardada e entra na planilha sozinha quando a principal voltar.\n• Estoque, fidelidade e o total do caixa só atualizam depois disso.\n• Não confirme se a venda já apareceu em Vendas.')) return;
-  const idRequisicao = (_reqVenda = _reqVenda || novaRequisicao_());
+  const idRequisicao = ctx.reqConteudo ? reqIdPersist_('venda', ctx.reqConteudo) : novaRequisicao_(); // o MESMO id da tentativa ao servidor: se a venda já tinha entrado, a reconciliação não duplica
   const idFila = 'cx-' + idRequisicao.replace(/[^A-Za-z0-9_-]/g,'');
   const itens = ctx.carrinho.map(it=>({ produtoId: it.produtoId||undefined, comboId: it.comboId||undefined, descricao: it.descricao, quantidade: it.quantidade, valorUnitario: it.valorUnitario, custoUnitario: it.custoUnitario||0, adicionaisIds: it.adicionaisIds||[] }));
   const dados = { itens, clienteNome: ctx.clienteNome||'', clienteTelefone: ctx.clienteTelefone||'', pagamentos: ctx.pagamentos, tipoEntrega: ctx.tipoEntrega, dadosEntrega: ctx.dadosEntrega, statusPagamento: ctx.statusPagamento, desconto: null, origem: 'Caixa', requisicaoOriginal: idRequisicao };
@@ -6291,7 +6343,7 @@ async function venderEmContingencia_(ctx){
       if(/chave/i.test(r.message||'')) localStorage.removeItem(CONTINGENCIA_CHAVE_KEY); // chave trocada: será buscada de novo no próximo login
       showMsg('vMsg', 'A contingência não aceitou a venda: ' + (r.message||'erro') + ' — nada foi registrado.', 'warn'); return;
     }
-    _reqVenda = null;
+    if(ctx.reqConteudo) reqIdConfirmado_('venda', ctx.reqConteudo);
     showMsg('vMsg', '🟠 Venda guardada na CONTINGÊNCIA (código ' + idFila.slice(-6).toUpperCase() + '). Entra na planilha sozinha quando ela voltar; confira depois em Vendas.', 'ok');
     if(!souGarcom_()) mostrarComprovante(ctx.carrinho, ctx.total, ctx.pagamentos, ctx.clienteNome, ctx.clienteTelefone, ctx.subtotal, ctx.valorDescontoReal);
     carrinhoAtual = []; pagamentosAtuais = []; renderCarrinho(); limparClienteVenda(); limparCamposEntrega();
@@ -6327,14 +6379,19 @@ function cssImpressao(f){
   const w = f==='58mm' ? '58mm' : '80mm', fs = f==='58mm' ? '10.5px' : '11.5px';
   return base + `@page{size:${w} auto;margin:0}body{margin:0;padding:3mm;width:${w};box-sizing:border-box;font:${fs}/1.45 "Courier New",monospace;color:#000}h4{font-size:14px}.sub-c{font-size:10px}.total{font-size:13px}h2{font-size:13px;text-align:center;margin:0 0 4px}.per{text-align:center;font-size:10px;margin-bottom:4px}.peq{font-size:9.5px;margin-bottom:5px}.nota{margin-top:6px;font-size:9.5px}pre{white-space:pre-wrap;font:${fs}/1.4 "Courier New",monospace;margin:0}`;
 }
+/* MELHORIA 5.5 — iframes de impressão antigos (mais de 20 s) saem na hora de criar um novo, em vez de se acumularem por 60 s.
+   O de uma impressão recente não é tocado, para não cortar uma comanda que ainda está sendo enviada à impressora. */
+const _ifrsImpressao = [];
 function imprimirDocumento(corpo, titulo, formato){
   const f = FORMATOS_IMPRESSAO.includes(formato) ? formato : '80mm';
   /* corpo pode ser um texto ou uma lista de documentos (ex.: várias comandas): cada documento sai com a logo no topo */
   const docs = Array.isArray(corpo) ? corpo : [corpo];
   const html = docs.map(x => logoImpressaoHtml_(f) + x).join('<div style="page-break-after:always;break-after:page;"></div>');
+  { const t0 = Date.now(); for(let k=_ifrsImpressao.length-1;k>=0;k--){ if(t0 - _ifrsImpressao[k].t > 20000){ try{ _ifrsImpressao[k].el.remove(); }catch(e){} _ifrsImpressao.splice(k,1); } } }
   const ifr = document.createElement('iframe');
   ifr.style.cssText = 'position:fixed;right:0;bottom:0;width:1px;height:1px;border:0;opacity:0;';
   document.body.appendChild(ifr);
+  _ifrsImpressao.push({ el: ifr, t: Date.now() });
   const d = ifr.contentWindow.document;
   d.open(); d.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>${escR(titulo)}</title><style>${cssImpressao(f)}</style></head><body>${html}</body></html>`); d.close();
   /* espera a logo carregar antes de abrir a impressão (no máximo 2 s, para nunca travar) */
@@ -7586,15 +7643,19 @@ function renderNotificacoes(){
   const baixos = estoque.filter(e=>e.quantidade<=e.minimo);
   estBox.innerHTML = baixos.length ? baixos.map(e=>`<div class="notif-card"><b>${escH(e.nome)}</b> — restam ${e.quantidade} ${e.unidade||'un'} (mínimo ${e.minimo} ${e.unidade||'un'})</div>`).join('') : '<div class="notif-empty">Estoque em dia.</div>';
 
+  /* MELHORIA 4.4 — estes dois cartões percorrem todos os clientes e NÃO entram na contagem do alerta: só são montados com a aba aberta. */
+  const _notifAtiva = ((document.querySelector('section.tab.active')||{}).id === 'tab-notificacoes');
+  const agora = Date.now();
+  if(_notifAtiva){
   const aniBox = document.getElementById('notifAniversario');
   const mesAtual = new Date().getMonth()+1;
   const aniversariantes = clientes.filter(c=>{ if(!c.dataNascimento) return false; const partes = String(c.dataNascimento).split('-'); if(partes.length<2) return false; return Number(partes[1]) === mesAtual; });
   aniBox.innerHTML = aniversariantes.length ? aniversariantes.map(c=>`<div class="notif-card"><b>${escH(c.nome)}</b> — ${escH(c.telefone)} — aniversário em ${c.dataNascimento.split('-').reverse().join('/')}</div>`).join('') : '<div class="notif-empty">Nenhum aniversariante este mês.</div>';
 
   const inatBox = document.getElementById('notifInativos');
-  const agora = Date.now();
   const inativos = clientes.filter(c=>{ const u = ultimaAtividadeCliente(c); return !u || (agora-u)/86400000 > 30; });
   inatBox.innerHTML = inativos.length ? inativos.slice(0,10).map(c=>`<div class="notif-card"><b>${escH(c.nome)}</b> — ${escH(c.telefone)}</div>`).join('') + (inativos.length>10?`<div class="notif-empty">+ ${inativos.length-10} outro(s).</div>`:'') : '<div class="notif-empty">Nenhum cliente inativo.</div>';
+  }
 
   const alertasEntrega = alertasDeEntregas();
   const entBox = document.getElementById('notifEntregas');
@@ -7799,12 +7860,24 @@ async function excluirMesaConfirm(id){
   catch(e){ showMsg('mesaMsg','Não foi possível excluir.','warn'); }
 }
 
+/* MELHORIA 5.1 — nome de cliente e login de usuário não são mais colocados dentro de um onclick (quebrava com aspas/apóstrofo):
+   ficam em data-* e um único ouvinte de clique chama a função certa. */
+document.addEventListener('click', e=>{
+  const c = e.target.closest && e.target.closest('[data-cliente-nome]');
+  if(c){ selecionarClienteVenda(c.dataset.clienteNome, c.dataset.clienteTel); return; }
+  const b = e.target.closest && e.target.closest('[data-usr-acao]');
+  if(!b) return;
+  const lg = b.dataset.usrLogin;
+  if(b.dataset.usrAcao==='editar') editarUsuarioPrompt(lg);
+  else if(b.dataset.usrAcao==='toggle') toggleAtivoUsuario(lg, b.dataset.usrAtivo==='1');
+  else if(b.dataset.usrAcao==='excluir') excluirUsuarioPrompt(lg);
+});
 function renderUsuarios(){
   const tbody = document.getElementById('uTable');
   if(!usuarios.length){ tbody.innerHTML = '<tr class="empty-row"><td colspan="4">Nenhum usuário.</td></tr>'; return; }
   tbody.innerHTML = usuarios.map(u=>`
     <tr><td>${escH(u.login)}${u.nome?`<div class="obs-line">${escH(u.nome)}</div>`:''}${u.nivel==='Entregador'?`<div class="obs-line">${u.telefone?'📞 '+escH(u.telefone):'⚠ sem telefone'}</div>`:''}</td><td>${u.nivel}</td><td><span class="badge ${u.ativo?'done':'baixo'}">${u.ativo?'Ativo':'Inativo'}</span></td>
-    <td><button class="ghost" onclick="editarUsuarioPrompt('${escH(u.login)}')">editar</button><button class="ghost" onclick="toggleAtivoUsuario('${escH(u.login)}', ${u.ativo})">${u.ativo?'desativar':'ativar'}</button><button class="ghost" onclick="excluirUsuarioPrompt('${escH(u.login)}')">excluir</button></td></tr>`).join('');
+    <td><button class="ghost" data-usr-acao="editar" data-usr-login="${escH(u.login)}">editar</button><button class="ghost" data-usr-acao="toggle" data-usr-login="${escH(u.login)}" data-usr-ativo="${u.ativo?1:0}">${u.ativo?'desativar':'ativar'}</button><button class="ghost" data-usr-acao="excluir" data-usr-login="${escH(u.login)}">excluir</button></td></tr>`).join('');
 }
 function renderLog(){
   const box = document.getElementById('logLista');
@@ -8332,7 +8405,9 @@ function _desenhar(fn){ try{ fn(); }catch(e){ console.warn('Falha ao desenhar um
 function renderizarTudo(){
   _desenhar(()=>renderInicio());
   _desenhar(()=>renderMesasPopup_()); _desenhar(()=>atualizarAlertaMesas_());
-  _desenhar(()=>renderVisaoGeral()); _desenhar(()=>renderRelatorio());
+  const _secAtiva = (document.querySelector('section.tab.active')||{}).id || '';
+  if(_secAtiva==='tab-visaogeral') _desenhar(()=>renderVisaoGeral());
+  if(_secAtiva==='tab-relatorios') _desenhar(()=>renderRelatorio());
   _desenhar(()=>renderDesempenhoEntregas());
   if(!formaPrecoAtual && formasPagamento.length) formaPrecoAtual = (formasPagamento.find(f=>f.ativa) || formasPagamento[0]).id;
   _desenhar(()=>renderFormasPagamento()); _desenhar(()=>popularSelectFormaPreco()); _desenhar(()=>renderFormaCuradoria());
@@ -8342,7 +8417,7 @@ function renderizarTudo(){
   _desenhar(()=>popularSelectIngredientes('pIngredienteSelect')); _desenhar(()=>popularSelectIngredientes('ppIngredienteSelect'));
   _desenhar(()=>popularSelectProdutosParaCombo('koProdutoSelect')); _desenhar(()=>popularSelectProdutosParaCombo('kkProdutoSelect'));
   _desenhar(()=>renderVendas()); _desenhar(()=>renderDespesas()); _desenhar(()=>renderContasPagar()); _desenhar(()=>renderDespesasRecorrentes()); _desenhar(()=>renderResumoPrevisto()); _desenhar(()=>renderFluxoPrevisto()); _desenhar(()=>atualizarMargemPreview()); _desenhar(()=>atualizarMargemPreviewCombo());
-  _desenhar(()=>atualizarMetaUI()); _desenhar(()=>atualizarResumoHoje()); _desenhar(()=>gerarRelatorio()); _desenhar(()=>renderNotificacoes()); _desenhar(()=>renderPedidos()); _desenhar(()=>renderEntregas());
+  _desenhar(()=>atualizarMetaUI()); _desenhar(()=>atualizarResumoHoje()); if(_secAtiva==='tab-financeiro') _desenhar(()=>gerarRelatorio()); _desenhar(()=>renderNotificacoes()); _desenhar(()=>renderPedidos()); _desenhar(()=>renderEntregas());
   _desenhar(()=>renderStatusCaixa()); _desenhar(()=>renderHistoricoCaixa()); _desenhar(()=>renderUsuarios()); _desenhar(()=>renderLog()); _desenhar(()=>renderFeedbacks()); _desenhar(()=>renderConfigCardapio());
   _desenhar(()=>renderMesas()); _desenhar(()=>renderMesasPickerCaixa());
 }
@@ -8828,10 +8903,11 @@ async function finalizarPedidoPublico(){
     adicionaisIds: it.adicionais.map(a=>a.id),
     observacao: it.obs || ''
   }));
+  const _reqCont = { itens, clienteTelefone: telefone, tipoEntrega, formaPagamentoId };
   try{
-    const r = await apiCall('criarPedidoCardapio', { requisicaoId: (_reqPedidoCardapio = _reqPedidoCardapio || novaRequisicao_()), itens, clienteNome: nome, clienteTelefone: telefone, tipoEntrega, dadosEntrega, formaPagamentoId, observacaoTroco: trocoParaObs, codigoCupom: cdCupomAplicado ? cdCupomAplicado.codigo : '', observacoes: (document.getElementById('cdObservacoes')||{}).value.trim() });
+    const r = await apiCall('criarPedidoCardapio', { requisicaoId: reqIdPersist_('pedido_cardapio', _reqCont), itens, clienteNome: nome, clienteTelefone: telefone, tipoEntrega, dadosEntrega, formaPagamentoId, observacaoTroco: trocoParaObs, codigoCupom: cdCupomAplicado ? cdCupomAplicado.codigo : '', observacoes: (document.getElementById('cdObservacoes')||{}).value.trim() });
     if(r.ok){
-      _reqPedidoCardapio = null;
+      reqIdConfirmado_('pedido_cardapio', _reqCont);
       showMsg('cdCheckoutMsg', r.message, 'ok');
       cdUltimaVendaId = r.id;
       mostrarBotaoWhatsappPedido(r);

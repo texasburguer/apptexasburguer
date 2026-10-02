@@ -1382,6 +1382,8 @@ function erroSenhaFraca_(senha, login) {
 }
 function criarUsuario(novoLogin, novaSenha, nivel, senhaAdminConfirmacao, nome, telefone) {
   if (!novoLogin || !novaSenha || !nivel) return { ok: false, message: 'Preencha login, senha e nível de acesso.' };
+  /* MELHORIA 5.2: o login é isento da sanitização (precisa ficar idêntico), então o formato é validado: começa com letra/número, 3 a 30 caracteres, só letras, números, ponto, hífen e sublinhado. Impede login que pareça fórmula (=, +, -, @). */
+  if (!/^[A-Za-z0-9\u00C0-\u00FF][A-Za-z0-9\u00C0-\u00FF._-]{2,29}$/.test(String(novoLogin).trim())) return { ok: false, message: 'Login inválido: use de 3 a 30 caracteres (letras, números, ponto, hífen ou sublinhado), começando por letra ou número e sem espaços.' };
   { const fraca = erroSenhaFraca_(novaSenha, novoLogin); if (fraca) return { ok: false, message: fraca }; }
   if (NIVEIS_VALIDOS.indexOf(nivel) === -1) return { ok: false, message: 'Nível de acesso inválido.' };
   if (!exigeConfirmacaoAdmin(senhaAdminConfirmacao)) return { ok: false, message: 'Senha de administrador incorreta.' };
@@ -1661,7 +1663,7 @@ function getAllData(grupo) {
   const gestor = (NIVEL_ATUAL === 'Admin' || NIVEL_ATUAL === 'Operador');
   if (!gestor) grupo = ''; // só Admin/Operador recebem em partes; os outros perfis continuam recebendo tudo, como hoje
   const quer = g => !grupo || grupo === g;
-  const cad = quer('cad') ? (gestor ? cadastroEmCache_(vers.cad) : dadosCadastro_()) : {};
+  const cad = quer('cad') ? cadastroEmCache_(vers.cad) : {}; // MELHORIA 4.2: Garçom e Cozinha também usam o cache (o cadastro não depende do perfil; os filtros de custo/usuário rodam depois, sobre cópias)
   const din = quer('din') ? dadosDinamicos_() : {};
   const dados = Object.assign({}, cad, din);
   // SEGURANÇA: getAll nunca deve entregar dados financeiros/custos a perfis operacionais.
@@ -1710,8 +1712,8 @@ function getAllData(grupo) {
    - cd_est: itens, preços, adicionais e configurações (muda pouco) -> guardado até 10 min e LIMPO
      automaticamente quando o admin edita produto/preço/adicional/categoria/configuração.
    - cd_din: caixa aberto/fechado e itens esgotados -> 30 segundos.
-   - cd_mais: "Mais pedidos" (varre todas as vendas, é o trecho mais pesado) -> 1 hora. */
-const CARDAPIO_TTL_EST_ = 1800, CARDAPIO_TTL_DIN_ = 30, CARDAPIO_TTL_MAIS_ = 3600; // estático: 30 min (é limpo na hora quando você edita)
+   - cd_mais: "Mais pedidos" (varre todas as vendas, é o trecho mais pesado) -> 5 minutos (MELHORIA 4.1: antes 1 hora, o ranking não refletia vendas novas). */
+const CARDAPIO_TTL_EST_ = 1800, CARDAPIO_TTL_DIN_ = 30, CARDAPIO_TTL_MAIS_ = 300; // estático: 30 min (é limpo na hora quando você edita)
 const CARDAPIO_CHUNK_ = 30000; // o cache aceita ~100 KB por chave; fatiamos para nunca estourar
 function cacheLerJson_(chave) {
   try {
@@ -1900,8 +1902,11 @@ function upsertCliente(telefone, nome) {
 /* ETAPA 2: ID permanente do cliente a partir do telefone ('' se não existir). O telefone continua sendo a busca rápida. */
 function idClientePorTelefone_(telefone) {
   if (!telefone) return '';
-  const sh = ss_().getSheetByName('Clientes'); const last = sh.getLastRow(); const tel = normTel(telefone);
-  for (let i = 2; i <= last; i++) { if (normTel(sh.getRange(i, 3).getValue()) === tel) return sh.getRange(i, 1).getValue(); }
+  const sh = ss_().getSheetByName('Clientes'); const last = sh.getLastRow();
+  if (last < 2) return '';
+  const tel = normTel(telefone);
+  const v = sh.getRange(2, 1, last - 1, 3).getValues(); // MELHORIA 4.3: uma leitura só (antes: dois acessos à planilha por linha)
+  for (let i = 0; i < v.length; i++) { if (normTel(v[i][2]) === tel) return v[i][0]; }
   return '';
 }
 function salvarCliente(idOuTelefoneOriginal, nome, telefone, dataNascimento, endereco, comoConheceu, observacao) {
