@@ -629,6 +629,34 @@ input:focus,select:focus,textarea:focus{
 
   /* ===== ITEM 12 — ACOMPANHAMENTO: VOLTAR PARA A LISTA ===== */
   .ac-voltar{display:block;margin:0 0 10px;padding:6px 0;background:none;border:none;color:var(--gold);font-size:13px;font-weight:700;cursor:pointer;text-align:left;}
+/* >>> CAMADA FUNCIONAL PROTEGIDA — FLUXO DE MESA NO CAIXA (INÍCIO) <<<
+   Não reordenar, não mesclar, não consolidar. Deve ser o ÚLTIMO bloco do CSS.
+   Ativada por body.modo-mesa (ligada em setTipoEntrega). */
+#btnFecharContaItens, #mesaAtualResumo{display:none;}
+
+body.modo-mesa #painelFormaBtn,
+body.modo-mesa #painelFinalizarBtn,
+body.modo-mesa #painelForma,
+body.modo-mesa #painelFinalizar,
+body.modo-mesa #btnProximoPagamento,
+body.modo-mesa #mesaModoPagBox,
+body.modo-mesa #btnFecharContaAgora{display:none !important;}
+
+body.modo-mesa #btnEnviarCozinha{display:block;}
+body.modo-mesa #btnFecharContaItens{display:block;}
+body.modo-mesa #mesaAtualResumo{display:block;}
+
+/* os 2 passos que sobram ocupam a linha toda */
+body.modo-mesa #painelClienteBtn,
+body.modo-mesa #painelItensBtn{flex:1 1 0;}
+
+/* informação da mesa para todos os perfis; botões de ação continuam só do Garçom */
+body.modo-mesa #garcomMesaAcoes{display:block;}
+body:not(.perfil-garcom) #garcomMesaAcoes .btnrow{display:none;}
+
+/* o Garçom já tem "Receber conta" próprio */
+body.perfil-garcom #btnFecharContaItens{display:none !important;}
+/* >>> CAMADA FUNCIONAL PROTEGIDA — FLUXO DE MESA NO CAIXA (FIM) <<< */
 </style>
 </head>
 <body>
@@ -1223,6 +1251,7 @@ input:focus,select:focus,textarea:focus{
 
       <!-- PAINEL 3: ITENS & CARRINHO -->
       <div id="painelItens" class="painel-caixa" style="display:none;">
+        <div class="obs-line" id="mesaAtualResumo" style="margin-top:10px;"></div>
         <div class="modal-section" style="margin-top:10px;">
           <h3>Adicionar item</h3>
           <div id="atalhosProdutos" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;max-height:110px;overflow-y:auto;"></div>
@@ -1251,7 +1280,8 @@ input:focus,select:focus,textarea:focus{
           <div style="margin-top:10px;font-size:14px;">Total: <b style="color:var(--gold);font-size:18px;" id="carrinhoTotal">R$ 0,00</b></div>
         </div>
         <button type="button" class="small-gold" id="btnProximoPagamento" style="width:100%;margin-top:4px;padding:10px;" onclick="mudarPainelCaixa('forma')">Próximo: Forma de pagamento →</button>
-        <button type="button" class="small-gold" id="btnEnviarCozinha" style="width:100%;margin-top:4px;padding:12px;" onclick="garcomEnviarPedido()">🍳 Enviar para a cozinha</button>
+        <button type="button" class="small-gold" id="btnEnviarCozinha" style="width:100%;margin-top:4px;padding:12px;" onclick="garcomEnviarPedido()">🍳 Lançar na mesa (enviar à cozinha)</button>
+        <button type="button" class="ghost" id="btnFecharContaItens" style="width:100%;margin-top:6px;" onclick="fecharContaMesaUI()">💳 Fechar conta desta mesa</button>
       </div>
 
       <!-- PAINEL 4: FINALIZAR (desconto + pago/a receber + valores) -->
@@ -2412,6 +2442,7 @@ let tipoEntregaAtual = 'Retirada';
 let modoItem = 'produto';
 let formaPrecoAtual = null; // ID da forma de pagamento usada pra precificar os itens do carrinho
 let clienteVendaSelecionado = null;
+let clienteMesaCarregadoDe_ = null; // id da mesa de onde o cliente foi mantido após lançar (null = cliente escolhido na mão)
 let carrinhoAtual = [];
 let pagamentosAtuais = [];
 let cancelarContexto = null;
@@ -4596,12 +4627,20 @@ function mesaSelecionadaGarcom_(){
   return id ? (mesas.find(m=>m.id===id) || null) : null;
 }
 function atualizarGarcomMesaInfo(){
-  const el = document.getElementById('garcomMesaInfo'); if(!el || !souGarcom_()) return;
+  const el = document.getElementById('garcomMesaInfo');
+  const resumo = document.getElementById('mesaAtualResumo');
   const m = mesaSelecionadaGarcom_();
-  if(!m){ el.textContent = 'Escolha uma mesa.'; return; }
+  if(clienteMesaCarregadoDe_ && (!m || m.id!==clienteMesaCarregadoDe_ || m.status==='Livre')) limparClienteVenda(); // cliente mantido só enquanto for a mesma mesa e ela estiver aberta
+  if(!m){
+    if(el) el.textContent = 'Escolha uma mesa.';
+    if(resumo) resumo.textContent = 'Escolha a mesa no passo 1.';
+    return;
+  }
   const contas = vendas.filter(v=>v.mesaId===m.id && v.status==='Confirmada' && v.statusPagamento==='A Receber');
   const total = Math.round(contas.reduce((s,v)=>s+Number(v.valorTotal),0)*100)/100;
-  el.innerHTML = `Mesa ${escOc_(m.numero)}: <b>${escOc_(m.status)}</b>${contas.length?` · ${contas.length} pedido(s) lançado(s) — ${formatarMoeda(total)}`:''}`;
+  const txt = `Mesa ${escOc_(m.numero)}: <b>${escOc_(m.status)}</b>${contas.length?` · ${contas.length} pedido(s) lançado(s) — ${formatarMoeda(total)}`:''}`;
+  if(el) el.innerHTML = txt;
+  if(resumo) resumo.innerHTML = '🍽️ Lançando na ' + txt + ((modoCliente==='com' && clienteVendaSelecionado) ? ' · Cliente: <b>' + escOc_(clienteVendaSelecionado.nome) + '</b>' : '');
 }
 async function garcomAbrirMesa(){
   const m = mesaSelecionadaGarcom_();
@@ -4628,6 +4667,7 @@ async function garcomEnviarPedido(){
   if(!carrinhoAtual.length){ showMsg('vMsg','Adicione ao menos um item.','warn'); return; }
   if(!mesaSelecionadaGarcom_()){ showMsg('vMsg','Escolha a mesa no passo 1.','warn'); mudarPainelCaixa('cliente'); return; }
   setTipoEntrega('Mesa');
+  setMesaModoPagamento('sair');
   await finalizarVendaConfirmada(totalCarrinho(), null, '');
 }
 function renderEntregas(){
@@ -5035,6 +5075,7 @@ function mudarPainelCaixa(painel){
     document.getElementById('painel'+p.charAt(0).toUpperCase()+p.slice(1)).style.display = (p===painel) ? 'block' : 'none';
     document.getElementById('painel'+p.charAt(0).toUpperCase()+p.slice(1)+'Btn').classList.toggle('active', p===painel);
   });
+  if(painel==='itens') atualizarGarcomMesaInfo();
 }
 function atualizarContagemPainelItens(){
   const el = document.getElementById('painelItensContagem');
@@ -5156,9 +5197,12 @@ function selecionarClienteVenda(nome, telefone){
     if(cad && cad.endereco) document.getElementById('vEndereco').value = cad.endereco;
   }
 }
-function limparClienteVenda(){ clienteVendaSelecionado = null; document.getElementById('vClienteSelecionado').style.display = 'none'; }
+function limparClienteVenda(){ clienteVendaSelecionado = null; clienteMesaCarregadoDe_ = null; document.getElementById('vClienteSelecionado').style.display = 'none'; }
 function setTipoEntrega(tipo){
   tipoEntregaAtual = tipo;
+  document.body.classList.toggle('modo-mesa', tipo==='Mesa');
+  if(tipo!=='Mesa' && clienteMesaCarregadoDe_) limparClienteVenda(); // cliente da mesa não vai parar numa venda de balcão/entrega
+  if(tipo==='Mesa' && (painelCaixaAtual==='forma' || painelCaixaAtual==='finalizar')) mudarPainelCaixa('itens');
   document.getElementById('tipoRetiradaBtn').classList.toggle('active', tipo==='Retirada');
   document.getElementById('tipoEntregaBtn').classList.toggle('active', tipo==='Entrega');
   document.getElementById('tipoMesaBtn').classList.toggle('active', tipo==='Mesa');
@@ -5169,6 +5213,7 @@ function setTipoEntrega(tipo){
     const cad = clientes.find(c=>normTel(c.telefone)===normTel(clienteVendaSelecionado.telefone));
     if(cad && cad.endereco && !document.getElementById('vEndereco').value) document.getElementById('vEndereco').value = cad.endereco;
   }
+  if(tipo==='Mesa') setMesaModoPagamento('sair'); // pagamento só no fechamento da conta
 }
 /* ---------- MESA NO CAIXA (ITEM 55, 56) ---------- */
 function renderMesasPickerCaixa(){
@@ -5872,6 +5917,8 @@ async function finalizarVendaConfirmada(total, desconto, senhaAdminConfirmacao){
   const clienteNome = modoCliente==='com' && clienteVendaSelecionado ? clienteVendaSelecionado.nome : '';
   const clienteTelefone = modoCliente==='com' && clienteVendaSelecionado ? clienteVendaSelecionado.telefone : '';
   const mesaEscolhidaId = tipoEntregaAtual==='Mesa' ? document.getElementById('vMesaSelect').value : null;
+  const eraMesa = tipoEntregaAtual==='Mesa'; // limparCamposEntrega() devolve o tipo para Retirada mais abaixo
+  const clienteMesaAntes = (eraMesa && modoCliente==='com' && clienteVendaSelecionado) ? { nome: clienteVendaSelecionado.nome, telefone: clienteVendaSelecionado.telefone } : null;
   if(tipoEntregaAtual==='Mesa' && !mesaEscolhidaId){ showMsg('vMsg','Escolha a mesa.','warn'); return; }
   const mesaAgora = mesaPagaAgora_();
   const pagamentosParaEnviar = (tipoEntregaAtual==='Mesa' && !mesaAgora) ? [{ forma: 'A Receber (Mesa)', valor: total }] : pagamentosAtuais.map(p=>({forma:p.forma, valor:p.valor}));
@@ -5888,7 +5935,10 @@ async function finalizarVendaConfirmada(total, desconto, senhaAdminConfirmacao){
 
   /* ETAPA 7B / FASE 11D: planilha principal fora do ar -> o Caixa pode registrar a venda na CONTINGÊNCIA (com confirmação dela). */
   const ctxCont = { carrinho: carrinhoAtual.slice(), clienteNome, clienteTelefone, pagamentos: pagamentosParaEnviar, tipoEntrega: tipoEntregaAtual, dadosEntrega, statusPagamento: statusPagamentoParaEnviar, total, valorDescontoReal, subtotal: totalCarrinho() };
-  if(conexaoAtual==='offline'){ await venderEmContingencia_(ctxCont); return; }
+  if(conexaoAtual==='offline'){
+    if(eraMesa){ showMsg('vMsg','Sem conexão — o pedido da mesa não foi lançado.','warn'); return; }
+    await venderEmContingencia_(ctxCont); return;
+  }
   setBotoesOcupados(true);
   try{
     const r = await apiCall('iniciarVenda', { requisicaoId: (_reqVenda = _reqVenda || novaRequisicao_()), itens: carrinhoAtual, clienteNome, clienteTelefone, pagamentos: pagamentosParaEnviar, tipoEntrega: tipoEntregaAtual, dadosEntrega, statusPagamento: statusPagamentoParaEnviar, desconto, senhaAdminConfirmacao, origem: (currentUser && currentUser.nivel==='Garçom') ? 'Garçom' : 'Balcão', mesaId: mesaEscolhidaId });
@@ -5900,11 +5950,11 @@ async function finalizarVendaConfirmada(total, desconto, senhaAdminConfirmacao){
       if(r.clientes) clientes = r.clientes;
       if(r.estoque) estoque = r.estoque;
       salvarCache();
-      showMsg('vMsg', r.message, 'ok');
+      showMsg('vMsg', eraMesa ? 'Pedido lançado na mesa e enviado à cozinha.' : r.message, 'ok');
       ultimaVendaItens = carrinhoParaComprovante.map(it=>({...it}));
       ultimaVendaCliente = clienteTelefone ? { nome: clienteNome, telefone: clienteTelefone } : null;
       ultimaVendaId = r.id || null;
-      if(!souGarcom_()) mostrarComprovante(carrinhoParaComprovante, total, pagamentosParaEnviar, clienteNome, clienteTelefone, totalCarrinho(), valorDescontoReal);
+      if(!souGarcom_() && !eraMesa) mostrarComprovante(carrinhoParaComprovante, total, pagamentosParaEnviar, clienteNome, clienteTelefone, totalCarrinho(), valorDescontoReal);
       carrinhoAtual = []; pagamentosAtuais = []; renderCarrinho(); limparClienteVenda();
       limparCamposEntrega();
       setStatusPagamento('Pago');
@@ -5919,7 +5969,17 @@ async function finalizarVendaConfirmada(total, desconto, senhaAdminConfirmacao){
       if(boxSecundaria) boxSecundaria.style.display = 'none';
       popularSelectProdutos(); popularSelectCombos();
       renderVendas(); renderStatusCaixa(); renderEstoque(); renderMovimentacoesEstoque(); renderNotificacoes(); renderPedidos(); renderEntregas();
-      mudarPainelCaixa('cliente');
+      if(eraMesa){
+        setTipoEntrega('Mesa');            // limparCamposEntrega() tinha voltado para Retirada
+        if(clienteMesaAntes){ selecionarClienteVenda(clienteMesaAntes.nome, clienteMesaAntes.telefone); clienteMesaCarregadoDe_ = mesaEscolhidaId; }
+        renderMesasPickerCaixa();
+        const selM = document.getElementById('vMesaSelect');
+        if(selM && mesaEscolhidaId) selM.value = mesaEscolhidaId;
+        atualizarGarcomMesaInfo();
+        mudarPainelCaixa('itens');         // pronto para a próxima rodada da mesma mesa
+      } else {
+        mudarPainelCaixa('cliente');
+      }
     } else { showMsg('vMsg', r.message, 'warn'); }
   } catch(e){
     setBotoesOcupados(false);
