@@ -72,6 +72,28 @@ function gerarChaves() {
   return 'Chaves geradas. Copie do log de execução.';
 }
 
+/* Troca SÓ as chaves de servidor e interna (as que não ficam no HTML) e MANTÉM a pública — assim o index.html não precisa mudar.
+   Use quando uma dessas chaves tiver sido exposta. Depois de rodar:
+   1) copie as duas chaves novas do Registro de execução;
+   2) no projeto da PLANILHA: Configurações do projeto -> Propriedades do script -> edite CONTINGENCIA_CHAVE_SERVIDOR e
+      CONTINGENCIA_CHAVE_INTERNA com os valores novos (sem colocar chave no código);
+   3) no projeto da planilha rode conferirChavesContingencia() e veja os três testes OK;
+   4) peça para os funcionários logados clicarem em Sair e entrarem de novo (a chave interna é buscada no login).
+   Faça com a fila vazia: antes de rodar, confira que não há vendas pendentes na contingência. */
+function rotacionarChavesSensiveis() {
+  const p = PropertiesService.getScriptProperties();
+  if (!p.getProperty('CHAVE_PUBLICA')) return 'Nada feito: não há chave pública cadastrada. Rode gerarChaves() primeiro.';
+  const pendentes = readFilaPendente().length;
+  if (pendentes > 0) return 'Nada feito: há ' + pendentes + ' venda(s) pendente(s) na contingência. Sincronize/reconcilie antes de trocar as chaves.';
+  const nova = prefixo => prefixo + '-' + Utilities.getUuid().replace(/-/g, '') + Utilities.getUuid().replace(/-/g, '').slice(0, 8);
+  const c = { CHAVE_SERVIDOR: nova('txbsrv'), CHAVE_INTERNA: nova('txbint') };
+  p.setProperties(c);
+  Logger.log('CONTINGENCIA_CHAVE_SERVIDOR = ' + c.CHAVE_SERVIDOR);
+  Logger.log('CONTINGENCIA_CHAVE_INTERNA  = ' + c.CHAVE_INTERNA);
+  Logger.log('CHAVE_PUBLICA mantida (o index.html não muda).');
+  return 'Chaves de servidor e interna trocadas. Copie do Registro de execução e siga os passos do comentário da função.';
+}
+
 function perfilDaChave_(chave) {
   if (!chave || typeof chave !== 'string') return '';
   const p = PropertiesService.getScriptProperties();

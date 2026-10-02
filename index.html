@@ -2588,6 +2588,24 @@ async function postApi_(action, payload, ms){
     throw e;
   }finally{ clearTimeout(to); }
 }
+/* Contingência com limite de tempo. O servidor da contingência já descarta id repetido ("Já estava na fila"), então o envio da venda/pedido
+   pode ser repetido com o mesmo id. A leitura do espelho e o status não repetem: se falharem, o chamador usa o cache ou avisa. */
+const TIMEOUT_CONT_ENVIO_MS_ = 20000, TIMEOUT_CONT_LEITURA_MS_ = 15000, TIMEOUT_CONT_REPETICOES_ = 2;
+async function fetchContingencia_(opts, ms, repeticoes){
+  for(let t = 0; ; t++){
+    const ctl = new AbortController(); const to = setTimeout(()=>ctl.abort(), ms);
+    try{
+      const resp = await fetch(CONTINGENCIA_API_URL, Object.assign({}, opts, { signal: ctl.signal }));
+      return await resp.json();
+    }catch(e){
+      if(e && e.name === 'AbortError'){
+        if(t < (repeticoes||0)){ await new Promise(r=>setTimeout(r, 1000)); continue; }
+        const te = new Error('A contingência demorou para responder'); te.timeout = true; throw te;
+      }
+      throw e;
+    }finally{ clearTimeout(to); }
+  }
+}
 async function apiCall(action, payload, _tentativa, _idemChave){
   if(_tentativa !== undefined || API_SILENCIOSAS_.has(action)) return _apiCallRaw(action, payload, _tentativa, _idemChave);
   _carregandoInicio_(action);
@@ -2792,9 +2810,18 @@ async function confirmarTrocarSenha(){
     } else { erro((r && r.message) || 'Não foi possível trocar a senha.'); spOcupado = false; btn.disabled = false; }
   } catch(e){ erro('Sem conexão com a planilha. Tente de novo.'); spOcupado = false; btn.disabled = false; }
 }
-function sair(){
+async function sair(){
   if(sessaoCaixa){
     if(!confirm('O caixa ainda está aberto. Tem certeza que quer sair?')) return;
+  }
+  /* A fila offline fica neste aparelho (cadastro de cliente, fidelidade, feedback e ocorrência que ainda não chegaram à planilha).
+     Antes de sair, oferece enviar; se não der, deixa o funcionário escolher entre sair mesmo assim ou ficar. */
+  if(typeof _fila !== 'undefined' && _fila.length){
+    if(confirm('Há ' + _fila.length + ' item(ns) salvo(s) neste aparelho que ainda não chegaram à planilha.\n\nTentar enviar agora antes de sair?')){
+      try{ await filaProcessar(); }catch(e){}
+      filaRenderLista_();
+    }
+    if(_fila.length && !confirm('Ainda há ' + _fila.length + ' item(ns) sem enviar.\n\nSe sair agora, eles ficam guardados neste aparelho e só serão enviados quando alguém entrar nele de novo (aparecem no botão "na fila").\n\nSair mesmo assim?')) return;
   }
   if(currentUser && currentUser.token) apiCall('encerrarSessao', {}).catch(()=>{});
   localStorage.removeItem(SESSAO_KEY); localStorage.removeItem(CONTINGENCIA_CHAVE_KEY); localStorage.removeItem(CACHE_KEY); // SEGURANÇA: não deixa clientes/vendas/financeiro guardados no aparelho depois de sair
@@ -5916,8 +5943,7 @@ async function venderEmContingencia_(ctx){
   const dados = { itens, clienteNome: ctx.clienteNome||'', clienteTelefone: ctx.clienteTelefone||'', pagamentos: ctx.pagamentos, tipoEntrega: ctx.tipoEntrega, dadosEntrega: ctx.dadosEntrega, statusPagamento: ctx.statusPagamento, desconto: null, origem: 'Caixa', requisicaoOriginal: idRequisicao };
   setBotoesOcupados(true);
   try{
-    const resp = await fetch(CONTINGENCIA_API_URL, { method:'post', body: JSON.stringify({ action:'enfileirar', chave: localStorage.getItem(CONTINGENCIA_CHAVE_KEY), id: idFila, tipo:'venda', dados }) });
-    const r = await resp.json();
+    const r = await fetchContingencia_({ method:'post', body: JSON.stringify({ action:'enfileirar', chave: localStorage.getItem(CONTINGENCIA_CHAVE_KEY), id: idFila, tipo:'venda', dados }) }, TIMEOUT_CONT_ENVIO_MS_, TIMEOUT_CONT_REPETICOES_);
     if(!r.ok){
       if(/chave/i.test(r.message||'')) localStorage.removeItem(CONTINGENCIA_CHAVE_KEY); // chave trocada: será buscada de novo no próximo login
       showMsg('vMsg', 'A contingência não aceitou a venda: ' + (r.message||'erro') + ' — nada foi registrado.', 'warn'); return;
@@ -5928,7 +5954,10 @@ async function venderEmContingencia_(ctx){
     carrinhoAtual = []; pagamentosAtuais = []; renderCarrinho(); limparClienteVenda(); limparCamposEntrega();
     setStatusPagamento('Pago'); document.getElementById('descValor').value = ''; setTipoDesconto('percentual'); atualizarPreviewDesconto();
     mudarPainelCaixa('cliente');
-  } catch(e){ showMsg('vMsg','Não foi possível falar nem com a contingência. Nada foi registrado — anote a venda e lance depois.','warn'); }
+  } catch(e){
+    if(e && e.timeout) showMsg('vMsg','A contingência não respondeu a tempo. A venda PODE ter sido guardada (código ' + idFila.slice(-6).toUpperCase() + '). Toque em registrar de novo: o mesmo código evita duplicar. Se continuar, anote a venda e lance depois.','warn');
+    else showMsg('vMsg','Não foi possível falar nem com a contingência. Nada foi registrado — anote a venda e lance depois.','warn');
+  }
   finally { setBotoesOcupados(false); }
 }
 
@@ -6854,8 +6883,7 @@ async function carregarStatusContingencia(){
   const box = document.getElementById('contingenciaStatus');
   if(!box) return;
   try{
-    const resp = await fetch(CONTINGENCIA_API_URL);
-    const r = await resp.json();
+    const r = await fetchContingencia_({}, TIMEOUT_CONT_LEITURA_MS_, 0);
     if(r.ok){
       const idade = r.espelhoAtualizadoEm ? formatarDataHoraISO(r.espelhoAtualizadoEm) : 'nunca sincronizado';
       box.innerHTML = `🟢 Contingência acessível — espelho atualizado em: <b>${idade}</b> · ${r.pendentes} venda(s) pendente(s) de reconciliar`;
@@ -8125,10 +8153,9 @@ async function carregarCardapioPublico(){
   } catch(e){ /* principal fora do ar: tenta a contingência abaixo */ }
   const semCardapio = ()=>{ if(!cache) document.getElementById('cdListaProdutos').innerHTML = '<p class="sub">Não foi possível carregar o cardápio agora. Tente novamente em instantes.</p>'; };
   try{
-    const respEspelho = await fetch(CONTINGENCIA_API_URL, {
+    const rEspelho = await fetchContingencia_({
       method: 'post', body: JSON.stringify({ action: 'getEspelhoPublico', chave: CONTINGENCIA_CHAVE_PUBLICA })
-    });
-    const rEspelho = await respEspelho.json();
+    }, TIMEOUT_CONT_LEITURA_MS_, 0);
     if(!rEspelho.ok || !rEspelho.espelho || !rEspelho.espelho.produtos){ semCardapio(); return; }
     cdDados = adaptarEspelhoParaCardapio(rEspelho.espelho);
     modoContingenciaAtivo = true;
@@ -8417,17 +8444,19 @@ async function finalizarPedidoPublico(){
         pagamentos: [{ forma: forma?forma.nome:'', valor: total }],
         tipoEntrega, dadosEntrega, statusPagamento: 'A Receber', desconto: null, senhaAdminConfirmacao: '', origem: 'Cardápio'
       };
-      const resp = await fetch(CONTINGENCIA_API_URL, {
+      const r = await fetchContingencia_({
         method: 'post', body: JSON.stringify({ action: 'enfileirar', chave: CONTINGENCIA_CHAVE_PUBLICA, id: idFila, tipo: 'venda', dados })
-      });
-      const r = await resp.json();
+      }, TIMEOUT_CONT_ENVIO_MS_, TIMEOUT_CONT_REPETICOES_);
       if(r.ok){
         showMsg('cdCheckoutMsg', 'Pedido recebido! Estamos com uma instabilidade — seu pedido foi guardado e vai ser confirmado assim que normalizar. Guarde este código: ' + idFila.slice(-6).toUpperCase(), 'ok');
         cdUltimaVendaId = null; mostrarBotaoWhatsappContingencia({id:idFila,numero:idFila.slice(-6).toUpperCase(),valorTotal:total}); _idFilaContingencia = null;
         cdPedidoConcluido = true;
         btn.disabled=true; btn.textContent='Pedido guardado';
       } else { showMsg('cdCheckoutMsg', 'Não foi possível registrar o pedido agora. Tente novamente em instantes.', 'warn'); btn.disabled=false; btn.textContent='Enviar pedido'; }
-    } catch(e){ showMsg('cdCheckoutMsg','Não foi possível enviar o pedido. Tente novamente.','warn'); btn.disabled=false; btn.textContent='Enviar pedido'; }
+    } catch(e){
+      showMsg('cdCheckoutMsg', (e && e.timeout) ? 'Não conseguimos confirmar o envio a tempo. Toque em Enviar pedido de novo — o pedido não será duplicado.' : 'Não foi possível enviar o pedido. Tente novamente.','warn');
+      btn.disabled=false; btn.textContent='Enviar pedido';
+    }
     return;
   }
 

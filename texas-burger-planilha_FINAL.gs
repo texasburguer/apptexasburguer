@@ -688,11 +688,20 @@ function linhaDoId_(sh, id) {
    enviar dados para fora). Aqui todo texto recebido é neutralizado ANTES de qualquer ação, inclusive nos cadastros feitos por
    funcionários. Senhas, login, token e imagem ficam de fora (não podem ser alterados). */
 const CHAVES_SEM_SANITIZAR_ = { senha: 1, senhaAtual: 1, novaSenha: 1, senhaAdmin: 1, senhaAdminConfirmacao: 1, token: 1, base64Data: 1, login: 1, novoLogin: 1, loginAlvo: 1, chave: 1 };
+/* Módulo 4: texto que começa com + ou - também pode virar fórmula (no Sheets, ou ao abrir um CSV/Excel exportado).
+   Para não estragar o que é comum no dia a dia, só é neutralizado quando PARECE fórmula: tem chamada de função (NOME(...)),
+   "|" ou "!". Ficam como estão: números ("-5,50"), telefones ("+55 (11) 99999-9999") e texto comum ("- sem cebola", "+ bacon").
+   "=", "@", tabulação e retorno de carro no início continuam sempre neutralizados. */
+function pareceFormulaPorSinal_(v) {
+  if (/^[+-][\d\s().,-]*$/.test(v)) return false;
+  return /[A-Za-z_][\w.]*\s*\(|[|!\\]/.test(v);
+}
 function sanitizarEntrada_(v, chave, prof) {
   if (prof > 8) return v;
   if (typeof v === 'string') {
     if (chave && CHAVES_SEM_SANITIZAR_[chave]) return v;
-    return /^[=@]/.test(v) ? "'" + v : v;
+    const c = v.charAt(0);
+    return (c === '=' || c === '@' || c === '\t' || c === '\r' || ((c === '+' || c === '-') && pareceFormulaPorSinal_(v))) ? "'" + v : v;
   }
   if (Array.isArray(v)) return v.map(x => sanitizarEntrada_(x, chave, prof + 1));
   if (v && typeof v === 'object') { const o = {}; Object.keys(v).forEach(k => { o[k] = sanitizarEntrada_(v[k], k, prof + 1); }); return o; }
@@ -5118,7 +5127,7 @@ function reconciliarContingencia() {
     if (item.tipo !== 'venda') { resultado.falhas.push(item.id + ': tipo desconhecido (' + item.tipo + ')'); return; }
     if (item.corrompido || !item.dados || !item.dados.itens) { resultado.falhas.push(item.id + ': dados ilegíveis na fila'); return; }
     try {
-      const d = item.dados;
+      const d = sanitizarEntrada_(item.dados, '', 0); // os dados da fila vieram de fora e não passaram pelo doPost: neutraliza fórmulas aqui também
       /* FASE 9 / 11D: sem desconto, preço sempre conferido, idempotente. Venda do Caixa reaproveita o id da tentativa original:
          se a principal chegou a gravá-la antes de cair, a reconciliação reconhece e NÃO duplica. */
       const ehCaixa = d.origem === 'Caixa';
@@ -5138,13 +5147,5 @@ function reconciliarContingencia() {
   return { ok: true, message: resultado.reaplicadas + ' venda(s) reaplicada(s), ' + resultado.jaEstavam + ' já estavam sincronizadas' + (resultado.falhas.length ? ', ' + resultado.falhas.length + ' com falha (veja o log).' : '.'), detalhes: resultado };
 }
 
-/* TEMPORÁRIA — cadastra as chaves da contingência nas Propriedades do script deste projeto.
-   Rode UMA vez (menu de funções -> cadastrarChavesContingencia -> Executar), confirme com conferirChavesContingencia()
-   e depois APAGUE esta função (chave secreta não deve ficar escrita no código). */
-function cadastrarChavesContingencia() {
-  PropertiesService.getScriptProperties().setProperties({
-    CONTINGENCIA_CHAVE_SERVIDOR: 'txbsrv-fec2119adbfc4808aa690063fe2b81743c2a5757',
-    CONTINGENCIA_CHAVE_INTERNA: 'txbint-bb09518f2eac44e6b9b2318effaa4ded30a1c2c0'
-  });
-  Logger.log('Chaves cadastradas.');
-}
+/* As chaves da contingência (CONTINGENCIA_CHAVE_SERVIDOR e CONTINGENCIA_CHAVE_INTERNA) ficam SOMENTE nas Propriedades do script
+   (Configurações do projeto -> Propriedades do script). Nunca escreva chave no código. Para trocar: rotacionarChavesSensiveis() no projeto da contingência. */
