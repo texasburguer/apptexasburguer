@@ -671,6 +671,24 @@ body:not(.perfil-garcom) #garcomMesaAcoes .btnrow{display:none;}
 /* o Garçom já tem "Receber conta" próprio */
 body.perfil-garcom #btnFecharContaItens{display:none !important;}
 /* >>> CAMADA FUNCIONAL PROTEGIDA — FLUXO DE MESA NO CAIXA (FIM) <<< */
+
+/* ===================== CARDÁPIO NO COMPUTADOR ===================== */
+@media (min-width:900px){
+  #cardapioPublico{ max-width:1120px; padding:0 24px 60px; }
+  .cd-banner{ max-width:620px; margin:18px auto 22px; }
+  /* categorias: sem rolagem lateral, quebram em linhas (mouse não rola de lado) */
+  .cd-categorias{ flex-wrap:wrap; justify-content:center; overflow:visible; scroll-snap-type:none; -webkit-mask-image:none; mask-image:none; gap:10px; padding:12px 4px; }
+  .cd-categorias button{ padding:10px 20px; font-size:14px; }
+  .cd-grid{ grid-template-columns:repeat(3,1fr); gap:16px; }
+  .cd-card img{ height:170px; }
+  .cd-card .cd-nome{ font-size:15px; }
+  .cd-card .cd-desc{ font-size:12.5px; }
+  .cd-card .cd-preco{ font-size:18px; }
+  .cd-fab-carrinho{ max-width:560px; }
+}
+@media (min-width:1300px){ .cd-grid{ grid-template-columns:repeat(4,1fr); } }
+/* ===================== FIM CARDÁPIO NO COMPUTADOR ===================== */
+
 </style>
 </head>
 <body>
@@ -2911,7 +2929,7 @@ function aplicarPermissoesNivel(){
    Cozinha e Entregador não recebem. A chave é apagada ao sair ou quando a sessão expira. */
 function garantirChaveContingencia_(){
   try{
-    if(!currentUser || ['Admin','Operador','Garçom'].indexOf(currentUser.nivel)===-1) return;
+    if(!currentUser || ['Admin','Operador'].indexOf(currentUser.nivel)===-1) return;
     if(localStorage.getItem(CONTINGENCIA_CHAVE_KEY)) return;
     apiCall('obterChaveContingencia', {}).then(r=>{ if(r && r.ok && r.chave) localStorage.setItem(CONTINGENCIA_CHAVE_KEY, r.chave); }).catch(()=>{});
   } catch(e){}
@@ -8114,7 +8132,7 @@ async function init(){
   }
   renderizarTudo();
   configurarSincronizacaoAutomatica();
-  if(apiConfigurada()) carregarStatusBackup();
+  if(apiConfigurada() && currentUser && currentUser.nivel==='Admin') carregarStatusBackup();
   carregarStatusContingencia();
 }
 

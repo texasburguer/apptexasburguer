@@ -788,7 +788,14 @@ function doPost(e) {
     if (body.requisicaoId && ACOES_IDEMPOTENTES.indexOf(action) !== -1) {
       chaveIdem = action + ':' + String(body.requisicaoId).slice(0, 80);
       const previa = requisicaoBuscar_(chaveIdem);
-      if (previa) return responder({ ok: true, duplicado: true, id: previa.resultado, message: 'Operação já registrada anteriormente — repetição ignorada.' });
+      if (previa) {
+        const dup = { ok: true, duplicado: true, id: previa.resultado, message: 'Operação já registrada anteriormente — repetição ignorada.' };
+        try { // devolve também o Nº do pedido (antes vinha 0 quando o cliente reenviava depois de uma queda de internet)
+          const shV = ss_().getSheetByName('Vendas'), lin = shV ? linhaDoId_(shV, previa.resultado) : 0;
+          if (lin && shV.getMaxColumns() >= 30) { const n = numPlanilha_(shV.getRange(lin, 30).getValue()) || 0; if (n) dup.numero = n; }
+        } catch (eNum) {}
+        return responder(dup);
+      }
     }
     const msgConflito = conflitoDeVersao_(action, body);
     if (msgConflito) {
@@ -1215,8 +1222,14 @@ function senhaConfere_(armazenada, informada) {
   if (a.indexOf('sha256$') === 0) { const p = a.split('$'); return p.length === 3 && sha256hex_(p[1] + String(informada)) === p[2]; }
   return a !== '' && a === String(informada);
 }
-function excedeuTentativas_(chave, max) { return (Number(CacheService.getScriptCache().get(chave)) || 0) >= max; }
-function registrarFalha_(chave) { const c = CacheService.getScriptCache(); c.put(chave, String((Number(c.get(chave)) || 0) + 1), 600); }
+function excedeuTentativas_(chave, max) { const p = String(CacheService.getScriptCache().get(chave) || '').split('|'); return (Number(p[0]) || 0) >= max; }
+/* O prazo de bloqueio conta a partir do PRIMEIRO erro e não é renovado a cada novo erro (antes, quem insistisse mantinha o login trancado sem fim). */
+function registrarFalha_(chave) {
+  const c = CacheService.getScriptCache(), agoraMs = Date.now(), p = String(c.get(chave) || '').split('|');
+  let n = Number(p[0]) || 0, ate = Number(p[1]) || 0;
+  if (!ate || ate <= agoraMs) { n = 0; ate = agoraMs + 600000; }
+  c.put(chave, (n + 1) + '|' + ate, Math.max(1, Math.ceil((ate - agoraMs) / 1000)));
+}
 function limparFalhas_(chave) { CacheService.getScriptCache().remove(chave); }
 
 const ACOES_AUDITADAS_RE = /suspens|retomad|desconto|cancelad|editada|estorno|estoque|perda|inventário|usuário|senha|sangria|despesa|forma de pagamento|restaur|backup|acesso negado|preço|fechamento|entregador atribu|login falhou|conta de mesa|qr da mesa/i;
@@ -1709,6 +1722,7 @@ function getAllData(grupo) {
     dados.pagamentosVenda = [];
   }
 
+  if (NIVEL_ATUAL === 'Garçom') dados.feedbacks = []; // telefone e comentário dos clientes: só Admin/Operador
   if (NIVEL_ATUAL === 'Cozinha') ['clientes', 'fidelidade', 'indicacoes', 'promocoes', 'pagamentosVenda', 'feedbacks'].forEach(k => { dados[k] = []; });
   dados.versoes = vers; if (grupo) dados.grupo = grupo; // ITEM 19
   return dados;
@@ -2067,6 +2081,8 @@ function validarCupomCardapio(codigo, telefone, subtotal, tipoEntrega, itens) {
   // SEGURANÇA (Módulo 3): endpoint público — limita tentativas erradas para ninguém descobrir cupons por tentativa e erro.
   const chaveTel = 'cupfalha_' + (normTel(telefone) || 'anon');
   if (excedeuTentativas_(chaveTel, 8) || excedeuTentativas_('cupfalha_global', 150)) return { ok: false, message: 'Muitas tentativas de cupom. Aguarde alguns minutos.' };
+  const subNum = Number(subtotal);
+  if (!isFinite(subNum) || subNum < 0 || subNum > 5000) return { ok: false, message: 'Valor do pedido inválido para aplicar cupom.' }; // a prévia confiava no subtotal enviado; o valor cobrado é sempre recalculado
   const r = validarCupom_(codigo, telefone, subtotal, tipoEntrega, itens, false);
   if (!r.ok && /inválido ou inativo/.test(String(r.message || ''))) { registrarFalha_(chaveTel); registrarFalha_('cupfalha_global'); }
   return r;
