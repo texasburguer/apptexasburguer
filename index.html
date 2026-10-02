@@ -6,12 +6,21 @@
 <!-- SEGURANÇA: mesmo que algum texto malicioso escapasse, a página só consegue falar com o Google Apps Script (planilha e contingência). -->
 <meta http-equiv="Content-Security-Policy" content="connect-src https://script.google.com https://script.googleusercontent.com; object-src 'none'; base-uri 'none'; form-action 'none';">
 <meta name="referrer" content="no-referrer">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0b0705">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alfa+Slab+One&display=swap">
 <title>Texas Burger — Sistema Completo</title>
 <style>
   :root{
-    --bg:#150d08; --panel:#1f150d; --panel-2:#281c11; --line:#3a2a18;
-    --gold:#e8b23d; --gold-dim:#a97f2c; --red:#b3241c; --red-dim:#7c1a15;
-    --cream:#f2e6d2; --muted:#b3a186; --ok:#5f8f4e;
+    --bg:#0b0705; --panel:#17100a; --panel-2:#21160d; --line:#3d2a12;
+    --gold:#ffd112; --gold-dim:#c99a14; --red:#d20807; --red-dim:#8c0a08;
+    --cream:#fff3d6; --muted:#bfae8f; --ok:#6dbb2e;
+    --gold-hi:#ffe35a; --gold-lo:#d59d10; --bronze:#ac5112; --orange:#fd9f00; --lime:#75d205; --red-hi:#f50905;
+    --font-display:'Alfa Slab One','Rockwell','Rockwell Extra Bold',Georgia,'Times New Roman',serif;
   }
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;}
@@ -94,6 +103,10 @@
   header.brand .userbar button{white-space:nowrap;}
   header.brand .userbar button.pendente::after{content:'';display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--gold);margin-left:6px;vertical-align:middle;}
   header.brand .userbar button{background:var(--panel-2);border:1px solid var(--line);color:var(--muted);padding:4px 10px;border-radius:20px;font-size:11px;cursor:pointer;}
+  header.brand .userbar{flex-wrap:nowrap;gap:6px;}
+  header.brand .userbar #userbarTexto{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  header.brand .userbar button{flex:0 0 auto;padding:4px 8px;}
+  @media (max-width:420px){ header.brand .userbar{gap:4px;} header.brand .userbar .rot{display:none;} header.brand .userbar button{padding:4px 9px;} }
 
   /* Menus em colunas (sem rolagem lateral): todos os botões aparecem de uma vez, soltos e arredondados, sem cara de tabela */
   nav.tabs{display:grid;grid-template-columns:repeat(auto-fit,minmax(104px,1fr));gap:6px;background:transparent;border:none;padding:0;margin-bottom:18px;}
@@ -311,8 +324,10 @@
   #cozinhaBoard.cz-flash{animation:czPisca .8s ease-in-out 4;}
   #cozinhaBoard{display:none;}
   .caixa-topo{flex-wrap:wrap;gap:8px;}
-  .caixa-topo-btns{display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
-  .caixa-topo-btns .ghost{width:auto;padding:9px 11px;font-size:12.5px;min-height:42px;}
+  .caixa-topo-btns{display:flex;gap:6px;align-items:center;flex-wrap:nowrap;width:100%;}
+  .caixa-topo-btns .ghost{width:auto;flex:1 1 auto;min-width:0;white-space:nowrap;padding:9px 8px;font-size:12.5px;min-height:42px;}
+  .caixa-topo-btns .calc-btn{width:42px;height:42px;flex:0 0 42px;}
+  @media (max-width:400px){ .caixa-topo-btns{gap:4px;} .caixa-topo-btns .ghost{padding:9px 4px;font-size:11px;} }
   #caixaStatusBtn.caixa-fechado{border-color:var(--red);color:var(--gold);}
   .resumo-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;}
   .resumo-box{display:block;width:100%;text-align:left;background:var(--panel-2);border:1px solid var(--line);border-radius:12px;padding:12px;color:var(--cream);cursor:pointer;font:inherit;}
@@ -342,7 +357,115 @@
   body.perfil-garcom #btnProximoPagamento, body.perfil-garcom #caixaStatusCard, body.perfil-garcom #caixaStatusBtn, body.perfil-garcom #painelFormaBtn,
   body.perfil-garcom #painelFinalizarBtn, body.perfil-garcom #painelForma, body.perfil-garcom #painelFinalizar,
   body.perfil-garcom #tipoRetiradaBtn, body.perfil-garcom #tipoEntregaBtn, body.perfil-garcom #btnFecharContaAgora,
-  body.perfil-garcom #btnRepetirVenda{display:none !important;}
+  body.perfil-garcom #btnRepetirVenda, body.perfil-garcom #mesaModoPagBox{display:none !important;}
+
+/* =====================================================================
+   ETAPA 5 — TEMA TEXAS BURGER (inspirado na logo)
+   Este bloco fica por último de propósito: sobrescreve as regras antigas.
+   Para desfazer o visual: apagar este bloco e restaurar o :root antigo.
+   NÃO tocar em .recibo*, no CSS de impressão (cssImpressao) nem no verde do WhatsApp (#25D366).
+   ===================================================================== */
+.sr-only{position:absolute!important;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
+
+/* ---- Fundo ---- */
+body{background-color:var(--bg);background-image:radial-gradient(ellipse 120% 55% at 50% 0%,rgba(255,209,18,.13) 0%,rgba(210,8,7,.05) 40%,transparent 72%);background-repeat:no-repeat;}
+
+/* ---- Logo (cabeçalho interno, login, cardápio, acompanhamento) ---- */
+.brand-logo{display:block;margin:0 auto;width:auto;height:92px;max-width:72%;object-fit:contain;mix-blend-mode:lighten;}
+.hero-logo{display:block;margin:0 auto 8px;width:min(68vw,250px);height:auto;mix-blend-mode:lighten;}
+@media (min-width:900px){ .brand-logo{height:112px;} .hero-logo{width:280px;} }
+
+/* ---- Cabeçalho interno ---- */
+header.brand{border-bottom:0;padding:6px 0 14px;margin-bottom:14px;}
+header.brand::after{content:'';display:block;height:4px;margin-top:12px;border-radius:2px;background:linear-gradient(90deg,transparent,var(--gold) 14%,var(--red) 50%,var(--gold) 86%,transparent);}
+header.brand .status{margin-top:6px;}
+header.brand .userbar #userbarTexto{color:var(--cream);font-weight:700;}
+header.brand .userbar button{background:var(--panel-2);border-color:#5a4018;color:var(--cream);font-weight:700;}
+
+/* ---- Abas principais (viram "placas" com degrau) ---- */
+nav.tabs{gap:8px;}
+nav.tabs button{background:linear-gradient(180deg,var(--panel-2),var(--panel));border:1.5px solid var(--line);border-bottom-width:3px;border-radius:12px;color:var(--cream);font-weight:800;font-size:12px;letter-spacing:.02em;min-height:36px;transition:transform .08s ease;}
+nav.tabs button:active{transform:translateY(2px);}
+nav.tabs button.active{background:linear-gradient(180deg,var(--red-hi),var(--red) 55%,var(--red-dim));border-color:var(--gold);color:#fff;text-shadow:0 1px 0 rgba(0,0,0,.6);box-shadow:0 0 0 1px #000,0 4px 14px rgba(210,8,7,.35);}
+nav.tabs button .dot{width:9px;height:9px;top:4px;right:4px;background:var(--gold);box-shadow:0 0 0 2px #000;}
+
+/* ---- Sub-abas do Administrador e do Pedidos ---- */
+.admin-subnav{gap:7px;}
+.admin-subnav button{background:var(--panel-2);border:1.5px solid var(--line);border-radius:10px;color:var(--muted);font-weight:700;}
+.admin-subnav button.active,.ped-subnav button.active{background:linear-gradient(180deg,var(--gold-hi),var(--gold) 55%,var(--gold-lo));color:#241a10;border-color:#000;box-shadow:0 0 0 2px var(--gold-dim);}
+.ped-subnav button{border-radius:12px;color:var(--cream);font-weight:800;}
+
+/* ---- Cartões ---- */
+.card{background:linear-gradient(180deg,var(--panel),#120c07);border:1px solid var(--line);border-top:3px solid var(--gold);border-radius:14px;box-shadow:0 8px 22px rgba(0,0,0,.4);}
+.card h2{font-family:var(--font-display);font-weight:400;font-size:19px;letter-spacing:.02em;color:var(--gold);text-shadow:0 2px 0 #000;}
+.card h2::before{content:'◆';color:var(--red-hi);font-size:.55em;margin-right:8px;vertical-align:.28em;text-shadow:none;}
+.calc-btn{border-color:var(--gold);border-radius:10px;}
+
+/* ---- Botões ---- */
+button.primary,.lock-box button.primary{background:linear-gradient(180deg,var(--red-hi),var(--red) 55%,var(--red-dim));color:#fff;border:2px solid #000;border-bottom-width:4px;border-radius:12px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;text-shadow:0 1px 0 rgba(0,0,0,.55);box-shadow:0 0 0 1px var(--gold-dim);min-height:48px;}
+button.primary:active,.lock-box button.primary:active{background:linear-gradient(180deg,var(--red),var(--red-dim));transform:translateY(2px);border-bottom-width:2px;}
+button.small-gold{background:linear-gradient(180deg,var(--gold-hi),var(--gold) 55%,var(--gold-lo));color:#241a10;border:1.5px solid #000;border-bottom-width:3px;border-radius:10px;font-weight:800;}
+button.small-gold:active{transform:translateY(1px);}
+button.ghost{border-color:#5a4018;color:var(--cream);border-radius:10px;}
+button.atalho-btn{border-color:var(--gold-dim);color:var(--cream);font-weight:700;}
+button.toggle-mode{border-radius:10px;font-weight:700;}
+button.toggle-mode.active{background:linear-gradient(180deg,var(--gold-hi),var(--gold) 55%,var(--gold-lo));}
+@media (hover:hover){ button.primary:hover,button.small-gold:hover,nav.tabs button:hover{filter:brightness(1.08);} }
+
+/* ---- Campos ---- */
+input[type=text],input[type=tel],input[type=number],input[type=date],input[type=month],input[type=password],input:not([type]),select,textarea,.lock-box input,.lock-box select{background:#0b0705;border:1.5px solid #4a3414;border-radius:10px;}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(255,209,18,.28);}
+.lock-box input{padding:13px;}
+
+/* ---- Modais (contorno duplo, como o losango da logo) ---- */
+.modal-overlay{background:rgba(0,0,0,.82);}
+.modal-box{background:linear-gradient(180deg,var(--panel),#100a06);border:2px solid var(--gold);border-radius:18px;box-shadow:0 0 0 3px #000,0 0 0 5px var(--gold-dim),0 24px 60px rgba(0,0,0,.75);}
+.modal-box .modal-header{padding-bottom:10px;border-bottom:2px solid var(--line);}
+.modal-box .modal-header h2{font-family:var(--font-display);font-weight:400;font-size:20px;text-shadow:0 2px 0 #000;}
+.modal-box .close-btn{width:40px;height:40px;border-radius:50%;background:var(--red);color:#fff;border:2px solid var(--gold);font-size:16px;flex:0 0 40px;}
+.modal-section h3{color:var(--gold);}
+
+/* ---- Tabelas, selos, indicadores ---- */
+th{color:var(--gold-dim);text-transform:uppercase;letter-spacing:.06em;border-bottom:2px solid var(--line);}
+.stat-box,.resumo-box{background:linear-gradient(180deg,var(--panel-2),var(--panel));border:1px solid var(--line);border-left:4px solid var(--gold);border-radius:14px;}
+.stat-box b,.resumo-box b,.calc-display{font-family:var(--font-display);font-weight:400;}
+.stat-box.entrada{border-left-color:var(--lime);} .stat-box.saida{border-left-color:var(--red-hi);}
+.resumo-box.atencao{border-color:var(--red);border-left-color:var(--red-hi);}
+.progress-inner{background:linear-gradient(90deg,var(--gold-lo),var(--gold-hi));}
+.punch .hole.filled{background:linear-gradient(180deg,var(--gold-hi),var(--gold-lo));border-color:var(--gold);}
+.notif-card{border-left:4px solid var(--gold);}
+
+/* ---- Cozinha: colunas com as cores do hambúrguer ---- */
+.cz-col h3{font-family:var(--font-display);font-weight:400;font-size:15px;padding:8px 10px;border-radius:10px;border:1.5px solid #000;color:#fff;text-shadow:0 1px 0 rgba(0,0,0,.6);}
+.cz-col:nth-child(1) h3{background:linear-gradient(180deg,var(--red-hi),var(--red-dim));}
+.cz-col:nth-child(2) h3{background:linear-gradient(180deg,var(--orange),var(--bronze));}
+.cz-col:nth-child(3) h3{background:linear-gradient(180deg,#8fe21a,#4c8f05);color:#0b1a02;text-shadow:none;}
+.cz-card{border-radius:12px;border-left:5px solid var(--gold);}
+.cz-card.atrasado{border-left-color:var(--red-hi);}
+
+/* ---- Cardápio público ---- */
+.cd-banner{background:radial-gradient(ellipse at 50% 0%,rgba(255,209,18,.16),transparent 66%),#000;border:2px solid var(--gold);border-radius:20px;padding:16px 14px 16px;margin:12px 4px 20px;box-shadow:0 0 0 3px #000,0 0 0 5px var(--gold-dim),0 14px 30px rgba(0,0,0,.55);}
+.cd-banner .kicker{display:inline-block;background:var(--red);color:#fff;border:2px solid var(--gold);border-radius:999px;padding:4px 12px;font-size:10.5px;font-weight:800;letter-spacing:.12em;}
+.cd-banner .frase{color:var(--cream);font-size:14px;margin-top:10px;}
+.cd-categorias{background:rgba(11,7,5,.97);border-bottom:2px solid var(--gold-dim);padding:10px 2px;}
+.cd-categorias button{background:var(--panel-2);border:1.5px solid var(--line);color:var(--cream);font-weight:800;border-radius:12px;padding:10px 16px;}
+.cd-categorias button.active{background:linear-gradient(180deg,var(--gold-hi),var(--gold) 55%,var(--gold-lo));color:#241a10;border-color:#000;box-shadow:0 0 0 2px var(--gold-dim);}
+.cd-secao-titulo{display:flex;align-items:center;gap:10px;font-family:var(--font-display);font-weight:400;font-size:18px;color:var(--gold);text-shadow:0 2px 0 #000;margin:22px 2px 10px;}
+.cd-secao-titulo::before{content:'◆';color:var(--red-hi);font-size:.55em;text-shadow:none;}
+.cd-secao-titulo::after{content:'';flex:1;height:2px;background:linear-gradient(90deg,var(--gold-dim),transparent);}
+.cd-card{background:linear-gradient(180deg,var(--panel-2),var(--panel));border:1.5px solid var(--line);border-radius:16px;box-shadow:0 6px 16px rgba(0,0,0,.4);}
+.cd-card img{height:104px;}
+.cd-card .cd-nome{font-size:13.5px;font-weight:800;}
+.cd-card .cd-preco{font-family:var(--font-display);font-weight:400;font-size:16px;color:var(--gold);}
+.cd-card button{background:linear-gradient(180deg,var(--gold-hi),var(--gold) 55%,var(--gold-lo));color:#241a10;border:1.5px solid #000;border-bottom-width:3px;border-radius:10px;padding:9px;font-weight:800;font-size:12.5px;letter-spacing:.04em;text-transform:uppercase;min-height:40px;}
+.cd-fab-carrinho{background:linear-gradient(180deg,var(--red-hi),var(--red) 55%,var(--red-dim));color:#fff;border:2px solid var(--gold);border-radius:16px;box-shadow:0 0 0 2px #000,0 10px 26px rgba(0,0,0,.6);}
+.cd-qtd-ctrl button{border-color:var(--gold-dim);}
+.estrelas span.on{color:var(--gold-hi);}
+
+/* ---- Login ---- */
+.lock-box{max-width:360px;background:radial-gradient(ellipse at 50% 0%,rgba(255,209,18,.14),transparent 64%),#000;border:2px solid var(--gold);border-radius:20px;padding:22px 20px;box-shadow:0 0 0 3px #000,0 0 0 5px var(--gold-dim),0 18px 44px rgba(0,0,0,.7);}
+.lock-box p{color:var(--cream);}
+.lock-box .link-btn{color:var(--gold);}
 </style>
 </head>
 <body>
@@ -353,8 +476,9 @@
      pra não travar o sistema interno quando essa tela ficava presa num atalho/aba fixa. -->
 <div id="acompanhamentoPedido" class="hidden" style="max-width:560px;margin:0 auto;padding:20px 16px;">
   <div class="cd-banner">
+    <img class="hero-logo" src="logo-texas-burger.webp" alt="Texas Burger" width="470" height="441" decoding="async">
+    <h1 class="sr-only">Texas Burger</h1>
     <div class="kicker">ACOMPANHE SEU PEDIDO</div>
-    <h1>TEXAS BURGER</h1>
   </div>
   <div class="card" id="acompanhamentoConteudo">
     <p class="sub">Carregando...</p>
@@ -369,8 +493,9 @@
      Funcionários" é discreto e só ele revela a tela de login interna. -->
 <div id="cardapioPublico">
   <div class="cd-banner">
+    <img class="hero-logo" src="logo-texas-burger.webp" alt="Texas Burger" width="470" height="441" decoding="async">
+    <h1 class="sr-only">Texas Burger</h1>
     <div class="kicker" id="cdKicker">DELIVERY · SABOR QUE CONQUISTA</div>
-    <h1>TEXAS BURGER</h1>
     <div class="frase" id="cdFrase">Peça pelo cardápio — rápido, sem complicação.</div>
     <div class="status" id="cdStatusCaixa" style="margin-top:8px;"></div>
   </div>
@@ -511,8 +636,8 @@
 
 <div class="lock-screen hidden" id="lockScreen">
   <div class="lock-box">
-    <div class="kicker">DELIVERY · SABOR QUE CONQUISTA</div>
-    <h1>TEXAS BURGER</h1>
+    <img class="hero-logo" src="logo-texas-burger.webp" alt="Texas Burger" width="470" height="441" decoding="async">
+    <h1 class="sr-only">Texas Burger</h1>
     <p id="loginSubtitulo">Faça login para acessar o sistema</p>
 
     <div id="telaLogin">
@@ -536,14 +661,14 @@
   </div>
 
   <header class="brand">
-    <div class="kicker">DELIVERY · SABOR QUE CONQUISTA</div>
-    <h1>TEXAS BURGER</h1>
+    <img class="brand-logo" src="logo-texas-burger.webp" alt="Texas Burger" width="470" height="441" decoding="async">
+    <h1 class="sr-only">Texas Burger</h1>
     <div class="status" id="connStatus">conectando à planilha...</div>
     <div class="userbar">
       <span id="userbarTexto"></span>
       <button id="avisosBtnTopo" onclick="abrirModalAvisos_()">🔔 Avisos</button>
-      <button onclick="abrirAjuda()">❓ Ajuda</button>
-      <button onclick="abrirModalTrocarSenha()">🔑 Senha</button>
+      <button onclick="abrirAjuda()" title="Ajuda" aria-label="Ajuda">❓<span class="rot"> Ajuda</span></button>
+      <button onclick="abrirModalTrocarSenha()" title="Senha" aria-label="Senha">🔑<span class="rot"> Senha</span></button>
       <button onclick="sair()">Sair</button>
     </div>
   </header>
@@ -881,14 +1006,22 @@
           <div id="mesaEscolhaBox" style="display:none;margin-top:10px;">
             <label for="vMesaSelect">Qual mesa?</label>
             <select id="vMesaSelect" onchange="atualizarGarcomMesaInfo()"></select>
+            <div id="mesaModoPagBox" style="margin-top:8px;">
+              <label>Pagamento da mesa</label>
+              <div class="btnrow">
+                <button type="button" class="toggle-mode active" id="mesaPagarSairBtn" onclick="setMesaModoPagamento('sair')">Pagar ao sair</button>
+                <button type="button" class="toggle-mode" id="mesaPagarAgoraBtn" onclick="setMesaModoPagamento('agora')">Pagar agora</button>
+              </div>
+            </div>
             <div id="garcomMesaAcoes" style="margin-top:8px;">
               <div class="obs-line" id="garcomMesaInfo"></div>
               <div class="btnrow" style="margin-top:6px;">
                 <button type="button" class="ghost" onclick="garcomAbrirMesa()">🪑 Abrir mesa</button>
                 <button type="button" class="ghost" onclick="garcomPedirFechamento()">🧾 Pedir fechamento</button>
+                <button type="button" class="ghost" onclick="fecharContaMesaUI()">💳 Receber conta</button>
               </div>
             </div>
-            <p class="sub" style="margin-top:6px;">O pagamento dessa comanda só é escolhido quando a mesa fechar a conta — não agora.</p>
+            <p class="sub" style="margin-top:6px;">O pedido fica na conta da mesa. O pagamento é escolhido só ao fechar a conta (“Receber conta”, ou o caixa).</p>
             <button type="button" class="ghost" id="btnFecharContaAgora" style="width:100%;margin-top:6px;" onclick="fecharContaMesaUI()">💳 Fechar conta desta mesa agora</button>
           </div>
         </div>
@@ -3646,6 +3779,19 @@ function avisarClienteWhatsApp(vendaId){
   window.open('https://wa.me/'+fone+'?text='+encodeURIComponent(msg), '_blank');
   renderPedidos(); renderEntregas();
 }
+/* ETAPA 2B: quem fez o pedido. Garçom/Admin/Operador: nome da pessoa (e o perfil, quando a lista de usuários está disponível).
+   Pedido feito sozinho pelo cliente (cardápio): "Cliente" + o nome que ele informou. */
+function quemFezPedido_(v){
+  if(!v) return '';
+  const ehCliente = v.origem==='Cardápio' && !v.registradoPor;
+  if(ehCliente) return '📱 Cliente' + (v.clienteNome ? ' ('+v.clienteNome+')' : '');
+  const login = String(v.registradoPor||'').trim();
+  if(!login) return v.origem==='Cardápio' ? '📱 Cliente' + (v.clienteNome ? ' ('+v.clienteNome+')' : '') : '';
+  const u = (usuarios||[]).find(x=>String(x.login||'').toLowerCase()===login.toLowerCase());
+  const nome = (u && (u.nome||u.login)) || login;
+  const perfil = (u && u.nivel) || (v.origem==='Garçom' ? 'Garçom' : '');
+  return '👤 ' + nome + (perfil ? ' · ' + perfil : '');
+}
 function renderPedidos(){
   renderCozinha();
   const pendentes = vendas.filter(v=>v.status==='Confirmada' && (v.tipoEntrega==='Retirada' || v.tipoEntrega==='Mesa') &&
@@ -3666,6 +3812,7 @@ function renderPedidos(){
       return `<div class="notif-card">
         <div><b>#${rotuloPedido(v)}</b> — ${identificacao}${aguardandoAceite?' <span class="badge baixo">novo — aguardando aceite</span>':''}</div>
         <div class="obs-line">${itensDoPedido(v.id)}</div>
+        ${quemFezPedido_(v)?`<div class="obs-line">${escH(quemFezPedido_(v))}</div>`:''}
         ${botaoOcorrenciaPedido(v)}
         <div class="obs-line">Status: <b>${v.statusPedido}</b> — há ${tempoDecorridoDesde(v.timestamp)}</div>
         ${botaoAvisarCliente_(v)}
@@ -3714,7 +3861,7 @@ function cardCozinha_(v, acao){
   const obs = v.observacoesEntrega ? `<div class="cz-obs">📝 ${escOc_(v.observacoesEntrega)}</div>` : '';
   return `<div class="cz-card${atrasado?' atrasado':''}">
     <div class="cz-cab"><b>#${escOc_(rotuloPedido(v))} — ${destino}</b><span class="cz-tempo">${tempoDecorridoDesde(v.timestamp)}</span></div>
-    <div class="obs-line">${escOc_(v.origem||'Balcão')}</div>
+    <div class="obs-line">${escOc_(v.origem||'Balcão')}${quemFezPedido_(v)?' · '+escOc_(quemFezPedido_(v)):''}</div>
     ${itens}${obs}
     ${botaoOcorrenciaPedido(v)}
     ${acao||''}
@@ -3739,7 +3886,7 @@ function comandaHtml_(v){
   }).join('') || '<div>(itens não carregados — confira na tela)</div>';
   const destino = v.tipoEntrega==='Mesa' ? 'MESA '+nomeMesa(v.mesaId) : (v.tipoEntrega==='Entrega' ? 'ENTREGA' : 'RETIRADA'+(v.clienteNome ? ' · '+v.clienteNome : ''));
   const hora = new Date(v.timestamp).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
-  return `<h4>COMANDA #${escR(rotuloPedido(v))}</h4><div class="sub-c"><b>${escR(destino)}</b></div><div class="sub-c">${escR(hora)} · ${escR(v.origem||'Balcão')}</div><hr>${itens}` +
+  return `<h4>COMANDA #${escR(rotuloPedido(v))}</h4><div class="sub-c"><b>${escR(destino)}</b></div><div class="sub-c">${escR(hora)} · ${escR(v.origem||'Balcão')}</div>${quemFezPedido_(v)?`<div class="sub-c">${escR(quemFezPedido_(v))}</div>`:''}<hr>${itens}` +
     (v.observacoesEntrega ? `<hr><div><b>OBS:</b> ${escR(v.observacoesEntrega)}</div>` : '') + '<hr>';
 }
 function imprimirComandas_(lista){
@@ -4046,6 +4193,7 @@ function renderEntregas(){
         </div>` : '';
       return `<div class="notif-card">
         <div><b>#${rotuloPedido(v)}</b> — 🛵 ${escH(v.clienteNome||'Sem cadastro')}${aguardandoAceite?' <span class="badge baixo">novo — aguardando aceite</span>':''}</div>
+        ${quemFezPedido_(v)?`<div class="obs-line">${escH(quemFezPedido_(v))}</div>`:''}
         ${telefoneCliente}
         <div class="obs-line">${itensDoPedido(v.id)}</div>
         ${botaoOcorrenciaPedido(v)}
@@ -4439,6 +4587,15 @@ function atualizarPreviewDesconto(){
   msgEl.innerHTML = (desc>0 && desc>=bruto) ? '<span class="warn">O desconto não pode zerar ou deixar negativo o total.</span>' : '';
   renderPagamentos();
 }
+/* ETAPA 3B: no Caixa, pedido de mesa de Admin/Operador pode ficar na conta ("sair") ou ser pago na hora ("agora"). O Garçom é sempre "sair". */
+let mesaModoPagamento = 'sair';
+function setMesaModoPagamento(modo){
+  mesaModoPagamento = (modo==='agora') ? 'agora' : 'sair';
+  const a = document.getElementById('mesaPagarSairBtn'), b = document.getElementById('mesaPagarAgoraBtn');
+  if(a) a.classList.toggle('active', mesaModoPagamento==='sair');
+  if(b) b.classList.toggle('active', mesaModoPagamento==='agora');
+}
+function mesaPagaAgora_(){ return tipoEntregaAtual==='Mesa' && !souGarcom_() && mesaModoPagamento==='agora'; }
 let statusPagamentoAtual = 'Pago';
 function setStatusPagamento(status){
   statusPagamentoAtual = status;
@@ -4551,8 +4708,8 @@ function fecharContaMesaUI(mesaIdParam, msgIdParam){
   if(!mesaId){ showMsg(msgId,'Escolha a mesa primeiro.','warn'); return; }
   const mesa = mesas.find(m=>m.id===mesaId);
   const vendasDaMesa = vendas.filter(v=>v.mesaId===mesaId && v.status==='Confirmada' && v.statusPagamento==='A Receber');
-  if(!vendasDaMesa.length){ if(confirm('Essa mesa não tem conta pendente. Liberar a mesa mesmo assim?')){ mudarStatusMesa(mesaId,'Livre'); } return; }
-  if(!sessaoCaixa){ showMsg(msgId,'Abra o caixa antes de fechar a conta da mesa.','warn'); return; }
+  if(!vendasDaMesa.length){ if(confirm('Essa mesa não tem conta pendente. Liberar a mesa mesmo assim?')){ liberarMesaSemConta_(mesaId, msgId); } return; }
+  if(!sessaoCaixa){ showMsg(msgId, souGarcom_() ? 'O caixa está fechado — peça ao caixa para abrir.' : 'Abra o caixa antes de fechar a conta da mesa.','warn'); return; }
   if(!formasPagamento.some(f=>f.ativa)){ showMsg(msgId,'Não há forma de pagamento ativa. Cadastre uma em Administrador → Financeiro.','warn'); return; }
   fcmMesaId = mesaId;
   fcmTotal = Math.round(vendasDaMesa.reduce((s,v)=>s+v.valorTotal,0)*100)/100;
@@ -4564,6 +4721,14 @@ function fecharContaMesaUI(mesaIdParam, msgIdParam){
   document.getElementById('fcmMsg').textContent = '';
   document.getElementById('fcmBtn').disabled = false; fcmOcupado = false;
   document.getElementById('fcmModal').classList.add('open');
+}
+/* ETAPA 3: liberar mesa sem conta passa pelo servidor (fecharContaMesa com lista vazia), porque o garçom não pode usar editarStatusMesa('Livre'). */
+async function liberarMesaSemConta_(mesaId, msgId){
+  try{
+    const r = await apiCall('fecharContaMesa', { mesaId, pagamentos: [] });
+    if(r && r.ok){ vendas = r.vendas||vendas; mesas = r.mesas||mesas; salvarCache(); renderMesasPickerCaixa(); renderMesas(); renderMesasPopup_(); atualizarAlertaMesas_(); showMsg(msgId, r.message, 'ok'); }
+    else showMsg(msgId, (r && r.message) || 'Não foi possível liberar a mesa.', 'warn');
+  }catch(e){ showMsg(msgId,'Sem conexão — a mesa não foi liberada.','warn'); }
 }
 function fecharModalFecharConta(){ document.getElementById('fcmModal').classList.remove('open'); }
 function fcmAlternarDivisao(){
@@ -4641,7 +4806,11 @@ function renderMesasPopup_(){
     const botoes = [];
     if(c.pedidos.length) botoes.push(`<button class="ghost" style="width:auto;padding:8px 12px;" onclick="alternarDetalheMesa_('${m.id}')">${aberto?'Ocultar pedidos':'Ver pedidos'}</button>`);
     if(staff) botoes.push(c.pedidos.length ? `<button class="small-gold" style="width:auto;padding:8px 14px;" onclick="fecharContaMesaUI('${m.id}','mesasMsg')">💳 Fechar conta</button>` : `<button class="ghost" style="width:auto;padding:8px 12px;" onclick="fecharContaMesaUI('${m.id}','mesasMsg')">Liberar mesa</button>`);
-    else if(m.status==='Ocupada') botoes.push(`<button class="small-gold" style="width:auto;padding:8px 14px;" onclick="garcomPedirFechamentoMesa_('${m.id}')">Pedir fechamento</button>`);
+    else if(souGarcom_()){
+      // ETAPA 3: o garçom recebe a conta das SUAS mesas (mesasVisiveis_ já filtra) ou pede ao caixa.
+      botoes.push(c.pedidos.length ? `<button class="small-gold" style="width:auto;padding:8px 14px;" onclick="fecharContaMesaUI('${m.id}','mesasMsg')">💳 Receber conta</button>` : `<button class="ghost" style="width:auto;padding:8px 12px;" onclick="fecharContaMesaUI('${m.id}','mesasMsg')">Liberar mesa</button>`);
+      if(m.status==='Ocupada' && c.pedidos.length) botoes.push(`<button class="ghost" style="width:auto;padding:8px 12px;" onclick="garcomPedirFechamentoMesa_('${m.id}')">Pedir fechamento</button>`);
+    }
     const det = aberto ? `<div class="mesa-det">${c.pedidos.slice().sort((a,b)=>(a.timestamp||0)-(b.timestamp||0)).map(v=>`<div>#${escH(rotuloPedido(v))} · ${new Date(v.timestamp).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})} · ${itensDoPedido(v.id)} · <b>${formatarMoeda(v.valorTotal)}</b>${v.statusPedido?' · '+escH(v.statusPedido):''}</div>`).join('')}</div>` : '';
     html += `<div class="mesa-card${ag?' aguardando':''}">
       <div class="mesa-cab"><b>Mesa ${escH(m.numero)}</b><span class="mesa-badge ${ag?'b-aguard':'b-ocup'}">${ag?'Pediu a conta':'Ocupada'}</span></div>
@@ -4993,7 +5162,8 @@ async function finalizarVenda(){
   if(valorDesc>0 && valorDesc>=totalCarrinho()){ showMsg('vMsg','O desconto não pode deixar a venda com valor zero ou negativo.','warn'); return; }
   const total = totalComDesconto();
   const alocado = pagamentosAtuais.reduce((s,p)=>s+(Number(p.valor)||0),0);
-  if(Math.abs(total-alocado) > 0.02){ showMsg('vMsg','A soma dos pagamentos precisa bater com o total a pagar.','warn'); return; }
+  // Mesa "pagar ao sair" não usa o painel de pagamento; todos os outros casos (inclusive mesa "pagar agora") conferem a soma.
+  if(!(tipoEntregaAtual==='Mesa' && !mesaPagaAgora_()) && Math.abs(total-alocado) > 0.02){ showMsg('vMsg','A soma dos pagamentos precisa bater com o total a pagar.','warn'); return; }
 
   const desconto = valorDesc>0 ? { tipo: tipoDescontoAtual, valor: valorDescontoAtualNumero() } : null;
   const executarFinalizacao = async (senhaAdminConfirmacao)=>{
@@ -5012,8 +5182,9 @@ async function finalizarVendaConfirmada(total, desconto, senhaAdminConfirmacao){
   const clienteTelefone = modoCliente==='com' && clienteVendaSelecionado ? clienteVendaSelecionado.telefone : '';
   const mesaEscolhidaId = tipoEntregaAtual==='Mesa' ? document.getElementById('vMesaSelect').value : null;
   if(tipoEntregaAtual==='Mesa' && !mesaEscolhidaId){ showMsg('vMsg','Escolha a mesa.','warn'); return; }
-  const pagamentosParaEnviar = tipoEntregaAtual==='Mesa' ? [{ forma: 'A Receber (Mesa)', valor: total }] : pagamentosAtuais.map(p=>({forma:p.forma, valor:p.valor}));
-  const statusPagamentoParaEnviar = tipoEntregaAtual==='Mesa' ? 'A Receber' : statusPagamentoAtual;
+  const mesaAgora = mesaPagaAgora_();
+  const pagamentosParaEnviar = (tipoEntregaAtual==='Mesa' && !mesaAgora) ? [{ forma: 'A Receber (Mesa)', valor: total }] : pagamentosAtuais.map(p=>({forma:p.forma, valor:p.valor}));
+  const statusPagamentoParaEnviar = tipoEntregaAtual==='Mesa' ? (mesaAgora ? 'Pago' : 'A Receber') : statusPagamentoAtual;
   const carrinhoParaComprovante = carrinhoAtual.slice();
   const dadosEntrega = tipoEntregaAtual==='Entrega' ? {
     endereco: document.getElementById('vEndereco').value.trim(),
@@ -5046,6 +5217,7 @@ async function finalizarVendaConfirmada(total, desconto, senhaAdminConfirmacao){
       carrinhoAtual = []; pagamentosAtuais = []; renderCarrinho(); limparClienteVenda();
       limparCamposEntrega();
       setStatusPagamento('Pago');
+      setMesaModoPagamento('sair');
       document.getElementById('descValor').value = '';
       setTipoDesconto('percentual');
       atualizarPreviewDesconto();
@@ -5279,7 +5451,7 @@ function renderVendas(){
   if(lista.length===0){ tbody.innerHTML = '<tr class="empty-row"><td colspan="4">Nenhuma venda nesse dia.</td></tr>'; return; }
   tbody.innerHTML = lista.map(v=>`
     <tr class="${v.status==='Cancelada'?'cancelada':''}">
-      <td>${v.clienteNome?escH(v.clienteNome):'<em>sem cadastro</em>'}</td><td>${formatarMoeda(v.valorTotal)}</td><td>${escH(v.formaPagamento)}</td>
+      <td>${v.clienteNome?escH(v.clienteNome):'<em>sem cadastro</em>'}${quemFezPedido_(v)?'<br><small style="color:var(--muted);">'+escH(quemFezPedido_(v))+'</small>':''}</td><td>${formatarMoeda(v.valorTotal)}</td><td>${escH(v.formaPagamento)}</td>
       <td>${v.status==='Confirmada'?`<button class="ghost" title="Reimprimir comprovante" onclick="reimprimirVenda('${v.id}')">🖨️</button><button class="ghost" onclick="abrirModalEditarVenda('${v.id}')">editar</button><button class="ghost" onclick="abrirModalCancelar('venda','${v.id}')">cancelar</button>`:`<span class="obs-line">${escH(v.motivoCancelamento)}</span>`}</td>
     </tr>`).join('');
 }
@@ -5670,7 +5842,7 @@ Admin:{ nome:'Administrador', secoes:[
   { t:'Cadastrar produtos e estoque', passos:['Administrador → Produtos e Estoque → “Cadastrar produto”.','Informe nome, categoria, preço e custo (a margem aparece sozinha). O preço vale para todas as formas de pagamento.','Só abra “⚙️ Opções avançadas” para preço diferente numa forma (ex.: iFood) ou para a ficha técnica (ingredientes).','Se o item tem estoque próprio (bebida, por exemplo), marque a opção e informe quantidade e mínimo.'],
     comuns:['“Importar cardápio inicial” só precisa rodar uma vez; o que já existe pelo nome não é duplicado.','Cada venda baixa o estoque pela ficha técnica. Ingrediente no mínimo gera aviso em Notificações, sem bloquear a venda.'] },
   { t:'Cardápio Digital, promoções e eventos', itens:['Cardápio Digital: escolha o que aparece para o cliente, destaques, ordem e frase de abertura. “Mais Pedidos” é automático. As categorias aparecem numa faixa fixa no topo do cardápio do cliente (deslize para o lado).','Se o cliente pedir mais de 1 lanche com adicionais, os adicionais valem para todos; o cardápio avisa isso. Para lanches diferentes, ele adiciona separado.','O cliente pode escrever uma observação em cada item (ex.: “sem cebola”); ela aparece na comanda da cozinha e no pedido.','Item “Esgotado”: se “bloquear venda sem estoque” estiver ligado (Produtos e Estoque), o cardápio mostra “Esgotado” no que o estoque não cobre mais.','O cardápio abre rápido porque guarda uma cópia: mudanças suas aparecem para o cliente em instantes (no máximo ~10 min se você editar direto na planilha).','O cardápio só recebe pedidos com o caixa aberto; fechado, o cliente vê “Estamos fechados no momento”.','Promoções: cupons. Eventos: custos e recebimentos de cada evento. Custos e Precificação: simulador para achar o preço certo.'] },
-  { t:'Caixa: abrir, vender e fechar', passos:['Aba Caixa → “Abrir caixa” e informe o fundo de troco.','Em “Iniciar venda”: 1. Cliente (cadastrado ou “Venda sem cadastro”; Retirada, Entrega ou Mesa) → 2. Itens → 3. Pagamento → 4. Finalizar.','Depois escolha 58mm, 80mm ou A4 e toque em Imprimir, Copiar ou WhatsApp.','Para encerrar, feche o caixa, informe o dinheiro contado e confira a diferença.','Mesas: o botão “🍽️ Mesas” mostra todas as mesas, quem pediu a conta e permite fechar a conta e cobrar.'],
+  { t:'Caixa: abrir, vender e fechar', passos:['Aba Caixa → “Abrir caixa” e informe o fundo de troco.','Em “Iniciar venda”: 1. Cliente (cadastrado ou “Venda sem cadastro”; Retirada, Entrega ou Mesa) → 2. Itens → 3. Pagamento → 4. Finalizar.','Depois escolha 58mm, 80mm ou A4 e toque em Imprimir, Copiar ou WhatsApp.','Para encerrar, feche o caixa, informe o dinheiro contado e confira a diferença.','Mesas: o botão “🍽️ Mesas” mostra todas as mesas, quem pediu a conta e permite fechar a conta e cobrar.','Pedido de mesa no Caixa: “Pagar ao sair” deixa o pedido na conta da mesa; “Pagar agora” cobra na hora (use as etapas de pagamento normais).'],
     comuns:['“Abra o caixa antes de registrar uma venda”: abra o caixa primeiro.','“A soma dos pagamentos precisa bater com o total”: ajuste os valores ao dividir o pagamento.','O desconto nunca pode zerar a venda. Você lança desconto sem digitar senha; o Caixa precisa da sua.'] },
   { t:'Pedidos e entregas', passos:['Pedido do Cardápio chega como “novo — aguardando aceite”: toque em “✅ Aceitar” ou “❌ Rejeitar”.','Quando o pedido ficar “Pronta” (retirada ou entrega) ou “Saiu para entrega”, e o cliente tiver telefone, toque em “📲 Avisar cliente”: abre o WhatsApp com a mensagem pronta e você só envia. Depois aparece “✔ avisado às…”.','Avance com “Marcar como…”: Em preparo → Pronta → Retirada (Servida, se for mesa).','Em Entregas, escolha o entregador no campo “Entregador” do pedido; ele avança até “Entregue”.','“⏸ Suspender” pausa o pedido (pede motivo) e “▶️ Retomar pedido” volta.','Venda “A Receber” só entra no caixa quando você toca em “marcar como recebido”.'],
     comuns:['Só dá para editar os itens com o pedido “Em preparo”.','Entregador esqueceu de marcar: marque você mesmo pelo botão do pedido.','Sem aviso de pedido novo: no Início, toque em “🔔 Ativar avisos” e “🔊 Testar som”. O aviso só chega com o app aberto e a tela ligada.'] },
@@ -5708,7 +5880,8 @@ Operador:{ nome:'Caixa', secoes:[
   _aj.entrar('Início, Caixa, Pedidos e Clientes'),
   { t:'Lançar pedido de uma mesa', passos:['Aba Caixa → etapa “1. Cliente” → escolha a mesa. Se estiver Livre, toque em “Abrir mesa”.','Vá em “2. Itens”, toque nos itens e escolha os adicionais.','Toque em “Enviar para a cozinha”. Repita quantas vezes o cliente pedir mais.'],
     comuns:['“A mesa N está … — não aceita novos itens”: ela já está aguardando fechamento.','“Esta mesa está sob responsabilidade de outro garçom”: a mesa é de quem a abriu; peça ao Caixa.','Você só lança pedido de mesa, sem desconto e sem receber pagamento.'] },
-  { t:'Pedir a conta', passos:['Caixa → escolha a mesa (ou toque em “🍽️ Mesas”, veja as suas e use “Pedir fechamento”).','Toque em “Pedir fechamento” e confirme.','A mesa passa para “Aguardando fechamento”; o pagamento é recebido pelo Caixa.'], comuns:['Só dá para pedir fechamento de mesa “Ocupada”.'] },
+  { t:'Pedir a conta', passos:['Caixa → escolha a mesa (ou toque em “🍽️ Mesas”, veja as suas e use “Pedir fechamento”).','Toque em “Pedir fechamento” e confirme.','A mesa passa para “Aguardando fechamento”. O Caixa recebe — ou você mesmo, com “💳 Receber conta”, se o caixa estiver aberto.'], comuns:['Só dá para pedir fechamento de mesa “Ocupada”.'] },
+  { t:'Receber a conta (garçom)', passos:['Toque em “🍽️ Mesas” e ache a sua mesa.','Toque em “💳 Receber conta”, confira o total e escolha a forma de pagamento.','Para dividir, marque “Dividir em duas formas” e informe o valor da primeira.','Confirme. A mesa fica livre e o valor entra no caixa.'], comuns:['“O caixa está fechado”: peça ao caixa para abrir.','“Esta mesa não está sob a sua responsabilidade”: só quem abriu a mesa recebe; chame o caixa.'] },
   { t:'Acompanhar e servir', passos:['Aba Pedidos: veja o andamento de cada pedido.','Quando estiver “Pronta”, leve à mesa e toque em “Marcar como “Servida””.'] },
   { t:'Clientes', passos:['Aba Clientes → “+ Novo cliente”.','Só nome e telefone são obrigatórios.'] },
   _aj.ocorr('O Administrador é avisado e resolve.')
@@ -5885,7 +6058,7 @@ async function carregarArmazenamento(){
   try{
     const r = await apiCall('obterArmazenamento', {});
     if(!r || r.ok===false){ res.innerHTML = '<span style="color:var(--muted);">'+escBk_(r&&r.message||'Indisponível.')+'</span>'; return; }
-    const d = r.drive, cor = {Normal:'#7cc46a','Atenção':'#e8b23d','Crítico':'#e5534b'}[d.nivel] || '#999';
+    const d = r.drive, cor = {Normal:'#7cc46a','Atenção':'#ffd112','Crítico':'#e5534b'}[d.nivel] || '#999';
     const pct = d.percentual===null ? 0 : Math.min(100,d.percentual);
     res.innerHTML = `<div style="height:12px;background:#3a2c1c;border-radius:6px;overflow:hidden;"><div style="width:${pct}%;height:100%;background:${cor};"></div></div>
       <div style="margin-top:6px;">Usado: <b>${formatarBytes_(d.usado)}</b> · Livre: <b>${d.livre===null?'—':formatarBytes_(d.livre)}</b> · <b style="color:${cor};">${d.percentual===null?'—':d.percentual+'%'} (${escBk_(d.nivel)})</b></div>
@@ -6000,7 +6173,7 @@ async function conferirIntegridadeUI(){
   try{
     const r = await apiCall('conferirIntegridade', {});
     if(!r || r.ok === false){ box.innerHTML = '<span style="color:#ffb3ab;">'+escBk_(r&&r.message||'Não foi possível conferir.')+'</span>'; return; }
-    const cor = { Alta:'#ffb3ab', 'Média':'#e8b23d', Baixa:'#bdb5a6' };
+    const cor = { Alta:'#ffb3ab', 'Média':'#ffd112', Baixa:'#bdb5a6' };
     box.innerHTML = r.total
       ? `<div style="margin-bottom:6px;"><b>${r.total}</b> divergência(s) em ${r.vendasConferidas} venda(s) conferida(s):</div>` +
         r.problemas.map(p=>`<div class="notif-card"><b style="color:${cor[p.gravidade]};">${escBk_(p.gravidade)}</b> · ${escBk_(p.tipo)}<div class="obs-line">${escBk_(p.ref)} — ${escBk_(p.detalhe)}</div></div>`).join('')
@@ -6338,8 +6511,8 @@ function renderizarGrafico(vendasMes, ano, mes){
   let svg = `<svg viewBox="0 0 ${largura} ${altura+16}" style="width:100%;height:auto;">`;
   for(let d=1; d<=diasNoMes; d++){
     const h = (totalPorDia[d]/max) * altura;
-    svg += `<rect x="${(d-1)*barW+1}" y="${altura-h}" width="${barW-1.5}" height="${h}" fill="#e8b23d" rx="1"></rect>`;
-    if(d % 5 === 0 || d === 1 || d === diasNoMes) svg += `<text x="${(d-1)*barW+barW/2}" y="${altura+12}" font-size="7" fill="#b3a186" text-anchor="middle">${d}</text>`;
+    svg += `<rect x="${(d-1)*barW+1}" y="${altura-h}" width="${barW-1.5}" height="${h}" fill="#ffd112" rx="1"></rect>`;
+    if(d % 5 === 0 || d === 1 || d === diasNoMes) svg += `<text x="${(d-1)*barW+barW/2}" y="${altura+12}" font-size="7" fill="#bfae8f" text-anchor="middle">${d}</text>`;
   }
   svg += `</svg>`;
   document.getElementById('rGrafico').innerHTML = svg;
