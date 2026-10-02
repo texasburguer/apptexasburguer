@@ -2429,6 +2429,61 @@ let senhaAdminCallback = null;
 
 function normTel(t){ return (t===undefined||t===null?'':t).toString().replace(/\D/g,''); }
 function formatarMoeda(v){ return 'R$ ' + (Number(v)||0).toFixed(2).replace('.',','); }
+/* Converte o que vier da planilha em número: aceita número, "51", "51,5", "R$ 51,50", "1.234,56", "1,234.56", "(51,5)" e "-51,5".
+   Vazio, texto que não é número, data e booleano viram 0. Ponto sozinho: "1.234" / "1.234.567" = milhar; "0.250" e "51.5" = decimal.
+   Vírgula sozinha é decimal ("51,5"), a não ser que se repita ("1,234,567" = milhar). Mesma regra do backend (numPlanilha_). */
+function numPlanilha_(v, padrao){
+  const pad = (padrao === undefined) ? 0 : padrao;
+  if(typeof v === 'number') return isFinite(v) ? v : pad;
+  if(typeof v !== 'string') return pad;
+  let s = v.replace(/[\s\u00a0]/g, '').replace(/%$/, '');
+  let neg = false;
+  if(/^\(.*\)$/.test(s)){ neg = true; s = s.slice(1, -1); }
+  if(s.charAt(0) === '-'){ neg = true; s = s.slice(1); }
+  s = s.replace(/^R\$/i, '');
+  if(!/^[\d.,]+$/.test(s) || !/\d/.test(s)) return pad;
+  const temV = s.indexOf(',') !== -1, temP = s.indexOf('.') !== -1;
+  if(temV && temP){
+    if(s.lastIndexOf(',') > s.lastIndexOf('.')) s = s.replace(/\./g, '').replace(',', '.');
+    else s = s.replace(/,/g, '');
+  } else if(temV){
+    s = ((s.match(/,/g) || []).length > 1) ? s.replace(/,/g, '') : s.replace(',', '.');
+  } else if(temP){
+    if(/^[1-9]\d{0,2}(\.\d{3})+$/.test(s)) s = s.replace(/\./g, '');
+  }
+  const n = Number(s);
+  if(!isFinite(n)) return pad;
+  return neg ? -n : n;
+}
+/* Garante que os campos numéricos dos dados recebidos (servidor ou cache antigo) sejam número de verdade, para as somas não virarem texto/NaN. */
+const NUM_CAMPOS_DADOS_ = {
+  vendas:['valorTotal','custoTotal','valorOriginal','valorDesconto','taxaEntrega'],
+  itensVenda:['quantidade','valorUnitario','custoUnitario','valorTotalItem'],
+  pagamentosVenda:['valor','taxa'],
+  produtoPrecos:['preco','custo'], comboPrecos:['preco','custo'],
+  estoque:['quantidade','minimo','custo'],
+  movimentacoesEstoque:['quantidade','qtdAntes','qtdDepois'],
+  comboItens:['quantidade'],
+  sangrias:['valor'],
+  fidelidade:['carimbos','premios'],
+  historicoCaixa:['fundoCaixa','totalVendas','totalDespesas','saldoFinal'],
+  despesas:['valor'], despesasRecorrentes:['valor'],
+  formasPagamento:['taxaPct','taxaFixa','prazoDias'],
+  adicionais:['preco']
+};
+function normalizarNumerosDados_(d){
+  if(!d || typeof d !== 'object') return d;
+  Object.keys(NUM_CAMPOS_DADOS_).forEach(function(chave){
+    const lista = d[chave]; if(!Array.isArray(lista)) return;
+    const campos = NUM_CAMPOS_DADOS_[chave];
+    lista.forEach(function(o){
+      if(!o || typeof o !== 'object') return;
+      campos.forEach(function(k){ if(k in o && typeof o[k] !== 'number') o[k] = numPlanilha_(o[k]); });
+    });
+  });
+  if(d.sessaoCaixa && typeof d.sessaoCaixa === 'object' && 'fundoCaixa' in d.sessaoCaixa && typeof d.sessaoCaixa.fundoCaixa !== 'number') d.sessaoCaixa.fundoCaixa = numPlanilha_(d.sessaoCaixa.fundoCaixa);
+  return d;
+}
 function apiConfigurada(){ return API_URL && API_URL.indexOf('http') === 0; }
 function dataLocalISO(date){ const y=date.getFullYear(), m=String(date.getMonth()+1).padStart(2,'0'), d=String(date.getDate()).padStart(2,'0'); return `${y}-${m}-${d}`; }
 function parseDataBR(str){
@@ -2503,6 +2558,36 @@ function _carregandoFim_(action){
   if(_apiAtivas === 0){ clearTimeout(_apiTimerAviso); const el = document.getElementById('apiCarregando'); if(el) el.classList.remove('show','trava'); }
   else _carregandoAtualizar_();
 }
+/* TIMEOUT DA API (módulo 3): antes, se o Apps Script travasse, a tela esperava para sempre.
+   - Cada chamada tem limite de tempo (30 s; 60 s nas leituras grandes; 120 s em backup, sincronização e envio de foto).
+   - Estourou o tempo e a ação é REPETÍVEL (leitura, ou ação com requisicaoId que o servidor já usa para não duplicar): repete até 2 vezes com o mesmo id.
+     Se continuar sem resposta, dá erro como antes (a venda do Caixa cai na contingência com o mesmo id).
+   - Estourou o tempo e a ação NÃO é repetível: não repete sozinho, porque o servidor pode ter feito a operação. Devolve {ok:false, timeout:true}
+     com aviso para conferir antes de repetir, e puxa o estado real da planilha. */
+const TIMEOUT_API_MS_ = 30000, TIMEOUT_API_PESADA_MS_ = 60000, TIMEOUT_API_LONGA_MS_ = 120000;
+const TIMEOUT_API_REPETICOES_ = 2, TIMEOUT_API_PAUSA_MS_ = 1000;
+const ACOES_PESADAS_ = new Set(['getAll','getDadosGrupo','conferirIntegridade','obterArmazenamento','obterStatusBackup']);
+const ACOES_LONGAS_ = new Set(['fazerBackupAgora','restaurarBackup','configurarBackupAutomatico','seedCardapioTexasBurger','sincronizarContingenciaAgora','reconciliarContingenciaAgora','ativarSincronizacaoContingencia','uploadFotoProduto','uploadFotoCombo']);
+const ACOES_LEITURA_REPETIVEL_ = new Set(['getAll','getVersoes','getDadosGrupo','getCardapio','conferirIntegridade','obterStatusBackup','obterArmazenamento','getStatusPedidoPublico','getMesaPublica','detectarNovosPedidos','getQrMesas','previewFechamentoEntrega','simularPrecificacao']);
+const ACOES_REPETIVEIS_COM_ID_ = new Set(ACOES_IDEM_FRONT.concat(['iniciarVenda','criarPedidoCardapio','criarPedidoMesa','fecharPeriodoEntregador','adicionarCustoEvento','adicionarRecebimentoEvento']));
+const ACOES_TIMEOUT_SEM_ESTADO_ = new Set(['autenticar','verificarSenhaAdmin']); // não mexem em dados: só pedem para tentar de novo
+function repetivelNoTimeout_(action, payload){
+  return ACOES_LEITURA_REPETIVEL_.has(action) || (ACOES_REPETIVEIS_COM_ID_.has(action) && !!(payload && payload.requisicaoId));
+}
+function timeoutDaAcao_(action){
+  return ACOES_LONGAS_.has(action) ? TIMEOUT_API_LONGA_MS_ : (ACOES_PESADAS_.has(action) ? TIMEOUT_API_PESADA_MS_ : TIMEOUT_API_MS_);
+}
+async function postApi_(action, payload, ms){
+  const ctl = new AbortController(); const to = setTimeout(()=>ctl.abort(), ms);
+  try{
+    const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(Object.assign({ action, token: currentUser?currentUser.token:'' }, payload)), signal: ctl.signal });
+    if(!res.ok) throw new Error('Falha na requisição');
+    return await res.json();
+  }catch(e){
+    if(e && e.name === 'AbortError'){ const t = new Error('O servidor demorou para responder'); t.timeout = true; throw t; }
+    throw e;
+  }finally{ clearTimeout(to); }
+}
 async function apiCall(action, payload, _tentativa, _idemChave){
   if(_tentativa !== undefined || API_SILENCIOSAS_.has(action)) return _apiCallRaw(action, payload, _tentativa, _idemChave);
   _carregandoInicio_(action);
@@ -2518,9 +2603,22 @@ async function _apiCallRaw(action, payload, _tentativa, _idemChave){
     _idemChave = idemChave_(action, payload);
     payload = Object.assign({}, payload, { requisicaoId: idemId_(_idemChave) });
   }
-  const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(Object.assign({ action, token: currentUser?currentUser.token:'' }, payload)) });
-  if(!res.ok) throw new Error('Falha na requisição');
-  const dados = await res.json();
+  const repetivel = repetivelNoTimeout_(action, payload), msTimeout = timeoutDaAcao_(action);
+  let dados;
+  for(let tt = 0; ; tt++){
+    try{ dados = await postApi_(action, payload, msTimeout); break; }
+    catch(e){
+      if(!(e && e.timeout)) throw e;
+      if(repetivel){
+        if(tt < TIMEOUT_API_REPETICOES_){ await new Promise(r=>setTimeout(r, TIMEOUT_API_PAUSA_MS_)); continue; }
+        throw e; // 3 tentativas sem resposta: erro, como em qualquer falha de conexão (o id fica guardado para a próxima tentativa)
+      }
+      if(!ACOES_TIMEOUT_SEM_ESTADO_.has(action) && currentUser && currentUser.token) atualizarAposDuplicado_(); // a operação pode ter sido feita: traz o estado real
+      return { ok: false, timeout: true, message: ACOES_TIMEOUT_SEM_ESTADO_.has(action)
+        ? 'O servidor demorou para responder. Tente de novo.'
+        : 'O servidor demorou para responder. A operação pode ter sido feita — confira a lista antes de repetir.' };
+    }
+  }
   if(dados && dados.sessaoExpirada){
     localStorage.removeItem(SESSAO_KEY); localStorage.removeItem(CONTINGENCIA_CHAVE_KEY); localStorage.removeItem(CACHE_KEY);
     currentUser = null;
@@ -2816,6 +2914,7 @@ function carregarCache(){
     const raw = localStorage.getItem(CACHE_KEY);
     if(!raw) return false;
     const d = JSON.parse(raw);
+    normalizarNumerosDados_(d); // cache antigo pode ter números como texto
     /* SEGURANÇA: o cache só vale para o usuário que o gerou. Outro funcionário (ex.: entregador) no mesmo aparelho nunca vê os dados do Admin. */
     if(!currentUser || d._dono !== String(currentUser.login).toLowerCase()){ localStorage.removeItem(CACHE_KEY); return false; }
     clientes = d.clientes||[]; promocoes = d.promocoes||[]; cupons = d.cupons||[]; eventos = d.eventos||[]; indicacoes = d.indicacoes||[];
@@ -7506,6 +7605,7 @@ window.addEventListener('online', ()=>{ sincronizarEmSegundoPlano(); });
 window.addEventListener('offline', ()=>{ setConexaoStatus('offline', 'conexão do celular caiu'); });
 
 function aplicarDadosRecebidos(dados){
+  normalizarNumerosDados_(dados); // campos numéricos sempre como número (servidor antigo ou texto na planilha)
   if(!dados._parcial){ _dadosBrutos = dados; _versoesLocais = dados.versoes || null; _ultimoFullMs = Date.now(); } // ITEM 19: toda carga completa vira a base
   _cacheUltVendaTel = null; // os dados mudaram: refaz a tabela de última venda por telefone
   configNotificacoes = dados.configNotificacoes || configNotificacoes;

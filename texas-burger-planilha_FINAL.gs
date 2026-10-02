@@ -739,6 +739,7 @@ function bumpVersoes_(action) {
 function doPost(e) {
   let body;
   try { body = JSON.parse(e.postData.contents); } catch (err) { return responder({ ok: false, message: 'Requisição inválida.' }); }
+  if (!body || typeof body !== 'object' || Array.isArray(body) || typeof body.action !== 'string') return responder({ ok: false, message: 'Requisição inválida.' });
   const action = body.action;
   body = sanitizarEntrada_(body, '', 0);
   USUARIO_ATUAL = ''; NIVEL_ATUAL = ''; AUTORIZADOR_ATUAL = '';
@@ -922,6 +923,11 @@ function doPost(e) {
     else if (ACOES_INVALIDAM_DINAMICO_.indexOf(action) !== -1) invalidarCacheCardapio_(true);
     if (ACOES_PUBLICAS.indexOf(action) === -1) resultado = anexarVersoes_(resultado); // FASE 11C: cada registro editável sai com sua versão (_v)
     if (chaveIdem && resultado && resultado.ok === true && !resultado.duplicado) requisicaoRegistrar_(chaveIdem, action, resultado.id || resultado.message);
+  } catch (erro) {
+    /* Erro inesperado: sempre responde JSON (nunca a página de erro do Google). O lock é solto no finally.
+       Como a falha pode ter ocorrido no meio da operação, o aviso pede para conferir antes de repetir. */
+    try { registrarLog('Erro inesperado no servidor', USUARIO_ATUAL || '', String(action).slice(0, 60) + ' | ' + String(erro && erro.message || erro).slice(0, 200)); } catch (e2) {}
+    return responder({ ok: false, message: 'Erro inesperado no servidor. Confira se a operação foi feita antes de repetir.' });
   } finally {
     if (temLock) lock.releaseLock();
   }
@@ -929,6 +935,32 @@ function doPost(e) {
 }
 
 function responder(obj) { return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON); }
+/* Converte o que vier de uma célula em número: aceita número, "51", "51,5", "R$ 51,50", "1.234,56", "1,234.56", "(51,5)" e "-51,5".
+   Vazio, texto que não é número, data e booleano viram o padrão (0). Regra do ponto sozinho: "1.234" / "1.234.567" = milhar;
+   "0.250", "51.5" = decimal. A vírgula sozinha é decimal ("51,5"), a não ser que se repita ("1,234,567" = milhar). */
+function numPlanilha_(v, padrao) {
+  const pad = (padrao === undefined) ? 0 : padrao;
+  if (typeof v === 'number') return isFinite(v) ? v : pad;
+  if (typeof v !== 'string') return pad;
+  let s = v.replace(/[\s\u00a0]/g, '').replace(/%$/, '');
+  let neg = false;
+  if (/^\(.*\)$/.test(s)) { neg = true; s = s.slice(1, -1); }
+  if (s.charAt(0) === '-') { neg = true; s = s.slice(1); }
+  s = s.replace(/^R\$/i, '');
+  if (!/^[\d.,]+$/.test(s) || !/\d/.test(s)) return pad;
+  const temV = s.indexOf(',') !== -1, temP = s.indexOf('.') !== -1;
+  if (temV && temP) {
+    if (s.lastIndexOf(',') > s.lastIndexOf('.')) s = s.replace(/\./g, '').replace(',', '.');
+    else s = s.replace(/,/g, '');
+  } else if (temV) {
+    s = ((s.match(/,/g) || []).length > 1) ? s.replace(/,/g, '') : s.replace(',', '.');
+  } else if (temP) {
+    if (/^[1-9]\d{0,2}(\.\d{3})+$/.test(s)) s = s.replace(/\./g, '');
+  }
+  const n = Number(s);
+  if (!isFinite(n)) return pad;
+  return neg ? -n : n;
+}
 function normTel(t) { return (t || '').toString().replace(/\D/g, ''); }
 function agora() { return Utilities.formatDate(new Date(), FUSO, 'dd/MM/yyyy HH:mm'); }
 function ss_() {
@@ -1031,7 +1063,7 @@ function readOcorrencias() {
   const last = sh.getLastRow();
   if (last < 2) return [];
   return sh.getRange(2, 1, last - 1, Math.min(15, sh.getMaxColumns())).getValues().filter(r => r[0]).map(r => ({
-    id: r[0], numero: Number(r[1]) || 0, data: dataTexto_(r[2]), tipo: r[3], setor: r[4], vendaId: r[5] || '', clienteNome: r[6] || '', clienteTelefone: r[7] || '',
+    id: r[0], numero: numPlanilha_(r[1]) || 0, data: dataTexto_(r[2]), tipo: r[3], setor: r[4], vendaId: r[5] || '', clienteNome: r[6] || '', clienteTelefone: r[7] || '',
     registradoPor: r[8] || '', responsavel: r[9] || '', descricao: r[10] || '', solucao: r[11] || '', status: r[12] || 'Aberta', atualizada: dataTexto_(r[13]), historico: r[14] || ''
   }));
 }
@@ -1079,7 +1111,7 @@ function registrarOcorrencia(tipo, vendaId, descricao) {
   if (!sh) return { ok: false, message: 'A aba Ocorrências ainda não existe. Peça ao administrador para rodar prepararEtapa3Ocorrencias.' };
   const last = sh.getLastRow();
   let numero = 0;
-  if (last >= 2) sh.getRange(2, 2, last - 1, 1).getValues().forEach(r => { const n = Number(r[0]) || 0; if (n > numero) numero = n; });
+  if (last >= 2) sh.getRange(2, 2, last - 1, 1).getValues().forEach(r => { const n = numPlanilha_(r[0]) || 0; if (n > numero) numero = n; });
   numero += 1;
   const id = Utilities.getUuid();
   const agoraTxt = agora();
@@ -1128,7 +1160,7 @@ function proximoNumeroPedido_(shVendas) {
   const last = shVendas.getLastRow();
   if (last < 2 || shVendas.getMaxColumns() < 30) return 1;
   let max = 0;
-  shVendas.getRange(2, 30, last - 1, 1).getValues().forEach(r => { const n = Number(r[0]) || 0; if (n > max) max = n; });
+  shVendas.getRange(2, 30, last - 1, 1).getValues().forEach(r => { const n = numPlanilha_(r[0]) || 0; if (n > max) max = n; });
   return max + 1;
 }
 function garantirColuna_(sh, coluna, titulo, largura) {
@@ -1325,6 +1357,7 @@ const PERMISSOES_ACAO = {
   aplicarPrecoCalculadora: ['Admin'], simularPrecificacao: ['Admin']
 };
 function checarPermissao_(action, nivel) {
+  if (!Object.prototype.hasOwnProperty.call(PERMISSOES_ACAO, action)) return false; // 'constructor', 'toString'... não herdam regra
   const regra = PERMISSOES_ACAO[action];
   if (!regra) return false; // ação sem regra explícita: negada por padrão
   if (regra === '*') return !!nivel;
@@ -1934,9 +1967,9 @@ function readFormasPagamento() {
   const linhas = sh.getRange(2, 1, last - 1, colunas).getValues().filter(r => r[1]);
   return linhas.map((r, idx) => ({
     id: r[0], nome: r[1], ativa: r[2] !== 'Não', visivelCardapio: r[3] !== 'Não',
-    taxaPct: Number(r[4]) || 0, taxaFixa: Number(r[5]) || 0, prazoDias: Number(r[6]) || 0,
+    taxaPct: numPlanilha_(r[4]) || 0, taxaFixa: numPlanilha_(r[5]) || 0, prazoDias: numPlanilha_(r[6]) || 0,
     permiteTroco: r[7] === 'Sim' || (r[7] === '' && r[1] === 'Dinheiro'),
-    ordem: Number(r[8]) || (idx + 1)
+    ordem: numPlanilha_(r[8]) || (idx + 1)
   })).sort((a, b) => a.ordem - b.ordem);
 }
 /* Taxa de UM pagamento = valor x taxa% + taxa fixa (fixa cobrada por pagamento). Sem taxa = 0. */
@@ -1949,12 +1982,12 @@ function calcularTaxaPagamento_(nomeForma, valor) {
 function readProdutoPrecos() {
   const sh = ss_().getSheetByName('ProdutoPrecos'); const last = sh.getLastRow();
   if (last < 2) return [];
-  return sh.getRange(2, 1, last - 1, 5).getValues().filter(r => r[1]).map(r => ({ id: r[0], produtoId: r[1], formaPagamentoId: r[2], preco: r[3], custo: r[4] }));
+  return sh.getRange(2, 1, last - 1, 5).getValues().filter(r => r[1]).map(r => ({ id: r[0], produtoId: r[1], formaPagamentoId: r[2], preco: numPlanilha_(r[3]), custo: numPlanilha_(r[4]) }));
 }
 function readComboPrecos() {
   const sh = ss_().getSheetByName('ComboPrecos'); const last = sh.getLastRow();
   if (last < 2) return [];
-  return sh.getRange(2, 1, last - 1, 5).getValues().filter(r => r[1]).map(r => ({ id: r[0], comboId: r[1], formaPagamentoId: r[2], preco: r[3], custo: r[4] }));
+  return sh.getRange(2, 1, last - 1, 5).getValues().filter(r => r[1]).map(r => ({ id: r[0], comboId: r[1], formaPagamentoId: r[2], preco: numPlanilha_(r[3]), custo: numPlanilha_(r[4]) }));
 }
 function readPromocoes() {
   const sh = ss_().getSheetByName('Promoções'); if (!sh) return [];
@@ -1965,15 +1998,15 @@ function readCupons() {
   const sh = ss_().getSheetByName('Cupons'); if (!sh) return [];
   const last=sh.getLastRow(); if(last<2) return [];
   return sh.getRange(2,1,last-1,17).getValues().filter(r=>r[0]||r[1]).map(r=>({
-    id:r[0]||'', codigo:String(r[1]||'').trim().toUpperCase(), nome:r[2]||'', tipo:r[3]||'percentual', valor:Number(r[4])||0,
+    id:r[0]||'', codigo:String(r[1]||'').trim().toUpperCase(), nome:r[2]||'', tipo:r[3]||'percentual', valor:numPlanilha_(r[4])||0,
     freteGratis:r[5]===true||String(r[5]).toLowerCase()==='sim', dataInicio:r[6]||'', dataFim:r[7]||'', horaInicio:r[8]||'', horaFim:r[9]||'',
-    limiteTotal:Number(r[10])||0, limitePorCliente:Number(r[11])||0, valorMinimo:Number(r[12])||0, ativa:r[13]!==false&&String(r[13]).toLowerCase()!=='não', acumula:r[14]===true||String(r[14]).toLowerCase()==='sim', criadoEm:r[15]||'', criadoPor:r[16]||''
+    limiteTotal:numPlanilha_(r[10])||0, limitePorCliente:numPlanilha_(r[11])||0, valorMinimo:numPlanilha_(r[12])||0, ativa:r[13]!==false&&String(r[13]).toLowerCase()!=='não', acumula:r[14]===true||String(r[14]).toLowerCase()==='sim', criadoEm:r[15]||'', criadoPor:r[16]||''
   }));
 }
 function readCuponsUsos_() {
   const sh=ss_().getSheetByName('CuponsUsos'); if(!sh) return [];
   const last=sh.getLastRow(); if(last<2) return [];
-  return sh.getRange(2,1,last-1,10).getValues().filter(r=>r[0]).map(r=>({id:r[0],cupomId:r[1],codigo:r[2],vendaId:r[3],clienteId:r[4],telefone:r[5],desconto:Number(r[6])||0,freteGratis:r[7]===true||String(r[7]).toLowerCase()==='sim',data:r[8],requisicao:r[9]}));
+  return sh.getRange(2,1,last-1,10).getValues().filter(r=>r[0]).map(r=>({id:r[0],cupomId:r[1],codigo:r[2],vendaId:r[3],clienteId:r[4],telefone:r[5],desconto:numPlanilha_(r[6])||0,freteGratis:r[7]===true||String(r[7]).toLowerCase()==='sim',data:r[8],requisicao:r[9]}));
 }
 function dataCupomValidoHoje_(c) {
   const agora=new Date();
@@ -2059,7 +2092,7 @@ function alternarCupom(id,ativo){ if(NIVEL_ATUAL!=='Admin') return {ok:false,mes
 function readEventos() {
   const sh=ss_().getSheetByName('Eventos'); if(!sh)return [];
   const last=sh.getLastRow(); if(last<2)return [];
-  return sh.getRange(2,1,last-1,19).getValues().filter(r=>r[0]).map(r=>({id:r[0],nome:r[1],tipo:r[2],data:r[3],horaInicio:r[4],horaFim:r[5],local:r[6],contratante:r[7],telefone:r[8],status:r[9],valorContratado:Number(r[10])||0,valorRecebido:Number(r[11])||0,valorAReceber:Number(r[12])||0,custoTotal:Number(r[13])||0,resultado:Number(r[14])||0,observacoes:r[15]||'',criadoEm:r[16],criadoPor:r[17],atualizadoEm:r[18]}));
+  return sh.getRange(2,1,last-1,19).getValues().filter(r=>r[0]).map(r=>({id:r[0],nome:r[1],tipo:r[2],data:r[3],horaInicio:r[4],horaFim:r[5],local:r[6],contratante:r[7],telefone:r[8],status:r[9],valorContratado:numPlanilha_(r[10])||0,valorRecebido:numPlanilha_(r[11])||0,valorAReceber:numPlanilha_(r[12])||0,custoTotal:numPlanilha_(r[13])||0,resultado:numPlanilha_(r[14])||0,observacoes:r[15]||'',criadoEm:r[16],criadoPor:r[17],atualizadoEm:r[18]}));
 }
 function recalcularEvento_(eventoId){
   const sh=ss_().getSheetByName('Eventos'); const last=sh.getLastRow(); let row=0,ev=null; for(let i=2;i<=last;i++){if(sh.getRange(i,1).getValue()===eventoId){row=i;ev=readEventos().find(x=>x.id===eventoId);break;}} if(!row)return null;
@@ -2067,8 +2100,8 @@ function recalcularEvento_(eventoId){
   sh.getRange(row,12,1,4).setValues([[rec,Math.max(0,contratado-rec),custos,Math.round((contratado-custos)*100)/100]]); sh.getRange(row,19).setValue(agora());
   return readEventos().find(x=>x.id===eventoId);
 }
-function readEventoCustos_(eventoId){const sh=ss_().getSheetByName('EventosCustos');if(!sh)return[];const l=sh.getLastRow();if(l<2)return[];return sh.getRange(2,1,l-1,9).getValues().filter(r=>r[0]&&r[1]===eventoId).map(r=>({id:r[0],eventoId:r[1],descricao:r[2],categoria:r[3],valor:Number(r[4])||0,data:r[5],observacao:r[6]||'',criadoEm:r[7],criadoPor:r[8]}));}
-function readEventoRecebimentos_(eventoId){const sh=ss_().getSheetByName('EventosRecebimentos');if(!sh)return[];const l=sh.getLastRow();if(l<2)return[];return sh.getRange(2,1,l-1,9).getValues().filter(r=>r[0]&&r[1]===eventoId).map(r=>({id:r[0],eventoId:r[1],valor:Number(r[2])||0,forma:r[3]||'',data:r[4],observacao:r[5]||'',criadoEm:r[6],criadoPor:r[7],requisicaoId:r[8]||''}));}
+function readEventoCustos_(eventoId){const sh=ss_().getSheetByName('EventosCustos');if(!sh)return[];const l=sh.getLastRow();if(l<2)return[];return sh.getRange(2,1,l-1,9).getValues().filter(r=>r[0]&&r[1]===eventoId).map(r=>({id:r[0],eventoId:r[1],descricao:r[2],categoria:r[3],valor:numPlanilha_(r[4])||0,data:r[5],observacao:r[6]||'',criadoEm:r[7],criadoPor:r[8]}));}
+function readEventoRecebimentos_(eventoId){const sh=ss_().getSheetByName('EventosRecebimentos');if(!sh)return[];const l=sh.getLastRow();if(l<2)return[];return sh.getRange(2,1,l-1,9).getValues().filter(r=>r[0]&&r[1]===eventoId).map(r=>({id:r[0],eventoId:r[1],valor:numPlanilha_(r[2])||0,forma:r[3]||'',data:r[4],observacao:r[5]||'',criadoEm:r[6],criadoPor:r[7],requisicaoId:r[8]||''}));}
 function salvarEvento(id,nome,tipo,data,horaInicio,horaFim,local,contratante,telefone,status,valorContratado,observacoes){
   if(NIVEL_ATUAL!=='Admin')return{ok:false,message:'Apenas Administrador pode gerenciar eventos.'};
   nome=String(nome||'').trim(); if(!nome||!data)return{ok:false,message:'Informe nome e data do evento.'};
@@ -2109,7 +2142,7 @@ function simularPrecificacao(produtoId,formaPagamentoId,precoSimulado,embalagem,
 }
 function aplicarPrecoCalculadora(produtoId,formaPagamentoId,novoPreco){
   if(NIVEL_ATUAL!=='Admin')return{ok:false,message:'Acesso negado.'}; novoPreco=Number(novoPreco);if(!Number.isFinite(novoPreco)||novoPreco<=0)return{ok:false,message:'Preço inválido.'};
-  const sh=ss_().getSheetByName('ProdutoPrecos');const l=sh.getLastRow();for(let i=2;i<=l;i++){if(sh.getRange(i,2).getValue()===produtoId&&sh.getRange(i,3).getValue()===formaPagamentoId){const antigo=Number(sh.getRange(i,4).getValue())||0;sh.getRange(i,4).setValue(novoPreco);registrarLog('Preço aplicado pela calculadora',produtoId,'Forma '+formaPagamentoId+' | R$ '+antigo.toFixed(2)+' → R$ '+novoPreco.toFixed(2));return{ok:true,message:'Preço aplicado.',produtoPrecos:readProdutoPrecos()};}}return{ok:false,message:'Preço do produto para esta forma de pagamento não encontrado.'};}
+  const sh=ss_().getSheetByName('ProdutoPrecos');const l=sh.getLastRow();for(let i=2;i<=l;i++){if(sh.getRange(i,2).getValue()===produtoId&&sh.getRange(i,3).getValue()===formaPagamentoId){const antigo=numPlanilha_(sh.getRange(i,4).getValue())||0;sh.getRange(i,4).setValue(novoPreco);registrarLog('Preço aplicado pela calculadora',produtoId,'Forma '+formaPagamentoId+' | R$ '+antigo.toFixed(2)+' → R$ '+novoPreco.toFixed(2));return{ok:true,message:'Preço aplicado.',produtoPrecos:readProdutoPrecos()};}}return{ok:false,message:'Preço do produto para esta forma de pagamento não encontrado.'};}
 function readIndicacoes() {
   const sh = ss_().getSheetByName('Indicações'); const last = sh.getLastRow();
   if (last < 2) return [];
@@ -2118,13 +2151,13 @@ function readIndicacoes() {
 function readFidelidade() {
   const sh = ss_().getSheetByName('Fidelidade'); const last = sh.getLastRow();
   if (last < 2) return [];
-  return sh.getRange(2, 1, last - 1, Math.min(7, sh.getMaxColumns())).getValues().filter(r => r[1]).map(r => ({ nome: r[0], telefone: r[1], carimbos: r[2], premios: r[3], atualizado: r[4], observacao: r[5], clienteId: r[6] || '' }));
+  return sh.getRange(2, 1, last - 1, Math.min(7, sh.getMaxColumns())).getValues().filter(r => r[1]).map(r => ({ nome: r[0], telefone: r[1], carimbos: numPlanilha_(r[2]), premios: numPlanilha_(r[3]), atualizado: r[4], observacao: r[5], clienteId: r[6] || '' }));
 }
 function urlFoto_(fotoId) { return fotoId ? ('https://drive.google.com/uc?export=view&id=' + fotoId) : ''; }
 function readProdutos() {
   const sh = ss_().getSheetByName('Produtos'); const last = sh.getLastRow();
   if (last < 2) return [];
-  return sh.getRange(2, 1, last - 1, 9).getValues().filter(r => r[1]).map(r => ({ id: r[0], nome: r[1], descricao: r[2], categoria: r[3], ativo: r[4] !== 'Não', fotoId: r[5] || '', fotoUrl: urlFoto_(r[5]), destaque: r[6] === 'Sim', estoqueProprioIngredienteId: r[7] || '', ordemCardapio: Number(r[8]) || 0 }));
+  return sh.getRange(2, 1, last - 1, 9).getValues().filter(r => r[1]).map(r => ({ id: r[0], nome: r[1], descricao: r[2], categoria: r[3], ativo: r[4] !== 'Não', fotoId: r[5] || '', fotoUrl: urlFoto_(r[5]), destaque: r[6] === 'Sim', estoqueProprioIngredienteId: r[7] || '', ordemCardapio: numPlanilha_(r[8]) || 0 }));
 }
 function readProdutoIngredientes() {
   const sh = ss_().getSheetByName('ProdutoIngredientes'); const last = sh.getLastRow();
@@ -2135,13 +2168,13 @@ function readEstoque() {
   const sh = ss_().getSheetByName('Estoque'); const last = sh.getLastRow();
   if (last < 2) return [];
   return sh.getRange(2, 1, last - 1, 7).getValues().filter(r => r[1])
-    .map(r => ({ id: r[0], nome: r[1], quantidade: r[2], minimo: r[3], unidade: r[4] || 'un', custo: Number(r[5]) || 0, ativo: r[6] !== 'Inativo' }));
+    .map(r => ({ id: r[0], nome: r[1], quantidade: numPlanilha_(r[2]), minimo: numPlanilha_(r[3]), unidade: r[4] || 'un', custo: numPlanilha_(r[5]) || 0, ativo: r[6] !== 'Inativo' }));
 }
 function readMovimentacoesEstoque() {
   const sh = ss_().getSheetByName('MovimentaçõesEstoque'); const last = sh.getLastRow();
   if (last < 2) return [];
   return sh.getRange(2, 1, last - 1, 9).getValues().filter(r => r[0])
-    .map(r => ({ id: r[0], ingredienteNome: r[1], tipo: r[2], quantidade: r[3], qtdAntes: r[4], qtdDepois: r[5], motivo: r[6] || '', usuario: r[7] || '', data: r[8] }))
+    .map(r => ({ id: r[0], ingredienteNome: r[1], tipo: r[2], quantidade: numPlanilha_(r[3]), qtdAntes: numPlanilha_(r[4]), qtdDepois: numPlanilha_(r[5]), motivo: r[6] || '', usuario: r[7] || '', data: r[8] }))
     .sort((a, b) => new Date(b.data) - new Date(a.data));
 }
 function registrarMovimentoEstoque_(ingredienteId, ingredienteNome, tipo, quantidade, qtdAntes, qtdDepois, motivo) {
@@ -2151,19 +2184,19 @@ function registrarMovimentoEstoque_(ingredienteId, ingredienteNome, tipo, quanti
 function readCombos() {
   const sh = ss_().getSheetByName('Combos'); const last = sh.getLastRow();
   if (last < 2) return [];
-  return sh.getRange(2, 1, last - 1, 7).getValues().filter(r => r[1]).map(r => ({ id: r[0], nome: r[1], categoria: r[2], ativo: r[3] !== 'Não', fotoId: r[4] || '', fotoUrl: urlFoto_(r[4]), destaque: r[5] === 'Sim', ordemCardapio: Number(r[6]) || 0 }));
+  return sh.getRange(2, 1, last - 1, 7).getValues().filter(r => r[1]).map(r => ({ id: r[0], nome: r[1], categoria: r[2], ativo: r[3] !== 'Não', fotoId: r[4] || '', fotoUrl: urlFoto_(r[4]), destaque: r[5] === 'Sim', ordemCardapio: numPlanilha_(r[6]) || 0 }));
 }
 function readCategorias() {
   const sh = ss_().getSheetByName('Categorias'); const last = sh.getLastRow();
   if (last < 2) return [];
   return sh.getRange(2, 1, last - 1, 4).getValues().filter(r => r[1])
-    .map(r => ({ id: r[0], nome: r[1], ativa: r[2] !== 'Não', ordem: Number(r[3]) || 0 }))
+    .map(r => ({ id: r[0], nome: r[1], ativa: r[2] !== 'Não', ordem: numPlanilha_(r[3]) || 0 }))
     .sort((a, b) => a.ordem - b.ordem);
 }
 function readComboItens() {
   const sh = ss_().getSheetByName('ComboItens'); const last = sh.getLastRow();
   if (last < 2) return [];
-  return sh.getRange(2, 1, last - 1, 4).getValues().filter(r => r[1]).map(r => ({ id: r[0], comboId: r[1], produtoId: r[2], quantidade: r[3] }));
+  return sh.getRange(2, 1, last - 1, 4).getValues().filter(r => r[1]).map(r => ({ id: r[0], comboId: r[1], produtoId: r[2], quantidade: numPlanilha_(r[3]) }));
 }
 /* ITEM 17 — mesma leitura de sempre, agora também disponível só para o FIM da aba (pedidos recentes). */
 function readVendas() { return readVendasDesde_(2); }
@@ -2174,13 +2207,13 @@ function readVendasDesde_(linhaIni) {
   const colunas = Math.min(31, sh.getMaxColumns());
   return sh.getRange(linhaIni, 1, last - linhaIni + 1, colunas).getValues().filter(r => r[0]).map(r => ({
     id: r[0], data: Utilities.formatDate(new Date(r[1]), FUSO, 'dd/MM/yyyy HH:mm'), timestamp: new Date(r[1]).getTime(),
-    clienteNome: r[2], clienteTelefone: r[3], formaPagamento: r[4], valorTotal: r[5], custoTotal: r[6], status: r[7], motivoCancelamento: r[8],
+    clienteNome: r[2], clienteTelefone: r[3], formaPagamento: r[4], valorTotal: numPlanilha_(r[5]), custoTotal: numPlanilha_(r[6]), status: r[7], motivoCancelamento: r[8],
     tipoEntrega: r[9] || 'Retirada', statusPedido: r[10] || '', endereco: r[11] || '', complemento: r[12] || '', referencia: r[13] || '', observacoesEntrega: r[14] || '',
     timestampPronta: r[15] ? new Date(r[15]).getTime() : null, timestampConcluida: r[16] ? new Date(r[16]).getTime() : null,
     statusPagamento: r[17] || 'Pago', timestampRecebimento: r[18] ? new Date(r[18]).getTime() : null,
-    valorOriginal: r[19] || r[5], valorDesconto: r[20] || 0, descontoDetalhe: r[21] || '', entregador: r[22] || '',
+    valorOriginal: numPlanilha_(r[19]) || numPlanilha_(r[5]), valorDesconto: numPlanilha_(r[20]), descontoDetalhe: r[21] || '', entregador: r[22] || '',
     timestampSaiu: r[23] ? new Date(r[23]).getTime() : null, origem: r[24] || 'Balcão', mesaId: r[25] || '',
-    taxaEntrega: Number(r[26]) || 0, fechamentoEntregaId: r[27] || '', registradoPor: r[28] || '', numero: Number(r[29]) || 0,
+    taxaEntrega: numPlanilha_(r[26]) || 0, fechamentoEntregaId: r[27] || '', registradoPor: r[28] || '', numero: numPlanilha_(r[29]) || 0,
     timestampInicioPreparo: r[30] ? new Date(r[30]).getTime() : null
   }));
 }
@@ -2192,20 +2225,20 @@ function readItensVendaDesde_(linhaIni) {
   return sh.getRange(linhaIni, 1, last - linhaIni + 1, 10).getValues().filter(r => r[0]).map(r => {
     let adicionaisIds = [];
     try { adicionaisIds = r[9] ? JSON.parse(r[9]) : []; } catch (e) { adicionaisIds = []; }
-    return { id: r[0], vendaId: r[1], produtoId: r[2], comboId: r[3], descricao: r[4], quantidade: r[5], valorUnitario: r[6], custoUnitario: r[7], valorTotalItem: r[8], adicionaisIds: adicionaisIds };
+    return { id: r[0], vendaId: r[1], produtoId: r[2], comboId: r[3], descricao: r[4], quantidade: numPlanilha_(r[5]), valorUnitario: numPlanilha_(r[6]), custoUnitario: numPlanilha_(r[7]), valorTotalItem: numPlanilha_(r[8]), adicionaisIds: adicionaisIds };
   });
 }
 function readPagamentosVenda() {
   const sh = ss_().getSheetByName('PagamentosVenda'); const last = sh.getLastRow();
   if (last < 2) return [];
-  return sh.getRange(2, 1, last - 1, Math.min(5, sh.getMaxColumns())).getValues().filter(r => r[0]).map(r => ({ id: r[0], vendaId: r[1], forma: r[2], valor: r[3], taxa: Number(r[4]) || 0 }));
+  return sh.getRange(2, 1, last - 1, Math.min(5, sh.getMaxColumns())).getValues().filter(r => r[0]).map(r => ({ id: r[0], vendaId: r[1], forma: r[2], valor: numPlanilha_(r[3]), taxa: numPlanilha_(r[4]) || 0 }));
 }
 function readSangrias() {
   const sh = ss_().getSheetByName('Sangrias'); const last = sh.getLastRow();
   if (last < 2) return [];
   return sh.getRange(2, 1, last - 1, 5).getValues().filter(r => r[0]).map(r => ({
     id: r[0], data: Utilities.formatDate(new Date(r[1]), FUSO, 'dd/MM/yyyy HH:mm'), timestamp: new Date(r[1]).getTime(),
-    valor: r[2], motivo: r[3], usuario: r[4]
+    valor: numPlanilha_(r[2]), motivo: r[3], usuario: r[4]
   }));
 }
 function addSangria(valor, motivo) {
@@ -2223,8 +2256,8 @@ function readMetas() {
   let mensal = 0, diaria = 0;
   for (let i = 2; i <= last; i++) {
     const chave = sh.getRange(i, 1).getValue();
-    if (chave === 'MetaMensal') mensal = Number(sh.getRange(i, 2).getValue()) || 0;
-    if (chave === 'MetaDiaria') diaria = Number(sh.getRange(i, 2).getValue()) || 0;
+    if (chave === 'MetaMensal') mensal = numPlanilha_(sh.getRange(i, 2).getValue()) || 0;
+    if (chave === 'MetaDiaria') diaria = numPlanilha_(sh.getRange(i, 2).getValue()) || 0;
   }
   return { mensal: mensal, diaria: diaria };
 }
@@ -2432,7 +2465,7 @@ function readAdicionais() {
   const sh = ss_().getSheetByName('Adicionais'); const last = sh.getLastRow();
   if (last < 2) return [];
   return sh.getRange(2, 1, last - 1, 6).getValues().filter(r => r[1])
-    .map(r => ({ id: r[0], nome: r[1], preco: Number(r[2]) || 0, ativo: r[3] !== 'Não', ingredienteId: r[4] || '', quantidadeDesconto: Number(r[5]) || 1 }));
+    .map(r => ({ id: r[0], nome: r[1], preco: numPlanilha_(r[2]) || 0, ativo: r[3] !== 'Não', ingredienteId: r[4] || '', quantidadeDesconto: numPlanilha_(r[5]) || 1 }));
 }
 function readProdutoAdicionais() {
   const sh = ss_().getSheetByName('ProdutoAdicionais'); const last = sh.getLastRow();
@@ -2531,7 +2564,7 @@ function readFeedbacks() {
   const sh = ss_().getSheetByName('Feedbacks'); const last = sh.getLastRow();
   if (last < 2) return [];
   return sh.getRange(2, 1, last - 1, Math.min(8, sh.getMaxColumns())).getValues().filter(r => r[0])
-    .map(r => ({ id: r[0], vendaId: r[1], telefone: r[2], nota: Number(r[3]) || 0, comentario: r[4] || '', data: r[5], status: r[6] || 'Novo', clienteId: r[7] || '' }));
+    .map(r => ({ id: r[0], vendaId: r[1], telefone: r[2], nota: numPlanilha_(r[3]) || 0, comentario: r[4] || '', data: r[5], status: r[6] || 'Novo', clienteId: r[7] || '' }));
 }
 function addFeedback(vendaId, telefone, nota, comentario, nome) {
   const n = Number(nota) || 0;
@@ -3168,7 +3201,7 @@ function editarIngrediente(id, nome, quantidade, minimo, unidade, custo, ativo) 
   const sh = ss_().getSheetByName('Estoque'); const last = sh.getLastRow();
   { const i = linhaDoId_(sh, id);
     if (i > 0) {
-      const qtdAntes = Number(sh.getRange(i, 3).getValue()) || 0;
+      const qtdAntes = numPlanilha_(sh.getRange(i, 3).getValue()) || 0;
       const qtdDepois = Number(quantidade) || 0;
       sh.getRange(i, 2, 1, 4).setValues([[nome, qtdDepois, Number(minimo) || 0, unidade || 'un']]);
       sh.getRange(i, 6).setValue(Number(custo) || 0);
@@ -3188,7 +3221,7 @@ function registrarEntradaEstoque(ingredienteId, quantidade, motivo) {
   for (let i = 2; i <= last; i++) {
     if (sh.getRange(i, 1).getValue() === ingredienteId) {
       const nome = sh.getRange(i, 2).getValue();
-      const qtdAntes = Number(sh.getRange(i, 3).getValue()) || 0;
+      const qtdAntes = numPlanilha_(sh.getRange(i, 3).getValue()) || 0;
       const qtdDepois = qtdAntes + qtd;
       sh.getRange(i, 3).setValue(qtdDepois);
       registrarMovimentoEstoque_(ingredienteId, nome, 'Entrada', qtd, qtdAntes, qtdDepois, motivo || 'Reposição de estoque');
@@ -3206,7 +3239,7 @@ function registrarPerdaEstoque(ingredienteId, quantidade, motivo) {
   for (let i = 2; i <= last; i++) {
     if (sh.getRange(i, 1).getValue() === ingredienteId) {
       const nome = sh.getRange(i, 2).getValue();
-      const qtdAntes = Number(sh.getRange(i, 3).getValue()) || 0;
+      const qtdAntes = numPlanilha_(sh.getRange(i, 3).getValue()) || 0;
       const qtdDepois = Math.max(0, qtdAntes - qtd);
       sh.getRange(i, 3).setValue(qtdDepois);
       registrarMovimentoEstoque_(ingredienteId, nome, 'Perda', -qtd, qtdAntes, qtdDepois, motivo);
@@ -3223,7 +3256,7 @@ function registrarInventarioEstoque(ingredienteId, novaQuantidade, motivo) {
   for (let i = 2; i <= last; i++) {
     if (sh.getRange(i, 1).getValue() === ingredienteId) {
       const nome = sh.getRange(i, 2).getValue();
-      const qtdAntes = Number(sh.getRange(i, 3).getValue()) || 0;
+      const qtdAntes = numPlanilha_(sh.getRange(i, 3).getValue()) || 0;
       sh.getRange(i, 3).setValue(nova);
       registrarMovimentoEstoque_(ingredienteId, nome, 'Inventário', nova - qtdAntes, qtdAntes, nova, motivo || 'Contagem de inventário');
       registrarLog('Inventário de estoque', '', nome + ': ' + qtdAntes + ' → ' + nova + ' (contagem física)');
@@ -3268,7 +3301,7 @@ function verificarEstoqueVenda_(itens, origem) {
   const linhas = sh.getRange(2, 1, last - 1, 3).getValues();
   for (let k = 0; k < ids.length; k++) {
     const l = linhas.find(r => r[0] === ids[k]); if (!l) continue;
-    const atual = Number(l[2]) || 0;
+    const atual = numPlanilha_(l[2]);
     if (atual + 1e-9 < consumo[ids[k]]) {
       return origem === 'Cardápio' ? 'Um dos itens do pedido acabou. Escolha outro item ou fale com o restaurante.'
         : 'Estoque insuficiente de "' + l[1] + '" (tem ' + atual + ', a venda precisa de ' + Math.round(consumo[ids[k]] * 1000) / 1000 + ').';
@@ -3616,7 +3649,7 @@ function readSessaoAberta() {
   for (let i = 2; i <= last; i++) {
     if (sh.getRange(i, 8).getValue() === 'Aberto') {
       const row = sh.getRange(i, 1, 1, 9).getValues()[0];
-      return { id: row[0], abertura: Utilities.formatDate(new Date(row[1]), FUSO, 'dd/MM/yyyy HH:mm'), aberturaTimestamp: new Date(row[1]).getTime(), fundoCaixa: row[2], status: row[7], usuarioAbertura: row[8] };
+      return { id: row[0], abertura: Utilities.formatDate(new Date(row[1]), FUSO, 'dd/MM/yyyy HH:mm'), aberturaTimestamp: new Date(row[1]).getTime(), fundoCaixa: numPlanilha_(row[2]), status: row[7], usuarioAbertura: row[8] };
     }
   }
   return null;
@@ -3645,9 +3678,9 @@ function readSessoesCaixa() {
   if (last < 2) return [];
   return sh.getRange(2, 1, last - 1, Math.min(12, sh.getMaxColumns())).getValues().filter(r => r[0]).map(r => ({
     id: r[0], abertura: Utilities.formatDate(new Date(r[1]), FUSO, 'dd/MM/yyyy HH:mm'), aberturaTimestamp: new Date(r[1]).getTime(),
-    fundoCaixa: r[2], fechamento: r[3] ? Utilities.formatDate(new Date(r[3]), FUSO, 'dd/MM/yyyy HH:mm') : '', fechamentoTimestamp: r[3] ? new Date(r[3]).getTime() : null,
-    totalVendas: r[4], totalDespesas: r[5], saldoFinal: r[6], status: r[7], usuarioAbertura: r[8], usuarioFechamento: r[9],
-    valorContado: r[10] === '' || r[10] === undefined ? null : Number(r[10]), diferenca: r[11] === '' || r[11] === undefined ? null : Number(r[11])
+    fundoCaixa: numPlanilha_(r[2]), fechamento: r[3] ? Utilities.formatDate(new Date(r[3]), FUSO, 'dd/MM/yyyy HH:mm') : '', fechamentoTimestamp: r[3] ? new Date(r[3]).getTime() : null,
+    totalVendas: numPlanilha_(r[4]), totalDespesas: numPlanilha_(r[5]), saldoFinal: numPlanilha_(r[6]), status: r[7], usuarioAbertura: r[8], usuarioFechamento: r[9],
+    valorContado: r[10] === '' || r[10] === undefined ? null : numPlanilha_(r[10]), diferenca: r[11] === '' || r[11] === undefined ? null : numPlanilha_(r[11])
   })).reverse();
 }
 function abrirCaixa(fundoCaixa, usuario) {
@@ -3707,7 +3740,7 @@ function fecharCaixa(id, usuario, valorContado) {
       if (sh.getRange(i, 8).getValue() === 'Fechado') return { ok: false, message: 'Este caixa já foi fechado.' };
       const bloqueio = pendenciasFechamentoCaixa_(); if (bloqueio) return bloqueio; // trava: mesas abertas, pedidos pendentes ou não recebidos
       const abertura = new Date(sh.getRange(i, 2).getValue()).getTime();
-      const fundoCaixa = Number(sh.getRange(i, 3).getValue()) || 0;
+      const fundoCaixa = numPlanilha_(sh.getRange(i, 3).getValue()) || 0;
       const fechamento = new Date();
 
       const vendasSessao = readVendas().filter(v => v.status === 'Confirmada' && v.timestamp >= abertura && v.timestamp <= fechamento.getTime());
@@ -4000,7 +4033,7 @@ function avancarStatusPedido(vendaId, novoStatus, statusEsperado) {
         if (!vendaNoEscopoDoUsuario_({
           id: vendaId,
           tipoEntrega: tipo,
-          mesaId: sh.getRange(i, 27).getValue(),
+          mesaId: sh.getRange(i, 26).getValue(), // coluna 26 = ID da Mesa (a 27 é Taxa Entrega)
           registradoPor: sh.getRange(i, 29).getValue()
         })) return { ok: false, message: 'Este pedido não está no seu escopo operacional.' };
         if (novoStatus !== 'Servida') return { ok: false, message: 'O garçom apenas pode marcar como "Servida" um pedido de sua mesa.' };
@@ -4122,13 +4155,13 @@ function editarVenda(id, itens, motivo, senhaAdminConfirmacao) {
       const itensAntigos = readItensVenda().filter(it => it.vendaId === id);
       itens.forEach(it => { if (!it.adicionaisIds) { const ant = itensAntigos.find(a => a.descricao === it.descricao); it.adicionaisIds = ant ? ant.adicionaisIds : []; } });
       const somaNova = Math.round(itens.reduce((t, it) => t + Math.round((Number(it.quantidade) || 1) * (Number(it.valorUnitario) || 0) * 100) / 100, 0) * 100) / 100;
-      const descontoAtual = Number(shVendas.getRange(i, 21).getValue()) || 0;
+      const descontoAtual = numPlanilha_(shVendas.getRange(i, 21).getValue()) || 0;
       if (descontoAtual >= somaNova) return { ok: false, message: 'Com o desconto já aplicado, o novo total ficaria zero ou negativo.' };
       const totalNovo = Math.round((somaNova - descontoAtual) * 100) / 100;
       const shPag = ss_().getSheetByName('PagamentosVenda'); const linhasPag = [];
       for (let p = 2; p <= shPag.getLastRow(); p++) { if (shPag.getRange(p, 2).getValue() === id) linhasPag.push(p); }
       if (linhasPag.length > 1) return { ok: false, message: 'Venda com pagamento dividido não pode ser editada. Cancele e lance novamente.' };
-      const totalAntes = Number(shVendas.getRange(i, 6).getValue()) || 0;
+      const totalAntes = numPlanilha_(shVendas.getRange(i, 6).getValue()) || 0;
 
       const lastItens = shItens.getLastRow();
       for (let j = lastItens; j >= 2; j--) { if (shItens.getRange(j, 2).getValue() === id) shItens.deleteRow(j); }
@@ -4196,8 +4229,8 @@ function cancelarVenda(id, motivo, senhaAdminConfirmacao, mercadoriaPerdida) {
    ========================================================= */
 function readConfigEntrega() {
   return {
-    taxaPadrao: Number(lerConfigChave_('TaxaEntregaPadrao', 0)) || 0,
-    ajudaDiaria: Number(lerConfigChave_('AjudaDiariaEntregador', 0)) || 0
+    taxaPadrao: numPlanilha_(lerConfigChave_('TaxaEntregaPadrao', 0)),
+    ajudaDiaria: numPlanilha_(lerConfigChave_('AjudaDiariaEntregador', 0))
   };
 }
 function salvarConfigEntrega(taxaPadrao, ajudaDiaria) {
@@ -4226,8 +4259,8 @@ function readFechamentosEntrega() {
   const sh = ss_().getSheetByName('FechamentosEntrega'); if (!sh) return [];
   const last = sh.getLastRow(); if (last < 2) return [];
   return sh.getRange(2, 1, last - 1, 13).getValues().filter(r => r[0]).map(r => ({
-    id: r[0], dataRef: String(r[1]), entregador: r[2], qtd: Number(r[3]) || 0, totalTaxas: Number(r[4]) || 0, ajudaDiaria: Number(r[5]) || 0,
-    totalDevido: Number(r[6]) || 0, valorPago: Number(r[7]) || 0, diferenca: Number(r[8]) || 0,
+    id: r[0], dataRef: String(r[1]), entregador: r[2], qtd: numPlanilha_(r[3]) || 0, totalTaxas: numPlanilha_(r[4]) || 0, ajudaDiaria: numPlanilha_(r[5]) || 0,
+    totalDevido: numPlanilha_(r[6]) || 0, valorPago: numPlanilha_(r[7]) || 0, diferenca: numPlanilha_(r[8]) || 0,
     fechadoEm: Utilities.formatDate(new Date(r[9]), FUSO, 'dd/MM/yyyy HH:mm'), fechadoPor: r[10] || '', observacao: r[11] || '', requisicaoId: r[12] || ''
   }));
 }
@@ -4235,7 +4268,7 @@ function readEntregasFechadas() {
   const sh = ss_().getSheetByName('EntregasFechadas'); if (!sh) return [];
   const last = sh.getLastRow(); if (last < 2) return [];
   return sh.getRange(2, 1, last - 1, 6).getValues().filter(r => r[0]).map(r => ({
-    id: r[0], fechamentoId: r[1], vendaId: r[2], dataRef: String(r[3]), entregador: r[4], taxa: Number(r[5]) || 0
+    id: r[0], fechamentoId: r[1], vendaId: r[2], dataRef: String(r[3]), entregador: r[4], taxa: numPlanilha_(r[5]) || 0
   }));
 }
 function calcularFechamentoEntrega_(login, dataRef) {
@@ -4439,7 +4472,7 @@ function readDespesas() {
   const colunas = Math.min(14, sh.getMaxColumns());
   return sh.getRange(2, 1, last - 1, colunas).getValues().filter(r => r[0]).map(r => ({
     id: r[0], data: Utilities.formatDate(new Date(r[1]), FUSO, 'dd/MM/yyyy HH:mm'), timestamp: new Date(r[1]).getTime(),
-    descricao: r[2], valor: Number(r[3]) || 0, observacao: r[4], status: r[5], motivoCancelamento: r[6],
+    descricao: r[2], valor: numPlanilha_(r[3]) || 0, observacao: r[4], status: r[5], motivoCancelamento: r[6],
     categoria: r[7] || 'Outros', vencimento: String(r[8] || ''), situacao: r[9] === 'A pagar' ? 'A pagar' : 'Paga',
     recorrenteId: r[10] || '', competencia: String(r[11] || ''), saiuDoCaixa: r[12] !== 'Não'
   }));
@@ -4449,7 +4482,7 @@ function readDespesasRecorrentes() {
   const last = sh.getLastRow();
   if (last < 2) return [];
   return sh.getRange(2, 1, last - 1, 11).getValues().filter(r => r[0]).map(r => ({
-    id: r[0], descricao: r[1], categoria: r[2] || 'Outros', valor: Number(r[3]) || 0, diaVencimento: Number(r[4]) || 1,
+    id: r[0], descricao: r[1], categoria: r[2] || 'Outros', valor: numPlanilha_(r[3]) || 0, diaVencimento: numPlanilha_(r[4]) || 1,
     periodicidade: r[5] || 'Mensal', ativa: r[6] !== 'Não', observacao: r[7] || '', inicio: String(r[8] || ''), termino: String(r[9] || '')
   }));
 }
@@ -4774,7 +4807,7 @@ function obterStatusBackup() {
   const linhas = last < 2 ? [] : sh.getRange(Math.max(2, last - 29), 1, Math.min(30, last - 1), 10).getValues();
   const historico = linhas.reverse().map(r => ({
     id: r[0], quando: r[1] instanceof Date ? r[1].toISOString() : String(r[1]), tipo: r[2], status: r[3],
-    arquivo: r[4], arquivoId: r[5], tamanho: Number(r[6]) || 0, tentativas: Number(r[7]) || 0, erro: r[8], usuario: r[9]
+    arquivo: r[4], arquivoId: r[5], tamanho: numPlanilha_(r[6]) || 0, tentativas: numPlanilha_(r[7]) || 0, erro: r[8], usuario: r[9]
   }));
   const falhaRaw = props.getProperty('ULTIMA_FALHA_BACKUP');
   // O "último backup" sai do próprio histórico (aba Backups): assim a tela nunca mostra um backup que não aparece na lista.
@@ -4854,7 +4887,7 @@ function obterArmazenamento() {
   const bk = abaBackups_(); const lb = bk.getLastRow();
   if (lb > 1) { // Sheets nativo não informa tamanho no Drive: soma o tamanho registrado no histórico dos backups ainda existentes
     const ids = {};
-    bk.getRange(2, 4, lb - 1, 4).getValues().forEach(r => { if (r[0] === 'Sucesso' && r[2]) ids[r[2]] = Number(r[3]) || 0; });
+    bk.getRange(2, 4, lb - 1, 4).getValues().forEach(r => { if (r[0] === 'Sucesso' && r[2]) ids[r[2]] = numPlanilha_(r[3]) || 0; });
     let soma = 0; const it = obterPastaBackups_().getFiles(); while (it.hasNext()) { const f = it.next(); soma += ids[f.getId()] || 0; }
     if (soma > cats['Arquivos de backup'].bytes) cats['Arquivos de backup'].bytes = soma;
   }
@@ -5103,4 +5136,15 @@ function reconciliarContingencia() {
   });
   registrarLog('Reconciliação da contingência executada', '', resultado.reaplicadas + ' reaplicadas, ' + resultado.jaEstavam + ' já feitas, ' + resultado.falhas.length + ' falhas.');
   return { ok: true, message: resultado.reaplicadas + ' venda(s) reaplicada(s), ' + resultado.jaEstavam + ' já estavam sincronizadas' + (resultado.falhas.length ? ', ' + resultado.falhas.length + ' com falha (veja o log).' : '.'), detalhes: resultado };
+}
+
+/* TEMPORÁRIA — cadastra as chaves da contingência nas Propriedades do script deste projeto.
+   Rode UMA vez (menu de funções -> cadastrarChavesContingencia -> Executar), confirme com conferirChavesContingencia()
+   e depois APAGUE esta função (chave secreta não deve ficar escrita no código). */
+function cadastrarChavesContingencia() {
+  PropertiesService.getScriptProperties().setProperties({
+    CONTINGENCIA_CHAVE_SERVIDOR: 'txbsrv-fec2119adbfc4808aa690063fe2b81743c2a5757',
+    CONTINGENCIA_CHAVE_INTERNA: 'txbint-bb09518f2eac44e6b9b2318effaa4ded30a1c2c0'
+  });
+  Logger.log('Chaves cadastradas.');
 }
