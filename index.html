@@ -143,6 +143,8 @@
   .admin-subnav{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:6px;margin-bottom:14px;}
   .admin-subnav button{background:var(--panel-2);border:1px solid var(--line);color:var(--muted);padding:6px 6px;border-radius:10px;font-size:11.5px;font-weight:600;cursor:pointer;white-space:normal;line-height:1.15;text-align:center;min-height:34px;}
   .admin-subnav button.active{background:var(--gold);color:#241a10;border-color:var(--gold);}
+  .admin-subnav .admin-grupo{grid-column:1/-1;font-size:12.5px;font-weight:700;color:var(--gold);margin-top:8px;padding-bottom:3px;border-bottom:1px solid var(--line);}
+  .admin-subnav .admin-grupo:first-child{margin-top:0;}
 
   .card{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:16px;margin-bottom:16px;}
   .card h2{margin:0 0 4px;font-family:Georgia,serif;font-size:18px;color:var(--gold);}
@@ -957,15 +959,6 @@ body.perfil-garcom #btnFecharContaItens{display:none !important;}
   <section class="tab" id="tab-produtos">
         <div class="admin-subnav" data-admin-nav="1"></div>
 
-    <div class="card" id="importarCardapioCard">
-      <h2>Importar cardápio inicial</h2>
-      <p class="sub">Cadastra de uma vez as categorias, produtos, combos e bebidas do Texas Burger, já com preço da loja, preço do iFood e foto. Pode rodar com segurança mais de uma vez — se algo já existir pelo nome, não duplica, e a foto só é enviada para quem ainda está sem foto. Leva alguns minutos por causa das fotos: não feche a página.</p>
-      <button class="small-gold" style="width:100%;padding:10px;" onclick="importarCardapioInicial()">📥 Importar cardápio do Texas Burger</button>
-      <button class="ghost" style="width:100%;padding:10px;margin-top:8px;" onclick="aplicarFotosCardapioInicial()">📷 Só aplicar as fotos do cardápio inicial</button>
-      <div class="msg" id="importarCardapioMsg"></div>
-    </div>
-
-
     <div class="card">
       <div class="card-head"><h2>Produtos cadastrados</h2><button type="button" class="small-gold" onclick="abrirFormModal('produtoNovoModal')">+ Novo produto</button></div>
       <div class="msg" id="pMsgLista"></div>
@@ -983,24 +976,6 @@ body.perfil-garcom #btnFecharContaItens{display:none !important;}
         <thead><tr><th>Combo</th><th>Preço</th><th></th></tr></thead>
         <tbody id="koTable"></tbody>
       </table>
-    </div>
-
-    <div class="card">
-      <h2>Ingredientes (Estoque)</h2>
-      <label style="display:flex;gap:8px;align-items:center;margin-bottom:4px;"><input type="checkbox" id="cfgBloquearEstoque" style="width:auto;" onchange="salvarBloqueioEstoque(this.checked)"> Bloquear venda quando o estoque for insuficiente</label>
-      <p class="sub" id="cfgBloquearEstoqueMsg" style="margin-top:0;">Desligado: a venda passa e o estoque pode ficar negativo (fica registrado). Ligue só depois de cadastrar as quantidades.</p>
-      <button type="button" class="primary" onclick="abrirFormModal('ingredienteNovoModal')">+ Novo ingrediente</button>
-      <div class="msg" id="eMsgLista"></div>
-      <table style="margin-top:14px;">
-        <thead><tr><th>Ingrediente</th><th>Qtd</th><th>Status</th><th></th></tr></thead>
-        <tbody id="eTable"></tbody>
-      </table>
-    </div>
-
-    <div class="card">
-      <h2>Movimentações de estoque</h2>
-      <p class="sub">Entrada, perda e inventário ficam registrados aqui com data e usuário — a baixa por venda é automática.</p>
-      <div id="movEstoqueLista" style="margin-top:8px;"></div>
     </div>
 
     <div class="card">
@@ -1044,6 +1019,32 @@ body.perfil-garcom #btnFecharContaItens{display:none !important;}
       <div id="adVincCategorias"></div>
       <button class="primary" onclick="vincularAdicionaisCategorias()">Liberar adicionais nessas categorias</button>
       <div class="msg" id="adVincMsg"></div>
+    </div>
+
+    <div class="card">
+      <h2>Ingredientes (Estoque)</h2>
+      <label style="display:flex;gap:8px;align-items:center;margin-bottom:4px;"><input type="checkbox" id="cfgBloquearEstoque" style="width:auto;" onchange="salvarBloqueioEstoque(this.checked)"> Bloquear venda quando o estoque for insuficiente</label>
+      <p class="sub" id="cfgBloquearEstoqueMsg" style="margin-top:0;">Desligado: a venda passa e o estoque pode ficar negativo (fica registrado). Ligue só depois de cadastrar as quantidades.</p>
+      <button type="button" class="primary" onclick="abrirFormModal('ingredienteNovoModal')">+ Novo ingrediente</button>
+      <div class="msg" id="eMsgLista"></div>
+      <table style="margin-top:14px;">
+        <thead><tr><th>Ingrediente</th><th>Qtd</th><th>Status</th><th></th></tr></thead>
+        <tbody id="eTable"></tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h2>Movimentações de estoque</h2>
+      <p class="sub">Entrada, perda e inventário ficam registrados aqui com data e usuário — a baixa por venda é automática.</p>
+      <div id="movEstoqueLista" style="margin-top:8px;"></div>
+    </div>
+
+    <div class="card" id="importarCardapioCard">
+      <h2>Importar cardápio inicial</h2>
+      <p class="sub">Cadastra de uma vez as categorias, produtos, combos e bebidas do Texas Burger, já com preço da loja, preço do iFood e foto. Pode rodar com segurança mais de uma vez — se algo já existir pelo nome, não duplica, e a foto só é enviada para quem ainda está sem foto. Leva alguns minutos por causa das fotos: não feche a página.</p>
+      <button class="small-gold" style="width:100%;padding:10px;" onclick="importarCardapioInicial()">📥 Importar cardápio do Texas Burger</button>
+      <button class="ghost" style="width:100%;padding:10px;margin-top:8px;" onclick="aplicarFotosCardapioInicial()">📷 Só aplicar as fotos do cardápio inicial</button>
+      <div class="msg" id="importarCardapioMsg"></div>
     </div>
 
   </section>
@@ -1315,46 +1316,6 @@ body.perfil-garcom #btnFecharContaItens{display:none !important;}
   <section class="tab" id="tab-financeiro">
         <div class="admin-subnav" data-admin-nav="1"></div>
     <div class="card">
-      <h2>Formas de pagamento</h2>
-      <p class="sub">Nunca são apagadas — só desativadas. Taxa e prazo valem para vendas futuras; vendas antigas guardam a taxa da época.</p>
-      <input type="text" id="fpNome" placeholder="Ex: Vale Refeição">
-      <div class="row2">
-        <div><label for="fpTaxaPct">Taxa %</label><input type="number" id="fpTaxaPct" placeholder="0" step="0.01" min="0" max="100"></div>
-        <div><label for="fpTaxaFixa">Taxa fixa (R$)</label><input type="number" id="fpTaxaFixa" placeholder="0.00" step="0.01" min="0"></div>
-      </div>
-      <div class="row2">
-        <div><label for="fpPrazo">Prazo (dias)</label><input type="number" id="fpPrazo" placeholder="0" step="1" min="0"></div>
-        <div><label style="display:flex;gap:6px;align-items:center;margin-top:26px;"><input type="checkbox" id="fpTroco" style="width:auto;"> Permite troco</label></div>
-      </div>
-      <button class="primary" onclick="registrarFormaPagamento()">+ Adicionar forma de pagamento</button>
-      <div class="msg" id="fpMsg"></div>
-      <table style="margin-top:12px;">
-        <thead><tr><th>Forma</th><th>Taxa</th><th>Prazo</th><th></th></tr></thead>
-        <tbody id="fpTable"></tbody>
-      </table>
-    </div>
-
-    <div class="card">
-      <h2>Metas de vendas</h2>
-      <div class="row2">
-        <div>
-          <div style="font-size:12px;color:var(--muted);">Meta mensal</div>
-          <b style="color:var(--gold);font-size:16px;" id="metaMensalTexto">R$ 0,00</b>
-          <div class="progress-outer"><div class="progress-inner" id="metaMensalBar" style="width:0%;"></div></div>
-          <div style="font-size:10.5px;color:var(--muted);margin-top:4px;" id="metaMensalTextoProgresso"></div>
-          <button class="ghost" style="margin-top:8px;width:100%;" onclick="editarMeta('MetaMensal')">Editar</button>
-        </div>
-        <div>
-          <div style="font-size:12px;color:var(--muted);">Meta diária</div>
-          <b style="color:var(--gold);font-size:16px;" id="metaDiariaTexto">R$ 0,00</b>
-          <div class="progress-outer"><div class="progress-inner" id="metaDiariaBar" style="width:0%;"></div></div>
-          <div style="font-size:10.5px;color:var(--muted);margin-top:4px;" id="metaDiariaTextoProgresso"></div>
-          <button class="ghost" style="margin-top:8px;width:100%;" onclick="editarMeta('MetaDiaria')">Editar</button>
-        </div>
-      </div>
-    </div>
-
-    <div class="card">
       <h2>Contas a pagar</h2>
       <p class="sub">Só entram no lucro e no caixa depois de pagas.</p>
       <div class="stat-row">
@@ -1397,6 +1358,52 @@ body.perfil-garcom #btnFecharContaItens{display:none !important;}
     </div>
 
     <div class="card">
+      <h2>Metas de vendas</h2>
+      <div class="row2">
+        <div>
+          <div style="font-size:12px;color:var(--muted);">Meta mensal</div>
+          <b style="color:var(--gold);font-size:16px;" id="metaMensalTexto">R$ 0,00</b>
+          <div class="progress-outer"><div class="progress-inner" id="metaMensalBar" style="width:0%;"></div></div>
+          <div style="font-size:10.5px;color:var(--muted);margin-top:4px;" id="metaMensalTextoProgresso"></div>
+          <button class="ghost" style="margin-top:8px;width:100%;" onclick="editarMeta('MetaMensal')">Editar</button>
+        </div>
+        <div>
+          <div style="font-size:12px;color:var(--muted);">Meta diária</div>
+          <b style="color:var(--gold);font-size:16px;" id="metaDiariaTexto">R$ 0,00</b>
+          <div class="progress-outer"><div class="progress-inner" id="metaDiariaBar" style="width:0%;"></div></div>
+          <div style="font-size:10.5px;color:var(--muted);margin-top:4px;" id="metaDiariaTextoProgresso"></div>
+          <button class="ghost" style="margin-top:8px;width:100%;" onclick="editarMeta('MetaDiaria')">Editar</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Formas de pagamento</h2>
+      <p class="sub">Nunca são apagadas — só desativadas. Taxa e prazo valem para vendas futuras; vendas antigas guardam a taxa da época.</p>
+      <input type="text" id="fpNome" placeholder="Ex: Vale Refeição">
+      <div class="row2">
+        <div><label for="fpTaxaPct">Taxa %</label><input type="number" id="fpTaxaPct" placeholder="0" step="0.01" min="0" max="100"></div>
+        <div><label for="fpTaxaFixa">Taxa fixa (R$)</label><input type="number" id="fpTaxaFixa" placeholder="0.00" step="0.01" min="0"></div>
+      </div>
+      <div class="row2">
+        <div><label for="fpPrazo">Prazo (dias)</label><input type="number" id="fpPrazo" placeholder="0" step="1" min="0"></div>
+        <div><label style="display:flex;gap:6px;align-items:center;margin-top:26px;"><input type="checkbox" id="fpTroco" style="width:auto;"> Permite troco</label></div>
+      </div>
+      <button class="primary" onclick="registrarFormaPagamento()">+ Adicionar forma de pagamento</button>
+      <div class="msg" id="fpMsg"></div>
+      <table style="margin-top:12px;">
+        <thead><tr><th>Forma</th><th>Taxa</th><th>Prazo</th><th></th></tr></thead>
+        <tbody id="fpTable"></tbody>
+      </table>
+    </div>
+
+  </section>
+
+  <!-- =========================== HISTÓRICO (ADMIN) =========================== -->
+  <section class="tab" id="tab-historico">
+        <div class="admin-subnav" data-admin-nav="1"></div>
+
+    <div class="card">
       <h2>Resumo de hoje</h2>
       <div class="stat-row">
         <div class="stat-box entrada"><b id="fHojeEntradas">R$ 0,00</b><span>VENDAS</span></div>
@@ -1435,16 +1442,6 @@ body.perfil-garcom #btnFecharContaItens{display:none !important;}
       </table>
     </div>
 
-    <div class="card">
-      <h2>DRE e relatório mensal</h2>
-      <label for="rMes">Mês</label>
-      <input type="month" id="rMes" onchange="gerarRelatorio()">
-      <div id="rDRE" style="margin-top:12px;"></div>
-      <div style="font-size:12px;color:var(--muted);margin-top:6px;" id="rContagem"></div>
-      <div class="modal-section"><h3>Por forma de pagamento</h3><div id="rPagamentos"></div></div>
-      <div class="modal-section"><h3>Produtos mais vendidos</h3><table><tbody id="rRanking"></tbody></table></div>
-      <div class="modal-section"><h3>Vendas por dia</h3><div id="rGrafico"></div></div>
-    </div>
   </section>
 
   <!-- =========================== NOTIFICAÇÕES =========================== -->
@@ -1674,7 +1671,7 @@ body.perfil-garcom #btnFecharContaItens{display:none !important;}
   <section class="tab" id="tab-notifadmin">
     <div class="admin-subnav" data-admin-nav="1"></div>
     <div class="card">
-      <h2>Notificações (configuração)</h2>
+      <h2>Avisos (configuração)</h2>
       <p class="sub">Escolha quais avisos aparecem no mural <b>Notificações</b> e para quais perfis. Só Administrador, Operador e Cozinha abrem esse mural. Um aviso só mostra dados que o perfil já pode ver (ex.: despesas só o Administrador enxerga).</p>
       <div id="notifCfgLista"></div>
       <button class="primary" onclick="salvarConfigNotificacoesUI()">Salvar</button>
@@ -1700,14 +1697,27 @@ body.perfil-garcom #btnFecharContaItens{display:none !important;}
         <button class="small-gold" style="margin-top:0;" onclick="imprimirRelatorio()">🖨️ Imprimir</button>
       </div>
       <div class="info-line" id="relMsg"></div>
-      <div class="info-line">• Entregas e entregadores: veja o cartão "Desempenho de entregas" logo abaixo.</div>
+      <div class="info-line">• Entregas e entregadores: veja o cartão "Desempenho de entregas" mais abaixo.</div>
     </div>
+
+    <div class="card">
+      <h2>DRE e relatório mensal</h2>
+      <label for="rMes">Mês</label>
+      <input type="month" id="rMes" onchange="gerarRelatorio()">
+      <div id="rDRE" style="margin-top:12px;"></div>
+      <div style="font-size:12px;color:var(--muted);margin-top:6px;" id="rContagem"></div>
+      <div class="modal-section"><h3>Por forma de pagamento</h3><div id="rPagamentos"></div></div>
+      <div class="modal-section"><h3>Produtos mais vendidos</h3><table><tbody id="rRanking"></tbody></table></div>
+      <div class="modal-section"><h3>Vendas por dia</h3><div id="rGrafico"></div></div>
+    </div>
+
     <div class="card">
       <h2>🛵 Desempenho de entregas</h2>
       <label for="relEntPeriodo">Período</label>
       <select id="relEntPeriodo" onchange="renderDesempenhoEntregas()"><option value="0">Hoje</option><option value="6" selected>Últimos 7 dias</option><option value="29">Últimos 30 dias</option></select>
       <div id="relEntTabela" style="margin-top:10px;"></div>
     </div>
+
   </section>
 
   <section class="tab" id="tab-auditoria">
@@ -3017,11 +3027,18 @@ async function confirmarSenhaAdminGenerica(){
 /* "Administrador" (ITEM 4, 50, 66) não é uma seção única — é um hub que agrupa
    Produtos e Estoque, Financeiro e Usuários e Permissões, que continuam sendo
    as mesmas seções de sempre (nenhum cadastro foi duplicado). */
-const ADMIN_SUBABAS = ['visaogeral', 'financeiro', 'produtos', 'cardapiodigital', 'promocoes', 'eventos', 'custosprecificacao', 'feedbacks', 'ocorrencias', 'usuarios', 'restaurante', 'taxasentregas', 'notifadmin', 'relatorios', 'auditoria', 'armazenamento'];
+const ADMIN_GRUPOS = [
+  { nome:'📊 Painel',    subs:['visaogeral', 'relatorios'] },
+  { nome:'💰 Financeiro', subs:['financeiro', 'historico', 'eventos'] },
+  { nome:'🍔 Catálogo',  subs:['produtos', 'custosprecificacao', 'cardapiodigital', 'promocoes'] },
+  { nome:'🏪 Operação',  subs:['restaurante', 'taxasentregas', 'ocorrencias', 'feedbacks'] },
+  { nome:'⚙️ Sistema',   subs:['usuarios', 'notifadmin', 'auditoria', 'armazenamento'] }
+];
+const ADMIN_SUBABAS = ADMIN_GRUPOS.reduce((a,g)=>a.concat(g.subs), []);
 /* ETAPA 6: a barra do Administrador existia copiada em 13 telas. Agora há UMA definição, desenhada em todas. */
-const ADMIN_SUBABAS_ROTULOS = { visaogeral:'Visão Geral', financeiro:'Financeiro', produtos:'Produtos e Estoque', cardapiodigital:'Cardápio Digital', promocoes:'Promoções', eventos:'Eventos', custosprecificacao:'Custos e Precificação', feedbacks:'Feedbacks', ocorrencias:'Ocorrências', usuarios:'Usuários e Permissões', restaurante:'Restaurante', taxasentregas:'Taxas e Fechamento', notifadmin:'Notificações', relatorios:'Relatórios', auditoria:'Auditoria', armazenamento:'Armazenamento' };
+const ADMIN_SUBABAS_ROTULOS = { visaogeral:'Visão Geral', relatorios:'Relatórios', financeiro:'Financeiro', historico:'Histórico', eventos:'Eventos', produtos:'Produtos e Estoque', custosprecificacao:'Custos e Precificação', cardapiodigital:'Cardápio Digital', promocoes:'Promoções', restaurante:'Mesas', taxasentregas:'Entregas', ocorrencias:'Ocorrências', feedbacks:'Feedbacks', usuarios:'Usuários e Permissões', notifadmin:'Avisos (config)', auditoria:'Auditoria', armazenamento:'Backup' };
 function montarBarrasAdmin_(){
-  const html = ADMIN_SUBABAS.map(id=>`<button data-sub="${id}" onclick="abrirAdministrador('${id}')">${ADMIN_SUBABAS_ROTULOS[id]}</button>`).join('');
+  const html = ADMIN_GRUPOS.map(g=>`<div class="admin-grupo">${g.nome}</div>` + g.subs.map(id=>`<button data-sub="${id}" onclick="abrirAdministrador('${id}')">${ADMIN_SUBABAS_ROTULOS[id]}</button>`).join('')).join('');
   document.querySelectorAll('.admin-subnav[data-admin-nav]').forEach(nav=>{ nav.innerHTML = html; });
 }
 montarBarrasAdmin_();
@@ -3037,7 +3054,7 @@ function ativarApenasSecao_(id){
     sec.setAttribute('aria-hidden', ativa ? 'false' : 'true');
   });
   /* MELHORIA 4.4 — telas pesadas só são desenhadas a cada sincronização quando estão na tela; ao entrar nelas, desenham na hora. */
-  try{ if(id==='tab-notificacoes') renderNotificacoes(); else if(id==='tab-financeiro') gerarRelatorio(); }catch(e){}
+  try{ if(id==='tab-notificacoes') renderNotificacoes(); else if(id==='tab-relatorios') gerarRelatorio(); }catch(e){}
 }
 function abrirAdministrador(sub){
   const alvo = ADMIN_SUBABAS.includes(sub) ? sub : 'visaogeral';
@@ -5571,7 +5588,7 @@ function renderMesasPickerCaixa(){
   const aceitos = souGarcom_() ? ['Livre','Ocupada'] : ['Livre','Ocupada','Aguardando fechamento'];
   const disponiveis = mesas.filter(m=>aceitos.indexOf(m.status)!==-1);
   const rotulo = m => m.status==='Ocupada' ? ' (ocupada)' : (m.status==='Aguardando fechamento' ? ' (aguardando fechamento)' : '');
-  sel.innerHTML = disponiveis.length ? disponiveis.map(m=>`<option value="${m.id}">Mesa ${m.numero}${rotulo(m)}</option>`).join('') : '<option value="">Nenhuma mesa disponível — cadastre em Administrador → Restaurante</option>';
+  sel.innerHTML = disponiveis.length ? disponiveis.map(m=>`<option value="${m.id}">Mesa ${m.numero}${rotulo(m)}</option>`).join('') : '<option value="">Nenhuma mesa disponível — cadastre em Administrador → Mesas</option>';
   if(anterior && disponiveis.some(m=>m.id===anterior)) sel.value = anterior;
   atualizarGarcomMesaInfo();
 }
@@ -6955,7 +6972,7 @@ const _aj = {
     'Olhe o status no topo: 🟢 Online = tudo certo · 🟡 Sincronizando = aguarde · 🔴 Sem conexão = veja “E se der errado?” · 🟠 Contingência = a planilha principal está fora do ar.',
     'Para sair, toque em “Sair” no topo. Para trocar a sua senha, toque em “🔑 Senha” (precisa da senha atual e de ao menos 8 caracteres).' ],
     itens:['Suas abas: '+abas+'. Um ponto dourado numa aba avisa que há algo novo.'],
-    comuns:['“Login ou senha incorretos”: confira os dados. Se esqueceu a senha, só o Administrador pode redefinir.','“Sua sessão expirou”: entre de novo; o que você estava digitando pode se perder.'] }),
+    comuns:['“Login ou senha incorretos”: confira os dados. Se esqueceu a senha, só o Administrador pode redefinir.','“Sua sessão expirou”: entre de novo; o que você estava digitando pode se perder.','“Muitas tentativas erradas”: depois de 5 erros o login fica bloqueado por 10 minutos, contados a partir do primeiro erro. Espere e tente de novo, sem insistir.'] }),
   ocorr: (quem)=>({ t:'Registrar um problema (Ocorrência)', passos:[
     'No cartão do pedido, toque em “⚠️ Ocorrência”.',
     'Escolha o tipo, descreva o que aconteceu e confirme.',
@@ -6964,23 +6981,25 @@ const _aj = {
 const MANUAL_AJUDA_ = {
 Admin:{ nome:'Administrador', secoes:[
   _aj.entrar('Início, Caixa, Pedidos, Entregas, Clientes, Notificações e Administrador'),
-  { t:'Onde fica cada coisa', itens:['A aba Administrador tem uma barra com: Visão Geral, Financeiro, Produtos e Estoque, Cardápio Digital, Promoções, Eventos, Custos e Precificação, Feedbacks, Ocorrências, Usuários e Permissões, Restaurante, Taxas e Fechamento, Notificações, Relatórios, Auditoria e Armazenamento.','Caixa, Pedidos, Entregas e Clientes funcionam como nos outros perfis, e você pode tudo.'] },
+  { t:'Onde fica cada coisa', itens:['A aba Administrador tem uma barra dividida em 5 grupos: Painel (Visão Geral, Relatórios); Financeiro (Financeiro, Histórico, Eventos); Catálogo (Produtos e Estoque, Custos e Precificação, Cardápio Digital, Promoções); Operação (Mesas, Entregas, Ocorrências, Feedbacks); Sistema (Usuários e Permissões, Avisos, Auditoria, Backup).','Caixa, Pedidos, Entregas e Clientes funcionam como nos outros perfis, e você pode tudo.'] },
   { t:'Criar usuário e trocar senha', passos:['Administrador → Usuários e Permissões.','Em “Criar acesso”, preencha Login e Senha e escolha o perfil (Operador de caixa, Garçom, Cozinha, Entregador ou Admin).','Digite “Sua senha de administrador” e toque em “Criar acesso”.','Para mudar nome, telefone, perfil, situação ou redefinir a senha de alguém, toque em “editar” na lista “Usuários cadastrados” e use o formulário. Tudo fica na Auditoria. No seu próprio acesso o perfil fica travado e a senha se troca em “🔑 Senha”.'],
     comuns:['Entregador não aparece na escolha de entregas: o usuário está inativo ou não tem o perfil Entregador.','Funcionário esqueceu a senha: só você troca, não existe “esqueci minha senha”.','Você esqueceu a sua: rode redefinirSenhaAdminEmergencia no editor do Apps Script; ele gera uma senha temporária.'] },
   { t:'Cadastrar produtos e estoque', passos:['Administrador → Produtos e Estoque → “Cadastrar produto”.','Informe nome, categoria, preço e custo (a margem aparece sozinha). O preço vale para todas as formas de pagamento.','Só abra “⚙️ Opções avançadas” para preço diferente numa forma (ex.: iFood) ou para a ficha técnica (ingredientes).','Se o item tem estoque próprio (bebida, por exemplo), marque a opção e informe quantidade e mínimo.'],
     comuns:['“Importar cardápio inicial” só precisa rodar uma vez; o que já existe pelo nome não é duplicado.','Cada venda baixa o estoque pela ficha técnica. Ingrediente no mínimo gera aviso em Notificações, sem bloquear a venda.'] },
-  { t:'QR Code das mesas', passos:['Administrador → Restaurante → “📲 QR Codes das mesas”.','Escolha a mesa e toque em “🖨️ Imprimir esta mesa” (ou “Imprimir todas”). Também dá para “⬇️ Baixar PNG”.','Plastifique e deixe na mesa. O cliente pede pelo celular e você aceita o pedido em Pedidos.','Se alguém espalhar o QR, use “🔄 Gerar novo código” e imprima o QR novo daquela mesa.'], comuns:['O endereço do site está fixo nos QR: https://texasburguer.github.io/apptexasburguer/ — se mudar de endereço, é preciso imprimir de novo.'] },
-  { t:'Cardápio Digital, promoções e eventos', itens:['Cardápio Digital: escolha o que aparece para o cliente, destaques, ordem e frase de abertura. “Mais Pedidos” é automático. As categorias aparecem numa faixa fixa no topo do cardápio do cliente (deslize para o lado).','Se o cliente pedir mais de 1 lanche com adicionais, os adicionais valem para todos; o cardápio avisa isso. Para lanches diferentes, ele adiciona separado.','O cliente pode escrever uma observação em cada item (ex.: “sem cebola”); ela aparece na comanda da cozinha e no pedido.','Item “Esgotado”: se “bloquear venda sem estoque” estiver ligado (Produtos e Estoque), o cardápio mostra “Esgotado” no que o estoque não cobre mais.','O cardápio abre rápido porque guarda uma cópia: mudanças suas aparecem para o cliente em instantes (no máximo ~10 min se você editar direto na planilha).','O cardápio só recebe pedidos com o caixa aberto; fechado, o cliente vê “Estamos fechados no momento”.','Promoções: cupons. Eventos: custos e recebimentos de cada evento. Custos e Precificação: simulador para achar o preço certo.'] },
+  { t:'QR Code das mesas', passos:['Administrador → Mesas → “📲 QR Codes das mesas”.','Escolha a mesa e toque em “🖨️ Imprimir esta mesa” (ou “Imprimir todas”). Também dá para “⬇️ Baixar PNG”.','Plastifique e deixe na mesa. O cliente pede pelo celular e você aceita o pedido em Pedidos.','Se alguém espalhar o QR, use “🔄 Gerar novo código” e imprima o QR novo daquela mesa.'], comuns:['O endereço do site está fixo nos QR: https://texasburguer.github.io/apptexasburguer/ — se mudar de endereço, é preciso imprimir de novo.'] },
+  { t:'Cardápio Digital, promoções e eventos', itens:['Cardápio Digital: escolha o que aparece para o cliente, destaques, ordem e frase de abertura. “Mais Pedidos” é automático. As categorias aparecem numa faixa fixa no topo do cardápio do cliente (no celular, deslize para o lado; no computador elas ficam em linhas, sem rolagem).','Se o cliente pedir mais de 1 lanche com adicionais, os adicionais valem para todos; o cardápio avisa isso. Para lanches diferentes, ele adiciona separado.','O cliente pode escrever uma observação em cada item (ex.: “sem cebola”); ela aparece na comanda da cozinha e no pedido.','Item “Esgotado”: se “bloquear venda sem estoque” estiver ligado (Produtos e Estoque), o cardápio mostra “Esgotado” no que o estoque não cobre mais.','O cardápio abre rápido porque guarda uma cópia: mudanças suas aparecem para o cliente em instantes (no máximo ~10 min se você editar direto na planilha).','O cardápio só recebe pedidos com o caixa aberto; fechado, o cliente vê “Estamos fechados no momento”.','Promoções: cupons. Eventos: custos e recebimentos de cada evento. Custos e Precificação: simulador para achar o preço certo.'] },
   { t:'Caixa: abrir, vender e fechar', passos:['Aba Caixa → “Abrir caixa” e informe o fundo de troco.','Em “Iniciar venda”: 1. Cliente (cadastrado ou “Venda sem cadastro”; Retirada, Entrega ou Mesa) → 2. Itens → 3. Pagamento → 4. Finalizar.','Depois escolha 58mm, 80mm ou A4 e toque em Imprimir, Copiar ou WhatsApp.','Para encerrar, feche o caixa, informe o dinheiro contado e confira a diferença.','Mesas: o botão “🍽️ Mesas” mostra todas as mesas, quem pediu a conta e permite fechar a conta e cobrar.','Pedido de mesa no Caixa: “Pagar ao sair” deixa o pedido na conta da mesa; “Pagar agora” cobra na hora (use as etapas de pagamento normais).'],
     comuns:['“Abra o caixa antes de registrar uma venda”: abra o caixa primeiro.','“A soma dos pagamentos precisa bater com o total”: ajuste os valores ao dividir o pagamento.','O desconto nunca pode zerar a venda. Você lança desconto sem digitar senha; o Caixa precisa da sua.'] },
   { t:'Pedidos e entregas', passos:['Pedido do Cardápio chega como “novo — aguardando aceite”: toque em “✅ Aceitar” ou “❌ Rejeitar”.','Quando o pedido ficar “Pronta” (retirada ou entrega) ou “Saiu para entrega”, e o cliente tiver telefone, toque em “📲 Avisar cliente”: abre o WhatsApp com a mensagem pronta e você só envia. Depois aparece “✔ avisado às…”.','Avance com “Marcar como…”: Em preparo → Pronta → Retirada (Servida, se for mesa).','Em Entregas, escolha o entregador no campo “Entregador” do pedido; ele avança até “Entregue”.','“⏸ Suspender” pausa o pedido (pede motivo) e “▶️ Retomar pedido” volta.','Venda “A Receber” só entra no caixa quando você toca em “marcar como recebido”.'],
     comuns:['Só dá para editar os itens com o pedido “Em preparo”.','Entregador esqueceu de marcar: marque você mesmo pelo botão do pedido.','Sem aviso de pedido novo: no Início, toque em “🔔 Ativar avisos” e “🔊 Testar som”. O aviso só chega com o app aberto e a tela ligada.'] },
-  { t:'Taxas e fechamento de entregadores', passos:['Administrador → Taxas e Fechamento.','Defina a taxa padrão e a ajuda diária e salve.','No fechamento, escolha entregador e data, confira o total (taxas + ajuda diária) e informe o valor pago.','Confirme. A diferença fica registrada e o período fechado não muda mais, mesmo que a taxa mude depois.'],
+  { t:'Entregas: taxas e fechamento de entregadores', passos:['Administrador → Entregas.','Defina a taxa padrão e a ajuda diária e salve.','No fechamento, escolha entregador e data, confira o total (taxas + ajuda diária) e informe o valor pago.','Confirme. A diferença fica registrada e o período fechado não muda mais, mesmo que a taxa mude depois.'],
     comuns:['A ajuda diária conta uma vez por dia e só se houve entrega.','Se a conexão cair ao fechar, confira o histórico antes de tentar de novo, para não fechar duas vezes.'] },
-  { t:'Ocorrências e notificações', itens:['Ocorrências: Administrador → Ocorrências → “Tratar” para acompanhar e resolver. As abertas também aparecem no mural Notificações, onde o Caixa e o Administrador também têm o botão “Tratar”.','Administrador → Notificações: ligue ou desligue cada aviso e escolha quais perfis o recebem (Administrador, Operador ou Cozinha).'] },
-  { t:'Financeiro, relatórios e auditoria', itens:['Financeiro: formas de pagamento, metas, contas a pagar, despesas mensais, fluxo de 30 dias e DRE. Só despesa paga entra no lucro.','Relatórios imprimem em A4, 80mm ou 58mm. Visão Geral e Relatórios atualizam ao abrir.','Auditoria: descontos, cancelamentos, preços, estoque, usuários, restaurações e acessos negados.'] },
-  { t:'Backup e armazenamento', passos:['Administrador → Armazenamento → “Fazer backup agora”.','Ative o backup automático e escolha a frequência.','Para restaurar, escolha o backup no histórico e confirme com sua senha de administrador.','Confira o uso do Drive: até 70% normal, 70–90% atenção, acima de 90% crítico.'],
-    comuns:['Drive cheio: backups e fotos podem falhar. Libere espaço.','A conferência de integridade aponta duplicidades, estoque negativo, caixa esquecido aberto e vendas paradas na contingência.'] }
+  { t:'Ocorrências e notificações', itens:['Ocorrências: Administrador → Ocorrências → “Tratar” para acompanhar e resolver. As abertas também aparecem no mural Notificações, onde o Caixa e o Administrador também têm o botão “Tratar”.','Administrador → Avisos (config): ligue ou desligue cada aviso e escolha quais perfis o recebem (Administrador, Operador ou Cozinha).'] },
+  { t:'Financeiro, relatórios e auditoria', itens:['Financeiro: contas a pagar, despesas mensais, previsto × pago, fluxo de 30 dias, metas e formas de pagamento. Histórico: resumo de hoje, vendas, despesas e sessões de caixa. O DRE fica em Relatórios. Só despesa paga entra no lucro.','Relatórios imprimem em A4, 80mm ou 58mm. Visão Geral e Relatórios atualizam ao abrir.','Auditoria: descontos, cancelamentos, preços, estoque, usuários, restaurações e acessos negados.'] },
+  { t:'Backup e armazenamento', passos:['Administrador → Backup → “Fazer backup agora”.','Ative o backup automático e escolha a frequência.','Para restaurar, escolha o backup no histórico e confirme com sua senha de administrador.','Confira o uso do Drive: até 70% normal, 70–90% atenção, acima de 90% crítico.'],
+    comuns:['Drive cheio: backups e fotos podem falhar. Libere espaço.','A conferência de integridade aponta duplicidades, estoque negativo, caixa esquecido aberto e vendas paradas na contingência.'] },
+  { t:'Contingência (plano B)', passos:['Administrador → Backup → cartão “Contingência”. 🟢 = acessível (mostra quando o espelho foi atualizado e quantas vendas estão pendentes); 🔴 = não respondeu.','Toque em “🔄 Sincronizar espelho agora” para copiar produtos, preços e clientes para a contingência.','Toque uma vez em “Ativar sincronização automática diária (3h)”. Com ela ligada, o espelho se atualiza todo dia de madrugada e o sistema confere a cada 30 minutos se há vendas pendentes para trazer.','Se a planilha principal ficou fora do ar e houve vendas na contingência, toque em “⬇️ Trazer vendas pendentes da contingência” e confirme.'],
+    comuns:['Depois de trocar as chaves da contingência, peça a todos para sair e entrar de novo: a chave interna é buscada no login.','Troque as chaves só com a fila vazia (sem vendas pendentes), senão elas podem ficar presas.','Garçom, Cozinha e Entregador não usam a fila da contingência.'] }
  ], erros:[
   { q:'A internet caiu', a:'Venda no Caixa: se você já entrou neste aparelho, o sistema oferece guardar a venda na CONTINGÊNCIA (só retirada ou entrega, sem desconto, sem mesa). Ela entra na planilha sozinha quando voltar; estoque e total do caixa só atualizam depois. Não confirme se a venda já apareceu. Caixa, cancelamento, pagamentos e estoque exigem conexão e nunca ficam guardados: espere o 🟢 e refaça. Clientes, feedbacks e ocorrências ficam salvos no aparelho e são reenviados sozinhos.' },
   { q:'O caixa está fechado', a:'Venda, despesa e sangria exigem caixa aberto, e o Cardápio Digital para de receber pedidos. Abra o caixa pela aba Caixa. Se aparecer “Já existe um caixa aberto”, feche o anterior (conte o dinheiro) antes de abrir outro.' },
@@ -7124,7 +7143,7 @@ async function carregarStatusBackup(){
     const alerta = document.getElementById('backupAlerta');
     const falhaRecente = r.ultimaFalha;
     alerta.innerHTML = falhaRecente ? `<div class="obs-line" style="background:#3a1512;border:1px solid #b3241c;padding:8px;border-radius:8px;margin-bottom:8px;">⚠️ <b>Último backup falhou</b> em ${fmt(falhaRecente.quando)}: ${escBk_(falhaRecente.erro)}</div>` : '';
-    sistemaAlertas_.backup = falhaRecente ? ('Último backup falhou em '+fmt(falhaRecente.quando)+'. Veja em Administrador → Armazenamento.') : '';
+    sistemaAlertas_.backup = falhaRecente ? ('Último backup falhou em '+fmt(falhaRecente.quando)+'. Veja em Administrador → Backup.') : '';
     marcarAlertaAdmin_(!!falhaRecente); renderNotificacoes();
     document.getElementById('bkAutoAtivo').checked = !!r.automaticoAtivo;
     document.getElementById('bkAutoFreq').value = freq;
@@ -7194,7 +7213,7 @@ async function carregarArmazenamento(){
     res.innerHTML = `<div style="height:12px;background:#3a2c1c;border-radius:6px;overflow:hidden;"><div style="width:${pct}%;height:100%;background:${cor};"></div></div>
       <div style="margin-top:6px;">Usado: <b>${formatarBytes_(d.usado)}</b> · Livre: <b>${d.livre===null?'—':formatarBytes_(d.livre)}</b> · <b style="color:${cor};">${d.percentual===null?'—':d.percentual+'%'} (${escBk_(d.nivel)})</b></div>
       ${d.nivel==='Crítico'?'<div class="obs-line" style="color:#ffb3ab;margin-top:4px;">⚠️ Drive quase cheio: novos backups e fotos podem falhar. Libere espaço.</div>':d.nivel==='Atenção'?'<div class="obs-line" style="margin-top:4px;">Atenção: acima de 70% do espaço.</div>':''}`;
-    sistemaAlertas_.drive = d.nivel==='Crítico' ? ('Google Drive quase cheio ('+d.percentual+'% usado). Libere espaço em Administrador → Armazenamento.') : '';
+    sistemaAlertas_.drive = d.nivel==='Crítico' ? ('Google Drive quase cheio ('+d.percentual+'% usado). Libere espaço em Administrador → Backup.') : '';
     marcarAlertaAdmin_(d.nivel==='Crítico'); renderNotificacoes();
     const cats = Object.entries(r.categorias).map(([n,v])=>`<tr><td>${escBk_(n)}</td><td align="right">${v.qtd}</td><td align="right">${formatarBytes_(v.bytes)}</td></tr>`).join('');
     const arqs = (r.arquivos||[]).slice(0,10).map(a=>`<tr><td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;">${escBk_(a.nome)}</td><td>${escBk_(a.categoria)}</td><td align="right">${formatarBytes_(a.tamanho)}</td></tr>`).join('');
@@ -8438,7 +8457,7 @@ function renderizarTudo(){
   _desenhar(()=>popularSelectIngredientes('pIngredienteSelect')); _desenhar(()=>popularSelectIngredientes('ppIngredienteSelect'));
   _desenhar(()=>popularSelectProdutosParaCombo('koProdutoSelect')); _desenhar(()=>popularSelectProdutosParaCombo('kkProdutoSelect'));
   _desenhar(()=>renderVendas()); _desenhar(()=>renderDespesas()); _desenhar(()=>renderContasPagar()); _desenhar(()=>renderDespesasRecorrentes()); _desenhar(()=>renderResumoPrevisto()); _desenhar(()=>renderFluxoPrevisto()); _desenhar(()=>atualizarMargemPreview()); _desenhar(()=>atualizarMargemPreviewCombo());
-  _desenhar(()=>atualizarMetaUI()); _desenhar(()=>atualizarResumoHoje()); if(_secAtiva==='tab-financeiro') _desenhar(()=>gerarRelatorio()); _desenhar(()=>renderNotificacoes()); _desenhar(()=>renderPedidos()); _desenhar(()=>renderEntregas());
+  _desenhar(()=>atualizarMetaUI()); _desenhar(()=>atualizarResumoHoje()); if(_secAtiva==='tab-relatorios') _desenhar(()=>gerarRelatorio()); _desenhar(()=>renderNotificacoes()); _desenhar(()=>renderPedidos()); _desenhar(()=>renderEntregas());
   _desenhar(()=>renderStatusCaixa()); _desenhar(()=>renderHistoricoCaixa()); _desenhar(()=>renderUsuarios()); _desenhar(()=>renderLog()); _desenhar(()=>renderFeedbacks()); _desenhar(()=>renderConfigCardapio());
   _desenhar(()=>renderMesas()); _desenhar(()=>renderMesasPickerCaixa());
 }
