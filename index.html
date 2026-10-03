@@ -927,7 +927,7 @@ body.perfil-garcom #btnFecharContaItens{display:none !important;}
       <div id="inicioResumo"></div>
       <div class="btnrow" style="flex-wrap:wrap;margin-top:14px;">
         <button class="atalho-btn" onclick="document.querySelector('[data-tab=caixa]').click()">🧾 Abrir Caixa</button>
-        <button class="atalho-btn atalho-pedidos" onclick="abrirPedidosPainel_('pedidos')">📋 Ver Pedidos</button>
+        <button class="atalho-btn atalho-pedidos" onclick="abrirPedidosPainel_('pedidos')">📋 Retiradas</button>
         <button class="atalho-btn" onclick="abrirPedidosPainel_('entregas')">🛵 Entregas</button>
         <button class="atalho-btn btn-mesas" id="atalhoMesas" style="display:none;" onclick="abrirMesasPopup_()">🍽️ Mesas</button>
         <button class="atalho-btn" onclick="document.querySelector('[data-tab=clientes]').click()">👤 Clientes</button>
@@ -5269,8 +5269,8 @@ function atualizarAtalhosInicio_(d){
   }
   const ped = document.querySelector('#tab-inicio .atalho-pedidos');
   if(ped){
-    const n = staff ? d.novos : d.prontos;
-    ped.textContent = n>0 ? ('📋 Pedidos — '+n+(staff?' para aceitar':' pronto(s)')) : '📋 Ver Pedidos';
+    const n = staff ? d.retNovos : d.retProntos; // só retiradas: as entregas têm o próprio botão
+    ped.textContent = n>0 ? ('📋 Retiradas — '+n+(staff?' para aceitar':' pronto(s)')) : '📋 Retiradas';
     ped.style.borderColor = n>0 ? 'var(--gold)' : '';
   }
   const ent = document.querySelector('#tab-inicio .atalho-btn[onclick*="entregas"]');
@@ -5291,7 +5291,7 @@ function renderInicio(){
   const conta = (st)=>meusAtivos.filter(v=>v.statusPedido===st).length;
   const novos = conta('Recebido'), preparo = conta('Em preparo'), prontos = conta('Pronta'), naRua = conta('Saiu para entrega');
   const blocos = [];
-  atualizarAtalhosInicio_({ novos, prontos, nivel, entregasAtivas: ativos.filter(v=>v.tipoEntrega==='Entrega').length });
+  atualizarAtalhosInicio_({ retNovos: ativos.filter(v=>v.tipoEntrega==='Retirada' && v.statusPedido==='Recebido').length, retProntos: ativos.filter(v=>v.tipoEntrega==='Retirada' && v.statusPedido==='Pronta').length, nivel, entregasAtivas: ativos.filter(v=>v.tipoEntrega==='Entrega').length });
   const clique = (js)=>`onclick="${js}"`;
 
   if(staff){
