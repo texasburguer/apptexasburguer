@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <!-- SEGURANÇA: mesmo que algum texto malicioso escapasse, a página só consegue falar com o Google Apps Script (planilha e contingência). -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' https: data: blob:; connect-src 'self' https://script.google.com https://script.googleusercontent.com; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none';">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' https: data: blob:; connect-src 'self' https://script.google.com https://script.googleusercontent.com https://awryywtgqfaxppayzpca.supabase.co; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none';">
 <meta name="referrer" content="no-referrer">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0b0705">
@@ -2849,6 +2849,184 @@ async function fetchContingencia_(opts, ms, repeticoes){
     }finally{ clearTimeout(to); }
   }
 }
+/* ===================================================================================================
+   ETAPA 3a — NOVO SERVIDOR (Supabase): login e LEITURAS.   Versão: v-etapa-03a
+   - Login, cardápio público e as telas de leitura vêm do Supabase.
+   - As GRAVAÇÕES ainda não foram migradas (etapas 3b e 3c): nesta versão elas são recusadas com aviso e NADA é gravado
+     (nem na planilha, para os dois lados nunca ficarem diferentes).
+   - Para voltar ao servidor antigo (planilha) sem mexer em mais nada: troque USAR_SUPABASE_ para false.
+   =================================================================================================== */
+const USAR_SUPABASE_ = true;
+const SUPABASE_URL_ = 'https://awryywtgqfaxppayzpca.supabase.co';
+const SUPABASE_CHAVE_ = 'sb_publishable_tCN4tLlRshbP8OOmfDcVZA_LqqMMbRg'; // chave PÚBLICA por desenho (a segurança está nas regras do banco)
+const SB_SESSAO_KEY_ = 'texasBurgerSb_v1';
+const SB_DOMINIO_ = '@usuarios.texasburger.app';
+const SB_DRIVE_FOTO_ = 'https://drive.google.com/uc?export=view&id=';
+function sbEmail_(login){ return String(login||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim() + SB_DOMINIO_; }
+function sbSessaoLer_(){ try{ return JSON.parse(localStorage.getItem(SB_SESSAO_KEY_)||'null'); }catch(e){ return null; } }
+function sbSessaoGravar_(s){ try{ if(s) localStorage.setItem(SB_SESSAO_KEY_, JSON.stringify(s)); else localStorage.removeItem(SB_SESSAO_KEY_); }catch(e){} }
+function sbFotoUrl_(id){ return id ? (SB_DRIVE_FOTO_ + id) : ''; }
+async function sbJson_(url, opts, ms){
+  const ctl = new AbortController(); const to = setTimeout(()=>ctl.abort(), ms || 30000);
+  try{ return await fetch(url, Object.assign({}, opts, { signal: ctl.signal })); }
+  catch(e){ if(e && e.name === 'AbortError'){ const t = new Error('O servidor demorou para responder'); t.timeout = true; throw t; } throw e; }
+  finally{ clearTimeout(to); }
+}
+async function sbTokenPassword_(email, senha){
+  const r = await sbJson_(SUPABASE_URL_ + '/auth/v1/token?grant_type=password', { method:'POST', headers:{ 'apikey': SUPABASE_CHAVE_, 'Content-Type':'application/json' }, body: JSON.stringify({ email, password: senha }) }, 20000);
+  return { status: r.status, corpo: await r.json().catch(()=>({})) };
+}
+function sbGuardarTokens_(c){ sbSessaoGravar_({ access_token: c.access_token, refresh_token: c.refresh_token, expira: Date.now() + ((c.expires_in||3600) - 60) * 1000 }); }
+let _sbRenovando_ = null;
+async function sbRenovar_(){
+  if(_sbRenovando_) return _sbRenovando_;
+  _sbRenovando_ = (async ()=>{
+    const s = sbSessaoLer_(); if(!s || !s.refresh_token) return false;
+    try{
+      const r = await sbJson_(SUPABASE_URL_ + '/auth/v1/token?grant_type=refresh_token', { method:'POST', headers:{ 'apikey': SUPABASE_CHAVE_, 'Content-Type':'application/json' }, body: JSON.stringify({ refresh_token: s.refresh_token }) }, 20000);
+      if(!r.ok) return false;
+      sbGuardarTokens_(await r.json()); return true;
+    }catch(e){ return false; }
+  })().finally(()=>{ _sbRenovando_ = null; });
+  return _sbRenovando_;
+}
+class SbSessaoExpirada_ extends Error {}
+/* GET no banco. Com sessao=true usa o login do funcionário; senão, a chave pública (visitante). Páginas de 1000 linhas. */
+async function sbSelecionar_(tabela, consulta, sessao){
+  const itens = []; let de = 0; const TAM = 1000;
+  for(;;){
+    let s = sessao ? sbSessaoLer_() : null;
+    if(sessao){
+      if(!s) throw new SbSessaoExpirada_();
+      if(Date.now() > s.expira){ if(!(await sbRenovar_())) throw new SbSessaoExpirada_(); s = sbSessaoLer_(); }
+    }
+    const url = SUPABASE_URL_ + '/rest/v1/' + tabela + '?' + (consulta ? consulta + '&' : '') + 'select=*' ;
+    const cab = { 'apikey': SUPABASE_CHAVE_, 'Authorization': 'Bearer ' + (s ? s.access_token : SUPABASE_CHAVE_), 'Range-Unit': 'items', 'Range': de + '-' + (de + TAM - 1) };
+    let r = await sbJson_(url, { headers: cab }, 30000);
+    if(r.status === 401 && sessao){ if(!(await sbRenovar_())) throw new SbSessaoExpirada_(); s = sbSessaoLer_(); cab.Authorization = 'Bearer ' + s.access_token; r = await sbJson_(url, { headers: cab }, 30000); if(r.status === 401) throw new SbSessaoExpirada_(); }
+    if(!r.ok && r.status !== 206) throw new Error('Falha ao ler ' + tabela + ' (' + r.status + ')');
+    const pag = await r.json(); itens.push.apply(itens, pag);
+    if(pag.length < TAM) break; de += TAM;
+  }
+  return itens;
+}
+const SB_NOTIF_PADRAO_ = { pedido:['Admin','Operador'], entrega:['Admin','Operador'], estoque:['Admin','Operador','Cozinha'], financeiro:['Admin'], ocorrencia:['Admin','Operador'], sistema:['Admin'], fidelidade:['Admin','Operador'], indicacao:['Admin','Operador'], aniversario:['Admin','Operador'], inativos:['Admin','Operador'] };
+const SB_CATEGORIAS_DESPESA_ = ['Insumos','Aluguel','Energia','Água','Gás','Internet/Telefone','Salários','Impostos','Manutenção','Marketing','Embalagens','Outros'];
+function sbDataBr_(iso){ if(!iso) return ''; const d = new Date(iso); if(isNaN(d)) return ''; const p = n=>String(n).padStart(2,'0'); return p(d.getDate())+'/'+p(d.getMonth()+1)+'/'+d.getFullYear()+' '+p(d.getHours())+':'+p(d.getMinutes()); }
+function sbCfg_(sistema, chave, padrao){ const x = sistema.find(i=>i.chave===chave); if(!x || x.valor===null || x.valor==='' || x.valor===undefined) return padrao; return x.valor; }
+/* Lê tudo que o perfil pode ver (as regras do banco já filtram por perfil) e devolve no MESMO formato que a planilha devolvia. */
+async function sbMontarDados_(nivel){
+  const L = (t, q)=>sbSelecionar_(t, q||'order=id', true);
+  const [formas, cats, prods, pprec, ping, combos, cprec, citens, adic, padic, sistema, usuarios, promos, estoque, mesas] = await Promise.all([
+    L('formas_pagamento'), L('categorias'), L('produtos'), L('produto_precos'), L('produto_ingredientes'), L('combos'), L('combo_precos'),
+    L('combo_itens'), L('adicionais'), L('produto_adicionais'), L('sistema','order=chave'), L('usuarios'), L('promocoes'), L('estoque'), L('mesas')
+  ]);
+  const gestor = (nivel === 'Admin' || nivel === 'Operador'), admin = nivel === 'Admin', operacional = (nivel === 'Garçom' || nivel === 'Cozinha');
+  const nomeIng = {}; estoque.forEach(e=>{ nomeIng[e.id] = e.ingrediente; });
+  const semCusto = x=>{ if(!gestor) delete x.custo; return x; };
+  const cad = {
+    formasPagamento: formas.map((f,i)=>({ id:f.id, nome:f.nome, ativa:f.ativa, visivelCardapio:f.visivel_cardapio, taxaPct:Number(f.taxa_percentual)||0, taxaFixa:Number(f.taxa_fixa)||0, prazoDias:Number(f.prazo_dias)||0, permiteTroco:f.permite_troco, ordem:Number(f.ordem)||(i+1) })).sort((a,b)=>a.ordem-b.ordem)
+      .map(f=> operacional ? { id:f.id, nome:f.nome, ativa:f.ativa, permiteTroco:f.permiteTroco, ordem:f.ordem } : f),
+    categorias: cats.map(c=>({ id:c.id, nome:c.nome, ativa:c.ativa, ordem:Number(c.ordem)||0 })).sort((a,b)=>a.ordem-b.ordem),
+    produtos: prods.map(p=>({ id:p.id, nome:p.nome, descricao:p.descricao||'', categoria:p.categoria_id||'', ativo:p.ativo, fotoId:p.foto_id_principal||'', fotoUrl:sbFotoUrl_(p.foto_id_principal), destaque:p.destaque, estoqueProprioIngredienteId:p.estoque_proprio_ingrediente_id||'', ordemCardapio:Number(p.ordem_cardapio)||0 })),
+    produtoPrecos: pprec.map(x=>semCusto({ id:x.id, produtoId:x.produto_id, formaPagamentoId:x.forma_pagamento_id, preco:Number(x.preco), custo:Number(x.custo) })),
+    produtoIngredientes: ping.map(x=>({ id:x.id, produtoId:x.produto_id, ingredienteId:x.ingrediente_id, ingredienteNome:nomeIng[x.ingrediente_id]||'', quantidadePorUnidade:Number(x.quantidade_por_unidade) })),
+    combos: combos.map(c=>({ id:c.id, nome:c.nome, categoria:c.categoria_id||'', ativo:c.ativo, fotoId:c.foto_id_principal||'', fotoUrl:sbFotoUrl_(c.foto_id_principal), destaque:c.destaque, ordemCardapio:Number(c.ordem_cardapio)||0 })),
+    comboPrecos: cprec.map(x=>semCusto({ id:x.id, comboId:x.combo_id, formaPagamentoId:x.forma_pagamento_id, preco:Number(x.preco), custo:Number(x.custo) })),
+    comboItens: citens.map(x=>({ id:x.id, comboId:x.combo_id, produtoId:x.produto_id, quantidade:Number(x.quantidade) })),
+    adicionais: adic.map(a=>({ id:a.id, nome:a.nome, preco:Number(a.preco)||0, ativo:a.ativo, ingredienteId:a.ingrediente_id||'', quantidadeDesconto:Number(a.quantidade_descontar)||1 })),
+    produtoAdicionais: padic.map(x=>({ id:x.id, produtoId:x.produto_id, adicionalId:x.adicional_id })),
+    configCardapio: { kicker: sbCfg_(sistema,'CardapioKicker','DELIVERY · SABOR QUE CONQUISTA'), frase: sbCfg_(sistema,'CardapioFrase','Peça pelo cardápio — rápido, sem complicação.'), tempoEntrega: sbCfg_(sistema,'CardapioTempoEntrega','40-60 min'), tempoRetirada: sbCfg_(sistema,'CardapioTempoRetirada','20-30 min'), tempoMesa: sbCfg_(sistema,'CardapioTempoMesa','20-30 min') },
+    categoriasDespesa: SB_CATEGORIAS_DESPESA_,
+    configEntrega: { taxaPadrao: Number(sbCfg_(sistema,'TaxaEntregaPadrao',0))||0, ajudaDiaria: Number(sbCfg_(sistema,'AjudaDiariaEntregador',0))||0 },
+    configEstoque: { bloquear: sbCfg_(sistema,'BLOQUEAR_ESTOQUE_NEGATIVO',false) === true },
+    configNotificacoes: (()=>{ const salvo = sbCfg_(sistema,'NotificacoesConfig',null) || {}, o = {}; Object.keys(SB_NOTIF_PADRAO_).forEach(id=>{ const s = salvo[id]; o[id] = { ativo: s ? s.ativo !== false : true, perfis: (s && Array.isArray(s.perfis)) ? s.perfis.filter(p=>['Admin','Operador','Cozinha'].indexOf(p)!==-1) : SB_NOTIF_PADRAO_[id].slice() }; }); return o; })()
+  };
+  const din = {
+    usuarios: usuarios.map(u=>({ login:u.login, nivel:u.nivel, ativo:u.ativo, criadoEm:sbDataBr_(u.criado_em), nome:u.nome||'', telefone:u.telefone||'', id:u.id })),
+    logRecentes: [], clientes: [], promocoes: nivel==='Garçom' ? [] : promos.map(p=>({ nome:p.nome, tipo:p.tipo, regra:p.regra_duplicidade, beneficio:p.beneficio, ativa:p.ativa })),
+    cupons: [], eventos: [], indicacoes: [], fidelidade: [],
+    estoque: estoque.map(e=>{ const y = { id:e.id, nome:e.ingrediente, quantidade:Number(e.quantidade), minimo:Number(e.quantidade_minima), unidade:e.unidade||'un', custo:Number(e.custo_unitario)||0, ativo:e.status!=='Inativo' }; if(!gestor) delete y.custo; return y; }),
+    movimentacoesEstoque: [],
+    mesas: mesas.map(m=>({ id:m.id, numero:m.numero, status:m.status||'Livre', capacidade:m.capacidade||'', observacao:m.observacao||'', garcomResponsavel:'', chamadoEm: m.chamado_em ? (Date.parse(m.chamado_em)||0) : 0 })).sort((a,b)=>Number(a.numero)-Number(b.numero)),
+    feedbacks: [], ocorrencias: [], maisPedidos: [], vendas: [], itensVenda: [], pagamentosVenda: [], despesas: [], despesasRecorrentes: [], ajustesPosVenda: [], sangrias: [],
+    metas: admin || nivel==='Operador' ? { mensal: Number(sbCfg_(sistema,'MetaMensal',0))||0, diaria: Number(sbCfg_(sistema,'MetaDiaria',0))||0 } : { mensal:0, diaria:0 },
+    sessaoCaixa: null, historicoCaixa: [], fechamentosEntrega: [], entregasFechadas: []
+  };
+  return { cad, din };
+}
+const SB_VERSOES_ = { cad: 'sb-3a', din: 'sb-3a' }; // sem controle de versão na 3a: a tela se atualiza pela sincronização completa (a cada 15 min ou no botão Atualizar). Tempo real = Etapa 6.
+async function sbCardapioPublico_(){
+  const P = (t, ordem)=>sbSelecionar_(t, 'order=' + ordem, false); // ordem fixa: a leitura em páginas não pode repetir nem pular linhas
+  const [cats, prods, combos, formas, citens, precos, adic, cfg, st] = await Promise.all([
+    P('v_cardapio_categorias','id'), P('v_cardapio_produtos','id'), P('v_cardapio_combos','id'), P('v_cardapio_formas','id'), P('v_cardapio_combo_itens','combo_id,produto_id'),
+    P('v_cardapio_precos','tipo,item_id,forma_pagamento_id'), P('v_cardapio_adicionais','produto_id,adicional_id'), P('v_cardapio_config','chave'),
+    P('v_cardapio_status','caixa_aberto').catch(()=>[{ caixa_aberto:false }])
+  ]);
+  const cfgv = {}; cfg.forEach(c=>{ cfgv[c.chave] = c.valor; });
+  if(cfgv.MANUTENCAO) return { ok:false, manutencao:true, message: String(cfgv.MANUTENCAO.mensagem || cfgv.MANUTENCAO) };
+  const vistos = {}, adicionais = [], produtoAdicionais = [];
+  adic.forEach(a=>{ if(!vistos[a.adicional_id]){ vistos[a.adicional_id] = 1; adicionais.push({ id:a.adicional_id, nome:a.nome, preco:Number(a.preco) }); } produtoAdicionais.push({ produtoId:a.produto_id, adicionalId:a.adicional_id }); });
+  return {
+    ok: true,
+    categorias: cats.map(c=>({ id:c.id, nome:c.nome, ativa:true, ordem:Number(c.ordem)||0 })).sort((a,b)=>a.ordem-b.ordem),
+    produtos: prods.sort((a,b)=>(a.ordem_cardapio||0)-(b.ordem_cardapio||0)).map(p=>({ id:p.id, nome:p.nome, descricao:p.descricao||'', categoria:p.categoria_id||'', fotoUrl:sbFotoUrl_(p.foto_id_principal), destaque:p.destaque })),
+    combos: combos.sort((a,b)=>(a.ordem_cardapio||0)-(b.ordem_cardapio||0)).map(c=>({ id:c.id, nome:c.nome, categoria:c.categoria_id||'', fotoUrl:sbFotoUrl_(c.foto_id_principal), destaque:c.destaque })),
+    formasPagamento: formas.sort((a,b)=>(a.ordem||0)-(b.ordem||0)).map(f=>({ id:f.id, nome:f.nome, ativa:true, visivelCardapio:true })),
+    produtoPrecos: precos.filter(x=>x.tipo==='produto').map(x=>({ produtoId:x.item_id, formaPagamentoId:x.forma_pagamento_id, preco:Number(x.preco) })),
+    comboPrecos: precos.filter(x=>x.tipo==='combo').map(x=>({ comboId:x.item_id, formaPagamentoId:x.forma_pagamento_id, preco:Number(x.preco) })),
+    adicionais, produtoAdicionais,
+    comboItens: citens.map(x=>({ comboId:x.combo_id, produtoId:x.produto_id })),
+    config: { kicker: cfgv.CardapioKicker || 'DELIVERY · SABOR QUE CONQUISTA', frase: cfgv.CardapioFrase || 'Peça pelo cardápio — rápido, sem complicação.', tempoEntrega: cfgv.CardapioTempoEntrega || '40-60 min', tempoRetirada: cfgv.CardapioTempoRetirada || '20-30 min', tempoMesa: cfgv.CardapioTempoMesa || '20-30 min', taxaEntrega: Number(cfgv.TaxaEntregaPadrao)||0 },
+    maisPedidos: [], caixaAberto: !!(st[0] && st[0].caixa_aberto), esgotados: { produtos: [], combos: [] }
+  };
+}
+const SB_NAO_MIGRADA_ = 'Esta ação ainda não foi migrada para o novo servidor (etapas 3b/3c). Nada foi gravado.';
+/* Roteador: devolve a resposta no formato antigo, ou undefined se a ação não for tratada aqui (não acontece com USAR_SUPABASE_ ligado). */
+async function sbRotear_(action, payload){
+  try{
+    if(action === 'autenticar'){
+      const login = String(payload.login||'').trim();
+      const t = await sbTokenPassword_(sbEmail_(login), payload.senha);
+      if(t.status !== 200 || !t.corpo.access_token) return { ok:false, message: (t.status===429 ? 'Muitas tentativas erradas. Aguarde alguns minutos e tente de novo.' : 'Login ou senha incorretos.') };
+      sbGuardarTokens_(t.corpo);
+      const r = await sbJson_(SUPABASE_URL_ + '/rest/v1/usuarios?select=login,nivel,ativo&id=eq.' + encodeURIComponent(t.corpo.user.id), { headers:{ 'apikey': SUPABASE_CHAVE_, 'Authorization': 'Bearer ' + t.corpo.access_token } }, 20000);
+      const linhas = r.ok ? await r.json() : [];
+      if(!linhas.length){ sbSessaoGravar_(null); return { ok:false, message:'Login ou senha incorretos.' }; }
+      if(!linhas[0].ativo){ sbSessaoGravar_(null); return { ok:false, message:'Este acesso está desativado.' }; }
+      return { ok:true, login: linhas[0].login, nivel: linhas[0].nivel, token: t.corpo.access_token };
+    }
+    if(action === 'encerrarSessao'){
+      const s = sbSessaoLer_(); sbSessaoGravar_(null);
+      if(s) sbJson_(SUPABASE_URL_ + '/auth/v1/logout', { method:'POST', headers:{ 'apikey': SUPABASE_CHAVE_, 'Authorization': 'Bearer ' + s.access_token } }, 8000).catch(()=>{});
+      return { ok:true };
+    }
+    if(action === 'getCardapio') return await sbCardapioPublico_();
+    if(action === 'getVersoes') return Object.assign({ ok:true }, SB_VERSOES_);
+    if(action === 'getAll' || action === 'getDadosGrupo'){
+      const nivel = currentUser ? currentUser.nivel : '';
+      const { cad, din } = await sbMontarDados_(nivel);
+      const gestor = (nivel === 'Admin' || nivel === 'Operador');
+      const grupo = (gestor && action === 'getDadosGrupo') ? (payload.grupo === 'cad' ? 'cad' : 'din') : '';
+      const dados = Object.assign({ ok:true }, grupo === 'din' ? {} : cad, grupo === 'cad' ? {} : din);
+      dados.versoes = Object.assign({}, SB_VERSOES_); if(grupo) dados.grupo = grupo;
+      return dados;
+    }
+    if(action === 'detectarNovosPedidos' || action === 'obterChaveContingencia' || action === 'obterStatusBackup') return { ok:false, naoMigrada:true };
+    return { ok:false, naoMigrada:true, message: SB_NAO_MIGRADA_ };
+  }catch(e){
+    if(e instanceof SbSessaoExpirada_){ sbSessaoGravar_(null); return { ok:false, sessaoExpirada:true, message:'Sessão expirada.' }; }
+    throw e;
+  }
+}
+function sbFaixa_(){
+  if(!USAR_SUPABASE_ || document.getElementById('sbFaixa')) return;
+  const d = document.createElement('div'); d.id = 'sbFaixa';
+  d.style.cssText = 'position:fixed;left:0;right:0;bottom:0;z-index:9999;background:#b45309;color:#fff;font:600 12px/1.3 system-ui,sans-serif;text-align:center;padding:4px 8px;pointer-events:none;';
+  d.textContent = '🧪 TESTE DO NOVO SERVIDOR (etapa 3a): só leitura — gravações ainda não migradas';
+  document.body.appendChild(d);
+}
+
 async function apiCall(action, payload, _tentativa, _idemChave){
   if(_tentativa !== undefined || API_SILENCIOSAS_.has(action)) return _apiCallRaw(action, payload, _tentativa, _idemChave);
   _carregandoInicio_(action);
@@ -2880,6 +3058,7 @@ function mostrarManutencao_(msg){
 async function _apiCallRaw(action, payload, _tentativa, _idemChave){
   if(currentUser && currentUser.emergencia) throw new Error('Modo emergência: este aparelho não fala com a planilha principal'); // BLOCO 1.3 (age como falha de rede: nada é gravado nem apagado)
   payload = payload || {};
+  if(USAR_SUPABASE_){ const _rsb = await sbRotear_(action, payload); if(_rsb !== undefined){ if(_rsb && _rsb.sessaoExpirada){ try{ _fila.forEach(i=>{ if(i.estado==='pendente' || i.estado==='retry' || i.estado==='enviando'){ i.estado='erro'; i.erro='Sessão expirada — entre de novo e toque em "Tentar de novo"'; } }); filaSalvar_(); }catch(e){} localStorage.removeItem(SESSAO_KEY); localStorage.removeItem(CONTINGENCIA_CHAVE_KEY); localStorage.removeItem(CACHE_KEY); currentUser = null; alert('Sua sessão expirou. Faça login novamente.'); location.reload(); } return _rsb; } }
   const _chaveVer = payload.id || (action === 'editarUsuario' ? payload.loginAlvo : ''); // BLOCO 4.1: usuário é identificado pelo login
   if(_tentativa === undefined && VERSAO_FRONT_[action] && _chaveVer && payload.versaoEsperada === undefined){
     try{ const atual = (VERSAO_FRONT_[action]()||[]).find(x=>(payload.id ? x.id === payload.id : String(x.login).toLowerCase() === String(_chaveVer).toLowerCase())); if(atual && atual._v) payload = Object.assign({}, payload, { versaoEsperada: atual._v }); }catch(e){}
@@ -3162,6 +3341,7 @@ function entrarNoApp(){
     const bc = document.querySelector('.tab-btn[data-tab="caixa"]'); if(bc) bc.click();
     emergenciaBanner_('🟠 MODO EMERGÊNCIA — planilha fora do ar. Só vendas do Caixa, pela contingência.');
   }
+  sbFaixa_();
   init();
   setTimeout(oferecerRecuperarCarrinho_, 800);  // ITEM 2.7
 }
@@ -9274,6 +9454,7 @@ function cdLerCache_(){ try{ const r = JSON.parse(localStorage.getItem(CD_CACHE_
 function cdSalvarCache_(dados){ try{ localStorage.setItem(CD_CACHE_KEY_, JSON.stringify({ t: Date.now(), dados })); }catch(e){} }
 /* Busca leve (GET): não entra na fila única do sistema e usa o cache do servidor. */
 async function cdBuscarGet_(versaoAtual){
+  if(USAR_SUPABASE_){ const d = await sbCardapioPublico_(); if(d && d.manutencao){ mostrarManutencao_(d.message); throw new Error('manutencao'); } if(!d || !d.produtos) throw new Error('Resposta inválida'); return d; }
   const ctl = new AbortController(); const to = setTimeout(()=>ctl.abort(), 15000);
   try{
     const res = await fetch(API_URL + (API_URL.indexOf('?')===-1?'?':'&') + 'cd=' + Date.now() + (versaoAtual ? '&v=' + encodeURIComponent(versaoAtual) : ''), { signal: ctl.signal });
