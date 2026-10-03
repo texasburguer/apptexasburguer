@@ -735,7 +735,7 @@ const ACOES_LEITURA_SEM_FILA_ = ['getVersoes', 'getStatusPedidoPublico', 'getMes
    REGRA DE SEGURANÇA: toda ação que não esteja na lista de "só leitura" troca a versão din; e toda ação que não esteja na lista
    "só dinâmicas" troca também a versão cad. Ação nova/esquecida => troca as duas (na dúvida, baixa tudo). */
 const ACOES_SEM_ALTERACAO_ = ['getAll', 'getVersoes', 'getDadosGrupo', 'detectarNovosPedidos', 'conferirIntegridade', 'getCardapio', 'obterStatusBackup',
-  'obterArmazenamento', 'getStatusPedidoPublico', 'getMesaPublica', 'validarCupomCardapio', 'obterChaveContingencia', 'verificarSenhaAdmin', 'simularPrecificacao', 'listarSessoes'];
+  'obterArmazenamento', 'obterArmazenamentoContingencia', 'getStatusPedidoPublico', 'getMesaPublica', 'validarCupomCardapio', 'obterChaveContingencia', 'verificarSenhaAdmin', 'simularPrecificacao', 'listarSessoes'];
 const ACOES_SO_DINAMICAS_ = ['autenticar', 'encerrarSessao', 'encerrarSessaoRemota', 'iniciarVenda', 'criarPedidoCardapio', 'criarPedidoMesa', 'cancelarPedidoMesa', 'cancelarPedidoCardapioPublico', 'pedirContaMesa',
   'chamarGarcomMesa', 'avancarStatusPedido', 'iniciarPreparoPedido', 'atribuirEntregador', 'confirmarRecebimentoPedido', 'editarVenda', 'cancelarVenda',
   'aceitarPedido', 'rejeitarPedido', 'suspenderPedido', 'retomarPedido', 'abrirCaixa', 'fecharCaixa', 'editarStatusMesa', 'fecharContaMesa', 'addSangria',
@@ -846,6 +846,7 @@ function doPost(e) {
       case 'obterStatusBackup': resultado = obterStatusBackup(); break;
       case 'configurarBackupAutomatico': resultado = configurarBackupAutomaticoApp(body.ativo, body.frequencia, body.hora); break;
       case 'obterArmazenamento': resultado = obterArmazenamento(); break;
+      case 'obterArmazenamentoContingencia': resultado = obterArmazenamentoContingencia(); break;
       case 'restaurarBackup': resultado = restaurarBackup(body.backupId, body.senhaAdmin, body.confirmacao); break;
       case 'fazerBackupAgora':
         if (!exigeConfirmacaoAdmin(body.senhaAdminConfirmacao)) { resultado = { ok: false, message: 'Senha de administrador incorreta.' }; }
@@ -1511,7 +1512,7 @@ const PERMISSOES_ACAO = {
   salvarConfigCardapio: ['Admin'], salvarConfigNotificacoes: ['Admin'], salvarConfigEstoque: ['Admin'],
   obterChaveContingencia: ['Admin', 'Operador'], // Garçom/Cozinha/Entregador não usam a fila
   fazerBackupAgora: ['Admin'], obterStatusBackup: ['Admin'],
-  configurarBackupAutomatico: ['Admin'], obterArmazenamento: ['Admin'], restaurarBackup: ['Admin'],
+  configurarBackupAutomatico: ['Admin'], obterArmazenamento: ['Admin'], obterArmazenamentoContingencia: ['Admin'], restaurarBackup: ['Admin'],
   conferirIntegridade: ['Admin'],
   salvarCupom: ['Admin'], editarCupom: ['Admin'], alternarCupom: ['Admin'],
   salvarEvento: ['Admin'], adicionarCustoEvento: ['Admin'], adicionarRecebimentoEvento: ['Admin'], cancelarEvento: ['Admin'],
@@ -5126,6 +5127,8 @@ function abaBackups_() {
     sh.appendRow(['ID', 'Data/Hora', 'Tipo', 'Status', 'Arquivo', 'ArquivoId', 'Tamanho (bytes)', 'Tentativas', 'Erro', 'Usuário']);
     sh.setFrozenRows(1); sh.setTabColor('#5a5a5a');
   }
+  if (sh.getMaxColumns() < 11) sh.insertColumnsAfter(sh.getMaxColumns(), 11 - sh.getMaxColumns());
+  if (sh.getRange(1, 11).getValue() !== 'Cópia contingência') sh.getRange(1, 11).setValue('Cópia contingência');
   return sh;
 }
 function obterPastaBackups_() {
@@ -5152,6 +5155,40 @@ function obterArmazenamentoDrive_() {
   const nivel = pct === null ? 'Indisponível' : pct > ARMAZ_CRITICO_PCT ? 'Crítico' : pct >= ARMAZ_ATENCAO_PCT ? 'Atenção' : 'Normal';
   return { usado: usado, limite: limite, livre: limite > 0 ? Math.max(0, limite - usado) : null, percentual: pct, nivel: nivel };
 }
+/* ---------- ITEM 16: cópia do backup na conta da contingência ---------- */
+function exportarXlsxBase64_(fileId) {
+  const r = UrlFetchApp.fetch('https://docs.google.com/spreadsheets/d/' + fileId + '/export?format=xlsx',
+    { headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() }, muteHttpExceptions: true });
+  if (r.getResponseCode() !== 200) throw new Error('Exportação do backup falhou (HTTP ' + r.getResponseCode() + ').');
+  const bytes = r.getBlob().getBytes();
+  if (bytes.length > 15 * 1024 * 1024) throw new Error('Backup grande demais para copiar (' + Math.round(bytes.length / 1048576) + ' MB; máximo 15 MB).');
+  return Utilities.base64Encode(bytes);
+}
+function marcarCopiaBackup_(backupId, texto) {
+  try {
+    const sh = abaBackups_(); const last = sh.getLastRow(); if (last < 2) return;
+    const ids = sh.getRange(2, 1, last - 1, 1).getValues();
+    for (let i = ids.length - 1; i >= 0; i--) { if (ids[i][0] === backupId) { sh.getRange(i + 2, 11).setValue(texto); return; } }
+  } catch (e) {}
+}
+/* Nunca lança erro: se falhar, o backup local continua valendo; só registra e avisa. */
+function copiarBackupParaContingencia_(arquivoId, nome, backupId) {
+  const props = PropertiesService.getScriptProperties();
+  try {
+    const r = chamarContingencia_('guardarBackup', { nome: nome, base64: exportarXlsxBase64_(arquivoId) });
+    if (!r || !r.ok) throw new Error((r && r.message) || 'A contingência recusou a cópia.');
+    marcarCopiaBackup_(backupId, 'Sim');
+    props.deleteProperty('ULTIMA_FALHA_COPIA_BACKUP');
+    registrarLog('Cópia do backup guardada na contingência', '', nome);
+    return { ok: true };
+  } catch (e) {
+    const msg = String(e && e.message || e).slice(0, 200);
+    marcarCopiaBackup_(backupId, 'Falha: ' + msg);
+    props.setProperty('ULTIMA_FALHA_COPIA_BACKUP', JSON.stringify({ quando: new Date().toISOString(), erro: msg }));
+    registrarLog('Falha ao copiar backup para a contingência', '', msg);
+    return { ok: false, message: msg };
+  }
+}
 /* Núcleo do backup: retry, histórico na aba Backups e falha SEMPRE registrada (ITEM 73). */
 function executarBackup_(tipo) {
   const sh = abaBackups_();
@@ -5176,7 +5213,12 @@ function executarBackup_(tipo) {
       const arquivos = pasta.getFiles();
       while (arquivos.hasNext()) { const f = arquivos.next(); if (f.getId() !== copia.getId() && f.getDateCreated() < limite) { try { f.setTrashed(true); } catch (e) {} } }
       registrarLog('Backup criado', '', tipo + ': ' + nome);
-      return { ok: true, message: 'Backup criado: ' + nome, ultimoBackup: new Date().toISOString(), id: id, arquivoId: copia.getId() };
+      let msgCopia = '';
+      if (tipo !== 'Pré-restauração') { // a de segurança da restauração fica só local, para não atrasar o restaurar
+        const rc = copiarBackupParaContingencia_(copia.getId(), nome, id);
+        msgCopia = rc.ok ? ' Cópia guardada também na contingência.' : ' ⚠️ A cópia na contingência falhou: ' + rc.message;
+      }
+      return { ok: true, message: 'Backup criado: ' + nome + '.' + msgCopia, ultimoBackup: new Date().toISOString(), id: id, arquivoId: copia.getId() };
     } catch (e) {
       ultimoErro = String(e && e.message || e);
       if (t < BACKUP_MAX_TENTATIVAS) Utilities.sleep(2000 * t);
@@ -5241,10 +5283,10 @@ function obterStatusBackup() {
   const freq = String(lerConfigChave_('BACKUP_FREQ', 'diaria'));
   const hora = Number(lerConfigChave_('BACKUP_HORA', 4));
   const sh = abaBackups_(); const last = sh.getLastRow();
-  const linhas = last < 2 ? [] : sh.getRange(Math.max(2, last - 29), 1, Math.min(30, last - 1), 10).getValues();
+  const linhas = last < 2 ? [] : sh.getRange(Math.max(2, last - 29), 1, Math.min(30, last - 1), 11).getValues();
   const historico = linhas.reverse().map(r => ({
     id: r[0], quando: r[1] instanceof Date ? r[1].toISOString() : String(r[1]), tipo: r[2], status: r[3],
-    arquivo: r[4], arquivoId: r[5], tamanho: numPlanilha_(r[6]) || 0, tentativas: numPlanilha_(r[7]) || 0, erro: r[8], usuario: r[9]
+    arquivo: r[4], arquivoId: r[5], tamanho: numPlanilha_(r[6]) || 0, tentativas: numPlanilha_(r[7]) || 0, erro: r[8], usuario: r[9], copia: r[10] || ''
   }));
   const falhaRaw = props.getProperty('ULTIMA_FALHA_BACKUP');
   // O "último backup" sai do próprio histórico (aba Backups): assim a tela nunca mostra um backup que não aparece na lista.
@@ -5259,7 +5301,8 @@ function obterStatusBackup() {
   return {
     ok: true, ultimoBackup: ultimoSucesso ? ultimoSucesso.quando : null, ultimoBackupPelaCopia: ultimoPelaCopia, automaticoAtivo: ativo,
     frequencia: freq, hora: hora, proximoBackup: proximoBackup_(ativo, freq, hora),
-    retencaoDias: BACKUP_RETENCAO_DIAS, ultimaFalha: falhaRaw ? JSON.parse(falhaRaw) : null, historico: historico
+    retencaoDias: BACKUP_RETENCAO_DIAS, ultimaFalha: falhaRaw ? JSON.parse(falhaRaw) : null, historico: historico,
+    ultimaFalhaCopia: (function () { try { const x = props.getProperty('ULTIMA_FALHA_COPIA_BACKUP'); return x ? JSON.parse(x) : null; } catch (e) { return null; } })()
   };
 }
 function fazerBackupManual_() { return executarBackup_('Manual'); }
@@ -5310,6 +5353,15 @@ function restaurarBackupAplicar_(origem, nomeArq) {
   }
   registrarLog('Backup restaurado', '', nomeArq + ' | abas: ' + restauradas.length + ' | preservadas/puladas: ' + puladas.join(', '));
   return { ok: true, message: 'Backup restaurado (' + restauradas.length + ' abas). Recarregue o app para ver os dados.', restauradas: restauradas, puladas: puladas };
+}
+
+/* ---------- ITEM 18: espaço da conta da contingência ---------- */
+function obterArmazenamentoContingencia() {
+  try {
+    const r = chamarContingencia_('getArmazenamento');
+    if (!r || !r.ok) return { ok: false, message: (r && r.message) || 'A contingência não respondeu.' };
+    return r;
+  } catch (e) { return { ok: false, message: 'Não foi possível falar com a contingência: ' + e.message }; }
 }
 
 /* ---------- GOOGLE DRIVE / ARQUIVOS (ITENS 75–77) ---------- */
@@ -5523,18 +5575,60 @@ function chamarContingencia_(action, extra) {
   return JSON.parse(resp.getContentText());
 }
 
+/* ---------- ITEM 17: cópia das fotos na conta da contingência ---------- */
+/* Envia só as fotos que a contingência ainda não tem. Para quando passar do tempo (limiteMs) e continua na próxima sincronização. */
+function sincronizarFotosContingencia_(limiteMs) {
+  const inicio = Date.now();
+  const res = { ok: false, mapa: {}, enviadas: 0, faltam: 0, falhas: [], removidas: 0, totalFotos: 0 };
+  const ids = {};
+  readProdutos().forEach(p => { if (p.fotoId) ids[p.fotoId] = true; });
+  readCombos().forEach(c => { if (c.fotoId) ids[c.fotoId] = true; });
+  const lista = Object.keys(ids);
+  res.totalFotos = lista.length;
+  const l = chamarContingencia_('listarFotos');
+  if (!l || !l.ok) { res.falhas.push((l && l.message) || 'listarFotos falhou'); return res; }
+  res.mapa = l.fotos || {};
+  const faltando = lista.filter(id => !res.mapa[id]);
+  for (let i = 0; i < faltando.length; i++) {
+    if (Date.now() - inicio > limiteMs) { res.faltam = faltando.length - i; break; }
+    const id = faltando[i];
+    try {
+      const bytes = DriveApp.getFileById(id).getBlob().getBytes();
+      if (bytes.length > 5 * 1024 * 1024) { res.falhas.push(id + ': maior que 5 MB'); continue; }
+      const r = chamarContingencia_('guardarFoto', { idOrigem: id, base64: Utilities.base64Encode(bytes) });
+      if (r && r.ok) { res.mapa[id] = r.fotoIdReserva; res.enviadas++; }
+      else res.falhas.push(id + ': ' + ((r && r.message) || 'recusada'));
+    } catch (e) { res.falhas.push(id + ': ' + e.message); }
+  }
+  if (!res.faltam && !res.falhas.length && lista.length) { // só limpa órfãs quando tudo está em dia
+    try { const rm = chamarContingencia_('removerFotosOrfas', { ids: lista }); if (rm && rm.ok) res.removidas = rm.removidas || 0; } catch (e) {}
+  }
+  res.ok = true;
+  return res;
+}
+/* Rode UMA vez no editor para a primeira carga (sem o limite de tempo do app): menu de funções -> copiarFotosParaContingenciaAgora -> Executar. */
+function copiarFotosParaContingenciaAgora() {
+  const r = sincronizarFotosContingencia_(280000);
+  Logger.log(JSON.stringify({ enviadas: r.enviadas, faltam: r.faltam, falhas: r.falhas, totalFotos: r.totalFotos }));
+  return r.enviadas + ' foto(s) copiada(s); faltam ' + r.faltam + '; ' + r.falhas.length + ' falha(s).';
+}
+
 /* Empurra pra contingência tudo que ela precisa pra manter o Cardápio Digital
    e uma versão simples do Caixa funcionando: catálogo, preços, clientes,
    config do banner. NÃO manda vendas/financeiro — isso não é o papel dela. */
-function sincronizarContingencia() {
+function sincronizarContingencia(e) {
+  const limiteFotosMs = (e && e.triggerUid) ? 240000 : 20000; // gatilho das 3h tem tempo de sobra; clique no app, não
+  let fotos = { mapa: {}, enviadas: 0, faltam: 0, falhas: [], totalFotos: 0 };
+  try { fotos = sincronizarFotosContingencia_(limiteFotosMs); } catch (eF) { registrarLog('Falha ao copiar fotos para a contingência', '', eF.message); }
+  const reserva = id => (id && fotos.mapa[id]) || '';
   const formas = readFormasPagamento();
   const dados = {
     /* PUBLICO: o que o Cardapio precisa e nada alem (sem custos, sem taxas, sem clientes) */
     publico: {
       categorias: readCategorias(),
-      produtos: readProdutos().map(p => ({ id: p.id, nome: p.nome, descricao: p.descricao, categoria: p.categoria, ativo: p.ativo, fotoUrl: p.fotoUrl, destaque: p.destaque, ordemCardapio: p.ordemCardapio })),
+      produtos: readProdutos().map(p => ({ id: p.id, nome: p.nome, descricao: p.descricao, categoria: p.categoria, ativo: p.ativo, fotoUrl: p.fotoUrl, fotoReservaId: reserva(p.fotoId), destaque: p.destaque, ordemCardapio: p.ordemCardapio })),
       produtoPrecos: readProdutoPrecos().map(p => ({ produtoId: p.produtoId, formaPagamentoId: p.formaPagamentoId, preco: p.preco })),
-      combos: readCombos().map(c => ({ id: c.id, nome: c.nome, categoria: c.categoria, ativo: c.ativo, fotoUrl: c.fotoUrl, destaque: c.destaque, ordemCardapio: c.ordemCardapio })),
+      combos: readCombos().map(c => ({ id: c.id, nome: c.nome, categoria: c.categoria, ativo: c.ativo, fotoUrl: c.fotoUrl, fotoReservaId: reserva(c.fotoId), destaque: c.destaque, ordemCardapio: c.ordemCardapio })),
       comboPrecos: readComboPrecos().map(p => ({ comboId: p.comboId, formaPagamentoId: p.formaPagamentoId, preco: p.preco })),
       adicionais: readAdicionais().map(a => ({ id: a.id, nome: a.nome, preco: a.preco, ativo: a.ativo })),
       produtoAdicionais: readProdutoAdicionais(),
@@ -5550,6 +5644,9 @@ function sincronizarContingencia() {
   };
   try {
     const r = chamarContingencia_('atualizarEspelho', { dados: dados });
+    const notaFotos = ' Fotos: ' + fotos.enviadas + ' copiada(s) agora' + (fotos.faltam ? ', faltam ' + fotos.faltam + ' (sincronize de novo ou aguarde às 3h)' : '') + (fotos.falhas.length ? ', ' + fotos.falhas.length + ' com falha (veja o Log)' : '') + '.';
+    if (r) r.message = ((r.message || '') + notaFotos).trim();
+    if (fotos.falhas.length) registrarLog('Fotos que não foram para a contingência', '', fotos.falhas.slice(0, 5).join(' | '));
     registrarLog('Contingência sincronizada', '', (r && r.message) || '');
     return r;
   } catch (e) {

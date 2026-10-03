@@ -1022,6 +1022,14 @@ body.perfil-garcom #btnFecharContaItens{display:none !important;}
       <div class="msg" id="adVincMsg"></div>
     </div>
 
+    <div class="card" id="importarCardapioCard">
+      <h2>Importar cardápio inicial</h2>
+      <p class="sub">Cadastra de uma vez as categorias, produtos, combos e bebidas do Texas Burger, já com preço da loja, preço do iFood e foto. Pode rodar com segurança mais de uma vez — se algo já existir pelo nome, não duplica, e a foto só é enviada para quem ainda está sem foto. Leva alguns minutos por causa das fotos: não feche a página.</p>
+      <button class="small-gold" style="width:100%;padding:10px;" onclick="importarCardapioInicial()">📥 Importar cardápio do Texas Burger</button>
+      <button class="ghost" style="width:100%;padding:10px;margin-top:8px;" onclick="aplicarFotosCardapioInicial()">📷 Só aplicar as fotos do cardápio inicial</button>
+      <div class="msg" id="importarCardapioMsg"></div>
+    </div>
+
   </section>
 
   <!-- =========================== ESTOQUE (ADMIN › CATÁLOGO) =========================== -->
@@ -1817,17 +1825,11 @@ body.perfil-garcom #btnFecharContaItens{display:none !important;}
       <h2>Contingência</h2>
       <p class="sub">Uma segunda planilha, numa conta Google separada, que mantém o Cardápio Digital funcionando (cliente continua pedindo) se esta aqui ficar fora do ar. Ela guarda uma cópia dos produtos/preços/clientes e enfileira as vendas feitas nesse meio tempo.</p>
       <div id="contingenciaStatus" style="font-size:13px;margin-bottom:10px;">Carregando status...</div>
+      <div id="contingenciaArmazenamento" style="font-size:13px;margin-bottom:10px;"></div>
       <button class="small-gold" style="width:100%;padding:10px;" onclick="sincronizarContingenciaUI()">🔄 Sincronizar espelho agora</button>
       <button class="ghost" style="width:100%;padding:10px;margin-top:8px;" onclick="ativarSincronizacaoContingenciaUI()">Ativar sincronização automática diária (3h)</button>
       <button class="ghost" style="width:100%;padding:10px;margin-top:8px;" onclick="reconciliarContingenciaUI()">⬇️ Trazer vendas pendentes da contingência</button>
       <div class="msg" id="contingenciaMsg"></div>
-    </div>
-    <div class="card" id="importarCardapioCard">
-      <h2>Importar cardápio inicial</h2>
-      <p class="sub">Cadastra de uma vez as categorias, produtos, combos e bebidas do Texas Burger, já com preço da loja, preço do iFood e foto. Pode rodar com segurança mais de uma vez — se algo já existir pelo nome, não duplica, e a foto só é enviada para quem ainda está sem foto. Leva alguns minutos por causa das fotos: não feche a página.</p>
-      <button class="small-gold" style="width:100%;padding:10px;" onclick="importarCardapioInicial()">📥 Importar cardápio do Texas Burger</button>
-      <button class="ghost" style="width:100%;padding:10px;margin-top:8px;" onclick="aplicarFotosCardapioInicial()">📷 Só aplicar as fotos do cardápio inicial</button>
-      <div class="msg" id="importarCardapioMsg"></div>
     </div>
 
   </section>
@@ -2623,7 +2625,7 @@ let categoriasDespesa = [], despesasRecorrentes = [], ajustesPosVenda = [];
 let configEstoque = { bloquear:false };
 let configEntrega = { taxaPadrao:0, ajudaDiaria:0 }, fechamentosEntrega = [], entregasFechadas = [];
 let configNotificacoes = null; // ITENS 64/65: {evento:{ativo, perfis[]}} vindo do backend (null = usa o padrão)
-let sistemaAlertas_ = { backup:'', drive:'' }; // preenchido quando o Admin abre Armazenamento
+let sistemaAlertas_ = { backup:'', drive:'', driveCont:'', copiaBackup:'' }; // preenchido quando o Admin abre Armazenamento
 let metas = { mensal: 0, diaria: 0 }, sessaoCaixa = null, historicoCaixa = [];
 let usuarios = [], logRecentes = [];
 
@@ -2789,9 +2791,9 @@ function _carregandoFim_(action){
      com aviso para conferir antes de repetir, e puxa o estado real da planilha. */
 const TIMEOUT_API_MS_ = 30000, TIMEOUT_API_PESADA_MS_ = 60000, TIMEOUT_API_LONGA_MS_ = 120000;
 const TIMEOUT_API_REPETICOES_ = 2, TIMEOUT_API_PAUSA_MS_ = 1000;
-const ACOES_PESADAS_ = new Set(['getAll','getDadosGrupo','conferirIntegridade','obterArmazenamento','obterStatusBackup']);
+const ACOES_PESADAS_ = new Set(['getAll','getDadosGrupo','conferirIntegridade','obterArmazenamento','obterArmazenamentoContingencia','obterStatusBackup']);
 const ACOES_LONGAS_ = new Set(['fazerBackupAgora','restaurarBackup','configurarBackupAutomatico','seedCardapioTexasBurger','sincronizarContingenciaAgora','reconciliarContingenciaAgora','ativarSincronizacaoContingencia','uploadFotoProduto','uploadFotoCombo']);
-const ACOES_LEITURA_REPETIVEL_ = new Set(['getAll','getVersoes','getDadosGrupo','getCardapio','conferirIntegridade','obterStatusBackup','obterArmazenamento','getStatusPedidoPublico','getMesaPublica','detectarNovosPedidos','getQrMesas','previewFechamentoEntrega','simularPrecificacao']);
+const ACOES_LEITURA_REPETIVEL_ = new Set(['getAll','getVersoes','getDadosGrupo','getCardapio','conferirIntegridade','obterStatusBackup','obterArmazenamento','obterArmazenamentoContingencia','getStatusPedidoPublico','getMesaPublica','detectarNovosPedidos','getQrMesas','previewFechamentoEntrega','simularPrecificacao']);
 const ACOES_REPETIVEIS_COM_ID_ = new Set(ACOES_IDEM_FRONT.concat(['iniciarVenda','criarPedidoCardapio','criarPedidoMesa','fecharPeriodoEntregador','adicionarCustoEvento','adicionarRecebimentoEvento']));
 const ACOES_TIMEOUT_SEM_ESTADO_ = new Set(['autenticar','verificarSenhaAdmin']); // não mexem em dados: só pedem para tentar de novo
 function repetivelNoTimeout_(action, payload){
@@ -7569,7 +7571,7 @@ Admin:{ nome:'Administrador', secoes:[
     comuns:['A venda original NÃO muda e continua como Confirmada. No DRE o ajuste aparece na linha “Ajustes pós-venda”, separado das despesas.','Crédito não reduz o resultado na hora: quando o cliente usar, aplique como desconto no Caixa. Ele aparece como aviso abaixo do DRE.','Reembolso e desconto retroativo não passam do valor da venda (somando os ajustes já feitos nela).','Devolução que saiu do caixa de um turno já fechado não pode ser cancelada pelo sistema.'] },
   { t:'Backup e armazenamento', passos:['Administrador → Backup → “Fazer backup agora”.','Ative o backup automático e escolha a frequência.','Para restaurar, escolha o backup no histórico e confirme com sua senha de administrador.','Confira o uso do Drive: até 70% normal, 70–90% atenção, acima de 90% crítico.'],
     comuns:['Drive cheio: backups e fotos podem falhar. Libere espaço.','A conferência de integridade aponta duplicidades, estoque negativo, caixa esquecido aberto e vendas paradas na contingência.'] },
-  { t:'Contingência (plano B)', passos:['Administrador → Backup → cartão “Contingência”. 🟢 = acessível (mostra quando o espelho foi atualizado e quantas vendas estão pendentes); 🔴 = não respondeu.','Toque em “🔄 Sincronizar espelho agora” para copiar produtos, preços e clientes para a contingência.','Toque uma vez em “Ativar sincronização automática diária (3h)”. Com ela ligada, o espelho se atualiza todo dia de madrugada e o sistema confere a cada 30 minutos se há vendas pendentes para trazer.','Se a planilha principal ficou fora do ar e houve vendas na contingência, toque em “⬇️ Trazer vendas pendentes da contingência” e confirme.'],
+  { t:'Contingência (plano B)', passos:['Administrador → Backup → cartão “Contingência”. 🟢 = acessível (mostra quando o espelho foi atualizado e quantas vendas estão pendentes); 🔴 = não respondeu.','Toque em “🔄 Sincronizar espelho agora” para copiar produtos, preços e clientes para a contingência.','Toque uma vez em “Ativar sincronização automática diária (3h)”. Com ela ligada, o espelho se atualiza todo dia de madrugada e o sistema confere a cada 30 minutos se há vendas pendentes para trazer.','Se a planilha principal ficou fora do ar e houve vendas na contingência, toque em “⬇️ Trazer vendas pendentes da contingência” e confirme.','Backups: cada backup (manual ou automático) também é copiado para o Drive da conta da contingência. No histórico de backups, a coluna “Cópia” mostra ✅ quando deu certo e ⚠️ quando falhou (o backup local continua valendo).','Fotos: ao sincronizar o espelho, as fotos do cardápio também ganham cópia na conta da contingência. Se a mensagem disser “faltam N”, toque em sincronizar de novo ou aguarde a sincronização das 3h.','Espaço: o cartão mostra quanto da conta da contingência está usado. Acima de 90% aparece um alerta em Notificações → Sistema; libere espaço nessa conta.'],
     comuns:['Depois de trocar as chaves da contingência, peça a todos para sair e entrar de novo: a chave interna é buscada no login.','Troque as chaves só com a fila vazia (sem vendas pendentes), senão elas podem ficar presas.','Garçom, Cozinha e Entregador não usam a fila da contingência.'] }
  ], erros:[
   { q:'A internet caiu', a:'Venda no Caixa: se você já entrou neste aparelho, o sistema oferece guardar a venda na CONTINGÊNCIA (só retirada ou entrega, sem desconto, sem mesa). Ela entra na planilha sozinha quando voltar; estoque e total do caixa só atualizam depois. Não confirme se a venda já apareceu. Caixa, cancelamento, pagamentos e estoque exigem conexão e nunca ficam guardados: espere o 🟢 e refaça. Clientes, feedbacks e ocorrências ficam salvos no aparelho e são reenviados sozinhos.' },
@@ -7718,7 +7720,8 @@ async function carregarStatusBackup(){
     const falhaRecente = r.ultimaFalha;
     alerta.innerHTML = falhaRecente ? `<div class="obs-line" style="background:#3a1512;border:1px solid #b3241c;padding:8px;border-radius:8px;margin-bottom:8px;">⚠️ <b>Último backup falhou</b> em ${fmt(falhaRecente.quando)}: ${escBk_(falhaRecente.erro)}</div>` : '';
     sistemaAlertas_.backup = falhaRecente ? ('Último backup falhou em '+fmt(falhaRecente.quando)+'. Veja em Administrador → Backup.') : '';
-    marcarAlertaAdmin_(!!falhaRecente); renderNotificacoes();
+    sistemaAlertas_.copiaBackup = r.ultimaFalhaCopia ? ('A cópia do último backup na contingência falhou em '+fmt(r.ultimaFalhaCopia.quando)+': '+r.ultimaFalhaCopia.erro) : '';
+    marcarAlertaAdmin_(!!falhaRecente || !!r.ultimaFalhaCopia); renderNotificacoes();
     document.getElementById('bkAutoAtivo').checked = !!r.automaticoAtivo;
     document.getElementById('bkAutoFreq').value = freq;
     prepararSeletorHoraBackup_();
@@ -7729,9 +7732,10 @@ async function carregarStatusBackup(){
       <td>${fmt(b.quando)}</td><td>${escBk_(b.tipo)}</td>
       <td style="color:${b.status==='Sucesso'?'#bfe0ae':'#ffb3ab'};">${escBk_(b.status)}${b.tentativas>1?' ('+b.tentativas+'x)':''}</td>
       <td>${formatarBytes_(b.tamanho)}</td>
+      <td>${b.status!=='Sucesso' ? '' : (b.copia==='Sim' ? '<span style="color:#bfe0ae;">✅ contingência</span>' : (b.copia ? `<span style="color:#ffb3ab;" title="${escBk_(b.copia)}">⚠️ falhou</span>` : '<span style="color:var(--muted);">—</span>'))}</td>
       <td>${b.status==='Sucesso' ? `<button class="ghost" style="padding:4px 8px;" onclick="restaurarBackupUI('${escBk_(b.id)}')">Restaurar</button>` : `<span style="color:var(--muted);">${escBk_(b.erro)}</span>`}</td></tr>`).join('');
     document.getElementById('backupHistorico').innerHTML = bkHistorico.length
-      ? `<table style="width:100%;border-collapse:collapse;white-space:nowrap;"><thead><tr><th align="left">Quando</th><th align="left">Tipo</th><th align="left">Status</th><th align="left">Tamanho*</th><th></th></tr></thead><tbody>${linhas}</tbody></table><div class="obs-line" style="margin-top:6px;">*Tamanho aproximado (exportação xlsx).</div>`
+      ? `<table style="width:100%;border-collapse:collapse;white-space:nowrap;"><thead><tr><th align="left">Quando</th><th align="left">Tipo</th><th align="left">Status</th><th align="left">Tamanho*</th><th align="left">Cópia</th><th></th></tr></thead><tbody>${linhas}</tbody></table><div class="obs-line" style="margin-top:6px;">*Tamanho aproximado (exportação xlsx).</div>`
       : '<span style="color:var(--muted);">Nenhum backup registrado ainda.</span>';
   } catch(e){ box.innerHTML = '<span style="color:var(--muted);">Não foi possível carregar o status do backup.</span>'; }
 }
@@ -7742,7 +7746,7 @@ async function fazerBackupAgora(){
     try{
       const r = await apiCall('fazerBackupAgora', { senhaAdminConfirmacao: senha||'' });
       showMsg('backupMsg', r.message, r.ok ? 'ok' : 'warn');
-      carregarStatusBackup(); carregarArmazenamento();
+      carregarStatusBackup(); carregarArmazenamento(); carregarArmazenamentoContingencia();
     } catch(e){ showMsg('backupMsg','Não foi possível fazer o backup agora.','warn'); }
     finally { finalizarOperacaoUnica('backup'); }
   };
@@ -7916,8 +7920,29 @@ async function carregarStatusContingencia(){
     if(r.ok){
       const idade = r.espelhoAtualizadoEm ? formatarDataHoraISO(r.espelhoAtualizadoEm) : 'nunca sincronizado';
       box.innerHTML = `🟢 Contingência acessível — espelho atualizado em: <b>${idade}</b> · ${r.pendentes} venda(s) pendente(s) de reconciliar`;
+      carregarArmazenamentoContingencia();
     } else box.innerHTML = '🔴 Contingência respondeu com erro.';
   } catch(e){ box.innerHTML = '🔴 Não foi possível falar com a API de contingência agora.'; }
+}
+async function carregarArmazenamentoContingencia(){
+  const box = document.getElementById('contingenciaArmazenamento');
+  if(!box) return;
+  try{
+    const r = await apiCall('obterArmazenamentoContingencia', {});
+    if(!r || r.ok===false){ box.innerHTML = '<span style="color:var(--muted);">Espaço da conta da contingência indisponível: '+escBk_(r&&r.message||'sem resposta')+'</span>'; sistemaAlertas_.driveCont=''; return; }
+    const d = r.drive, cor = {Normal:'#7cc46a','Atenção':'#e0b53a','Crítico':'#e5534b'}[d.nivel] || '#999';
+    const pct = d.percentual===null ? 0 : Math.min(100,d.percentual);
+    const cats = Object.entries(r.categorias||{}).map(([n,v])=>`<tr><td>${escBk_(n)}</td><td align="right">${v.qtd}</td><td align="right">${formatarBytes_(v.bytes)}</td></tr>`).join('');
+    const ult = (r.backups||[])[0];
+    box.innerHTML = `<div style="font-weight:600;margin-bottom:4px;">Espaço da conta da contingência</div>
+      <div style="height:12px;background:#3a2c1c;border-radius:6px;overflow:hidden;"><div style="width:${pct}%;height:100%;background:${cor};"></div></div>
+      <div style="margin-top:6px;">Usado: <b>${formatarBytes_(d.usado)}</b> · Livre: <b>${d.livre===null?'—':formatarBytes_(d.livre)}</b> · <b style="color:${cor};">${d.percentual===null?'—':d.percentual+'%'} (${escBk_(d.nivel)})</b></div>
+      ${d.nivel==='Crítico'?'<div class="obs-line" style="color:#ffb3ab;margin-top:4px;">⚠️ Drive da contingência quase cheio: novas cópias de backup e fotos podem ser recusadas. Libere espaço nessa conta.</div>':d.nivel==='Atenção'?'<div class="obs-line" style="margin-top:4px;">Atenção: acima de 70% do espaço.</div>':''}
+      <table style="width:100%;border-collapse:collapse;white-space:nowrap;margin-top:6px;"><thead><tr><th align="left">Guardado lá</th><th align="right">Arquivos</th><th align="right">Tamanho</th></tr></thead><tbody>${cats}</tbody></table>
+      <div class="obs-line" style="margin-top:4px;">Última cópia de backup: <b>${ult ? formatarDataHoraISO(ult.criadoEm)+' ('+formatarBytes_(ult.tamanho)+')' : 'nenhuma ainda'}</b></div>`;
+    sistemaAlertas_.driveCont = d.nivel==='Crítico' ? ('Drive da conta da contingência quase cheio ('+d.percentual+'% usado). Libere espaço nessa conta.') : '';
+    marcarAlertaAdmin_(d.nivel==='Crítico'); renderNotificacoes();
+  } catch(e){ box.innerHTML = '<span style="color:var(--muted);">Não foi possível consultar o espaço da contingência agora.</span>'; }
 }
 async function sincronizarContingenciaUI(){
   showMsg('contingenciaMsg','Sincronizando espelho (produtos, preços, clientes)... pode levar alguns segundos.','ok');
@@ -8298,6 +8323,8 @@ function renderNotificacoes(){
   if(errosFila) sisItens.push(`<b>${errosFila}</b> item(ns) da fila de envio com erro. Toque em "na fila" no topo para tentar de novo.`);
   if(sistemaAlertas_.backup) sisItens.push(escOc_(sistemaAlertas_.backup));
   if(sistemaAlertas_.drive) sisItens.push(escOc_(sistemaAlertas_.drive));
+  if(sistemaAlertas_.driveCont) sisItens.push(escOc_(sistemaAlertas_.driveCont));
+  if(sistemaAlertas_.copiaBackup) sisItens.push(escOc_(sistemaAlertas_.copiaBackup));
   if(sisBox) sisBox.innerHTML = sisItens.length ? sisItens.map(t=>`<div class="notif-card">${t}</div>`).join('') : '<div class="notif-empty">Sistema em ordem.</div>';
   const contagem = { pedido:pedidosNovos.length, entrega:alertasEntrega.length, estoque:baixos.length, financeiro:vencidas.length, ocorrencia:ocAbertas.length, sistema:sisItens.length, fidelidade:quase.length, indicacao:pendentes.length, aniversario:0, inativos:0 };
   let totalAlertas = 0;
@@ -9304,8 +9331,9 @@ async function carregarCardapioPublico(){
    do cardápio sem precisar de uma versão paralela dela. */
 function adaptarEspelhoParaCardapio(espelho){
   const categorias = (espelho.categorias||[]).filter(c=>c.ativa);
-  const produtos = (espelho.produtos||[]).filter(p=>p.ativo).sort((a,b)=>(a.ordemCardapio||0)-(b.ordemCardapio||0));
-  const combos = (espelho.combos||[]).filter(c=>c.ativo).sort((a,b)=>(a.ordemCardapio||0)-(b.ordemCardapio||0));
+  const usaReserva = x => Object.assign({}, x, { fotoUrl: x.fotoReservaId ? ('https://drive.google.com/uc?export=view&id=' + x.fotoReservaId) : (x.fotoUrl || '') });
+  const produtos = (espelho.produtos||[]).filter(p=>p.ativo).sort((a,b)=>(a.ordemCardapio||0)-(b.ordemCardapio||0)).map(usaReserva);
+  const combos = (espelho.combos||[]).filter(c=>c.ativo).sort((a,b)=>(a.ordemCardapio||0)-(b.ordemCardapio||0)).map(usaReserva);
   const formasPagamento = (espelho.formasPagamento||[]).filter(f=>f.ativa && f.visivelCardapio);
   return {
     categorias, produtos, combos, formasPagamento,

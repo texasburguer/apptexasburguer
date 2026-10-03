@@ -28,7 +28,8 @@ const FILA_MAX_PENDENTES = 300, FILA_MAX_CHARS = 30000;
    FILA_MAX_PUBLICA pedidos pendentes e FILA_MAX_PUBLICA_10MIN envios a cada 10 minutos — assim spam não enche a fila e não trava a venda interna. */
 const FILA_MAX_PUBLICA = 100, FILA_MAX_PUBLICA_10MIN = 30;
 const PERMISSOES = {
-  servidor: ['listarPendentes', 'marcarSincronizado', 'atualizarEspelho', 'getEspelho', 'getEspelhoPublico', 'getEspelhoInterno'],
+  servidor: ['listarPendentes', 'marcarSincronizado', 'atualizarEspelho', 'getEspelho', 'getEspelhoPublico', 'getEspelhoInterno',
+             'guardarBackup', 'getArmazenamento', 'listarFotos', 'guardarFoto', 'removerFotosOrfas'],
   interna:  ['enfileirar', 'getEspelhoPublico', 'getEspelhoInterno'],
   publica:  ['enfileirar', 'getEspelhoPublico']
 };
@@ -59,6 +60,7 @@ function setup() {
     esp.getRange(1, 1, 1, 3).setValues([['chave', 'dadosJson', 'atualizadoEm']]);
     esp.setFrozenRows(1);
   }
+  abaFotos_();
   return 'Abas prontas. Agora rode gerarChaves() se ainda não configurou as chaves.';
 }
 
@@ -137,6 +139,11 @@ function doPost(e) {
       case 'getEspelho': r = { ok: true, espelho: lerEspelho_() }; break;
       case 'getEspelhoPublico': { const esp = lerEspelho_(); r = { ok: true, espelho: Object.assign({}, esp.publico || {}, { _atualizadoEm: esp._atualizadoEm }) }; break; }
       case 'getEspelhoInterno': { const esp = lerEspelho_(); r = { ok: true, espelho: Object.assign({}, esp.publico || {}, esp.interno || {}, { _atualizadoEm: esp._atualizadoEm }) }; break; }
+      case 'guardarBackup': r = guardarBackup(body.nome, body.base64); break;
+      case 'getArmazenamento': r = getArmazenamentoCont_(); break;
+      case 'listarFotos': r = listarFotos_(); break;
+      case 'guardarFoto': r = guardarFoto(body.idOrigem, body.base64); break;
+      case 'removerFotosOrfas': r = removerFotosOrfas(body.ids); break;
       default: r = { ok: false, message: 'Ação desconhecida.' };
     }
     return responder(r);
@@ -246,4 +253,131 @@ function lerEspelho_() {
   }
   resultado._atualizadoEm = maisRecente;
   return resultado;
+}
+
+/* =====================================================================
+   DRIVE DA CONTINGÊNCIA (itens 16–18): cópia dos backups, cópia das fotos e leitura do espaço usado
+   ===================================================================== */
+const CONT_BACKUP_MAX_BYTES = 15 * 1024 * 1024;   // acima disso a cópia é recusada (o backup local continua)
+const CONT_FOTO_MAX_BYTES = 5 * 1024 * 1024;
+const CONT_BACKUP_RETENCAO_DIAS = 7, CONT_BACKUP_MINIMO = 3; // apaga cópias com mais de 7 dias, mas SEMPRE guarda as 3 mais recentes
+const CONT_ARMAZ_ATENCAO_PCT = 70, CONT_ARMAZ_CRITICO_PCT = 90, CONT_ARMAZ_BLOQUEIO_PCT = 97;
+
+/* Rode UMA vez no editor (menu de funções -> autorizarDrive -> Executar) e aceite as permissões de Drive. */
+function autorizarDrive() {
+  DriveApp.getRootFolder();
+  pastaBackups_(); pastaFotos_(); abaFotos_();
+  return 'Drive autorizado. Pastas e aba Fotos prontas.';
+}
+
+function pastaDrive_(propChave, nome) {
+  const props = PropertiesService.getScriptProperties();
+  const id = props.getProperty(propChave);
+  if (id) { try { const p = DriveApp.getFolderById(id); if (!p.isTrashed()) return p; } catch (e) { /* pasta apagada, recria abaixo */ } }
+  const raiz = DriveApp.getRootFolder();
+  const existentes = raiz.getFoldersByName(nome);
+  const pasta = existentes.hasNext() ? existentes.next() : raiz.createFolder(nome);
+  props.setProperty(propChave, pasta.getId());
+  return pasta;
+}
+function pastaBackups_() { return pastaDrive_('PASTA_BACKUPS_ID', 'Texas Burger - Backups (cópia)'); }
+function pastaFotos_() { return pastaDrive_('PASTA_FOTOS_ID', 'Texas Burger - Fotos (cópia)'); }
+
+function armazenamento_() {
+  const usado = DriveApp.getStorageUsed(), limite = DriveApp.getStorageLimit();
+  const pct = limite > 0 ? Math.round(usado / limite * 1000) / 10 : null;
+  const nivel = pct === null ? 'Indisponível' : pct > CONT_ARMAZ_CRITICO_PCT ? 'Crítico' : pct >= CONT_ARMAZ_ATENCAO_PCT ? 'Atenção' : 'Normal';
+  return { usado: usado, limite: limite, livre: limite > 0 ? Math.max(0, limite - usado) : null, percentual: pct, nivel: nivel };
+}
+function semEspaco_() { const a = armazenamento_(); return (a.percentual !== null && a.percentual >= CONT_ARMAZ_BLOQUEIO_PCT) ? a : null; }
+
+/* ---------- ITEM 16: cópia dos backups ---------- */
+function guardarBackup(nome, base64) {
+  if (typeof nome !== 'string' || !nome.trim()) return { ok: false, message: 'Nome do backup inválido.' };
+  if (typeof base64 !== 'string' || !base64) return { ok: false, message: 'Nenhum arquivo recebido.' };
+  const cheio = semEspaco_();
+  if (cheio) return { ok: false, message: 'Drive da contingência quase cheio (' + cheio.percentual + '%). Cópia não guardada.' };
+  const bytes = Utilities.base64Decode(base64);
+  if (bytes.length > CONT_BACKUP_MAX_BYTES) return { ok: false, message: 'Backup grande demais para copiar (' + Math.round(bytes.length / 1048576) + ' MB; máximo ' + Math.round(CONT_BACKUP_MAX_BYTES / 1048576) + ' MB).' };
+  if (bytes.length < 4 || (bytes[0] & 255) !== 0x50 || (bytes[1] & 255) !== 0x4B) return { ok: false, message: 'O arquivo recebido não é um .xlsx válido.' };
+  const nomeArq = nome.replace(/[^\w\-\. ()]/g, '-').trim().slice(0, 120) + '.xlsx';
+  const pasta = pastaBackups_();
+  const ja = pasta.getFilesByName(nomeArq);
+  if (ja.hasNext()) { const f = ja.next(); return { ok: true, duplicado: true, arquivoId: f.getId(), tamanho: f.getSize() }; }
+  const blob = Utilities.newBlob(bytes, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', nomeArq);
+  const arq = pasta.createFile(blob); // privado: SEM link público (tem custos, clientes e financeiro)
+  podarBackups_(pasta);
+  return { ok: true, arquivoId: arq.getId(), tamanho: bytes.length };
+}
+function podarBackups_(pasta) {
+  const limite = new Date(); limite.setDate(limite.getDate() - CONT_BACKUP_RETENCAO_DIAS);
+  const lista = [];
+  const it = pasta.getFiles();
+  while (it.hasNext()) { const f = it.next(); lista.push({ f: f, d: f.getDateCreated() }); }
+  lista.sort((a, b) => b.d - a.d);
+  lista.slice(CONT_BACKUP_MINIMO).forEach(x => { if (x.d < limite) { try { x.f.setTrashed(true); } catch (e) {} } });
+}
+
+/* ---------- ITEM 17: cópia das fotos ---------- */
+function abaFotos_() {
+  const ss = ss_();
+  let sh = ss.getSheetByName('Fotos');
+  if (!sh) {
+    sh = ss.insertSheet('Fotos');
+    sh.getRange(1, 1, 1, 5).setValues([['fotoIdOrigem', 'fotoIdReserva', 'nome', 'tamanho', 'atualizadoEm']]);
+    sh.setFrozenRows(1);
+  }
+  return sh;
+}
+function listarFotos_() {
+  const sh = abaFotos_(); const last = sh.getLastRow(); const mapa = {};
+  if (last >= 2) sh.getRange(2, 1, last - 1, 2).getValues().forEach(r => { if (r[0] && r[1]) mapa[r[0]] = r[1]; });
+  return { ok: true, fotos: mapa };
+}
+function tipoImagem_(b) {
+  const u8 = k => (b[k] + 256) % 256;
+  if (u8(0) === 0xFF && u8(1) === 0xD8 && u8(2) === 0xFF) return { tipo: 'image/jpeg', ext: '.jpg' };
+  if (u8(0) === 0x89 && u8(1) === 0x50 && u8(2) === 0x4E && u8(3) === 0x47) return { tipo: 'image/png', ext: '.png' };
+  if (u8(0) === 0x52 && u8(1) === 0x49 && u8(2) === 0x46 && u8(3) === 0x46 && u8(8) === 0x57 && u8(9) === 0x45 && u8(10) === 0x42 && u8(11) === 0x50) return { tipo: 'image/webp', ext: '.webp' };
+  return null;
+}
+function guardarFoto(idOrigem, base64) {
+  if (typeof idOrigem !== 'string' || !/^[\w-]{10,80}$/.test(idOrigem)) return { ok: false, message: 'Id de foto inválido.' };
+  if (typeof base64 !== 'string' || !base64) return { ok: false, message: 'Nenhuma imagem recebida.' };
+  const sh = abaFotos_(); const last = sh.getLastRow();
+  if (last >= 2) { const lin = sh.getRange(2, 1, last - 1, 2).getValues(); for (let i = 0; i < lin.length; i++) if (lin[i][0] === idOrigem) return { ok: true, duplicado: true, fotoIdReserva: lin[i][1] }; }
+  const cheio = semEspaco_();
+  if (cheio) return { ok: false, message: 'Drive da contingência quase cheio (' + cheio.percentual + '%).' };
+  const bytes = Utilities.base64Decode(base64);
+  if (bytes.length > CONT_FOTO_MAX_BYTES) return { ok: false, message: 'Imagem maior que 5 MB.' };
+  const t = tipoImagem_(bytes);
+  if (!t) return { ok: false, message: 'Arquivo não é uma imagem válida (JPG, PNG ou WEBP).' };
+  const arq = pastaFotos_().createFile(Utilities.newBlob(bytes, t.tipo, idOrigem + t.ext));
+  arq.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); // foto de cardápio é pública, como na conta principal
+  sh.appendRow([idOrigem, arq.getId(), arq.getName(), bytes.length, new Date()]);
+  return { ok: true, fotoIdReserva: arq.getId() };
+}
+/* Apaga a cópia de fotos que não existem mais na principal. Trava de segurança: lista vazia ou "mais da metade órfã" não apaga nada. */
+function removerFotosOrfas(idsAtuais) {
+  if (!Array.isArray(idsAtuais) || !idsAtuais.length) return { ok: false, message: 'Lista vazia: nada removido (proteção).' };
+  const set = {}; idsAtuais.forEach(i => { set[String(i)] = true; });
+  const sh = abaFotos_(); const last = sh.getLastRow();
+  if (last < 2) return { ok: true, removidas: 0 };
+  const linhas = sh.getRange(2, 1, last - 1, 2).getValues();
+  const orfas = linhas.map((r, i) => ({ id: r[0], reserva: r[1], lin: i + 2 })).filter(x => x.id && !set[x.id]);
+  if (linhas.length > 10 && orfas.length > linhas.length / 2) return { ok: false, message: 'Proteção: mais da metade das fotos ficaria órfã (' + orfas.length + ' de ' + linhas.length + '). Nada removido.' };
+  orfas.sort((a, b) => b.lin - a.lin).forEach(x => { try { DriveApp.getFileById(x.reserva).setTrashed(true); } catch (e) {} sh.deleteRow(x.lin); });
+  return { ok: true, removidas: orfas.length };
+}
+
+/* ---------- ITEM 18: espaço usado da conta da contingência ---------- */
+function getArmazenamentoCont_() {
+  const cats = { 'Cópias de backup': { qtd: 0, bytes: 0 }, 'Fotos (cópia)': { qtd: 0, bytes: 0 } };
+  const backups = [];
+  const itB = pastaBackups_().getFiles();
+  while (itB.hasNext()) { const f = itB.next(); const b = f.getSize(); cats['Cópias de backup'].qtd++; cats['Cópias de backup'].bytes += b; backups.push({ nome: f.getName(), tamanho: b, criadoEm: f.getDateCreated().toISOString() }); }
+  backups.sort((a, b) => (a.criadoEm < b.criadoEm ? 1 : -1));
+  const itF = pastaFotos_().getFiles();
+  while (itF.hasNext()) { const f = itF.next(); cats['Fotos (cópia)'].qtd++; cats['Fotos (cópia)'].bytes += f.getSize(); }
+  return { ok: true, drive: armazenamento_(), categorias: cats, backups: backups.slice(0, 10) };
 }
