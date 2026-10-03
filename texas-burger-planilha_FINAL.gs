@@ -1540,7 +1540,11 @@ function readVendasResposta_() {
     const mesasAtivas = readMesas().filter(m => ['Ocupada', 'Aguardando fechamento'].indexOf(m.status) !== -1).map(m => String(m.id));
     const ids = {};
     vendas.forEach(v => {
-      if (v.mesaId && mesasAtivas.indexOf(String(v.mesaId)) !== -1 && String(v.registradoPor).toLowerCase() === String(USUARIO_ATUAL).toLowerCase()) ids[v.id] = true;
+      const meu = String(v.registradoPor).toLowerCase() === String(USUARIO_ATUAL).toLowerCase();
+      if (v.mesaId && mesasAtivas.indexOf(String(v.mesaId)) !== -1 && meu) ids[v.id] = true;
+      // pedidos por telefone (entrega/retirada) lançados por ele, até a entrega e o recebimento
+      if (!v.mesaId && meu && ['Entrega', 'Retirada'].indexOf(v.tipoEntrega) !== -1 && v.status === 'Confirmada' &&
+          ((v.statusPedido !== 'Entregue' && v.statusPedido !== 'Retirada') || v.statusPagamento === 'A Receber')) ids[v.id] = true;
     });
     return vendas.filter(v => !!ids[v.id]);
   }
@@ -1575,9 +1579,8 @@ function readClientesResposta_() {
   const clientes = readClientes();
   if (NIVEL_ATUAL === 'Admin' || NIVEL_ATUAL === 'Operador') return clientes;
   if (NIVEL_ATUAL === 'Garçom') {
-    const telefones = {};
-    readVendasResposta_().forEach(v => { if (v.clienteTelefone) telefones[normTel(v.clienteTelefone)] = true; });
-    return clientes.filter(c => telefones[normTel(c.telefone)]);
+    // precisa achar qualquer cliente pelo telefone para lançar pedidos por telefone; sem as observações internas
+    return clientes.map(c => { const y = Object.assign({}, c); delete y.observacao; return y; });
   }
   // Cozinha e Entregador não precisam da agenda geral de clientes.
   return [];
@@ -1715,7 +1718,7 @@ function getAllData(grupo) {
     const mesasEmUso = new Set(dados.mesas.filter(m => ['Ocupada', 'Aguardando fechamento'].indexOf(m.status) !== -1).map(m => String(m.id)));
     const meusPedidosDeMesa = dados.vendas.filter(v => String(v.registradoPor || '').toLowerCase() === String(USUARIO_ATUAL).toLowerCase() && v.mesaId && mesasEmUso.has(String(v.mesaId)));
     const telefonesPermitidos = new Set(meusPedidosDeMesa.map(v => String(v.clienteTelefone || '').trim()).filter(Boolean));
-    dados.clientes = dados.clientes.filter(c => telefonesPermitidos.has(String(c.telefone || '').trim()));
+    dados.clientes = dados.clientes.map(c => { const y = Object.assign({}, c); delete y.observacao; return y; });
     dados.fidelidade = dados.fidelidade.filter(f => telefonesPermitidos.has(String(f.telefone || '').trim()));
     dados.indicacoes = [];
     dados.promocoes = [];
@@ -3895,8 +3898,10 @@ function iniciarVenda(itens, clienteNome, clienteTelefone, pagamentos, tipoEntre
   /* ETAPA 4: o garçom só lança pedido de MESA, sem desconto e sem receber pagamento (fica "A Receber" até o caixa fechar a conta).
      Vale no servidor, não só na tela. */
   if (NIVEL_ATUAL === 'Garçom') {
-    if (tipoEntrega !== 'Mesa') return { ok: false, message: 'O garçom só lança pedidos de mesa.' };
-    const mesaG = readMesas().find(m => m.id === mesaId);
+    if (['Mesa', 'Entrega', 'Retirada'].indexOf(tipoEntrega) === -1) return { ok: false, message: 'O garçom só lança pedidos de mesa, entrega ou retirada.' };
+    if (!readSessaoAberta()) return { ok: false, message: 'O caixa está fechado — peça ao caixa para abrir.' };
+    if (tipoEntrega !== 'Mesa' && !String(clienteTelefone || '').trim()) return { ok: false, message: 'Informe o cliente (nome e telefone) para pedidos por telefone.' };
+    const mesaG = tipoEntrega === 'Mesa' ? readMesas().find(m => m.id === mesaId) : { status: 'Livre', numero: '', garcomResponsavel: '' };
     if (!mesaG) return { ok: false, message: 'Mesa não encontrada.' };
     if (['Livre', 'Ocupada'].indexOf(mesaG.status) === -1) return { ok: false, message: 'A mesa ' + mesaG.numero + ' está "' + mesaG.status + '" — não aceita novos itens.' };
     if (mesaG.status === 'Ocupada' && mesaG.garcomResponsavel && String(mesaG.garcomResponsavel).toLowerCase() !== String(USUARIO_ATUAL).toLowerCase()) return { ok: false, message: 'Esta mesa está sob responsabilidade de outro garçom.' };
@@ -3905,7 +3910,8 @@ function iniciarVenda(itens, clienteNome, clienteTelefone, pagamentos, tipoEntre
       for (let im = 2; im <= lastMesas; im++) if (shMesas.getRange(im, 1).getValue() === mesaId) { shMesas.getRange(im, 6).setValue(USUARIO_ATUAL || ''); break; }
     }
     origem = 'Garçom'; desconto = null; statusPagamento = 'A Receber';
-    pagamentos = [{ forma: 'A Receber (Mesa)', valor: (pagamentos && pagamentos[0] && Number(pagamentos[0].valor)) || 0 }];
+    if (tipoEntrega === 'Mesa') pagamentos = [{ forma: 'A Receber (Mesa)', valor: (pagamentos && pagamentos[0] && Number(pagamentos[0].valor)) || 0 }];
+    else pagamentos = [{ forma: String(pagamentos && pagamentos[0] && pagamentos[0].forma || '').trim(), valor: (pagamentos && pagamentos[0] && Number(pagamentos[0].valor)) || 0 }]; // entrega/retirada: forma que o cliente vai usar; o valor é refeito com a taxa abaixo
   }
   // FASE 9 — idempotência: a mesma requisição (duplo toque, retry) nunca gera duas vendas.
   const chaveReq = requisicaoId ? 'venda:' + String(requisicaoId).slice(0, 80) : '';
@@ -3966,6 +3972,7 @@ function iniciarVenda(itens, clienteNome, clienteTelefone, pagamentos, tipoEntre
   const taxaEntrega = tipo === 'Entrega' && !de.freteGratis ? calcularTaxaEntrega_(de) : 0;
   const valorTotal = Math.round((valorOriginal - valorDesconto + taxaEntrega) * 100) / 100;
   if(valorTotal < 0.01) return { ok:false, message:'O total da venda precisa ser maior que zero.' };
+  if (NIVEL_ATUAL === 'Garçom' && tipoEntrega !== 'Mesa') pagamentos = [{ forma: pagamentos[0].forma, valor: valorTotal }];
 
   // "A Receber (Mesa)" só existe como pedido a receber, com um único pagamento do valor total.
   if ((pagamentos || []).some(p => p && p.forma === 'A Receber (Mesa)')) {
