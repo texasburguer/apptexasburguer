@@ -1160,7 +1160,7 @@ body.perfil-garcom #btnFecharContaItens{display:none !important;}
             <input type="number" id="vValorManual" placeholder="0.00" step="0.01">
           </div>
           <label for="vQtd">Quantidade</label>
-          <input type="number" id="vQtd" value="1" min="1">
+          <input type="number" id="vQtd" value="1" min="1" max="50" oninput="limitarQtd50_(this)">
           <button class="small-gold" style="margin-top:8px;width:100%;padding:10px;" onclick="adicionarItemCarrinho()">+ Adicionar ao carrinho</button>
           <div class="msg" id="itemEstoqueAviso"></div>
         </div>
@@ -1328,6 +1328,34 @@ body.perfil-garcom #btnFecharContaItens{display:none !important;}
       <table style="margin-top:12px;"><tbody id="contasPagarLista"></tbody></table>
     </div>
 
+    <div class="card" id="cardAjustesPosVenda">
+      <h2>Ajustes pós-venda</h2>
+      <p class="sub">Cliente reclamou depois de receber? Registre aqui em vez de cancelar a venda: a venda original continua como está e o ajuste aparece no DRE como uma linha separada. Só vale para pedido já entregue.</p>
+      <label for="ajVendaBusca">Buscar venda (nº do pedido, nome ou telefone)</label>
+      <input type="text" id="ajVendaBusca" placeholder="Ex.: 125, Maria ou 1199..." oninput="ajRenderVendas()">
+      <label for="ajVenda">Venda</label>
+      <select id="ajVenda" onchange="ajAtualizarForm()"></select>
+      <label for="ajTipo">Tipo de ajuste</label>
+      <select id="ajTipo" onchange="ajAtualizarForm()">
+        <option>Reembolso em dinheiro</option><option>Crédito para próxima compra</option><option>Cortesia (item grátis)</option><option>Desconto retroativo</option>
+      </select>
+      <div class="info-line" id="ajTipoAjuda"></div>
+      <label for="ajValor">Valor (R$)</label>
+      <input type="number" id="ajValor" min="0" step="0.01" inputmode="decimal" placeholder="0,00">
+      <label for="ajMotivo">Motivo</label>
+      <select id="ajMotivo"><option>Produto errado</option><option>Item faltando</option><option>Qualidade do produto</option><option>Atraso na entrega</option><option>Cobrança em duplicidade</option><option>Atendimento</option><option>Outro</option></select>
+      <label for="ajDetalhe">Detalhe (obrigatório se o motivo for "Outro")</label>
+      <input type="text" id="ajDetalhe" maxlength="200" placeholder="O que aconteceu?">
+      <div id="ajSaidaBox">
+        <label for="ajSaida">De onde sai o dinheiro</label>
+        <select id="ajSaida"><option value="Do caixa">Do caixa (caixa precisa estar aberto)</option><option value="Fora do caixa">Fora do caixa (Pix, estorno no cartão etc.)</option></select>
+      </div>
+      <button class="primary" id="ajBtn" onclick="registrarAjusteUI()">Registrar ajuste</button>
+      <div class="msg" id="ajMsg"></div>
+      <h3 style="margin:16px 0 6px;font-size:15px;color:var(--cream);">Últimos ajustes</h3>
+      <table><tbody id="ajLista"></tbody></table>
+    </div>
+
     <div class="card">
       <h2>Despesas mensais</h2>
       <p class="sub">Geram a conta do mês automaticamente. Mudar valor ou data vale só para meses ainda não gerados.</p>
@@ -1452,6 +1480,13 @@ body.perfil-garcom #btnFecharContaItens{display:none !important;}
         <thead><tr><th>Login</th><th>Nível</th><th>Status</th><th></th></tr></thead>
         <tbody id="uTable"></tbody>
       </table>
+    </div>
+
+    <div class="card" id="sessoesCard">
+      <div class="card-head"><h2>Sessões ativas</h2><button type="button" class="ghost" onclick="carregarSessoes_(true)">Atualizar</button></div>
+      <p class="sub">Quem está logado e em qual aparelho. Encerrar derruba o aparelho na próxima ação dele.</p>
+      <div class="msg" id="sessMsg"></div>
+      <div id="sessLista"><div class="notif-empty">Carregando…</div></div>
     </div>
   </section>
 
@@ -2584,7 +2619,7 @@ let formasPagamento = [], categorias = [];
 let produtos = [], produtoPrecos = [], produtoIngredientes = [], estoque = [], combos = [], comboPrecos = [], comboItens = [];
 let adicionais = [], produtoAdicionais = [], feedbacks = [], ocorrencias = [], configCardapio = { kicker:'', frase:'' }, movimentacoesEstoque = [], maisPedidos = [], mesas = [];
 let vendas = [], itensVenda = [], pagamentosVenda = [], despesas = [], sangrias = [];
-let categoriasDespesa = [], despesasRecorrentes = [];
+let categoriasDespesa = [], despesasRecorrentes = [], ajustesPosVenda = [];
 let configEstoque = { bloquear:false };
 let configEntrega = { taxaPadrao:0, ajudaDiaria:0 }, fechamentosEntrega = [], entregasFechadas = [];
 let configNotificacoes = null; // ITENS 64/65: {evento:{ativo, perfis[]}} vindo do backend (null = usa o padrão)
@@ -2654,7 +2689,7 @@ const NUM_CAMPOS_DADOS_ = {
   sangrias:['valor'],
   fidelidade:['carimbos','premios'],
   historicoCaixa:['fundoCaixa','totalVendas','totalDespesas','saldoFinal'],
-  despesas:['valor'], despesasRecorrentes:['valor'],
+  despesas:['valor'], despesasRecorrentes:['valor'], ajustesPosVenda:['valor'],
   formasPagamento:['taxaPct','taxaFixa','prazoDias'],
   adicionais:['preco']
 };
@@ -2688,7 +2723,7 @@ function parseDataBR(str){
    resposta definitiva do servidor. Guardado na sessionStorage para sobreviver a um recarregar da página. */
 const ACOES_IDEM_FRONT = ['addSangria','registrarEntradaEstoque','registrarPerdaEstoque','registrarInventarioEstoque',
   'addOrStampFidelidade','resgatarPremioFidelidade','fecharContaMesa','cancelarVenda','editarVenda','addFeedback',
-  'addDespesa','pagarDespesa','abrirCaixa','fecharCaixa','salvarCliente','rejeitarPedido','editarStatusFeedback','registrarOcorrencia',
+  'addDespesa','pagarDespesa','registrarAjustePosVenda','cancelarAjustePosVenda','abrirCaixa','fecharCaixa','salvarCliente','rejeitarPedido','editarStatusFeedback','registrarOcorrencia',
   'toggleResgateIndicacao'];
 const IDEM_KEY = 'texasBurgerIdem_v1';
 let _idemMapa = {};
@@ -2707,7 +2742,8 @@ function idemLimpar_(chave){ if(chave && _idemMapa[chave]){ delete _idemMapa[cha
 /* ETAPA 7C / FASE 11C — controle de versão: toda edição leva a versão (_v) do registro que a pessoa estava vendo.
    Se outra pessoa alterou o mesmo registro no meio tempo, o servidor recusa (conflito) e o app puxa o estado real. */
 const VERSAO_FRONT_ = { editarProduto:()=>produtos, editarCombo:()=>combos, editarAdicional:()=>adicionais, editarFormaPagamento:()=>formasPagamento,
-  editarCategoria:()=>categorias, editarDespesa:()=>despesas, editarDespesaRecorrente:()=>despesasRecorrentes, salvarCliente:()=>clientes };
+  editarCategoria:()=>categorias, editarDespesa:()=>despesas, editarDespesaRecorrente:()=>despesasRecorrentes, salvarCliente:()=>clientes,
+  editarVenda:()=>vendas, editarUsuario:()=>usuarios, editarCupom:()=>cupons, salvarEvento:()=>eventos };
 /* ---- Aviso de carregamento (#15) ----
    Toda ação que fala com a planilha mostra um aviso se demorar mais de ~0,4 s. Ações de gravação importantes (venda, pedido, caixa,
    conta da mesa, pagamento...) também travam a tela por trás, para evitar toque duplo. Atualizações em segundo plano ficam de fora. */
@@ -2769,12 +2805,30 @@ async function postApi_(action, payload, ms){
   try{
     const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(Object.assign({ action, token: currentUser?currentUser.token:'' }, payload)), signal: ctl.signal });
     if(!res.ok) throw new Error('Falha na requisição');
-    return await res.json();
+    const j = await res.json(); registrarSucessoApi_(action); return j;
   }catch(e){
-    if(e && e.name === 'AbortError'){ const t = new Error('O servidor demorou para responder'); t.timeout = true; throw t; }
+    if(e && e.name === 'AbortError'){ registrarTimeoutApi_(action); const t = new Error('O servidor demorou para responder'); t.timeout = true; throw t; }
     throw e;
   }finally{ clearTimeout(to); }
 }
+/* BLOCO 1.2 — TIMEOUTS SEGUIDOS ACIONAM A CONTINGÊNCIA (preventivo).
+   2 estouros de tempo em 60 s = "servidor lento": por 2 min a venda do Caixa (e o pedido do cardápio, sem cupom) vai direto à contingência,
+   em vez de esperar 3 x 30 s a cada tentativa. Qualquer resposta boa da planilha desliga o modo na hora. O Caixa sempre pergunta antes
+   (e, se a pessoa recusar, tenta a planilha mesmo assim). Backup/sincronização (ações longas) não contam. */
+const TIMEOUTS_LIMIAR_ = 2, TIMEOUTS_JANELA_MS_ = 60000, CONT_PREVENTIVO_MS_ = 120000;
+let _timeoutsApi_ = [], _contPreventivoAte_ = 0, _statusPreventivo_ = false;
+function _desligarPreventivo_(){ _contPreventivoAte_ = 0; _timeoutsApi_ = []; if(_statusPreventivo_){ _statusPreventivo_ = false; if(conexaoAtual==='contingencia') setConexaoStatus('online'); } }
+function servidorLento_(){ if(_contPreventivoAte_ && Date.now() > _contPreventivoAte_) _desligarPreventivo_(); return Date.now() < _contPreventivoAte_; }
+function registrarTimeoutApi_(action){
+  if(ACOES_LONGAS_.has(action)) return;
+  const agora = Date.now();
+  _timeoutsApi_ = _timeoutsApi_.filter(t=>agora - t < TIMEOUTS_JANELA_MS_); _timeoutsApi_.push(agora);
+  if(_timeoutsApi_.length >= TIMEOUTS_LIMIAR_ && !(_contPreventivoAte_ > agora)){
+    _contPreventivoAte_ = agora + CONT_PREVENTIVO_MS_;
+    if(currentUser && conexaoAtual!=='offline'){ _statusPreventivo_ = true; setConexaoStatus('contingencia', 'servidor lento'); }
+  }
+}
+function registrarSucessoApi_(action){ if(ACOES_LONGAS_.has(action)) return; if(_contPreventivoAte_ || _timeoutsApi_.length) _desligarPreventivo_(); }
 /* Contingência com limite de tempo. O servidor da contingência já descarta id repetido ("Já estava na fila"), então o envio da venda/pedido
    pode ser repetido com o mesmo id. A leitura do espelho e o status não repetem: se falharem, o chamador usa o cache ou avisa. */
 const TIMEOUT_CONT_ENVIO_MS_ = 20000, TIMEOUT_CONT_LEITURA_MS_ = 15000, TIMEOUT_CONT_REPETICOES_ = 2;
@@ -2799,10 +2853,34 @@ async function apiCall(action, payload, _tentativa, _idemChave){
   try{ return await _apiCallRaw(action, payload, _tentativa, _idemChave); }
   finally{ _carregandoFim_(action); }
 }
+/* ITEM 2.8 — tela de manutenção (restauração de backup). O servidor responde { manutencao:true } a todos menos o Admin;
+   aqui bloqueamos a tela e perguntamos de tempos em tempos se já voltou. Quando volta, recarrega para pegar os dados restaurados. */
+let _manutTimer_ = null;
+function mostrarManutencao_(msg){
+  if(currentUser && currentUser.nivel === 'Admin') return;
+  let ov = document.getElementById('manutencaoOverlay');
+  if(!ov){
+    ov = document.createElement('div'); ov.id = 'manutencaoOverlay';
+    ov.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(11,7,5,.97);display:flex;align-items:center;justify-content:center;text-align:center;padding:24px;';
+    ov.innerHTML = '<div style="max-width:360px;"><div style="font-size:48px;">🛠️</div><h2 style="margin:10px 0 6px;color:var(--gold);">Sistema em manutenção</h2><p style="color:var(--cream);margin:0 0 8px;">Estamos restaurando os dados. Aguarde alguns minutos.</p><p style="color:var(--muted);font-size:13px;margin:0;">Nada foi perdido. Esta tela some sozinha quando terminar.</p></div>';
+    document.body.appendChild(ov);
+  }
+  ov.style.display = 'flex';
+  if(!_manutTimer_){
+    _manutTimer_ = setInterval(async ()=>{
+      try{
+        const r = await apiCall(currentUser ? 'getVersoes' : 'getCardapio', {});
+        if(r && !r.manutencao){ clearInterval(_manutTimer_); _manutTimer_ = null; location.reload(); }
+      }catch(e){ /* sem internet: continua tentando */ }
+    }, 12000);
+  }
+}
 async function _apiCallRaw(action, payload, _tentativa, _idemChave){
+  if(currentUser && currentUser.emergencia) throw new Error('Modo emergência: este aparelho não fala com a planilha principal'); // BLOCO 1.3 (age como falha de rede: nada é gravado nem apagado)
   payload = payload || {};
-  if(_tentativa === undefined && VERSAO_FRONT_[action] && payload.id && payload.versaoEsperada === undefined){
-    try{ const atual = (VERSAO_FRONT_[action]()||[]).find(x=>x.id === payload.id); if(atual && atual._v) payload = Object.assign({}, payload, { versaoEsperada: atual._v }); }catch(e){}
+  const _chaveVer = payload.id || (action === 'editarUsuario' ? payload.loginAlvo : ''); // BLOCO 4.1: usuário é identificado pelo login
+  if(_tentativa === undefined && VERSAO_FRONT_[action] && _chaveVer && payload.versaoEsperada === undefined){
+    try{ const atual = (VERSAO_FRONT_[action]()||[]).find(x=>(payload.id ? x.id === payload.id : String(x.login).toLowerCase() === String(_chaveVer).toLowerCase())); if(atual && atual._v) payload = Object.assign({}, payload, { versaoEsperada: atual._v }); }catch(e){}
   }
   if(_tentativa === undefined && ACOES_IDEM_FRONT.indexOf(action) !== -1 && !payload.requisicaoId){
     _idemChave = idemChave_(action, payload);
@@ -2824,6 +2902,7 @@ async function _apiCallRaw(action, payload, _tentativa, _idemChave){
         : 'O servidor demorou para responder. A operação pode ter sido feita — confira a lista antes de repetir.' };
     }
   }
+  if(dados && dados.manutencao) mostrarManutencao_(dados.message);  // ITEM 2.8
   if(dados && dados.sessaoExpirada){
     /* MELHORIA 5.3 — itens na fila offline não são reenviados sem login: viram "com erro" e o usuário reenvia depois de entrar. */
     try{ _fila.forEach(i=>{ if(i.estado==='pendente' || i.estado==='retry' || i.estado==='enviando'){ i.estado='erro'; i.erro='Sessão expirada — entre de novo e toque em "Tentar de novo"'; } }); filaSalvar_(); }catch(e){}
@@ -2897,23 +2976,175 @@ function copiarViaTextarea(texto, msgElId){
 /* ============================================================
    LOGIN / SESSÃO / PERMISSÕES
    ============================================================ */
+/* ITEM 2.1 — identificação do aparelho. O deviceId fica no localStorage (sobrevive a logout) e vai junto no login;
+   o servidor guarda na sessão para o Admin ver "quem está logado onde". Não é segurança forte (o usuário pode limpar o
+   armazenamento) — é rastro e visibilidade. */
+function deviceId_(){
+  try{
+    let d = localStorage.getItem('tb_device_id');
+    if(!d || !/^[A-Za-z0-9-]{8,40}$/.test(d)){
+      d = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : ('d' + Date.now().toString(36) + Math.random().toString(36).slice(2, 10));
+      localStorage.setItem('tb_device_id', d);
+    }
+    return d;
+  }catch(e){ return ''; }
+}
+function resumoNavegador_(){
+  const u = navigator.userAgent || '';
+  const so = /Android/i.test(u) ? 'Android' : /iPhone|iPad|iPod/i.test(u) ? 'iOS' : /Windows/i.test(u) ? 'Windows' : /Mac OS X/i.test(u) ? 'macOS' : /Linux/i.test(u) ? 'Linux' : 'SO?';
+  const nav = /Edg\//.test(u) ? 'Edge' : /OPR\/|Opera/.test(u) ? 'Opera' : /Firefox\//.test(u) ? 'Firefox' : /Chrome\//.test(u) ? 'Chrome' : /Safari\//.test(u) ? 'Safari' : 'Navegador?';
+  return nav + ' · ' + so;
+}
+/* ============================================================
+   BLOCO 1.3 — ACESSO DE EMERGÊNCIA (planilha principal fora do ar)
+   Quem entrou com sucesso (Admin/Operador) deixa neste aparelho, por 30 dias, uma "credencial de emergência":
+   só uma verificação da senha (PBKDF2, nunca a senha), a chave interna da contingência e uma cópia do catálogo
+   (produtos, preços, formas de pagamento) — SEM clientes, vendas ou financeiro. Ela sobrevive ao "Sair".
+   Se a planilha estiver fora do ar na hora do login, a senha é conferida aqui mesmo e o aparelho entra em MODO EMERGÊNCIA:
+   só a venda do Caixa pela contingência (sem desconto, sem mesa), nenhuma chamada à planilha. Assim que a planilha responde,
+   a sessão de emergência é encerrada e o login normal é exigido. Cada login normal renova o prazo; um login recusado
+   ("desativado" / senha incorreta) apaga a credencial. */
+const EMERGENCIA_KEY_ = 'txbEmergencia_v1', EMERGENCIA_FALHAS_KEY_ = 'txbEmergenciaFalhas_v1';
+const EMERGENCIA_TTL_MS_ = 30*24*3600*1000, EMERGENCIA_PBKDF2_ = 150000, EMERGENCIA_CATALOGO_MS_ = 10*60*1000;
+function emergenciaSuportada_(){ return !!(window.crypto && crypto.subtle && crypto.getRandomValues && window.TextEncoder); }
+function emergenciaLer_(){
+  let o = null;
+  try{ o = JSON.parse(localStorage.getItem(EMERGENCIA_KEY_) || 'null'); }catch(e){}
+  if(!o || o.v !== 1 || !o.usuarios || typeof o.usuarios !== 'object') o = { v:1, usuarios:{}, chave:'', catalogo:null, catalogoEm:0 };
+  Object.keys(o.usuarios).forEach(k=>{ if(!o.usuarios[k] || Number(o.usuarios[k].expira) < Date.now()) delete o.usuarios[k]; }); // vencidas somem
+  return o;
+}
+function emergenciaGravar_(o){ try{ localStorage.setItem(EMERGENCIA_KEY_, JSON.stringify(o)); return true; }catch(e){ return false; } }
+function emergenciaB64_(buf){ let t = ''; new Uint8Array(buf).forEach(b=>{ t += String.fromCharCode(b); }); return btoa(t); }
+function emergenciaB64Bytes_(t){ return Uint8Array.from(atob(t), c=>c.charCodeAt(0)); }
+async function emergenciaHash_(senha, saltB64){
+  const km = await crypto.subtle.importKey('raw', new TextEncoder().encode(String(senha)), 'PBKDF2', false, ['deriveBits']);
+  const bits = await crypto.subtle.deriveBits({ name:'PBKDF2', hash:'SHA-256', salt: emergenciaB64Bytes_(saltB64), iterations: EMERGENCIA_PBKDF2_ }, km, 256);
+  return emergenciaB64_(bits);
+}
+/* chamada depois de um login NORMAL bem-sucedido (e depois de trocar a própria senha): cria/renova a credencial deste usuário */
+async function emergenciaRegistrar_(login, senha, nivel){
+  if(!emergenciaSuportada_() || ['Admin','Operador'].indexOf(nivel) === -1) return;
+  try{
+    const salt = emergenciaB64_(crypto.getRandomValues(new Uint8Array(16)));
+    const hash = await emergenciaHash_(senha, salt);
+    const o = emergenciaLer_();
+    o.usuarios[String(login).toLowerCase()] = { login: String(login), nivel: nivel, salt: salt, hash: hash, expira: Date.now() + EMERGENCIA_TTL_MS_ };
+    const k = localStorage.getItem(CONTINGENCIA_CHAVE_KEY); if(k) o.chave = k;
+    emergenciaGravar_(o);
+  }catch(e){}
+}
+function emergenciaGuardarChave_(chave){
+  try{ const o = emergenciaLer_(); if(chave && o.chave !== chave){ o.chave = chave; emergenciaGravar_(o); } }catch(e){}
+}
+function emergenciaRemover_(login){
+  try{ const o = emergenciaLer_(); delete o.usuarios[String(login).toLowerCase()]; emergenciaGravar_(o); }catch(e){}
+}
+/* cópia do catálogo para o modo emergência; chamada pelo salvarCache() de quem tem credencial registrada, no máximo a cada 10 min */
+function emergenciaSalvarCatalogo_(){
+  if(!currentUser || currentUser.emergencia || !currentUser.login || ['Admin','Operador'].indexOf(currentUser.nivel) === -1) return;
+  try{
+    const o = emergenciaLer_();
+    if(!o.usuarios[String(currentUser.login).toLowerCase()]) return;
+    const k = localStorage.getItem(CONTINGENCIA_CHAVE_KEY); if(k) o.chave = k;
+    if(Date.now() - (o.catalogoEm || 0) < EMERGENCIA_CATALOGO_MS_ && o.catalogo){ emergenciaGravar_(o); return; }
+    if(!produtos.length && !combos.length) return; // nada útil para guardar (ex.: dados ainda não chegaram)
+    o.catalogo = { produtos, produtoPrecos, combos, comboPrecos, comboItens, adicionais, produtoAdicionais, formasPagamento, categorias, configCardapio, configEntrega, sessaoCaixa };
+    o.catalogoEm = Date.now();
+    emergenciaGravar_(o);
+  }catch(e){}
+}
+function emergenciaAplicarCatalogo_(){
+  const c = emergenciaLer_().catalogo; if(!c) return false;
+  normalizarNumerosDados_(c);
+  produtos = c.produtos||[]; produtoPrecos = c.produtoPrecos||[]; combos = c.combos||[]; comboPrecos = c.comboPrecos||[]; comboItens = c.comboItens||[];
+  adicionais = c.adicionais||[]; produtoAdicionais = c.produtoAdicionais||[]; formasPagamento = c.formasPagamento||[]; categorias = c.categorias||[];
+  if(c.configCardapio) configCardapio = c.configCardapio;
+  if(c.configEntrega) configEntrega = c.configEntrega;
+  sessaoCaixa = c.sessaoCaixa || null; // o último estado conhecido do caixa; sem caixa aberto, o próprio Caixa recusa a venda
+  if(!formaPrecoAtual && formasPagamento.length) formaPrecoAtual = (formasPagamento.find(f=>f.ativa) || formasPagamento[0]).id;
+  return true;
+}
+function emergenciaFalhas_(){ try{ return JSON.parse(localStorage.getItem(EMERGENCIA_FALHAS_KEY_) || '{}') || {}; }catch(e){ return {}; } }
+/* Devolve 'ok' (entrou), 'cancelou', 'senha' (não confere), 'bloqueado' (5 erros = 5 min) ou 'indisponivel' (não há credencial/chave/catálogo) */
+async function emergenciaTentarEntrar_(login, senha){
+  if(!emergenciaSuportada_()) return 'indisponivel';
+  const o = emergenciaLer_(), rec = o.usuarios[String(login).toLowerCase()];
+  if(!rec || !o.chave || !o.catalogo) return 'indisponivel';
+  const fa = emergenciaFalhas_();
+  if(fa.ate && fa.ate > Date.now()) return 'bloqueado';
+  let h = '';
+  try{ h = await emergenciaHash_(senha, rec.salt); }catch(e){ return 'indisponivel'; }
+  if(h !== rec.hash){
+    const n = (fa.ate && fa.ate <= Date.now() ? 0 : (fa.n || 0)) + 1;
+    try{ localStorage.setItem(EMERGENCIA_FALHAS_KEY_, JSON.stringify(n >= 5 ? { n:0, ate: Date.now() + 300000 } : { n:n, ate:0 })); }catch(e){}
+    return 'senha';
+  }
+  try{ localStorage.removeItem(EMERGENCIA_FALHAS_KEY_); }catch(e){}
+  if(!confirm('A planilha principal está fora do ar.\n\nEntrar em MODO EMERGÊNCIA como ' + rec.login + '?\n\n• Só dá para registrar vendas do Caixa (retirada/entrega, sem desconto), pela contingência.\n• Preços e produtos são os da última vez que este aparelho falou com a planilha.\n• Quando a planilha voltar, o app pede seu login de novo.')) return 'cancelou';
+  localStorage.setItem(CONTINGENCIA_CHAVE_KEY, o.chave);
+  currentUser = { login: rec.login, nivel: rec.nivel, token: '', emergencia: true }; // nunca vai para o SESSAO_KEY: recarregar a página exige entrar de novo
+  entrarNoApp();
+  return 'ok';
+}
+function emergenciaBanner_(txt){
+  let b = document.getElementById('emergenciaBanner');
+  if(!b){
+    b = document.createElement('div'); b.id = 'emergenciaBanner';
+    b.style.cssText = 'position:sticky;top:0;z-index:9000;background:#b45309;color:#fff;font-weight:700;font-size:13px;text-align:center;padding:8px 10px;';
+    document.body.insertBefore(b, document.body.firstChild);
+  }
+  b.textContent = txt;
+}
+function emergenciaEncerrar_(){
+  try{ localStorage.removeItem(CONTINGENCIA_CHAVE_KEY); }catch(e){}
+  currentUser = null;
+  alert('A planilha principal voltou. Por segurança, entre de novo com seu login e senha.');
+  location.reload();
+}
+/* a cada 30 s pergunta à planilha (ação pública, sem sessão) se ela voltou; com carrinho em andamento só avisa e espera a venda terminar */
+let _emergVigiaTimer_ = null;
+function emergenciaVigiar_(){
+  if(_emergVigiaTimer_) return;
+  _emergVigiaTimer_ = setInterval(async ()=>{
+    if(!currentUser || !currentUser.emergencia) return;
+    try{
+      const j = await postApi_('getCardapio', {}, 8000);
+      if(!j || j.ok === false || j.manutencao) return;
+    }catch(e){ return; }
+    if(carrinhoAtual.length){ emergenciaBanner_('🟢 A planilha voltou — termine esta venda; depois o app pedirá seu login de novo'); return; }
+    emergenciaEncerrar_();
+  }, 30000);
+}
 async function tentarLogin(){
   try{ desbloquearAudio_(); if('Notification' in window && Notification.permission==='default') Notification.requestPermission(); }catch(e){}
   const login = document.getElementById('loginUsuario').value.trim();
   const senha = document.getElementById('loginSenha').value;
   if(!login || !senha){ document.getElementById('lockErro').textContent='Preencha login e senha.'; document.getElementById('lockErro').style.display='block'; return; }
   if(!apiConfigurada()){ document.getElementById('lockErro').textContent='Página ainda não conectada à planilha.'; document.getElementById('lockErro').style.display='block'; return; }
+  const erroLogin_ = (t)=>{ const el = document.getElementById('lockErro'); el.textContent = t; el.style.display = 'block'; };
+  let r = null, semPlanilha = false;
   try{
-    const r = await apiCall('autenticar', { login, senha });
-    if(r.ok){
-      currentUser = { login: r.login, nivel: r.nivel, token: r.token };
-      localStorage.setItem(SESSAO_KEY, JSON.stringify(currentUser));
-      entrarNoApp();
-    } else {
-      document.getElementById('lockErro').textContent = r.message;
-      document.getElementById('lockErro').style.display='block';
-    }
-  } catch(e){ document.getElementById('lockErro').textContent='Não foi possível conectar à planilha.'; document.getElementById('lockErro').style.display='block'; }
+    r = await apiCall('autenticar', { login, senha, deviceId: deviceId_(), ua: resumoNavegador_() });
+    if(r && r.timeout) semPlanilha = true;
+  } catch(e){ semPlanilha = true; }
+  if(semPlanilha){ // BLOCO 1.3: planilha fora do ar -> tenta a credencial de emergência guardada neste aparelho
+    const res = await emergenciaTentarEntrar_(login, senha);
+    if(res === 'ok' || res === 'cancelou') return;
+    erroLogin_(res === 'senha' ? 'Planilha fora do ar e a senha não confere com a guardada neste aparelho.'
+      : res === 'bloqueado' ? 'Muitas tentativas erradas. Aguarde 5 minutos.'
+      : 'Não foi possível conectar à planilha.');
+    return;
+  }
+  if(r.ok){
+    currentUser = { login: r.login, nivel: r.nivel, token: r.token };
+    localStorage.setItem(SESSAO_KEY, JSON.stringify(currentUser));
+    emergenciaRegistrar_(r.login, senha, r.nivel); // BLOCO 1.3: cria/renova o acesso de emergência por 30 dias
+    entrarNoApp();
+  } else {
+    if(/desativado|Login ou senha incorretos/i.test(r.message || '')) emergenciaRemover_(login); // acesso recusado pela planilha: apaga a credencial de emergência
+    erroLogin_(r.message);
+  }
 }
 function entrarNoApp(){
   garantirChaveContingencia_();
@@ -2923,7 +3154,14 @@ function entrarNoApp(){
   document.getElementById('mainWrap').classList.add('unlocked');
   document.getElementById('userbarTexto').textContent = currentUser.login + ' · ' + currentUser.nivel;
   aplicarPermissoesNivel();
+  if(currentUser.emergencia){ // BLOCO 1.3: modo emergência = só o Caixa
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('hidden-tab', b.dataset.tab !== 'caixa'));
+    document.querySelectorAll('.atalho-btn').forEach(b=>{ b.style.display = 'none'; });
+    const bc = document.querySelector('.tab-btn[data-tab="caixa"]'); if(bc) bc.click();
+    emergenciaBanner_('🟠 MODO EMERGÊNCIA — planilha fora do ar. Só vendas do Caixa, pela contingência.');
+  }
   init();
+  setTimeout(oferecerRecuperarCarrinho_, 800);  // ITEM 2.7
 }
 /* ETAPA 4: abas visíveis por perfil (a barra continua sendo a mesma de 7 abas; o backend valida cada ação de qualquer forma) */
 const NAV_POR_PERFIL_ = { 'Cozinha':['inicio','pedidos','notificacoes'], 'Garçom':['inicio','caixa','pedidos','clientes'] };
@@ -2958,7 +3196,7 @@ function aplicarPermissoesNivel(){
   });
   if(nivelAtual==='Cozinha' || nivelAtual==='Entregador'){ const bp = document.querySelector('.tab-btn[data-tab="pedidos"]'); if(bp && !bp.classList.contains('hidden-tab')) bp.click(); }
   if(nivelAtual==='Garçom'){ setTipoEntrega('Mesa'); setModoCliente('sem'); mudarPainelCaixa('cliente'); }
-  if(['Cozinha','Admin','Operador'].indexOf(nivelAtual)!==-1) iniciarDetectorCozinha();
+  if(['Cozinha','Admin','Operador','Garçom','Entregador'].indexOf(nivelAtual)!==-1 && !currentUser.emergencia) iniciarDetectorCozinha();
   pedidosPainel_(nivelAtual==='Entregador' ? 'entregas' : 'pedidos');
   atualizarCardAvisos_();
 }
@@ -2967,9 +3205,9 @@ function aplicarPermissoesNivel(){
    Cozinha e Entregador não recebem. A chave é apagada ao sair ou quando a sessão expira. */
 function garantirChaveContingencia_(){
   try{
-    if(!currentUser || ['Admin','Operador'].indexOf(currentUser.nivel)===-1) return;
+    if(!currentUser || currentUser.emergencia || ['Admin','Operador'].indexOf(currentUser.nivel)===-1) return;
     if(localStorage.getItem(CONTINGENCIA_CHAVE_KEY)) return;
-    apiCall('obterChaveContingencia', {}).then(r=>{ if(r && r.ok && r.chave) localStorage.setItem(CONTINGENCIA_CHAVE_KEY, r.chave); }).catch(()=>{});
+    apiCall('obterChaveContingencia', {}).then(r=>{ if(r && r.ok && r.chave){ localStorage.setItem(CONTINGENCIA_CHAVE_KEY, r.chave); emergenciaGuardarChave_(r.chave); } }).catch(()=>{});
   } catch(e){}
 }
 /* ETAPA C: troca da própria senha (qualquer perfil). O servidor devolve um token novo; sem ele este aparelho cairia no login. */
@@ -3004,6 +3242,7 @@ async function confirmarTrocarSenha(){
     if(r && r.ok && r.token){
       currentUser.token = r.token;
       localStorage.setItem(SESSAO_KEY, JSON.stringify(currentUser));
+      emergenciaRegistrar_(currentUser.login, nova, currentUser.nivel); // BLOCO 1.3: a senha de emergência acompanha a nova senha
       msg.textContent = r.message; msg.className = 'msg ok';
       ['spAtual','spNova','spConfirma'].forEach(id=>{ document.getElementById(id).value=''; });
       setTimeout(fecharModalTrocarSenha, 1500);
@@ -3024,6 +3263,7 @@ async function sair(){
     if(_fila.length && !confirm('Ainda há ' + _fila.length + ' item(ns) sem enviar.\n\nSe sair agora, eles ficam guardados neste aparelho e só serão enviados quando alguém entrar nele de novo (aparecem no botão "na fila").\n\nSair mesmo assim?')) return;
   }
   if(currentUser && currentUser.token) apiCall('encerrarSessao', {}).catch(()=>{});
+  try{ sessionStorage.removeItem(CARRINHO_RASCUNHO_KEY); }catch(e){}  // ITEM 2.7: saiu de propósito = não oferecer o carrinho de volta
   localStorage.removeItem(SESSAO_KEY); localStorage.removeItem(CONTINGENCIA_CHAVE_KEY); localStorage.removeItem(CACHE_KEY); // SEGURANÇA: não deixa clientes/vendas/financeiro guardados no aparelho depois de sair
   currentUser = null;
   location.reload();
@@ -3145,10 +3385,11 @@ function salvarCache(){
       clientes, promocoes, indicacoes, fidelidade: fidelidadeClientes,
       formasPagamento, categorias, produtos, produtoPrecos, produtoIngredientes, estoque, combos, comboPrecos, comboItens,
       adicionais, produtoAdicionais, feedbacks, ocorrencias, configCardapio, movimentacoesEstoque, maisPedidos, mesas,
-      vendas, itensVenda, pagamentosVenda, despesas, categoriasDespesa, despesasRecorrentes, sangrias, metas, sessaoCaixa, historicoCaixa, usuarios, logRecentes,
+      vendas, itensVenda, pagamentosVenda, despesas, categoriasDespesa, despesasRecorrentes, ajustesPosVenda, sangrias, metas, sessaoCaixa, historicoCaixa, usuarios, logRecentes,
       configEntrega, fechamentosEntrega, entregasFechadas, configNotificacoes
     }));
   } catch(e){ /* armazenamento indisponível, sem problema */ }
+  emergenciaSalvarCatalogo_(); // BLOCO 1.3
 }
 function carregarCache(){
   try{
@@ -3167,7 +3408,7 @@ function carregarCache(){
     maisPedidos = d.maisPedidos || maisPedidos;
     mesas = d.mesas || mesas;
     movimentacoesEstoque = d.movimentacoesEstoque || movimentacoesEstoque;
-    vendas = d.vendas||[]; itensVenda = d.itensVenda||[]; pagamentosVenda = d.pagamentosVenda||[]; despesas = d.despesas||[]; categoriasDespesa = d.categoriasDespesa||[]; despesasRecorrentes = d.despesasRecorrentes||[]; sangrias = d.sangrias||[];
+    vendas = d.vendas||[]; itensVenda = d.itensVenda||[]; pagamentosVenda = d.pagamentosVenda||[]; despesas = d.despesas||[]; categoriasDespesa = d.categoriasDespesa||[]; despesasRecorrentes = d.despesasRecorrentes||[]; ajustesPosVenda = d.ajustesPosVenda||[]; sangrias = d.sangrias||[];
     metas = d.metas||{mensal:0,diaria:0}; sessaoCaixa = d.sessaoCaixa||null; historicoCaixa = d.historicoCaixa||[];
     usuarios = d.usuarios||[]; logRecentes = d.logRecentes||[];
     configEntrega = d.configEntrega || configEntrega; fechamentosEntrega = d.fechamentosEntrega||[]; entregasFechadas = d.entregasFechadas||[];
@@ -4319,6 +4560,8 @@ async function retomarPedidoUI(vendaId){
   } catch(e){ alert('Não foi possível retomar agora.'); }
   finally { finalizarOperacaoUnica(chave); }
 }
+/* ITEM 2.2 — quem pode editar pedido ainda "Recebido" (mesma regra do backend: editarVenda = Admin e Operador). */
+function podeEditarPedidoRecebido_(){ return !!(currentUser && (currentUser.nivel === 'Admin' || currentUser.nivel === 'Operador')); }
 async function aceitarPedidoUI(vendaId){
   const chave = 'aceitar-'+vendaId;
   if(!iniciarOperacaoUnica(chave)) return;
@@ -4516,6 +4759,7 @@ function cartaoPedidoMesa_(v){
   const botoesAceite = aguardandoAceite ? `<div class="btnrow" style="margin-top:6px;">
       <button class="small-gold" onclick="aceitarPedidoUI('${v.id}')">✅ Aceitar</button>
       <button class="ghost" onclick="rejeitarPedidoUI('${v.id}')">❌ Rejeitar</button>
+      ${podeEditarPedidoRecebido_() ? `<button class="ghost" onclick="abrirModalEditarVenda('${v.id}')">✏️ Editar</button>` : ''}
     </div>` : '';
   return `<div class="notif-card">
     <div><b>#${escH(rotuloPedido(v))}</b> — ${escH(hora)} — <b>${formatarMoeda(v.valorTotal)}</b>${aguardandoAceite?' <span class="badge baixo">novo — aguardando aceite</span>':''}</div>
@@ -4688,6 +4932,7 @@ function renderPedidos(){
       const botoesAceite = aguardandoAceite ? `<div class="btnrow" style="margin-top:6px;">
           <button class="small-gold" onclick="aceitarPedidoUI('${v.id}')">✅ Aceitar</button>
           <button class="ghost" onclick="rejeitarPedidoUI('${v.id}')">❌ Rejeitar</button>
+      ${podeEditarPedidoRecebido_() ? `<button class="ghost" onclick="abrirModalEditarVenda('${v.id}')">✏️ Editar</button>` : ''}
         </div>` : '';
       return `<div class="notif-card">
         <div><b>#${rotuloPedido(v)}</b> — ${identificacao}${aguardandoAceite?' <span class="badge baixo">novo — aguardando aceite</span>':''}</div>
@@ -4740,7 +4985,15 @@ function cardCozinha_(v, acao){
   const min = Math.floor((Date.now()-v.timestamp)/60000);
   const atrasado = v.statusPedido!=='Pronta' && min>=20;
   const obs = v.observacoesEntrega ? `<div class="cz-obs">📝 ${escOc_(v.observacoesEntrega)}</div>` : '';
+  const alterado = comandaFotoTirar_(v); // ITEM 2.4
+  let faixaAlterado = '';
+  if(alterado){
+    faixaAlterado = `<div style="background:#c0392b;color:#fff;font-weight:700;border-radius:6px;padding:6px 8px;margin:4px 0;font-size:13px;">⚠️ PEDIDO ALTERADO depois de visto/impresso — confira os itens
+      <div style="margin-top:5px;display:flex;gap:6px;flex-wrap:wrap;"><button type="button" class="small-gold" onclick="comandaReimprimirAtualizada('${v.id}')">🖨️ Reimprimir comanda atualizada</button><button type="button" class="ghost" onclick="comandaCiente('${v.id}')">👍 Ciente</button></div></div>`;
+    if(!_comandaAlteradaAvisada_.has(v.id)){ _comandaAlteradaAvisada_.add(v.id); setTimeout(()=>{ try{ somAlerta_(); setTimeout(somAlerta_, 900); }catch(e){} }, 50); } // bipe duplo uma vez por alteração
+  }
   return `<div class="cz-card${atrasado?' atrasado':''}">
+    ${faixaAlterado}
     <div class="cz-cab"><b>#${escOc_(rotuloPedido(v))} — ${destino}</b><span class="cz-tempo">${tempoDecorridoDesde(v.timestamp)}</span></div>
     <div class="obs-line">${escOc_(v.origem||'Balcão')}${quemFezPedido_(v)?' · '+escOc_(quemFezPedido_(v)):''}</div>
     ${itens}${obs}
@@ -4760,6 +5013,64 @@ function pedidosNovosCozinha_(){
   const limite = Date.now() - 24*3600*1000;
   return vendas.filter(v=>v.status==='Confirmada' && v.timestamp>=limite && (v.statusPedido==='Recebido' || (v.statusPedido==='Em preparo' && !v.timestampInicioPreparo))).sort((a,b)=>a.timestamp-b.timestamp);
 }
+/* ITEM 2.4 — COMANDA ALTERADA. Este aparelho lembra "como o pedido estava" quando a comanda foi impressa ou quando o pedido apareceu na
+   tela pela primeira vez (uma "foto" do conteúdo: itens, adicionais, observações). Se um Admin/Operador editar o pedido depois, a foto
+   deixa de bater: o cartão ganha a faixa vermelha "PEDIDO ALTERADO" (e dois bipes uma vez) até a cozinha reimprimir ou tocar em "Ciente". */
+const COMANDA_FOTO_KEY_ = 'txbComandaFoto_v1';
+function comandaFotos_(){ try{ return JSON.parse(localStorage.getItem(COMANDA_FOTO_KEY_)||'{}') || {}; }catch(e){ return {}; } }
+function comandaFotosSalvar_(m){ try{ const ks = Object.keys(m); if(ks.length > 300) ks.slice(0, ks.length - 300).forEach(k=>delete m[k]); localStorage.setItem(COMANDA_FOTO_KEY_, JSON.stringify(m)); }catch(e){} }
+function comandaConteudoHash_(v){
+  const its = itensVenda.filter(it=>it.vendaId===v.id);
+  if(!its.length) return '';
+  const txt = its.map(it=>[it.quantidade, it.descricao, (it.adicionaisIds||[]).slice().sort().join('+')].join('|')).sort().join('~') + '#' + (v.observacoesEntrega||'');
+  let h = 5381; for(let i=0;i<txt.length;i++){ h = ((h<<5) + h + txt.charCodeAt(i)) | 0; }
+  return 'h' + (h>>>0).toString(36) + '-' + its.length;
+}
+function comandaFotoTirar_(v){ // grava a foto se ainda não existir; devolve true se o pedido MUDOU desde a foto
+  const h = comandaConteudoHash_(v); if(!h) return false;
+  const m = comandaFotos_();
+  if(!m[v.id]){ m[v.id] = h; comandaFotosSalvar_(m); return false; }
+  return m[v.id] !== h;
+}
+function comandaFotoAtualizar_(v){ const h = comandaConteudoHash_(v); if(!h) return; const m = comandaFotos_(); m[v.id] = h; comandaFotosSalvar_(m); }
+const _comandaAlteradaAvisada_ = new Set();
+function comandaCiente(vendaId){ const v = vendas.find(x=>x.id===vendaId); if(v) comandaFotoAtualizar_(v); renderCozinha(); }
+function comandaReimprimirAtualizada(vendaId){ imprimirComandaPedido(vendaId); renderCozinha(); }
+
+/* ITEM 2.5 — IMPRESSÃO NÃO CONFIRMADA. O navegador não sabe se o papel saiu (cancelou a tela, sem papel, impressora desligada).
+   Depois de mandar imprimir, a cozinha vê "Saiu no papel?" com dois botões; sem resposta em 30 s vira alerta vermelho e fica até alguém responder.
+   "Não saiu" tira as comandas da lista de impressas e as manda de novo. */
+let _impPend_ = null; // { ids:[], em:ms }
+function impConfirmarRegistrar_(ids){
+  if(!ids || !ids.length) return;
+  if(_impPend_){ ids.forEach(id=>{ if(_impPend_.ids.indexOf(id) === -1) _impPend_.ids.push(id); }); }
+  else _impPend_ = { ids: ids.slice(), em: Date.now() };
+  impConfirmarRender_();
+}
+function impConfirmarRender_(){
+  let box = document.getElementById('czImpConfirma');
+  const ref = document.getElementById('czComandaMsg');
+  if(!box && ref && ref.parentNode){ box = document.createElement('div'); box.id = 'czImpConfirma'; ref.parentNode.insertBefore(box, ref.nextSibling); }
+  if(!box) return;
+  if(!_impPend_){ box.innerHTML = ''; box.style.display = 'none'; return; }
+  const atrasado = Date.now() - _impPend_.em >= 30000;
+  box.style.display = 'block';
+  box.style.cssText += ';margin:6px 0;padding:8px 10px;border-radius:8px;font-size:13px;border:1px solid ' + (atrasado ? '#c0392b' : 'var(--line, #444)') + ';background:' + (atrasado ? 'rgba(192,57,43,.18)' : 'transparent') + ';';
+  const n = _impPend_.ids.length;
+  box.innerHTML = (atrasado ? '⚠️ <b>Impressão não confirmada</b> — ' : '🖨️ ') + 'Saiu no papel ' + (n>1 ? 'as ' + n + ' comandas' : 'a comanda') + '? ' +
+    '<button type="button" class="small-gold" style="margin-left:6px;" onclick="impConfirmarSim()">✅ Saiu</button> ' +
+    '<button type="button" class="ghost" onclick="impConfirmarNao()">🔁 Não saiu, reimprimir</button>';
+}
+function impConfirmarSim(){ _impPend_ = null; impConfirmarRender_(); avisoComanda_('✅ Impressão confirmada às '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})+'.'); }
+function impConfirmarNao(){
+  if(!_impPend_) return;
+  const ids = _impPend_.ids.slice(); _impPend_ = null;
+  try{ const a = comandasImpressas_().filter(id=>ids.indexOf(id) === -1); localStorage.setItem(COMANDAS_KEY_, JSON.stringify(a)); }catch(e){}
+  const lista = ids.map(id=>vendas.find(x=>x.id===id)).filter(Boolean);
+  impConfirmarRender_();
+  if(lista.length){ marcarComandasImpressas_(lista.map(v=>v.id)); imprimirComandas_(lista); impConfirmarRegistrar_(lista.map(v=>v.id)); avisoComanda_('🔁 Comanda(s) reenviada(s) à impressora. Confira se saiu.'); }
+}
+setInterval(()=>{ if(_impPend_) impConfirmarRender_(); }, 5000);
 function comandaHtml_(v){
   const itens = itensVenda.filter(it=>it.vendaId===v.id).map(it=>{
     const ad = (it.adicionaisIds||[]).map(id=>{ const a = adicionais.find(x=>x.id===id); return a ? a.nome : ''; }).filter(Boolean);
@@ -4771,6 +5082,7 @@ function comandaHtml_(v){
     (v.observacoesEntrega ? `<hr><div><b>OBS:</b> ${escR(v.observacoesEntrega)}</div>` : '') + '<hr>';
 }
 function imprimirComandas_(lista){
+  lista.forEach(v=>{ comandaFotoAtualizar_(v); _comandaAlteradaAvisada_.delete(v.id); }); // ITEM 2.4: a comanda impressa passa a ser a "foto" do pedido
   const corpo = lista.map(comandaHtml_);
   imprimirDocumento(corpo, 'Comanda', lerFormato('comanda','80mm'));
 }
@@ -4779,11 +5091,13 @@ function imprimirComandaPedido(vendaId){
   const v = vendas.find(x=>x.id===vendaId); if(!v) return;
   marcarComandasImpressas_([v.id]); imprimirComandas_([v]);
   avisoComanda_('🖨️ Comanda #'+rotuloPedido(v)+' enviada à impressora.');
+  impConfirmarRegistrar_([v.id]); // ITEM 2.5
 }
 function imprimirNovosCozinha(auto){
   const lista = pedidosNovosCozinha_().filter(v=>!comandaJaImpressa_(v.id) && (!auto || Date.now()-v.timestamp < 3600000));
   if(!lista.length){ if(!auto) avisoComanda_('Nenhuma comanda nova para imprimir.'); return; }
   marcarComandasImpressas_(lista.map(v=>v.id)); imprimirComandas_(lista);
+  impConfirmarRegistrar_(lista.map(v=>v.id)); // ITEM 2.5
   avisoComanda_('🖨️ '+lista.length+' comanda(s) enviada(s) à impressora às '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})+'.');
 }
 function alternarComandaAuto(ligado){
@@ -4867,7 +5181,9 @@ function somAlerta_(){
   }catch(e){}
   try{ if(navigator.vibrate) navigator.vibrate([300,150,300,150,300]); }catch(e){}
 }
-function souDetector_(){ return !!(currentUser && ['Cozinha','Admin','Operador'].indexOf(currentUser.nivel)!==-1); }
+function souDetector_(){ return !!(currentUser && ['Cozinha','Admin','Operador','Garçom','Entregador'].indexOf(currentUser.nivel)!==-1); }
+/* ITEM 3.1 — Garçom e Entregador usam o mesmo detector, mas só veem o que é deles e podem checar com a aba em segundo plano. */
+function souDetectorLeve_(){ return !!(currentUser && (currentUser.nivel==='Garçom' || currentUser.nivel==='Entregador')); }
 function avisosSuportado_(){ return 'Notification' in window; }
 function mostrarNotificacao_(titulo, corpo){
   try{
@@ -4878,6 +5194,12 @@ function mostrarNotificacao_(titulo, corpo){
       navigator.serviceWorker.getRegistration().then(reg=>{ if(reg && reg.showNotification) reg.showNotification(titulo, opts); else direto(); }).catch(direto);
     } else direto();
   }catch(e){}
+}
+function avisarEventoLeve_(titulo, corpo, tituloAba){
+  beepCozinha_();
+  try{ const original = document.title.replace(/^🔔 .*? — /,''); document.title = '🔔 ' + tituloAba + ' — ' + original; setTimeout(()=>{ document.title = original; }, 10000); }catch(e){}
+  try{ if(navigator.vibrate) navigator.vibrate([300,150,300]); }catch(e){}
+  mostrarNotificacao_(titulo, corpo);
 }
 function avisarNovoPedido_(qtd){
   beepCozinha_();
@@ -4971,13 +5293,27 @@ function alertaVisualCozinha_(qtd){
   document.title = '🔔 ('+qtd+') Novo pedido — '+tituloOriginal;
   setTimeout(()=>{ document.title = tituloOriginal; }, 10000);
 }
-let caixaVistos = null;
+let caixaVistos = null, leveVistos = null;
 async function detectarNovosCozinha_(manual){
   if(!apiConfigurada() || !souDetector_()) return;
-  if(document.hidden && !manual) return;
+  if(document.hidden && !manual && !souDetectorLeve_()) return; // entregador/garçom também checam com a aba em segundo plano
   try{
     const r = await apiCall('detectarNovosPedidos', {});
     if(!r || !r.ok) return;
+    if(souDetectorLeve_()){
+      const ehEntregador = currentUser.nivel==='Entregador';
+      const lista = (ehEntregador ? r.entregas : r.prontas) || [];
+      let novosL = [];
+      if(leveVistos === null) leveVistos = new Set(lista);
+      else { novosL = lista.filter(id=>!leveVistos.has(id)); lista.forEach(id=>leveVistos.add(id)); }
+      cozinhaUltimaChecagem = new Date();
+      if(novosL.length){
+        if(ehEntregador) avisarEventoLeve_('🛵 Nova entrega!', novosL.length>1 ? novosL.length+' entregas novas para você.' : 'Você recebeu uma entrega nova.', 'Nova entrega');
+        else avisarEventoLeve_('🍽️ Pedido pronto!', novosL.length>1 ? novosL.length+' pedidos prontos nas suas mesas.' : 'Um pedido da sua mesa está pronto.', 'Pedido pronto');
+        if(seguroParaSincronizar()) await sincronizarEmSegundoPlano(); else cozinhaSyncPendente = true;
+      } else if(cozinhaSyncPendente && seguroParaSincronizar()){ cozinhaSyncPendente = false; await sincronizarEmSegundoPlano(); }
+      return;
+    }
     const atuais = r.ids || [];
     let novos = [];
     if(cozinhaVistos === null){ cozinhaVistos = new Set(atuais); }
@@ -4998,9 +5334,30 @@ async function detectarNovosCozinha_(manual){
     atualizarStatusDetector_();
   } catch(e){ atualizarStatusDetector_(true); }
 }
+function chipAtivarAvisosLeve_(){
+  if(document.getElementById('chipAvisosLeve')) return;
+  const semNotif = !avisosSuportado_() || Notification.permission==='granted';
+  if(semNotif && cozinhaSomLigado && localStorage.getItem('avisosLeveOk')==='1') return;
+  const b = document.createElement('button'); b.id = 'chipAvisosLeve'; b.type = 'button';
+  b.style.cssText = 'position:fixed;right:12px;bottom:12px;z-index:9998;background:var(--gold,#d9a21b);color:#111;border:0;border-radius:20px;padding:10px 14px;font:700 13px system-ui,sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.4);';
+  b.textContent = '🔔 Ativar avisos e som';
+  b.onclick = async ()=>{
+    try{ if(avisosSuportado_() && Notification.permission==='default') await Notification.requestPermission(); }catch(e){}
+    cozinhaSomLigado = true; try{ localStorage.setItem('cozinhaSom','1'); localStorage.setItem('avisosLeveOk','1'); }catch(e){}
+    beepCozinha_(); b.remove();
+  };
+  document.body.appendChild(b);
+}
 function iniciarDetectorCozinha(){
   if(!souDetector_() || cozinhaTimer) return;
   atualizarStatusDetector_();
+  if(souDetectorLeve_()){
+    chipAtivarAvisosLeve_();
+    cozinhaTimer = setInterval(()=>detectarNovosCozinha_(false), SYNC_INTERVALO_MS);
+    document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) detectarNovosCozinha_(false); });
+    detectarNovosCozinha_(true);
+    return; // sem "manter tela ligada": no celular do entregador/garçom isso gastaria bateria à toa
+  }
   manterTelaLigada_();
   cozinhaTimer = setInterval(()=>detectarNovosCozinha_(false), SYNC_INTERVALO_MS); // 3 min (era 30 s): menos chamadas ao Apps Script
   setInterval(manterTelaLigada_, 30000); // só local (bloqueio de tela), não chama a planilha
@@ -5102,6 +5459,7 @@ function renderEntregas(){
       const botoesAceite = (aguardandoAceite && !souEntregador && !souGarcom_()) ? `<div class="btnrow" style="margin-top:6px;">
           <button class="small-gold" onclick="aceitarPedidoUI('${v.id}')">✅ Aceitar</button>
           <button class="ghost" onclick="rejeitarPedidoUI('${v.id}')">❌ Rejeitar</button>
+      ${podeEditarPedidoRecebido_() ? `<button class="ghost" onclick="abrirModalEditarVenda('${v.id}')">✏️ Editar</button>` : ''}
         </div>` : '';
       return `<div class="notif-card">
         <div><b>#${rotuloPedido(v)}</b> — 🛵 ${escH(v.clienteNome||'Sem cadastro')}${aguardandoAceite?' <span class="badge baixo">novo — aguardando aceite</span>':''}</div>
@@ -5465,6 +5823,9 @@ Esperado: ${formatarMoeda(r.saldoFinal)}
 Contado na gaveta: ${formatarMoeda(contado)}
 Diferença: ${formatarMoeda(Math.abs(diferenca))} (${sinal})`;
   }
+  let blocoCont = '';
+  if(r.reconciliadasNaSessao && r.reconciliadasNaSessao.quantidade>0) blocoCont += `\n\n🟠 VENDAS VINDAS DA CONTINGÊNCIA (já incluídas)\n${r.reconciliadasNaSessao.quantidade} venda(s) — ${formatarMoeda(r.reconciliadasNaSessao.valor)}, registradas com a hora original da venda.`;
+  if(r.pendentesContingencia>0) blocoCont += `\n\n⚠️ VENDAS AINDA NA FILA DA CONTINGÊNCIA\n${r.pendentesContingencia} venda(s) não entraram neste fechamento. Quando forem reconciliadas, entram nesta sessão como "reconciliadas após o fechamento" e o saldo e a diferença são ajustados.`;
   const texto = `🧾 FECHAMENTO DE CAIXA — TEXAS BURGER
 Abertura: ${r.abertura}
 Fechamento: ${r.fechamento}
@@ -5478,7 +5839,7 @@ Total de vendas: ${formatarMoeda(r.totalVendas)} (${r.quantidadeVendas} venda(s)
 ${r.totalPendente>0 ? 'A receber (ainda não pago): '+formatarMoeda(r.totalPendente)+'\n' : ''}Despesas: ${formatarMoeda(r.totalDespesas)} (${r.quantidadeDespesas} despesa(s))
 Sangrias: ${formatarMoeda(r.totalSangrias)} (${r.quantidadeSangrias} sangria(s))
 
-💰 Saldo final em caixa: ${formatarMoeda(r.saldoFinal)}${reconciliacao}${entregasAuto && entregasAuto.feitos && entregasAuto.feitos.length ? '\n\n🛵 ENTREGAS FECHADAS AUTOMATICAMENTE\n'+entregasAuto.feitos.join('\n') : ''}${entregasAuto && entregasAuto.falhas && entregasAuto.falhas.length ? '\n\n⚠ Não foi possível fechar: '+entregasAuto.falhas.join(' | ')+' (feche manualmente em Entregas)' : ''}`;
+💰 Saldo final em caixa: ${formatarMoeda(r.saldoFinal)}${reconciliacao}${blocoCont}${entregasAuto && entregasAuto.feitos && entregasAuto.feitos.length ? '\n\n🛵 ENTREGAS FECHADAS AUTOMATICAMENTE\n'+entregasAuto.feitos.join('\n') : ''}${entregasAuto && entregasAuto.falhas && entregasAuto.falhas.length ? '\n\n⚠ Não foi possível fechar: '+entregasAuto.falhas.join(' | ')+' (feche manualmente em Entregas)' : ''}`;
   ultimoRelatorioTexto = texto;
   document.getElementById('relatorioTexto').textContent = texto;
   document.getElementById('fecharCaixaModal').classList.add('open');
@@ -6096,8 +6457,15 @@ function adicionarAtalhoProduto(produtoId){
 
 let caixaItemPendente = null; // {produtoId, nome, preco, custo, qtd}
 let caixaAdicionaisEscolhidos = [];
+/* ITEM 3.3: o servidor recusa mais de 50 unidades por item; aqui o campo já não deixa passar, com aviso visual. */
+const QTD_MAX_ITEM_ = 50;
+function avisoQtdMax_(msgId){ try{ showMsg(msgId || 'vMsg', 'O máximo é ' + QTD_MAX_ITEM_ + ' unidades por item. Para mais, lance em dois itens ou fale com o restaurante.', 'warn'); }catch(e){} }
+function limitarQtd50_(el, msgId){
+  let n = Math.floor(Number(el.value));
+  if(el.value !== '' && Number.isFinite(n) && n > QTD_MAX_ITEM_){ el.value = QTD_MAX_ITEM_; el.style.outline = '2px solid var(--red, #c0392b)'; setTimeout(()=>{ el.style.outline = ''; }, 1500); avisoQtdMax_(msgId); }
+}
 function adicionarItemCarrinho(){
-  const qtd = Number(document.getElementById('vQtd').value) || 1;
+  const qtd = Math.min(QTD_MAX_ITEM_, Math.max(1, Math.floor(Number(document.getElementById('vQtd').value)) || 1));
   if(modoItem === 'produto'){
     const sel = document.getElementById('vProduto');
     const opt = sel.options[sel.selectedIndex];
@@ -6159,6 +6527,7 @@ function removerItemCarrinho(idx){ carrinhoAtual.splice(idx,1); renderCarrinho()
 function alterarQtdCarrinho(idx, delta){
   const novaQtd = (carrinhoAtual[idx].quantidade||1) + delta;
   if(novaQtd < 1) return;
+  if(novaQtd > QTD_MAX_ITEM_){ avisoQtdMax_(); return; }
   carrinhoAtual[idx].quantidade = novaQtd;
   renderCarrinho();
 }
@@ -6193,7 +6562,43 @@ function verificarEstoqueCarrinho(){
   else { el.className = 'msg'; }
 }
 
+/* ITEM 2.7 — rascunho do carrinho. Fica no sessionStorage (some ao fechar a aba) e só guarda itens + forma de preço + quem montou.
+   Não guarda cliente, telefone nem endereço. Só começa a gravar DEPOIS de oferecer a recuperação, senão o carrinho vazio do
+   início apagaria o rascunho antes de o operador ver a pergunta. */
+const CARRINHO_RASCUNHO_KEY = 'tb_carrinho_rascunho_v1';
+let _carrinhoRascunhoPronto_ = false;
+function carrinhoRascunhoSalvar_(){
+  if(!_carrinhoRascunhoPronto_) return;
+  try{
+    if(!carrinhoAtual.length){ sessionStorage.removeItem(CARRINHO_RASCUNHO_KEY); return; }
+    sessionStorage.setItem(CARRINHO_RASCUNHO_KEY, JSON.stringify({ login: currentUser ? currentUser.login : '', forma: formaPrecoAtual || '', ts: Date.now(), itens: carrinhoAtual }));
+  }catch(e){}
+}
+function oferecerRecuperarCarrinho_(){
+  try{
+    if(!currentUser || ['Admin','Operador','Garçom'].indexOf(currentUser.nivel) === -1){ _carrinhoRascunhoPronto_ = true; return; }
+    let rascunho = null;
+    try{ rascunho = JSON.parse(sessionStorage.getItem(CARRINHO_RASCUNHO_KEY) || 'null'); }catch(e){}
+    if(!rascunho || !Array.isArray(rascunho.itens) || !rascunho.itens.length || carrinhoAtual.length){ _carrinhoRascunhoPronto_ = true; return; }
+    // aceita só itens com formato esperado (nunca confia cegamente no que está guardado)
+    const itens = rascunho.itens.filter(it=>it && typeof it.descricao === 'string' && isFinite(Number(it.quantidade)) && isFinite(Number(it.valorUnitario)))
+      .map(it=>Object.assign({}, it, { quantidade: Math.min(50, Math.max(1, Math.floor(Number(it.quantidade)) || 1)), valorUnitario: Number(it.valorUnitario) }));
+    if(!itens.length || Date.now() - (rascunho.ts || 0) > 12*3600*1000){ sessionStorage.removeItem(CARRINHO_RASCUNHO_KEY); _carrinhoRascunhoPronto_ = true; return; }
+    const outroLogin = rascunho.login && rascunho.login !== currentUser.login;
+    const msg = 'Há um carrinho não finalizado' + (outroLogin ? ' montado por "' + rascunho.login + '"' : '') + ' (' + itens.length + ' item' + (itens.length>1?'s':'') + ').\n\nRecuperar?' + (outroLogin ? '\n\nAtenção: foi montado por outro login.' : '') + '\nOs preços serão conferidos com a tabela atual.';
+    if(confirm(msg)){
+      carrinhoAtual = itens;
+      try{
+        const formaOk = rascunho.forma && formasPagamento.find(x=>x.id===rascunho.forma && x.ativa);
+        if(formaOk){ mudarFormaPreco(rascunho.forma); popularSelectFormaPreco(); }  // reprecifica os itens com a tabela de preços atual
+      }catch(e){}
+      renderCarrinho();
+    } else { sessionStorage.removeItem(CARRINHO_RASCUNHO_KEY); }
+  }catch(e){}
+  _carrinhoRascunhoPronto_ = true;
+}
 function renderCarrinho(){
+  carrinhoRascunhoSalvar_();
   atualizarContagemPainelItens();
   const box = document.getElementById('carrinhoLista');
   if(carrinhoAtual.length===0){ box.innerHTML = '<div class="notif-empty">Nenhum item ainda.</div>'; document.getElementById('carrinhoTotal').textContent = formatarMoeda(0); verificarEstoqueCarrinho(); atualizarPreviewDesconto(); return; }
@@ -6382,12 +6787,15 @@ async function finalizarVendaConfirmada(total, desconto, senhaAdminConfirmacao){
   if(tipoEntregaAtual==='Entrega' && !dadosEntrega.endereco){ showMsg('vMsg','Informe o endereço de entrega.','warn'); return; }
 
   /* ETAPA 7B / FASE 11D: planilha principal fora do ar -> o Caixa pode registrar a venda na CONTINGÊNCIA (com confirmação dela). */
-  const ctxCont = { carrinho: carrinhoAtual.slice(), clienteNome, clienteTelefone, pagamentos: pagamentosParaEnviar, tipoEntrega: tipoEntregaAtual, dadosEntrega, statusPagamento: statusPagamentoParaEnviar, total, valorDescontoReal, subtotal: totalCarrinho() };
+  const ctxCont = { carrinho: carrinhoAtual.slice(), clienteNome, clienteTelefone, pagamentos: pagamentosParaEnviar, tipoEntrega: tipoEntregaAtual, dadosEntrega, statusPagamento: statusPagamentoParaEnviar, total, valorDescontoReal, subtotal: totalCarrinho(), timestampOriginal: Date.now() };
   const _reqVendaCont = { itens: carrinhoAtual.map(i=>[i.produtoId||i.comboId||i.descricao, i.quantidade, i.valorUnitario]), clienteTelefone, tipoEntrega: tipoEntregaAtual, mesaId: mesaEscolhidaId||'', pagamentos: pagamentosParaEnviar };
   ctxCont.reqConteudo = _reqVendaCont;
-  if(conexaoAtual==='offline'){
+  const _contPrev = !eraMesa && servidorLento_() && podeVenderContingencia_() && valorDescontoReal===0; // BLOCO 1.2
+  if(conexaoAtual==='offline' || _contPrev){
     if(eraMesa){ showMsg('vMsg','Sem conexão — o pedido da mesa não foi lançado.','warn'); return; }
-    await venderEmContingencia_(ctxCont); return;
+    ctxCont.preventivo = _contPrev && conexaoAtual!=='offline';
+    const _res = await venderEmContingencia_(ctxCont);
+    if(_res !== 'recusou' || conexaoAtual==='offline') return; // recusou no modo preventivo: tenta a planilha mesmo assim
   }
   setBotoesOcupados(true);
   try{
@@ -6446,11 +6854,11 @@ function podeVenderContingencia_(){
 }
 async function venderEmContingencia_(ctx){
   if(!podeVenderContingencia_()){ showMsg('vMsg','🔴 Sem conexão com a planilha e sem contingência disponível para esta venda (desconto e mesa não são aceitos).','warn'); return; }
-  if(!confirm('A planilha principal não respondeu.\n\nRegistrar esta venda na CONTINGÊNCIA?\n• Ela fica guardada e entra na planilha sozinha quando a principal voltar.\n• Estoque, fidelidade e o total do caixa só atualizam depois disso.\n• Não confirme se a venda já apareceu em Vendas.')) return;
+  if(!confirm((ctx.preventivo ? 'A planilha principal está muito lenta (2 falhas seguidas).' : 'A planilha principal não respondeu.') + '\n\nRegistrar esta venda na CONTINGÊNCIA?\n• Ela fica guardada e entra na planilha sozinha quando a principal voltar.\n• Estoque, fidelidade e o total do caixa só atualizam depois disso.\n• Não confirme se a venda já apareceu em Vendas.')) return 'recusou';
   const idRequisicao = ctx.reqConteudo ? reqIdPersist_('venda', ctx.reqConteudo) : novaRequisicao_(); // o MESMO id da tentativa ao servidor: se a venda já tinha entrado, a reconciliação não duplica
   const idFila = 'cx-' + idRequisicao.replace(/[^A-Za-z0-9_-]/g,'');
   const itens = ctx.carrinho.map(it=>({ produtoId: it.produtoId||undefined, comboId: it.comboId||undefined, descricao: it.descricao, quantidade: it.quantidade, valorUnitario: it.valorUnitario, custoUnitario: it.custoUnitario||0, adicionaisIds: it.adicionaisIds||[] }));
-  const dados = { itens, clienteNome: ctx.clienteNome||'', clienteTelefone: ctx.clienteTelefone||'', pagamentos: ctx.pagamentos, tipoEntrega: ctx.tipoEntrega, dadosEntrega: ctx.dadosEntrega, statusPagamento: ctx.statusPagamento, desconto: null, origem: 'Caixa', requisicaoOriginal: idRequisicao };
+  const dados = { itens, clienteNome: ctx.clienteNome||'', clienteTelefone: ctx.clienteTelefone||'', pagamentos: ctx.pagamentos, tipoEntrega: ctx.tipoEntrega, dadosEntrega: ctx.dadosEntrega, statusPagamento: ctx.statusPagamento, desconto: null, origem: 'Caixa', requisicaoOriginal: idRequisicao, timestampOriginal: ctx.timestampOriginal || Date.now(), emergenciaOperador: (currentUser && currentUser.emergencia) ? currentUser.login : undefined };
   setBotoesOcupados(true);
   try{
     const r = await fetchContingencia_({ method:'post', body: JSON.stringify({ action:'enfileirar', chave: localStorage.getItem(CONTINGENCIA_CHAVE_KEY), id: idFila, tipo:'venda', dados }) }, TIMEOUT_CONT_ENVIO_MS_, TIMEOUT_CONT_REPETICOES_);
@@ -6688,8 +7096,10 @@ function reimprimirVenda(id){
 }
 
 /* ---------- EDITAR VENDA ---------- */
+let versaoEdicaoVenda_ = '';
 function abrirModalEditarVenda(vendaId){
   vendaEditandoId = vendaId;
+  { const vv = vendas.find(x=>x.id===vendaId); versaoEdicaoVenda_ = (vv && vv._v) || ''; }  // ITEM 2.3: versão que o operador está vendo
   itensEdicaoVenda = itensVenda.filter(it=>it.vendaId===vendaId).map(it=>({produtoId:it.produtoId||null, comboId:it.comboId||null, descricao:it.descricao, quantidade:it.quantidade, valorUnitario:it.valorUnitario, custoUnitario:it.custoUnitario||0}));
   document.getElementById('evMotivo').value = '';
   document.getElementById('evSenhaAdmin').value = '';
@@ -6708,7 +7118,7 @@ function adicionarItemEdicaoVenda(){
   renderItensEdicaoVenda();
 }
 function removerItemEdicaoVenda(idx){ itensEdicaoVenda.splice(idx,1); renderItensEdicaoVenda(); }
-function mudarQtdEdicaoVenda(idx, val){ itensEdicaoVenda[idx].quantidade = Number(val)||1; renderItensEdicaoVenda(); }
+function mudarQtdEdicaoVenda(idx, val){ let q = Math.floor(Number(val)) || 1; if(q > QTD_MAX_ITEM_){ q = QTD_MAX_ITEM_; avisoQtdMax_('evMsg'); } itensEdicaoVenda[idx].quantidade = Math.max(1, q); renderItensEdicaoVenda(); }
 function mudarValorEdicaoVenda(idx, val){ itensEdicaoVenda[idx].valorUnitario = Number(val)||0; renderItensEdicaoVenda(); }
 function renderItensEdicaoVenda(){
   const box = document.getElementById('evItensLista');
@@ -6717,7 +7127,7 @@ function renderItensEdicaoVenda(){
     total += it.quantidade*it.valorUnitario;
     return `<div class="pagamento-row">
       <span style="flex:1.5;font-size:12.5px;align-self:center;">${escH(it.descricao)}</span>
-      <input type="number" style="max-width:55px;" value="${it.quantidade}" min="1" oninput="mudarQtdEdicaoVenda(${idx}, this.value)">
+      <input type="number" style="max-width:55px;" value="${it.quantidade}" min="1" max="50" oninput="mudarQtdEdicaoVenda(${idx}, this.value)">
       <input type="number" style="max-width:80px;" value="${it.valorUnitario}" step="0.01" oninput="mudarValorEdicaoVenda(${idx}, this.value)">
       <button class="rm-row" onclick="removerItemEdicaoVenda(${idx})">✕</button>
     </div>`;
@@ -6730,13 +7140,17 @@ async function salvarEdicaoVenda(){
   if(!motivo){ showMsg('evMsg','Informe o motivo da edição.','warn'); return; }
   if(itensEdicaoVenda.length===0){ showMsg('evMsg','A venda precisa ter ao menos um item.','warn'); return; }
   try{
-    const r = await apiCall('editarVenda', { id: vendaEditandoId, itens: itensEdicaoVenda, motivo, senhaAdminConfirmacao });
+    const r = await apiCall('editarVenda', { id: vendaEditandoId, itens: itensEdicaoVenda, motivo, senhaAdminConfirmacao, versaoEsperada: versaoEdicaoVenda_ || undefined });
     if(r.ok){
       vendas = r.vendas || vendas; itensVenda = r.itensVenda || itensVenda; salvarCache();
-      showMsg('evMsg', r.message, 'ok');
+      showMsg('evMsg', r.message, r.aviso ? 'warn' : 'ok');
       renderVendas();
-      setTimeout(fecharModalEditarVenda, 1200);
-    } else { showMsg('evMsg', r.message, 'warn'); }
+      try{ renderPedidos(); renderEntregas(); }catch(e){}
+      setTimeout(fecharModalEditarVenda, r.aviso ? 6500 : 1200);
+    } else {
+      showMsg('evMsg', r.message, 'warn');
+      if(r.conflito){ try{ renderVendas(); renderPedidos(); renderEntregas(); }catch(e){} setTimeout(fecharModalEditarVenda, 3500); } // ITEM 2.3: outra pessoa mexeu — reabra para ver os dados atuais
+    }
   } catch(e){ showMsg('evMsg','Não foi possível salvar a edição.','warn'); }
 }
 
@@ -6984,8 +7398,85 @@ function renderDespesas(){
   tbody.innerHTML = lista.map(d=>`
     <tr class="${d.status==='Cancelada'?'cancelada':''}">
       <td>${escH(d.descricao)}<span class="obs-line">${d.categoria||'Outros'}${d.saiuDoCaixa===false?' • fora do caixa':''}${escH(d.observacao?' • '+d.observacao:'')}</span></td><td>${formatarMoeda(d.valor)}</td>
-      <td>${d.status==='Confirmada'?`<button class="ghost" onclick="abrirModalEditarDespesa('${d.id}')">editar</button><button class="ghost" onclick="abrirModalCancelar('despesa','${d.id}')">cancelar</button>`:`<span class="obs-line">${escH(d.motivoCancelamento)}</span>`}</td>
+      <td>${d.status==='Confirmada'?(d.categoria==='Ajuste pós-venda'?`<span class="obs-line">veja em Ajustes pós-venda</span>`:`<button class="ghost" onclick="abrirModalEditarDespesa('${d.id}')">editar</button><button class="ghost" onclick="abrirModalCancelar('despesa','${d.id}')">cancelar</button>`):`<span class="obs-line">${escH(d.motivoCancelamento)}</span>`}</td>
     </tr>`).join('');
+}
+
+
+/* ---------- ITEM 2.6 — AJUSTES PÓS-VENDA ----------
+   A venda não muda. O servidor cria o ajuste (e, quando sai dinheiro, uma despesa "Ajuste pós-venda" ligada à venda). */
+const AJ_TIPOS_COM_SAIDA_ = ['Reembolso em dinheiro','Desconto retroativo'];
+const AJ_AJUDA_ = {
+  'Reembolso em dinheiro': 'Devolve dinheiro ao cliente. Só para venda já paga. Entra no DRE como ajuste e, se sair do caixa, o fechamento já considera.',
+  'Crédito para próxima compra': 'Fica registrado como crédito do cliente. Não mexe no resultado agora: quando ele usar, aplique como desconto no caixa.',
+  'Cortesia (item grátis)': 'Item oferecido de graça. Informe o valor do que foi oferecido; entra no DRE como ajuste. Não mexe no caixa.',
+  'Desconto retroativo': 'Devolve parte do valor depois da nota emitida. Só para venda já paga. Entra no DRE como ajuste.'
+};
+let _ajOcupado_ = false;
+function ajVendasElegiveis_(){
+  const q = (document.getElementById('ajVendaBusca')?.value || '').trim().toLowerCase();
+  const fin = ['Entregue','Retirada','Servida'];
+  return vendas.filter(v=>v.status==='Confirmada' && (!v.statusPedido || fin.indexOf(v.statusPedido)!==-1))
+    .filter(v=>!q || String(v.numero||'').indexOf(q)!==-1 || String(v.clienteNome||'').toLowerCase().indexOf(q)!==-1 || String(v.clienteTelefone||'').indexOf(q)!==-1)
+    .sort((a,b)=>b.timestamp-a.timestamp).slice(0,60);
+}
+function ajRenderVendas(){
+  const sel = document.getElementById('ajVenda'); if(!sel) return;
+  const atual = sel.value;
+  const lista = ajVendasElegiveis_();
+  sel.innerHTML = lista.length ? lista.map(v=>`<option value="${escH(v.id)}">${v.numero?('nº '+escH(v.numero)+' · '):''}${escH(String(v.data||'').slice(0,10))} · ${escH(v.clienteNome||'Sem nome')} · ${formatarMoeda(v.valorTotal)}${v.statusPagamento!=='Pago'?' (a receber)':''}</option>`).join('') : '<option value="">Nenhuma venda encontrada</option>';
+  if(atual && lista.some(v=>v.id===atual)) sel.value = atual;
+  ajAtualizarForm();
+}
+function ajAtualizarForm(){
+  const tipo = document.getElementById('ajTipo'); if(!tipo) return;
+  document.getElementById('ajTipoAjuda').textContent = AJ_AJUDA_[tipo.value] || '';
+  document.getElementById('ajSaidaBox').style.display = AJ_TIPOS_COM_SAIDA_.indexOf(tipo.value)!==-1 ? 'block' : 'none';
+}
+function renderAjustes(){
+  const tb = document.getElementById('ajLista'); if(!tb) return;
+  ajRenderVendas();
+  const lista = (ajustesPosVenda||[]).slice().sort((a,b)=>b.timestamp-a.timestamp).slice(0,25);
+  tb.innerHTML = lista.length ? lista.map(a=>`<tr class="${a.status==='Cancelado'?'cancelada':''}">
+    <td>${escH(a.tipo)}<span class="obs-line">${escH(a.data)} · pedido ${a.numero?('nº '+escH(a.numero)):escH(String(a.vendaId).slice(-8))} · ${escH(a.clienteNome||'')} · ${escH(a.motivo)}${a.detalhe?' — '+escH(a.detalhe):''} · ${escH(a.saida)}</span></td>
+    <td>${formatarMoeda(a.valor)}</td>
+    <td>${a.status==='Ativo' ? `<button class="ghost" onclick="cancelarAjusteUI('${a.id}')">cancelar</button>` : `<span class="obs-line">cancelado${a.motivoCancelamento?': '+escH(a.motivoCancelamento):''}</span>`}</td></tr>`).join('')
+    : '<tr class="empty-row"><td colspan="3">Nenhum ajuste registrado ainda.</td></tr>';
+}
+async function registrarAjusteUI(){
+  if(_ajOcupado_) return;
+  const vendaId = document.getElementById('ajVenda').value;
+  const tipo = document.getElementById('ajTipo').value;
+  const valor = Number(document.getElementById('ajValor').value);
+  const motivo = document.getElementById('ajMotivo').value;
+  const detalhe = document.getElementById('ajDetalhe').value.trim();
+  const saida = document.getElementById('ajSaida').value;
+  if(!vendaId){ showMsg('ajMsg','Escolha a venda.','warn'); return; }
+  if(!(valor>0)){ showMsg('ajMsg','Informe um valor maior que zero.','warn'); return; }
+  if(motivo==='Outro' && !detalhe){ showMsg('ajMsg','Descreva o motivo no campo Detalhe.','warn'); return; }
+  const v = vendas.find(x=>x.id===vendaId);
+  if(v && valor > Number(v.valorTotal) + 0.001){ showMsg('ajMsg','O ajuste não pode ser maior que o valor da venda ('+formatarMoeda(v.valorTotal)+').','warn'); return; }
+  if(!confirm('Registrar '+tipo+' de '+formatarMoeda(valor)+'?'+(AJ_TIPOS_COM_SAIDA_.indexOf(tipo)!==-1?'\n\nSaída: '+saida+'.':''))) return;
+  _ajOcupado_ = true; const btn = document.getElementById('ajBtn'); btn.disabled = true;
+  try{
+    const r = await apiCall('registrarAjustePosVenda', { vendaId, tipo, valor, motivo, detalhe, saida });
+    if(r && r.ok){
+      ajustesPosVenda = r.ajustesPosVenda || ajustesPosVenda; despesas = r.despesas || despesas; salvarCache();
+      document.getElementById('ajValor').value = ''; document.getElementById('ajDetalhe').value = '';
+      renderAjustes(); renderDespesas(); renderContasPagar(); atualizarResumoHoje(); renderStatusCaixa(); if(_secAtiva==='tab-relatorios') gerarRelatorio();
+      showMsg('ajMsg', r.message, 'ok');
+    } else showMsg('ajMsg', (r && r.message) || 'Não foi possível registrar o ajuste.', 'warn');
+  } catch(e){ showMsg('ajMsg','Sem conexão com a planilha. Confira se o ajuste entrou antes de tentar de novo.','warn'); }
+  finally{ _ajOcupado_ = false; btn.disabled = false; }
+}
+async function cancelarAjusteUI(id){
+  const motivo = (prompt('Motivo do cancelamento deste ajuste:') || '').trim();
+  if(!motivo) return;
+  try{
+    const r = await apiCall('cancelarAjustePosVenda', { id, motivo });
+    if(r && r.ok){ ajustesPosVenda = r.ajustesPosVenda || ajustesPosVenda; despesas = r.despesas || despesas; salvarCache(); renderAjustes(); renderDespesas(); atualizarResumoHoje(); renderStatusCaixa(); if(_secAtiva==='tab-relatorios') gerarRelatorio(); showMsg('ajMsg', r.message, 'ok'); }
+    else showMsg('ajMsg', (r && r.message) || 'Não foi possível cancelar.', 'warn');
+  } catch(e){ showMsg('ajMsg','Sem conexão com a planilha.','warn'); }
 }
 
 /* ---------- CANCELAMENTO ---------- */
@@ -7067,12 +7558,15 @@ Admin:{ nome:'Administrador', secoes:[
   { t:'Cardápio Digital, promoções e eventos', itens:['Cardápio Digital: escolha o que aparece para o cliente, destaques, ordem e frase de abertura. “Mais Pedidos” é automático. As categorias aparecem numa faixa fixa no topo do cardápio do cliente (no celular, deslize para o lado; no computador elas ficam em linhas, sem rolagem).','Se o cliente pedir mais de 1 lanche com adicionais, os adicionais valem para todos; o cardápio avisa isso. Para lanches diferentes, ele adiciona separado.','O cliente pode escrever uma observação em cada item (ex.: “sem cebola”); ela aparece na comanda da cozinha e no pedido.','Item “Esgotado”: se “bloquear venda sem estoque” estiver ligado (Catálogo → Estoque), o cardápio mostra “Esgotado” no que o estoque não cobre mais.','O cardápio abre rápido porque guarda uma cópia: mudanças suas aparecem para o cliente em instantes (no máximo ~10 min se você editar direto na planilha).','O cardápio só recebe pedidos com o caixa aberto; fechado, o cliente vê “Estamos fechados no momento”.','Promoções: cupons. Eventos: custos e recebimentos de cada evento. Custos e Precificação: simulador para achar o preço certo.'] },
   { t:'Caixa: abrir, vender e fechar', passos:['Aba Caixa → “Abrir caixa” e informe o fundo de troco.','Em “Iniciar venda”: 1. Cliente (cadastrado ou “Venda sem cadastro”; Retirada, Entrega ou Mesa) → 2. Itens → 3. Pagamento → 4. Finalizar.','Depois escolha 58mm, 80mm ou A4 e toque em Imprimir, Copiar ou WhatsApp.','Para encerrar, feche o caixa, informe o dinheiro contado e confira a diferença.','Mesas: o botão “🍽️ Mesas” mostra todas as mesas, quem pediu a conta e permite fechar a conta e cobrar.','Pedido de mesa no Caixa: “Pagar ao sair” deixa o pedido na conta da mesa; “Pagar agora” cobra na hora (use as etapas de pagamento normais).'],
     comuns:['“Abra o caixa antes de registrar uma venda”: abra o caixa primeiro.','“A soma dos pagamentos precisa bater com o total”: ajuste os valores ao dividir o pagamento.','O desconto nunca pode zerar a venda. Você lança desconto sem digitar senha; o Caixa precisa da sua.'] },
+  { t:'Cliente cancelou o pedido (Cardápio)', itens:['Nos primeiros 3 minutos, e só enquanto o pedido está “aguardando aceite”, o cliente pode cancelar sozinho pelo acompanhamento do pedido. O estoque volta e o motivo fica como “Cancelado pelo cliente (cardápio, até 3 min)”.','Depois de aceito, ou passados os 3 minutos, o cliente precisa ligar. Cancelar ou editar passa a ser com o Caixa/Administrador.'] },
   { t:'Pedidos e entregas', passos:['Pedido do Cardápio chega como “novo — aguardando aceite”: toque em “✅ Aceitar” ou “❌ Rejeitar”.','Quando o pedido ficar “Pronta” (retirada ou entrega) ou “Saiu para entrega”, e o cliente tiver telefone, toque em “📲 Avisar cliente”: abre o WhatsApp com a mensagem pronta e você só envia. Depois aparece “✔ avisado às…”.','Avance com “Marcar como…”: Em preparo → Pronta → Retirada (Servida, se for mesa).','Em Entregas, escolha o entregador no campo “Entregador” do pedido; ele avança até “Entregue”.','“⏸ Suspender” pausa o pedido (pede motivo) e “▶️ Retomar pedido” volta.','Venda “A Receber” só entra no caixa quando você toca em “marcar como recebido”.'],
     comuns:['Só dá para editar os itens com o pedido “Em preparo”.','Entregador esqueceu de marcar: marque você mesmo pelo botão do pedido.','Sem aviso de pedido novo: no Início, toque em “🔔 Ativar avisos” e “🔊 Testar som”. O aviso só chega com o app aberto e a tela ligada.'] },
   { t:'Entregas: taxas e fechamento de entregadores', passos:['Administrador → Entregas.','Defina a taxa padrão e a ajuda diária e salve.','No fechamento, escolha entregador e data, confira o total (taxas + ajuda diária) e informe o valor pago.','Confirme. A diferença fica registrada e o período fechado não muda mais, mesmo que a taxa mude depois.'],
     comuns:['A ajuda diária conta uma vez por dia e só se houve entrega.','Se a conexão cair ao fechar, confira o histórico antes de tentar de novo, para não fechar duas vezes.'] },
   { t:'Ocorrências e notificações', itens:['Ocorrências: Administrador → Ocorrências → “Tratar” para acompanhar e resolver. As abertas também aparecem no mural Notificações, onde o Caixa e o Administrador também têm o botão “Tratar”.','Administrador → Avisos (config): ligue ou desligue cada aviso e escolha quais perfis o recebem (Administrador, Operador ou Cozinha).'] },
-  { t:'Financeiro, relatórios e auditoria', itens:['Financeiro: contas a pagar, despesas mensais, previsto × pago, fluxo de 30 dias, metas. As formas de pagamento ficam em Operação → Pagamentos. Histórico: resumo de hoje, vendas, despesas e sessões de caixa. O DRE fica em Relatórios. Só despesa paga entra no lucro.','Relatórios imprimem em A4, 80mm ou 58mm. Visão Geral e Relatórios atualizam ao abrir.','Auditoria: descontos, cancelamentos, preços, estoque, usuários, restaurações e acessos negados.'] },
+  { t:'Financeiro, relatórios e auditoria', itens:['Financeiro: contas a pagar, despesas mensais, previsto × pago, fluxo de 30 dias, metas. As formas de pagamento ficam em Operação → Pagamentos. Histórico: resumo de hoje, vendas, despesas e sessões de caixa. O DRE fica em Relatórios (com a linha “Ajustes pós-venda”). Só despesa paga entra no lucro.','Relatórios imprimem em A4, 80mm ou 58mm. Visão Geral e Relatórios atualizam ao abrir.','Auditoria: descontos, cancelamentos, preços, estoque, usuários, restaurações e acessos negados.'] },
+  { t:'Ajustes pós-venda (reembolso, crédito, cortesia)', passos:['Administrador → Financeiro → cartão “Ajustes pós-venda”.','Busque a venda (nº do pedido, nome ou telefone) — só aparecem pedidos já entregues.','Escolha o tipo (Reembolso em dinheiro, Crédito para próxima compra, Cortesia ou Desconto retroativo), o valor e o motivo. Se o motivo for “Outro”, descreva.','Em reembolso e desconto retroativo, escolha se o dinheiro sai do caixa (o caixa precisa estar aberto) ou fora dele (Pix, estorno no cartão).','Toque em “Registrar ajuste”. Para desfazer, use “cancelar” na lista, com o motivo.'],
+    comuns:['A venda original NÃO muda e continua como Confirmada. No DRE o ajuste aparece na linha “Ajustes pós-venda”, separado das despesas.','Crédito não reduz o resultado na hora: quando o cliente usar, aplique como desconto no Caixa. Ele aparece como aviso abaixo do DRE.','Reembolso e desconto retroativo não passam do valor da venda (somando os ajustes já feitos nela).','Devolução que saiu do caixa de um turno já fechado não pode ser cancelada pelo sistema.'] },
   { t:'Backup e armazenamento', passos:['Administrador → Backup → “Fazer backup agora”.','Ative o backup automático e escolha a frequência.','Para restaurar, escolha o backup no histórico e confirme com sua senha de administrador.','Confira o uso do Drive: até 70% normal, 70–90% atenção, acima de 90% crítico.'],
     comuns:['Drive cheio: backups e fotos podem falhar. Libere espaço.','A conferência de integridade aponta duplicidades, estoque negativo, caixa esquecido aberto e vendas paradas na contingência.'] },
   { t:'Contingência (plano B)', passos:['Administrador → Backup → cartão “Contingência”. 🟢 = acessível (mostra quando o espelho foi atualizado e quantas vendas estão pendentes); 🔴 = não respondeu.','Toque em “🔄 Sincronizar espelho agora” para copiar produtos, preços e clientes para a contingência.','Toque uma vez em “Ativar sincronização automática diária (3h)”. Com ela ligada, o espelho se atualiza todo dia de madrugada e o sistema confere a cada 30 minutos se há vendas pendentes para trazer.','Se a planilha principal ficou fora do ar e houve vendas na contingência, toque em “⬇️ Trazer vendas pendentes da contingência” e confirme.'],
@@ -7088,6 +7582,7 @@ Operador:{ nome:'Caixa', secoes:[
   { t:'Abrir o caixa', passos:['Aba Caixa → “Abrir caixa”.','Informe o fundo de troco e confirme.'], comuns:['Sem caixa aberto não há venda, despesa nem sangria, e o Cardápio Digital não recebe pedidos.','“Já existe um caixa aberto”: feche o anterior antes.'] },
   { t:'Fazer uma venda', passos:['1. Cliente: busque por nome ou telefone, ou toque em “Venda sem cadastro”. Escolha Retirada, Entrega (endereço, complemento, referência) ou Mesa.','2. Itens: toque nos produtos; os adicionais abrem numa janela. Confira a contagem em “2. Itens”.','3. Pagamento: escolha a forma. Em dinheiro, informe o valor recebido e veja o troco. Para dividir, marque “Dividir pagamento”. “A Receber” deixa a venda pendente.','4. Finalizar: confira o total e finalize. Escolha 58mm, 80mm ou A4 e toque em Imprimir, Copiar ou WhatsApp.','“↺ Repetir última venda” recarrega o carrinho anterior.'],
     comuns:['“Abra o caixa antes de registrar uma venda.”','“A soma dos pagamentos precisa bater com o total”: ajuste os valores.','Desconto (% ou R$) pede a senha do administrador e nunca pode zerar a venda.'] },
+  { t:'Cliente cancelou o pedido (Cardápio)', itens:['Nos primeiros 3 minutos, e só enquanto o pedido está “aguardando aceite”, o cliente pode cancelar sozinho pelo acompanhamento do pedido. O estoque volta e o motivo fica como “Cancelado pelo cliente (cardápio, até 3 min)”.','Depois de aceito, ou passados os 3 minutos, o cliente precisa ligar. Cancelar ou editar passa a ser com o Caixa/Administrador.'] },
   { t:'Pedidos e entregas', passos:['Pedido do Cardápio chega como “novo — aguardando aceite”: toque em “✅ Aceitar” ou “❌ Rejeitar”.','Quando o pedido ficar “Pronta” (retirada ou entrega) ou “Saiu para entrega”, e o cliente tiver telefone, toque em “📲 Avisar cliente”: abre o WhatsApp com a mensagem pronta e você só envia. Depois aparece “✔ avisado às…”.','Avance com “Marcar como…”: Em preparo → Pronta → Retirada (Servida, se for mesa).','Em Entregas, escolha o entregador no campo “Entregador”.','Venda “A Receber”: quando o cliente pagar, toque em “marcar como recebido”.','“⏸ Suspender” pausa o pedido (pede motivo) e “▶️ Retomar pedido” volta.'], comuns:['Só dá para editar os itens com o pedido “Em preparo”.','O entregador esqueceu de marcar: marque você pelo botão do pedido.','Sem aviso de pedido novo: no Início, toque em “🔔 Ativar avisos” e “🔊 Testar som”. O aviso só chega com o app aberto e a tela ligada.'] },
   { t:'Cliente pedindo pela mesa (QR Code)', passos:['O cliente aponta a câmera para o QR da mesa, escolhe os itens e envia.','O pedido chega em Pedidos como “Recebido” (📱 Cliente). Toque em ✅ Aceitar para ir ao preparo, ou ❌ Rejeitar.','Se o cliente tocar em “Chamar garçom”, a mesa aparece em 🍽️ Mesas com 🔔 — toque em ✔ Atendido quando for lá.','Se tocar em “Pedir a conta”, a mesa vira “Pediu a conta” e você fecha como sempre.'], comuns:['O cliente só consegue cancelar enquanto o pedido está “Recebido” (ainda não aceito).','Pedido de mesa feito pelo cliente nunca vai ao preparo sem o aceite.'] },
   { t:'Fechar a conta de uma mesa', passos:['Quando o garçom pede a conta, a mesa fica “Aguardando fechamento”.','Toque em “🍽️ Mesas” (no topo do Caixa ou na tela Início). Quem pediu a conta aparece primeiro, em destaque, e o botão ganha um pontinho de aviso (com som, se estiver ativado em Avisos).','Em cada mesa você vê garçom, tempo, pedidos e o total. “Ver pedidos” mostra o detalhe; “💳 Fechar conta” abre o pagamento.','O caixa precisa estar aberto. Confira o total, escolha a forma de pagamento na lista e, para dividir, marque “Dividir em duas formas” e informe o valor da primeira.'], comuns:['“Abra o caixa antes de fechar a conta da mesa”: abra o caixa primeiro.','“A soma dos pagamentos não bate com a conta”: refaça com o total exato.'] },
@@ -7110,6 +7605,7 @@ Operador:{ nome:'Caixa', secoes:[
   { t:'Cliente pedindo pela mesa (QR Code)', passos:['O cliente pode pedir pelo celular, pelo QR Code da mesa. Quem aceita o pedido é o Caixa.','Se ele tocar em “Chamar garçom”, a mesa aparece em 🍽️ Mesas com 🔔 e o aparelho avisa.','Depois de atender, toque em ✔ Atendido.'], comuns:['Se a mesa pedir a conta, ela vira “Pediu a conta”.'] },
   { t:'Receber a conta (garçom)', passos:['Toque em “🍽️ Mesas” e ache a sua mesa.','Toque em “💳 Receber conta”, confira o total e escolha a forma de pagamento.','Para dividir, marque “Dividir em duas formas” e informe o valor da primeira.','Confirme. A mesa fica livre e o valor entra no caixa.'], comuns:['“O caixa está fechado”: peça ao caixa para abrir.','“Esta mesa não está sob a sua responsabilidade”: só quem abriu a mesa recebe; chame o caixa.'] },
   { t:'Acompanhar e servir', passos:['Aba Pedidos: veja o andamento de cada pedido.','Quando estiver “Pronta”, leve à mesa e toque em “Marcar como “Servida””.'] },
+  { t:'Aviso de pedido pronto', itens:['Na primeira vez, toque no botão “🔔 Ativar avisos e som” que aparece no canto da tela.','Quando um pedido das SUAS mesas ficar “Pronta”, o aparelho toca, vibra e o título da aba mostra “Pedido pronto”. A checagem é a cada poucos minutos, mesmo com o app em segundo plano; se o celular bloquear a tela, ela pode parar — olhe a aba Pedidos de vez em quando.'] },
   { t:'Clientes', passos:['Aba Clientes → “+ Novo cliente”.','Só nome e telefone são obrigatórios.'] },
   _aj.ocorr('O Administrador é avisado e resolve.')
  ], erros:[
@@ -7132,6 +7628,7 @@ Entregador:{ nome:'Entregador', secoes:[
   _aj.entrar('Início e Entregas'),
   { t:'Fazer uma entrega', passos:['Aba Entregas: aparecem só as entregas atribuídas a você. Uma nova toca um aviso sonoro.','O cartão mostra itens, endereço, referência, telefone, total, taxa e “📍 Ver no Maps”.','Quando pegar o pedido (status “Pronta”), toque em “Marcar como “Saiu para entrega””.','Ao entregar, toque em “✅ Já entreguei”.','Se o cartão diz “A receber”, cobre o valor do cliente; quem registra o recebimento é o Caixa.'],
     comuns:['Não aparece nada: ainda não atribuíram nenhuma entrega a você. Avise o Caixa.','Pedido “aguardando aceite”: o botão só aparece depois que o Caixa aceitar.'] },
+  { t:'Aviso de entrega nova', itens:['Na primeira vez, toque em “🔔 Ativar avisos e som” (canto da tela) para liberar som e notificação.','Quando o Caixa atribuir uma entrega a você, o aparelho toca, vibra e a aba mostra “Nova entrega”. A checagem roda a cada poucos minutos com o app aberto, mesmo em segundo plano. Se o celular fechar o app ou bloquear a tela, o aviso não chega — abra a aba Entregas de vez em quando.'] },
   { t:'Meu dia', itens:['Em Entregas, “💰 Meu dia” mostra suas entregas de hoje, as taxas e a ajuda diária.','O total previsto é taxas + ajuda diária (uma vez por dia). O acerto oficial é feito pelo Administrador.'] },
   _aj.ocorr('O Administrador é avisado. Use para cliente ausente, endereço errado ou problema na entrega.')
  ], erros:[
@@ -7328,6 +7825,7 @@ async function filaEnviarItem_(item, imediato){
   item.estado = 'enviando'; item.tentativas++; filaSalvar_();
   try{
     const r = await apiCall(item.action, item.payload);
+    if(r && r.manutencao){ item.estado = 'retry'; item.tentativas = Math.max(0, item.tentativas - 1); item.erro = 'Sistema em manutenção'; filaSalvar_(); return null; }  // ITEM 2.8
     if(r && r.ok !== false){ _fila = _fila.filter(x=>x.id !== item.id); filaSalvar_(); return r; }
     if(imediato){ _fila = _fila.filter(x=>x.id !== item.id); filaSalvar_(); return r; } // quem chamou já mostra o erro
     item.estado = 'erro'; item.erro = (r && r.message) || 'Recusado pelo servidor'; filaSalvar_();
@@ -7594,7 +8092,7 @@ function renderHistoricoCaixa(){
     if(Math.abs(h.diferenca)<0.005) return '<span style="color:#bfe0ae;">confere</span>';
     return `<span style="color:${h.diferenca>0?'var(--gold)':'#ffb3ab'};">${h.diferenca>0?'+':'−'}${formatarMoeda(Math.abs(h.diferenca))}</span><span class="obs-line">${h.diferenca>0?'sobra':'falta'}</span>`;
   };
-  tbody.innerHTML = historicoCaixa.map(h=>`<tr><td>${h.abertura}</td><td>${h.fechamento||'<span class="badge pend">Aberto</span>'}</td><td>${formatarMoeda(h.saldoFinal)}${h.valorContado!==null&&h.valorContado!==undefined?`<span class="obs-line">contado ${formatarMoeda(h.valorContado)}</span>`:''}</td><td>${difCell(h)}</td><td>${h.usuarioFechamento||h.usuarioAbertura||''}</td></tr>`).join('');
+  tbody.innerHTML = historicoCaixa.map(h=>`<tr><td>${h.abertura}</td><td>${h.fechamento||'<span class="badge pend">Aberto</span>'}</td><td>${formatarMoeda(h.saldoFinal)}${h.valorContado!==null&&h.valorContado!==undefined?`<span class="obs-line">contado ${formatarMoeda(h.valorContado)}</span>`:''}${h.reconciliadasQtd>0?`<span class="obs-line">inclui ${h.reconciliadasQtd} venda(s) reconciliada(s) após o fechamento${h.reconciliadoDinheiro?' ('+formatarMoeda(h.reconciliadoDinheiro)+' em dinheiro)':''}</span>`:''}</td><td>${difCell(h)}</td><td>${h.usuarioFechamento||h.usuarioAbertura||''}</td></tr>`).join('');
 }
 /* ---------- FASE 8C — DRE, FLUXO PREVISTO E CONFERÊNCIA DE CAIXA ---------- */
 function arred2c(n){ return Math.round((Number(n)||0)*100)/100; }
@@ -7615,17 +8113,21 @@ function calcularDRE(ano, mes){
   const cmv = arred2c(vendasMes.reduce((s,v)=>s+(Number(v.custoTotal)||0),0));
   const custoPorNome = {}; estoque.forEach(e=>{ custoPorNome[e.nome] = Number(e.custo)||0; });
   const perdas = arred2c(movimentacoesEstoque.filter(m=>m.tipo==='Perda' && noMes(m.data, ano, mes)).reduce((s,m)=>s+Math.abs(Number(m.quantidade)||0)*(custoPorNome[m.ingredienteNome]||0),0));
-  const despMes = despesas.filter(d=>despesaEfetiva(d) && noMes(d.timestamp, ano, mes));
+  /* ITEM 2.6: despesas geradas por Ajuste pós-venda ficam FORA daqui — a fonte única é a lista de ajustes (evita contar duas vezes). */
+  const despMes = despesas.filter(d=>despesaEfetiva(d) && d.categoria!=='Ajuste pós-venda' && noMes(d.timestamp, ano, mes));
+  const ajMes = (ajustesPosVenda||[]).filter(a=>a.status==='Ativo' && noMes(a.timestamp, ano, mes));
+  const ajustesTotal = arred2c(ajMes.filter(a=>a.tipo!=='Crédito para próxima compra').reduce((s,a)=>s+Number(a.valor),0));
+  const creditosConcedidos = arred2c(ajMes.filter(a=>a.tipo==='Crédito para próxima compra').reduce((s,a)=>s+Number(a.valor),0));
   const despPorCat = {}; despMes.forEach(d=>{ const c=d.categoria||'Outros'; despPorCat[c]=(despPorCat[c]||0)+Number(d.valor); });
   const despesasTotal = arred2c(despMes.reduce((s,d)=>s+Number(d.valor),0));
   const lucroBruto = arred2c(receitaLiquida - taxasPag - cmv);
-  const resultado = arred2c(lucroBruto - perdas - despesasTotal);
+  const resultado = arred2c(lucroBruto - perdas - despesasTotal - ajustesTotal);
   const evs = (eventos||[]).filter(e=>{ const t=new Date(e.data).getTime(); return !isNaN(t) && t>=ini && t<fim && e.status!=='Orçamento' && e.status!=='Cancelado'; });
   const receitaEventos = somaR(evs,e=>e.valorContratado), custosEventos = somaR(evs,e=>e.custoTotal);
   const aReceberEventos = somaR(evs,e=>e.valorAReceber);
   const lucroBrutoComEventos = arred2c(lucroBruto + receitaEventos - custosEventos);
-  const resultadoComEventos = arred2c(lucroBrutoComEventos - perdas - despesasTotal);
-  return { vendasMes, receitaBruta, descontos, receitaLiquida, aReceber:aReceber+aReceberEventos, taxasPag, cmv, perdas, despPorCat, despesasTotal, lucroBruto:lucroBrutoComEventos, resultado:resultadoComEventos, receitaEventos, custosEventos,
+  const resultadoComEventos = arred2c(lucroBrutoComEventos - perdas - despesasTotal - ajustesTotal);
+  return { vendasMes, ajustesTotal, creditosConcedidos, receitaBruta, descontos, receitaLiquida, aReceber:aReceber+aReceberEventos, taxasPag, cmv, perdas, despPorCat, despesasTotal, lucroBruto:lucroBrutoComEventos, resultado:resultadoComEventos, receitaEventos, custosEventos,
     margemBruta: pctDe(lucroBrutoComEventos, receitaLiquida+receitaEventos), margemLiquida: pctDe(resultadoComEventos, receitaLiquida+receitaEventos), taxasPct: pctDe(taxasPag, receitaLiquida+receitaEventos),
     ticket: vendasMes.length ? receitaLiquida/vendasMes.length : 0 };
 }
@@ -7645,6 +8147,7 @@ function renderDRE(dre, deltaTxt){
     ${L('Perdas de estoque', dre.perdas, {neg:true, pct:pctDe(dre.perdas, dre.receitaLiquida)})}
     ${L('Despesas pagas', dre.despesasTotal, {neg:true, pct:pctDe(dre.despesasTotal, dre.receitaLiquida)})}
     ${cats}
+    ${L('Ajustes pós-venda', dre.ajustesTotal||0, {neg:true, pct:pctDe(dre.ajustesTotal||0, dre.receitaLiquida)})}
     ${L('Resultado do mês', dre.resultado, {forte:true, cor:corRes, pct:dre.margemLiquida})}
   </tbody></table>
   <div class="stat-row" style="margin-top:12px;">
@@ -7653,6 +8156,7 @@ function renderDRE(dre, deltaTxt){
     <div class="stat-box"><b style="color:var(--gold);">${fmtPct(dre.taxasPct)}</b><span>TAXAS / RECEITA</span></div>
   </div>
   ${deltaTxt?`<div class="info-line">${deltaTxt}</div>`:''}
+  ${dre.creditosConcedidos>0?`<div class="info-line">• Créditos concedidos no mês (ainda a usar, não descontados do resultado): ${formatarMoeda(dre.creditosConcedidos)}.</div>`:''}
   ${dre.aReceber>0?`<div class="info-line">• Desta receita, ${formatarMoeda(dre.aReceber)} ainda está a receber (não pago).</div>`:''}
   <div class="info-line">• Vendas contam pela data da venda; despesas e perdas, pelo mês em que saíram. Taxa de entrega é repasse ao entregador e fica fora. Perdas usam o custo atual do ingrediente. Vendas antigas, de antes das taxas, aparecem sem taxa.</div>`;
 }
@@ -7982,6 +8486,8 @@ async function excluirMesaConfirm(id){
 document.addEventListener('click', e=>{
   const c = e.target.closest && e.target.closest('[data-cliente-nome]');
   if(c){ selecionarClienteVenda(c.dataset.clienteNome, c.dataset.clienteTel); return; }
+  const se = e.target.closest && e.target.closest('[data-sess-encerrar]');
+  if(se){ encerrarSessaoRemotaUI_(se.dataset.sessEncerrar); return; }
   const b = e.target.closest && e.target.closest('[data-usr-acao]');
   if(!b) return;
   const lg = b.dataset.usrLogin;
@@ -7991,15 +8497,47 @@ document.addEventListener('click', e=>{
 });
 function renderUsuarios(){
   const tbody = document.getElementById('uTable');
+  try{ carregarSessoes_(false); }catch(e){}
   if(!usuarios.length){ tbody.innerHTML = '<tr class="empty-row"><td colspan="4">Nenhum usuário.</td></tr>'; return; }
   tbody.innerHTML = usuarios.map(u=>`
     <tr><td>${escH(u.login)}${u.nome?`<div class="obs-line">${escH(u.nome)}</div>`:''}${u.nivel==='Entregador'?`<div class="obs-line">${u.telefone?'📞 '+escH(u.telefone):'⚠ sem telefone'}</div>`:''}</td><td>${u.nivel}</td><td><span class="badge ${u.ativo?'done':'baixo'}">${u.ativo?'Ativo':'Inativo'}</span></td>
     <td><button class="ghost" data-usr-acao="editar" data-usr-login="${escH(u.login)}">editar</button><button class="ghost" data-usr-acao="toggle" data-usr-login="${escH(u.login)}" data-usr-ativo="${u.ativo?1:0}">${u.ativo?'desativar':'ativar'}</button><button class="ghost" data-usr-acao="excluir" data-usr-login="${escH(u.login)}">excluir</button></td></tr>`).join('');
 }
+/* ITEM 2.1 — Sessões ativas (Admin). Só leitura + encerrar; nenhum limite de sessões simultâneas (começar só com rastreio). */
+let _sessoesCarregadasEm = 0;
+async function carregarSessoes_(forcar){
+  const box = document.getElementById('sessLista');
+  if(!box || !currentUser || currentUser.nivel !== 'Admin') return;
+  if(!forcar && (Date.now() - _sessoesCarregadasEm < 60000 || !box.offsetParent)) return;
+  _sessoesCarregadasEm = Date.now();
+  try{
+    const r = await apiCall('listarSessoes', {});
+    if(!r || !r.ok){ box.innerHTML = '<div class="notif-empty">Não foi possível carregar as sessões.</div>'; return; }
+    renderSessoes_(r.sessoes || []);
+  }catch(e){ box.innerHTML = '<div class="notif-empty">Sem conexão para listar as sessões.</div>'; }
+}
+function renderSessoes_(lista){
+  const box = document.getElementById('sessLista');
+  if(!lista.length){ box.innerHTML = '<div class="notif-empty">Nenhuma sessão registrada ainda. Sessões aparecem a partir do próximo login de cada pessoa.</div>'; return; }
+  box.innerHTML = lista.map(x=>`<div class="notif-card">
+      <div><b>${escH(x.login)}</b> <span class="obs-line">${escH(x.nivel)}${x.atual?' · esta sessão':''}</span></div>
+      <div class="obs-line">${escH(x.ua||'aparelho não informado')}${x.deviceId?' · id '+escH(x.deviceId):''}</div>
+      <div class="obs-line">Entrou ${escH(x.criadaEm)} · visto ${escH(x.vistoEm)}</div>
+      ${x.atual?'':`<div class="btnrow" style="margin-top:8px;"><button class="ghost" data-sess-encerrar="${escH(x.sessaoId)}">Encerrar</button></div>`}
+    </div>`).join('');
+}
+async function encerrarSessaoRemotaUI_(sessaoId){
+  if(!confirm('Encerrar esta sessão? O aparelho será desconectado.')) return;
+  try{
+    const r = await apiCall('encerrarSessaoRemota', { sessaoId });
+    showMsg('sessMsg', (r && r.message) || (r && r.ok ? 'Sessão encerrada.' : 'Não foi possível encerrar.'), r && r.ok ? 'ok' : 'warn');
+  }catch(e){ showMsg('sessMsg', 'Sem conexão. Tente de novo.', 'warn'); }
+  carregarSessoes_(true);
+}
 function renderLog(){
   const box = document.getElementById('logLista');
   if(!logRecentes.length){ box.innerHTML = '<div class="notif-empty">Nenhuma ação sensível registrada ainda.</div>'; return; }
-  box.innerHTML = logRecentes.map(l=>`<div class="log-item"><div class="quando">${l.data} · ${escH(l.usuario||'—')}${l.perfil?(' ('+l.perfil+')'):''}</div><div>${l.acao}${escH(l.detalhes?(' — '+l.detalhes):'')}</div>${l.autorizador?`<div class="quando">Autorizado por ${l.autorizador}</div>`:''}</div>`).join('');
+  box.innerHTML = logRecentes.map(l=>`<div class="log-item"><div class="quando">${l.data} · ${escH(l.usuario||'—')}${l.perfil?(' ('+l.perfil+')'):''}</div><div>${l.acao}${escH(l.detalhes?(' — '+l.detalhes):'')}</div>${l.autorizador?`<div class="quando">Autorizado por ${l.autorizador}</div>`:''}${l.aparelho?`<div class="quando">📱 ${escH(l.aparelho)}</div>`:''}</div>`).join('');
 }
 
 /* ---------- FEEDBACKS (ADMIN) — ITEM 34 ---------- */
@@ -8152,6 +8690,13 @@ async function salvarConfigCardapioUI(){
 /* ---------- INDICADOR DE CONEXÃO (🟢 Online / 🟡 Sincronizando / 🔴 Sem conexão) ---------- */
 let conexaoAtual = 'offline'; // 'online' | 'syncing' | 'offline'
 function setConexaoStatus(estado, textoExtra){
+  if(currentUser && currentUser.emergencia){ // BLOCO 1.3: no modo emergência o status é sempre este (e o botão de venda fica liberado: a venda vai à contingência)
+    conexaoAtual = 'contingencia';
+    const elE = document.getElementById('connStatus');
+    elE.textContent = '🟠 MODO EMERGÊNCIA — só vendas (contingência)'; elE.className = 'status contingencia';
+    atualizarBloqueioVendaOffline();
+    return;
+  }
   conexaoAtual = estado;
   const el = document.getElementById('connStatus');
   const textos = {
@@ -8196,7 +8741,7 @@ function aplicarDadosRecebidos(dados){
   mesas = dados.mesas || mesas;
   movimentacoesEstoque = dados.movimentacoesEstoque || movimentacoesEstoque;
   vendas = dados.vendas || []; itensVenda = dados.itensVenda || []; pagamentosVenda = dados.pagamentosVenda || [];
-  despesas = dados.despesas || []; categoriasDespesa = dados.categoriasDespesa || []; despesasRecorrentes = dados.despesasRecorrentes || []; sangrias = dados.sangrias || []; metas = dados.metas || { mensal:0, diaria:0 };
+  despesas = dados.despesas || []; categoriasDespesa = dados.categoriasDespesa || []; despesasRecorrentes = dados.despesasRecorrentes || []; ajustesPosVenda = dados.ajustesPosVenda || []; sangrias = dados.sangrias || []; metas = dados.metas || { mensal:0, diaria:0 };
   sessaoCaixa = dados.sessaoCaixa || null; historicoCaixa = dados.historicoCaixa || [];
   usuarios = dados.usuarios || []; logRecentes = dados.logRecentes || [];
   configEntrega = dados.configEntrega || configEntrega; fechamentosEntrega = dados.fechamentosEntrega || []; entregasFechadas = dados.entregasFechadas || [];
@@ -8209,6 +8754,14 @@ async function init(){
   document.getElementById('despHistData').value = hoje;
   document.getElementById('rMes').value = hoje.slice(0,7);
   iniciarFormatosImpressao();
+  if(currentUser && currentUser.emergencia){ // BLOCO 1.3: sem planilha — usa a cópia do catálogo e não chama a planilha
+    emergenciaAplicarCatalogo_();
+    renderPagamentos();
+    setConexaoStatus('contingencia');
+    renderizarTudo();
+    emergenciaVigiar_();
+    return;
+  }
   renderPagamentos();
 
   const temCache = carregarCache();
@@ -8301,6 +8854,7 @@ function seguroParaSincronizar(){
 const FULL_SYNC_MS_ = 15*60*1000;
 function ehGestor_(){ return !!(currentUser && (currentUser.nivel === 'Admin' || currentUser.nivel === 'Operador')); }
 async function sincronizarEmSegundoPlano(){
+  if(currentUser && currentUser.emergencia) return; // BLOCO 1.3
   if(sincronizacaoEmAndamento || !apiConfigurada() || !seguroParaSincronizar()) return;
   sincronizacaoEmAndamento = true;
   setConexaoStatus('syncing');
@@ -8533,7 +9087,7 @@ function renderizarTudo(){
   _desenhar(()=>renderClientes()); _desenhar(()=>renderProdutos()); _desenhar(()=>popularSelectProdutos()); _desenhar(()=>renderProdutoCuradoria()); _desenhar(()=>renderCombos()); _desenhar(()=>popularSelectCombos()); _desenhar(()=>renderComboCuradoria()); _desenhar(()=>renderEstoque()); _desenhar(()=>renderMovimentacoesEstoque());
   _desenhar(()=>popularSelectIngredientes('pIngredienteSelect')); _desenhar(()=>popularSelectIngredientes('ppIngredienteSelect'));
   _desenhar(()=>popularSelectProdutosParaCombo('koProdutoSelect')); _desenhar(()=>popularSelectProdutosParaCombo('kkProdutoSelect'));
-  _desenhar(()=>renderVendas()); _desenhar(()=>renderDespesas()); _desenhar(()=>renderContasPagar()); _desenhar(()=>renderDespesasRecorrentes()); _desenhar(()=>renderResumoPrevisto()); _desenhar(()=>renderFluxoPrevisto()); _desenhar(()=>atualizarMargemPreview()); _desenhar(()=>atualizarMargemPreviewCombo());
+  _desenhar(()=>renderVendas()); _desenhar(()=>renderDespesas()); _desenhar(()=>renderAjustes()); _desenhar(()=>renderContasPagar()); _desenhar(()=>renderDespesasRecorrentes()); _desenhar(()=>renderResumoPrevisto()); _desenhar(()=>renderFluxoPrevisto()); _desenhar(()=>atualizarMargemPreview()); _desenhar(()=>atualizarMargemPreviewCombo());
   _desenhar(()=>atualizarMetaUI()); _desenhar(()=>atualizarResumoHoje()); if(_secAtiva==='tab-relatorios') _desenhar(()=>gerarRelatorio()); _desenhar(()=>renderNotificacoes()); _desenhar(()=>renderPedidos()); _desenhar(()=>renderEntregas());
   _desenhar(()=>renderStatusCaixa()); _desenhar(()=>renderHistoricoCaixa()); _desenhar(()=>renderUsuarios()); _desenhar(()=>renderLog()); _desenhar(()=>renderFeedbacks()); _desenhar(()=>renderConfigCardapio());
   _desenhar(()=>renderMesas()); _desenhar(()=>renderMesasPickerCaixa());
@@ -8641,10 +9195,39 @@ async function carregarStatusPedido(codigo){
       <p class="sub">${escH(r.itens.join(', '))}</p>
       <p class="sub">Total: <b style="color:var(--gold);">${formatarMoeda(r.valorTotal)}</b></p>
       <div style="margin-top:14px;">${linhasEtapas}</div>
-      ${aReceber}`;
+      ${aReceber}
+      ${r.podeCancelar ? `<div style="margin-top:14px;"><button type="button" class="ghost" id="acCancelarBtn" onclick="cancelarPedidoPeloCliente('${codigo}')">✖ Cancelar pedido (<span id="acCancelarSeg">${r.segundosParaCancelar}</span>s)</button><p class="sub" style="margin-top:6px;">Você pode cancelar nos primeiros 3 minutos, enquanto o restaurante ainda não aceitou.</p><div id="acCancelarMsg" class="msg"></div></div>` : ''}`;
+    iniciarContagemCancelar_(r.podeCancelar ? r.segundosParaCancelar : 0);
   } catch(e){ box.innerHTML = voltar + '<p class="sub">Não foi possível atualizar agora. Tentando de novo em instantes...</p>'; }
 }
+/* ITEM 3.4 — cliente cancela o próprio pedido (cardápio comum). O servidor é quem decide (status, 3 min, limite por telefone). */
+let _acCancelarTimer_ = null;
+function iniciarContagemCancelar_(seg){
+  if(_acCancelarTimer_){ clearInterval(_acCancelarTimer_); _acCancelarTimer_ = null; }
+  if(!seg) return;
+  let resta = seg;
+  _acCancelarTimer_ = setInterval(()=>{
+    resta--;
+    const el = document.getElementById('acCancelarSeg');
+    if(!el || resta <= 0){ clearInterval(_acCancelarTimer_); _acCancelarTimer_ = null; const b = document.getElementById('acCancelarBtn'); if(b) b.parentElement.remove(); return; }
+    el.textContent = resta;
+  }, 1000);
+}
+let _acCancelando_ = false;
+async function cancelarPedidoPeloCliente(codigo){
+  if(_acCancelando_) return;
+  if(!confirm('Cancelar este pedido?')) return;
+  _acCancelando_ = true;
+  const btn = document.getElementById('acCancelarBtn'); if(btn) btn.disabled = true;
+  try{
+    const r = await apiCall('cancelarPedidoCardapioPublico', { codigo });
+    if(r && r.ok){ iniciarContagemCancelar_(0); await carregarStatusPedido(codigo); }
+    else { showMsg('acCancelarMsg', (r && r.message) || 'Não foi possível cancelar. Ligue para o restaurante.', 'warn'); if(btn) btn.disabled = false; }
+  } catch(e){ showMsg('acCancelarMsg', 'Sem conexão agora. Tente de novo ou ligue para o restaurante.', 'warn'); if(btn) btn.disabled = false; }
+  finally{ _acCancelando_ = false; }
+}
 function voltarParaCardapio(){
+  iniciarContagemCancelar_(0);
   if(acompanhamentoIntervalId){ clearInterval(acompanhamentoIntervalId); acompanhamentoIntervalId = null; }
   document.getElementById('acompanhamentoPedido').classList.remove('open');
 }
@@ -8858,8 +9441,10 @@ function toggleCdAdicional(adId){
   atualizarAvisoAdicionaisCd_();
   atualizarCdItemTotal();
 }
+function cdAvisoQtdMax_(){ alert('O máximo é ' + QTD_MAX_ITEM_ + ' unidades por item. Para uma quantidade maior, fale com o restaurante.'); }
 function alterarQtdCdItem(delta){
   if(!cdItemAtual) return;
+  if(cdItemAtual.qtd + delta > QTD_MAX_ITEM_){ const q = document.getElementById('cdItemQtd'); if(q){ q.style.color = '#e74c3c'; setTimeout(()=>{ q.style.color = ''; }, 1200); } try{ cdAvisoQtdMax_(); }catch(e){} return; }
   cdItemAtual.qtd = Math.max(1, cdItemAtual.qtd + delta);
   document.getElementById('cdItemQtd').textContent = cdItemAtual.qtd;
   atualizarAvisoAdicionaisCd_();
@@ -8981,7 +9566,9 @@ async function finalizarPedidoPublico(){
   const btn = document.getElementById('cdEnviarPedidoBtn');
   btn.disabled = true; btn.textContent = 'Enviando...';
 
-  if(modoContingenciaAtivo){
+  const _preventivoPublico = !modoContingenciaAtivo && servidorLento_() && !cdCupomAplicado && !!CONTINGENCIA_CHAVE_PUBLICA; // BLOCO 1.2 (com cupom não: a contingência não aplica desconto)
+  let _contFalhou = false;
+  if(modoContingenciaAtivo || _preventivoPublico){
     try{
       const idFila = (_idFilaContingencia = _idFilaContingencia || ('cd-' + Date.now() + '-' + Math.random().toString(36).slice(2,8))); // mesmo id em toda nova tentativa: a fila da contingência não duplica
       const itens = cdCarrinho.map(it=>{
@@ -9005,12 +9592,14 @@ async function finalizarPedidoPublico(){
         cdUltimaVendaId = null; mostrarBotaoWhatsappContingencia({id:idFila,numero:idFila.slice(-6).toUpperCase(),valorTotal:total}); _idFilaContingencia = null;
         cdPedidoConcluido = true;
         btn.disabled=true; btn.textContent='Pedido guardado';
-      } else { showMsg('cdCheckoutMsg', 'Não foi possível registrar o pedido agora. Tente novamente em instantes.', 'warn'); btn.disabled=false; btn.textContent='Enviar pedido'; }
+      } else { _contFalhou = true; showMsg('cdCheckoutMsg', 'Não foi possível registrar o pedido agora. Tente novamente em instantes.', 'warn'); btn.disabled=false; btn.textContent='Enviar pedido'; }
     } catch(e){
+      if(!(e && e.timeout)) _contFalhou = true; // erro de rede (não chegou a guardar): no modo preventivo tenta a planilha; timeout não, para não duplicar
       showMsg('cdCheckoutMsg', (e && e.timeout) ? 'Não conseguimos confirmar o envio a tempo. Toque em Enviar pedido de novo — o pedido não será duplicado.' : 'Não foi possível enviar o pedido. Tente novamente.','warn');
       btn.disabled=false; btn.textContent='Enviar pedido';
     }
-    return;
+    if(!(_preventivoPublico && _contFalhou)) return;
+    btn.disabled=true; btn.textContent='Enviando...'; // contingência recusou/ficou fora: segue para a planilha principal
   }
 
   const itens = cdCarrinho.map(it=>({

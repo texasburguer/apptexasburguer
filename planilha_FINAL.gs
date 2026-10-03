@@ -736,7 +736,7 @@ const ACOES_LEITURA_SEM_FILA_ = ['getVersoes', 'getStatusPedidoPublico', 'getMes
    "só dinâmicas" troca também a versão cad. Ação nova/esquecida => troca as duas (na dúvida, baixa tudo). */
 const ACOES_SEM_ALTERACAO_ = ['getAll', 'getVersoes', 'getDadosGrupo', 'detectarNovosPedidos', 'conferirIntegridade', 'getCardapio', 'obterStatusBackup',
   'obterArmazenamento', 'getStatusPedidoPublico', 'getMesaPublica', 'validarCupomCardapio', 'obterChaveContingencia', 'verificarSenhaAdmin', 'simularPrecificacao', 'listarSessoes'];
-const ACOES_SO_DINAMICAS_ = ['autenticar', 'encerrarSessao', 'encerrarSessaoRemota', 'iniciarVenda', 'criarPedidoCardapio', 'criarPedidoMesa', 'cancelarPedidoMesa', 'pedirContaMesa',
+const ACOES_SO_DINAMICAS_ = ['autenticar', 'encerrarSessao', 'encerrarSessaoRemota', 'iniciarVenda', 'criarPedidoCardapio', 'criarPedidoMesa', 'cancelarPedidoMesa', 'cancelarPedidoCardapioPublico', 'pedirContaMesa',
   'chamarGarcomMesa', 'avancarStatusPedido', 'iniciarPreparoPedido', 'atribuirEntregador', 'confirmarRecebimentoPedido', 'editarVenda', 'cancelarVenda',
   'aceitarPedido', 'rejeitarPedido', 'suspenderPedido', 'retomarPedido', 'abrirCaixa', 'fecharCaixa', 'editarStatusMesa', 'fecharContaMesa', 'addSangria',
   'addDespesa', 'pagarDespesa', 'salvarCliente', 'addOrStampFidelidade', 'resgatarPremioFidelidade', 'toggleResgateIndicacao', 'indicarNovoCliente',
@@ -953,6 +953,7 @@ function doPost(e) {
       case 'getMesaPublica': resultado = getMesaPublica(body.mesa, body.codigo); break;
       case 'criarPedidoMesa': resultado = criarPedidoMesa(body.mesa, body.codigo, body.itens, body.clienteNome, body.requisicaoId); break;
       case 'cancelarPedidoMesa': resultado = cancelarPedidoMesa(body.mesa, body.codigo, body.vendaId); break;
+      case 'cancelarPedidoCardapioPublico': resultado = cancelarPedidoCardapioPublico(body.codigo); break;
       case 'pedirContaMesa': resultado = pedirContaMesa(body.mesa, body.codigo); break;
       case 'chamarGarcomMesa': resultado = chamarGarcomMesa(body.mesa, body.codigo); break;
       case 'getQrMesas': resultado = obterQrMesas(); break;
@@ -977,6 +978,8 @@ function doPost(e) {
       case 'addSangria': resultado = addSangria(body.valor, body.motivo); break;
       case 'editarDespesa': resultado = editarDespesa(body.id, body.descricao, body.valor, body.observacao, body.categoria, body.vencimento); break;
       case 'cancelarDespesa': resultado = cancelarDespesa(body.id, body.motivo, body.senhaAdminConfirmacao); break;
+      case 'registrarAjustePosVenda': resultado = registrarAjustePosVenda(body.vendaId, body.tipo, body.valor, body.motivo, body.detalhe, body.saida, body.senhaAdminConfirmacao); break;
+      case 'cancelarAjustePosVenda': resultado = cancelarAjustePosVenda(body.id, body.motivo, body.senhaAdminConfirmacao); break;
 
       case 'salvarMeta': resultado = salvarMeta(body.tipo, body.valor); break;
       case 'verificarSenhaAdmin': resultado = { ok: verificarAdmin(body.senha) }; break;
@@ -1277,7 +1280,7 @@ function segundosRestantesBloqueio_(chave) {
 }
 function limparFalhas_(chave) { CacheService.getScriptCache().remove(chave); }
 
-const ACOES_AUDITADAS_RE = /suspens|retomad|desconto|cancelad|editada|estorno|estoque|perda|inventário|usuário|senha|sangria|despesa|forma de pagamento|restaur|backup|acesso negado|preço|fechamento|entregador atribu|login falhou|conta de mesa|qr da mesa/i;
+const ACOES_AUDITADAS_RE = /ajuste p[óo]s-venda|suspens|retomad|desconto|cancelad|editada|estorno|estoque|perda|inventário|usuário|senha|sangria|despesa|forma de pagamento|restaur|backup|acesso negado|preço|fechamento|entregador atribu|login falhou|conta de mesa|qr da mesa/i;
 function registrarAuditoria_(acao, detalhes) {
   const ss = ss_();
   let sh = ss.getSheetByName('Auditoria');
@@ -1466,7 +1469,7 @@ function exigeConfirmacaoAdmin(senhaAdminConfirmacao) {
 /* ---------- MAPA DE PERMISSÕES POR AÇÃO (ITEM 8) ----------
    '*' = qualquer usuário com sessão válida. Ações fora deste mapa e fora de
    ACOES_PUBLICAS são bloqueadas por padrão (nega por omissão, não permite). */
-const ACOES_PUBLICAS = ['autenticar', 'getCardapio', 'criarPedidoCardapio', 'validarCupomCardapio', 'addFeedback', 'getStatusPedidoPublico', 'getMesaPublica', 'criarPedidoMesa', 'cancelarPedidoMesa', 'pedirContaMesa', 'chamarGarcomMesa'];
+const ACOES_PUBLICAS = ['autenticar', 'getCardapio', 'criarPedidoCardapio', 'validarCupomCardapio', 'addFeedback', 'getStatusPedidoPublico', 'getMesaPublica', 'criarPedidoMesa', 'cancelarPedidoMesa', 'cancelarPedidoCardapioPublico', 'pedirContaMesa', 'chamarGarcomMesa'];
 const PERMISSOES_ACAO = {
   encerrarSessao: '*', listarSessoes: ['Admin'], encerrarSessaoRemota: ['Admin'], trocarMinhaSenha: '*', verificarSenhaAdmin: '*', getAll: '*',
   getVersoes: ['Admin', 'Operador'], getDadosGrupo: ['Admin', 'Operador'],
@@ -1478,12 +1481,12 @@ const PERMISSOES_ACAO = {
   confirmarRecebimentoPedido: ['Admin', 'Operador'],
   editarVenda: ['Admin', 'Operador'], cancelarVenda: ['Admin', 'Operador'],
   aceitarPedido: ['Admin', 'Operador'], rejeitarPedido: ['Admin', 'Operador'], suspenderPedido: ['Admin', 'Operador'], retomarPedido: ['Admin', 'Operador'],
-  iniciarPreparoPedido: ['Admin', 'Operador', 'Cozinha'], detectarNovosPedidos: ['Admin', 'Operador', 'Cozinha'],
+  iniciarPreparoPedido: ['Admin', 'Operador', 'Cozinha'], detectarNovosPedidos: ['Admin', 'Operador', 'Cozinha', 'Garçom', 'Entregador'],
   salvarCliente: ['Admin', 'Operador', 'Garçom'], excluirCliente: ['Admin'],
   indicarNovoCliente: ['Admin', 'Operador', 'Garçom'],
   toggleResgateIndicacao: ['Admin', 'Operador'], addOrStampFidelidade: ['Admin', 'Operador'],
   resgatarPremioFidelidade: ['Admin', 'Operador'],
-  addDespesa: ['Admin', 'Operador'], editarDespesa: ['Admin'], cancelarDespesa: ['Admin'],
+  addDespesa: ['Admin', 'Operador'], editarDespesa: ['Admin'], cancelarDespesa: ['Admin'], registrarAjustePosVenda: ['Admin'], cancelarAjustePosVenda: ['Admin'],
   pagarDespesa: ['Admin'], addDespesaRecorrente: ['Admin'], editarDespesaRecorrente: ['Admin'], gerarDespesasMes: ['Admin'],
   addSangria: ['Admin', 'Operador'], salvarMeta: ['Admin'],
   criarUsuario: ['Admin'], editarUsuario: ['Admin'], excluirUsuario: ['Admin'],
@@ -1794,6 +1797,7 @@ function dadosDinamicos_() {
     pagamentosVenda: readPagamentosVendaResposta_(),
     despesas: readDespesas(),
     despesasRecorrentes: NIVEL_ATUAL === 'Admin' ? readDespesasRecorrentes() : [],
+    ajustesPosVenda: NIVEL_ATUAL === 'Admin' ? readAjustesPosVenda() : [],
     sangrias: readSangrias(),
     metas: readMetas(),
     sessaoCaixa: readSessaoAberta(),
@@ -4341,7 +4345,32 @@ function iniciarPreparoPedido(vendaId) {
 }
 /* Detector da cozinha: consulta LEVE (só ids de pedidos novos, últimas 300 linhas). O app só faz a sincronização
    completa quando aparece um id que ele ainda não viu. */
+/* ITEM 3.1 (alternativa sem push): o Entregador e o Garçom também ganham o "detector em segundo plano" do app. Cada um só recebe os ids do que é DELE:
+   Entregador → entregas atribuídas a ele e ainda não entregues; Garçom → pedidos "Pronta" das mesas sob a sua responsabilidade. */
+function detectarNovosPedidosPerfil_() {
+  const login = String(USUARIO_ATUAL || '').toLowerCase();
+  const sh = ss_().getSheetByName('Vendas'); const last = sh.getLastRow();
+  if (last < 2 || !login) return { ok: true, ids: [], recebidos: [], total: 0, entregas: [], prontas: [] };
+  const cols = Math.min(31, sh.getMaxColumns()), ini = Math.max(2, last - 299);
+  const linhas = sh.getRange(ini, 1, last - ini + 1, cols).getValues();
+  const entregas = [], prontas = [];
+  if (NIVEL_ATUAL === 'Entregador') {
+    linhas.forEach(r => {
+      if (!r[0] || r[7] !== 'Confirmada' || r[9] !== 'Entrega' || String(r[22] || '').toLowerCase() !== login) return;
+      if (r[10] === 'Entregue' || r[10] === 'Suspenso') return;
+      entregas.push(String(r[0]));
+    });
+  } else if (NIVEL_ATUAL === 'Garçom') {
+    const minhasMesas = {}; readMesas().forEach(m => { if (String(m.garcomResponsavel || '').toLowerCase() === login) minhasMesas[m.id] = true; });
+    linhas.forEach(r => {
+      if (!r[0] || r[7] !== 'Confirmada' || !r[25] || !minhasMesas[r[25]]) return;
+      if (r[10] === 'Pronta') prontas.push(String(r[0]));
+    });
+  }
+  return { ok: true, ids: [], recebidos: [], total: 0, entregas: entregas, prontas: prontas };
+}
 function detectarNovosPedidos() {
+  if (NIVEL_ATUAL === 'Entregador' || NIVEL_ATUAL === 'Garçom') return detectarNovosPedidosPerfil_();
   const sh = ss_().getSheetByName('Vendas'); const last = sh.getLastRow();
   if (last < 2) return { ok: true, ids: [], recebidos: [], total: 0 };
   const cols = Math.min(31, sh.getMaxColumns());
@@ -4658,7 +4687,7 @@ function getStatusPedidoPublico(codigo) {
   /* ITEM 17: o app do cliente consulta a cada 20 s. Resposta guardada por 8 s (só de pedido que existe) e busca
      só nos pedidos recentes; se o pedido for antigo, cai na busca completa de sempre. */
   const emCache = cacheLerJson_('sp_' + alvo);
-  if (emCache) return emCache;
+  if (emCache) return decorarCancelamentoPublico_(emCache);
   let venda = readVendasCauda_(600).find(v => String(v.id).toLowerCase().endsWith(alvo));
   if (!venda) venda = readVendas().find(v => String(v.id).toLowerCase().endsWith(alvo));
   if (!venda) { registrarFalha_('statuspub_falhas'); return { ok: false, message: 'Pedido não encontrado. Confira o código.' }; }
@@ -4672,8 +4701,48 @@ function getStatusPedidoPublico(codigo) {
     motivoCancelamento: venda.motivoCancelamento || '', clienteNome: primeiroNome,
     itens: itens, valorTotal: venda.valorTotal, data: venda.data, statusPagamento: venda.statusPagamento, numero: venda.numero || 0
   };
+  resposta.cancelavelPublico = !!(venda.origem === 'Cardápio' && !venda.mesaId && venda.status === 'Confirmada' && venda.statusPedido === 'Recebido' && venda.statusPagamento === 'A Receber');
+  resposta.criadoEm = venda.timestamp || 0;
   cacheGravarJson_('sp_' + alvo, resposta, 8);
-  return resposta;
+  return decorarCancelamentoPublico_(resposta);
+}
+/* ITEM 3.4 — CANCELAR PEDIDO PELO PRÓPRIO CLIENTE (cardápio comum, sem mesa).
+   Só vale enquanto o pedido está "Recebido" (ninguém aceitou ainda) e nos primeiros 3 minutos. O tempo restante é calculado a cada
+   resposta (o cache de 8 s guarda só o instante de criação), e criadoEm não sai para o público. */
+const CANCELAR_PUBLICO_JANELA_MS_ = 3 * 60 * 1000;
+function decorarCancelamentoPublico_(r) {
+  const out = Object.assign({}, r);
+  const resta = Math.max(0, Math.ceil(((Number(out.criadoEm) || 0) + CANCELAR_PUBLICO_JANELA_MS_ - Date.now()) / 1000));
+  out.podeCancelar = !!out.cancelavelPublico && resta > 0;
+  out.segundosParaCancelar = out.podeCancelar ? resta : 0;
+  delete out.cancelavelPublico; delete out.criadoEm;
+  return out;
+}
+function cancelarPedidoCardapioPublico(codigo) {
+  const alvo = String(codigo || '').trim().toLowerCase();
+  if (!/^[0-9a-f-]{8,36}$/.test(alvo)) return { ok: false, message: 'Código do pedido inválido.' };
+  if (excedeuTentativas_('cancpub_falhas', 30)) return { ok: false, message: 'Muitas tentativas seguidas. Ligue para o restaurante.', limite: true };
+  let venda = readVendasCauda_(600).find(v => String(v.id).toLowerCase().endsWith(alvo));
+  if (!venda) venda = readVendas().find(v => String(v.id).toLowerCase().endsWith(alvo));
+  if (!venda || venda.origem !== 'Cardápio' || venda.mesaId) { registrarFalha_('cancpub_falhas'); return { ok: false, message: 'Pedido não encontrado ou não pode ser cancelado por aqui.' }; }
+  // limite por telefone: no máximo 3 cancelamentos a cada 10 minutos
+  const chaveTel = 'cancpub_' + String(venda.clienteTelefone || '').replace(/\D/g, '').slice(-11);
+  if (excedeuTentativas_(chaveTel, 3)) return { ok: false, message: 'Você já cancelou vários pedidos em pouco tempo. Ligue para o restaurante.', limite: true };
+  if (venda.status !== 'Confirmada') return { ok: false, message: 'Esse pedido já está cancelado.' };
+  if (venda.statusPedido !== 'Recebido') return { ok: false, message: 'O restaurante já aceitou o pedido. Ligue para o restaurante para alterar.' };
+  if (venda.statusPagamento !== 'A Receber') return { ok: false, message: 'Este pedido já tem pagamento registrado. Ligue para o restaurante.' };
+  if (Date.now() - (Number(venda.timestamp) || 0) > CANCELAR_PUBLICO_JANELA_MS_) return { ok: false, message: 'O prazo de 3 minutos para cancelar já passou. Ligue para o restaurante.' };
+  const sh = ss_().getSheetByName('Vendas'); const i = linhaDoId_(sh, venda.id);
+  if (i < 1) return { ok: false, message: 'Pedido não encontrado.' };
+  // reconfere na própria linha (outro funcionário pode ter aceitado agora há pouco)
+  if (sh.getRange(i, 8).getValue() !== 'Confirmada' || sh.getRange(i, 11).getValue() !== 'Recebido') return { ok: false, message: 'O restaurante acabou de aceitar o pedido. Ligue para o restaurante para alterar.' };
+  sh.getRange(i, 8).setValue('Cancelada');
+  sh.getRange(i, 9).setValue('Cancelado pelo cliente (cardápio, até 3 min)');
+  ajustarEstoquePorVenda(readItensVenda().filter(it => it.vendaId === venda.id), -1, venda.id);
+  registrarFalha_(chaveTel, 600000);
+  registrarLog('Pedido cancelado pelo cliente (cardápio)', venda.clienteNome || '', 'Pedido ' + (venda.numero || '') + ' | R$ ' + Number(venda.valorTotal || 0).toFixed(2));
+  cacheLimpar_('sp_' + alvo);
+  return { ok: true, message: 'Pedido cancelado.' };
 }
 /* ---------- FASE 8B — DESPESAS AVULSAS E MENSAIS (ITENS 48, 49) ----------
    Despesas: colunas H..N = Categoria, Vencimento (texto yyyy-MM-dd), Situação (Paga / A pagar),
@@ -4785,6 +4854,7 @@ function editarDespesa(id, descricao, valor, observacao, categoria, vencimento) 
     if (sh.getRange(i, 1).getValue() !== id) continue;
     if (sh.getRange(i, 6).getValue() !== 'Confirmada') return { ok: false, message: 'Só é possível editar despesas confirmadas.' };
     const antes = readDespesas().find(d => d.id === id);
+    if (antes.categoria === AJUSTE_CATEGORIA_DESPESA_) return { ok: false, message: 'Esta despesa nasceu de um Ajuste pós-venda. Para desfazer, cancele o ajuste em Financeiro → Ajustes pós-venda.' };
     const cat = categoria === undefined ? antes.categoria : (CATEGORIAS_DESPESA.indexOf(categoria) !== -1 ? categoria : 'Outros');
     let venc = antes.vencimento;
     if (vencimento !== undefined && vencimento !== '') {
@@ -4828,6 +4898,101 @@ function pagarDespesa(id, saiuDoCaixa, valorPago) {
     return { ok: true, message: 'Pagamento registrado: R$ ' + valor.toFixed(2), despesas: readDespesas() };
   }
   return { ok: false, message: 'Despesa não encontrada.' };
+}
+
+
+/* =========================================================
+   ITEM 2.6 — AJUSTES PÓS-VENDA (reembolso, crédito, cortesia, desconto retroativo)
+   A venda original NUNCA muda (continua Confirmada, com o mesmo valor). O ajuste é uma linha própria na aba AjustesPosVenda e aparece no
+   DRE como "Ajustes pós-venda". Quando sai dinheiro (reembolso / desconto retroativo) também nasce uma Despesa de categoria
+   "Ajuste pós-venda" ligada à venda: é ela que faz o dinheiro do caixa bater no fechamento. No DRE essa categoria fica FORA das despesas
+   (a fonte única é a aba de ajustes) — assim o valor não é contado duas vezes. Crédito não entra no resultado quando concedido:
+   ele vira desconto na compra futura (e aparece em "Descontos" quando for usado).
+   ========================================================= */
+const AJUSTES_TIPOS_ = ['Reembolso em dinheiro', 'Crédito para próxima compra', 'Cortesia (item grátis)', 'Desconto retroativo'];
+const AJUSTES_MOTIVOS_ = ['Produto errado', 'Item faltando', 'Qualidade do produto', 'Atraso na entrega', 'Cobrança em duplicidade', 'Atendimento', 'Outro'];
+const AJUSTES_TIPOS_COM_SAIDA_ = ['Reembolso em dinheiro', 'Desconto retroativo'];
+const AJUSTE_CATEGORIA_DESPESA_ = 'Ajuste pós-venda';
+const CABECALHO_AJUSTES_ = ['ID', 'Data/Hora', 'Venda ID', 'Pedido nº', 'Cliente', 'Telefone', 'Tipo', 'Valor', 'Motivo', 'Detalhe', 'Saída', 'Despesa ID', 'Status', 'Autorizado por', 'Registrado por', 'Cancelado em', 'Motivo do cancelamento'];
+function abaAjustes_() {
+  const ss = ss_();
+  let sh = ss.getSheetByName('AjustesPosVenda');
+  if (!sh) {
+    sh = ss.insertSheet('AjustesPosVenda');
+    formatarCabecalho(sh, CABECALHO_AJUSTES_);
+    sh.setFrozenRows(1); sh.setTabColor('#7c1a15');
+    sh.getRange('B2:B8000').setNumberFormat('dd/MM/yyyy HH:mm');
+    sh.getRange('H2:H8000').setNumberFormat('R$ #,##0.00');
+    sh.getRange('P2:P8000').setNumberFormat('dd/MM/yyyy HH:mm');
+  }
+  return sh;
+}
+function readAjustesPosVenda() {
+  const sh = abaAjustes_(); const last = sh.getLastRow();
+  if (last < 2) return [];
+  return sh.getRange(2, 1, last - 1, 17).getValues().filter(r => r[0]).map(r => ({
+    id: r[0], data: Utilities.formatDate(new Date(r[1]), FUSO, 'dd/MM/yyyy HH:mm'), timestamp: new Date(r[1]).getTime(),
+    vendaId: r[2], numero: numPlanilha_(r[3]) || 0, clienteNome: r[4], clienteTelefone: String(r[5] || ''), tipo: r[6], valor: numPlanilha_(r[7]) || 0,
+    motivo: r[8], detalhe: r[9], saida: r[10], despesaId: r[11] || '', status: r[12] === 'Cancelado' ? 'Cancelado' : 'Ativo',
+    autorizadoPor: r[13], registradoPor: r[14], motivoCancelamento: r[16] || ''
+  }));
+}
+function registrarAjustePosVenda(vendaId, tipo, valor, motivo, detalhe, saidaPedida, senhaAdminConfirmacao) {
+  if (!exigeConfirmacaoAdmin(senhaAdminConfirmacao)) return { ok: false, message: 'Senha de administrador incorreta.' };
+  if (AJUSTES_TIPOS_.indexOf(tipo) === -1) return { ok: false, message: 'Escolha o tipo de ajuste.' };
+  if (AJUSTES_MOTIVOS_.indexOf(motivo) === -1) return { ok: false, message: 'Escolha o motivo do ajuste.' };
+  detalhe = String(detalhe || '').trim().slice(0, 200);
+  if (motivo === 'Outro' && !detalhe) return { ok: false, message: 'Descreva o motivo (campo "Detalhe") quando escolher "Outro".' };
+  const v = Math.round((Number(valor) || 0) * 100) / 100;
+  if (!(v > 0)) return { ok: false, message: 'Informe um valor maior que zero.' };
+  const venda = readVendas().find(x => x.id === vendaId);
+  if (!venda) return { ok: false, message: 'Venda não encontrada.' };
+  if (venda.status !== 'Confirmada') return { ok: false, message: 'Só dá para ajustar venda confirmada. Venda cancelada já foi tratada no cancelamento.' };
+  if (venda.statusPedido && ['Entregue', 'Retirada', 'Servida'].indexOf(venda.statusPedido) === -1) return { ok: false, message: 'O pedido ainda está "' + venda.statusPedido + '". Antes de terminar, use Editar ou Cancelar. Ajuste pós-venda é para pedido já entregue.' };
+  const comSaida = AJUSTES_TIPOS_COM_SAIDA_.indexOf(tipo) !== -1;
+  if (comSaida && venda.statusPagamento !== 'Pago') return { ok: false, message: 'Esta venda ainda não foi paga — não há o que devolver. Use Editar ou Cancelar.' };
+  const total = Number(venda.valorTotal) || 0;
+  if (v > total + 0.001) return { ok: false, message: 'O ajuste (R$ ' + v.toFixed(2) + ') não pode ser maior que o valor da venda (R$ ' + total.toFixed(2) + ').' };
+  const ativos = readAjustesPosVenda().filter(a => a.vendaId === vendaId && a.status === 'Ativo');
+  if (comSaida) {
+    const jaDevolvido = ativos.filter(a => AJUSTES_TIPOS_COM_SAIDA_.indexOf(a.tipo) !== -1).reduce((t, a) => t + a.valor, 0);
+    if (jaDevolvido + v > total + 0.001) return { ok: false, message: 'Já foram devolvidos R$ ' + jaDevolvido.toFixed(2) + ' desta venda. Com este ajuste passaria do valor da venda (R$ ' + total.toFixed(2) + ').' };
+  }
+  return gravarAjustePosVenda_(venda, tipo, v, motivo, detalhe, comSaida, saidaPedida);
+}
+function gravarAjustePosVenda_(venda, tipo, v, motivo, detalhe, comSaida, saidaPedida) {
+  const saida = comSaida ? (saidaPedida === 'Do caixa' ? 'Do caixa' : 'Fora do caixa') : 'Sem saída de dinheiro';
+  if (saida === 'Do caixa' && !readSessaoAberta()) return { ok: false, message: 'Abra o caixa para registrar uma devolução que sai do caixa (ou escolha "Fora do caixa").' };
+  const sh = abaAjustes_();
+  const id = Utilities.getUuid(); let despesaId = '';
+  if (comSaida) {
+    despesaId = Utilities.getUuid();
+    ss_().getSheetByName('Despesas').appendRow([despesaId, new Date(), 'Ajuste pós-venda: ' + tipo + ' — pedido ' + (venda.numero ? 'nº ' + venda.numero : String(venda.id).slice(-8)), v,
+      'Venda ' + String(venda.id).slice(-8) + ' | ' + motivo + (detalhe ? ' — ' + detalhe : ''), 'Confirmada', '', AJUSTE_CATEGORIA_DESPESA_, '', 'Paga', '', '', saida === 'Do caixa' ? 'Sim' : 'Não', new Date()]);
+  }
+  sh.appendRow([id, new Date(), venda.id, venda.numero || '', venda.clienteNome || '', venda.clienteTelefone || '', tipo, v, motivo, detalhe, saida, despesaId, 'Ativo', AUTORIZADOR_ATUAL || USUARIO_ATUAL || '', USUARIO_ATUAL || '', '', '']);
+  registrarLog('Ajuste pós-venda registrado', venda.clienteTelefone || '', tipo + ' R$ ' + v.toFixed(2) + ' | pedido ' + (venda.numero || String(venda.id).slice(-8)) + ' | ' + motivo + (detalhe ? ' — ' + detalhe : '') + ' | ' + saida);
+  return { ok: true, message: 'Ajuste registrado: ' + tipo + ' de R$ ' + v.toFixed(2) + '.', ajustesPosVenda: readAjustesPosVenda(), despesas: readDespesas() };
+}
+function cancelarAjustePosVenda(id, motivo, senhaAdminConfirmacao) {
+  if (!exigeConfirmacaoAdmin(senhaAdminConfirmacao)) return { ok: false, message: 'Senha de administrador incorreta.' };
+  motivo = String(motivo || '').trim().slice(0, 200);
+  if (!motivo) return { ok: false, message: 'Informe o motivo do cancelamento do ajuste.' };
+  const sh = abaAjustes_(); const i = linhaDoId_(sh, id);
+  if (i < 1) return { ok: false, message: 'Ajuste não encontrado.' };
+  const a = readAjustesPosVenda().find(x => x.id === id);
+  if (!a || a.status === 'Cancelado') return { ok: false, message: 'Este ajuste já está cancelado.' };
+  if (a.saida === 'Do caixa') {
+    const sessao = readSessaoAberta();
+    if (!sessao || a.timestamp < sessao.aberturaTimestamp) return { ok: false, message: 'Esta devolução saiu do caixa de um turno que já foi fechado. Não dá para desfazer sem mexer na conferência daquele dia — registre a diferença como ajuste/despesa nova e fale com o contador.' };
+  }
+  sh.getRange(i, 13).setValue('Cancelado'); sh.getRange(i, 16).setValue(new Date()); sh.getRange(i, 17).setValue(motivo);
+  if (a.despesaId) {
+    const shD = ss_().getSheetByName('Despesas'); const j = linhaDoId_(shD, a.despesaId);
+    if (j > 0) { shD.getRange(j, 6).setValue('Cancelada'); shD.getRange(j, 7).setValue('Ajuste pós-venda cancelado: ' + motivo); }
+  }
+  registrarLog('Ajuste pós-venda cancelado', a.clienteTelefone || '', a.tipo + ' R$ ' + a.valor.toFixed(2) + ' | pedido ' + (a.numero || String(a.vendaId).slice(-8)) + ' | ' + motivo);
+  return { ok: true, message: 'Ajuste cancelado.', ajustesPosVenda: readAjustesPosVenda(), despesas: readDespesas() };
 }
 
 /* ----- despesas mensais ----- */
@@ -4932,6 +5097,7 @@ function cancelarDespesa(id, motivo, senhaAdminConfirmacao) {
   if (!exigeConfirmacaoAdmin(senhaAdminConfirmacao)) return { ok: false, message: 'Senha de administrador incorreta.' };
   if (!motivo) return { ok: false, message: 'Informe o motivo do cancelamento.' };
   const sh = ss_().getSheetByName('Despesas'); const last = sh.getLastRow();
+  { const alvoD = readDespesas().find(d => d.id === id); if (alvoD && alvoD.categoria === AJUSTE_CATEGORIA_DESPESA_) return { ok: false, message: 'Esta despesa nasceu de um Ajuste pós-venda. Para desfazer, cancele o ajuste em Financeiro → Ajustes pós-venda.' }; }
   for (let i = 2; i <= last; i++) {
     if (sh.getRange(i, 1).getValue() === id) { sh.getRange(i, 6).setValue('Cancelada'); sh.getRange(i, 7).setValue(motivo); registrarLog('Despesa cancelada', '', motivo); break; }
   }
@@ -5260,7 +5426,7 @@ function conflitoDeVersao_(action, body) {
    Requisicoes SÓ quando a operação deu certo, e devolve "duplicado" nas repetições. */
 const ACOES_IDEMPOTENTES = ['addSangria', 'registrarEntradaEstoque', 'registrarPerdaEstoque', 'registrarInventarioEstoque',
   'addOrStampFidelidade', 'resgatarPremioFidelidade', 'fecharContaMesa', 'cancelarVenda', 'editarVenda', 'addFeedback',
-  'addDespesa', 'pagarDespesa', 'abrirCaixa', 'fecharCaixa', 'salvarCliente', 'rejeitarPedido', 'editarStatusFeedback', 'registrarOcorrencia',
+  'addDespesa', 'pagarDespesa', 'registrarAjustePosVenda', 'cancelarAjustePosVenda', 'abrirCaixa', 'fecharCaixa', 'salvarCliente', 'rejeitarPedido', 'editarStatusFeedback', 'registrarOcorrencia',
   'toggleResgateIndicacao']; // toggle: dois toques seguidos não desfazem o resgate
 const REQUISICOES_MAX_LINHAS = 5000, REQUISICOES_PODA = 1000;
 

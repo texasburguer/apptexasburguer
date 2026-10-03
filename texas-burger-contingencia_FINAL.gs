@@ -170,6 +170,12 @@ function enfileirar(id, tipo, dados, perfil) {
   if (!id || typeof id !== 'string' || id.length > 80 || !/^[A-Za-z0-9_\-]+$/.test(id)) return { ok: false, message: 'Id inválido.' };
   if ((tipo || 'venda') !== 'venda') return { ok: false, message: 'Tipo não aceito.' };
   if (!dados || typeof dados !== 'object' || !Array.isArray(dados.itens) || !dados.itens.length || dados.itens.length > 60) return { ok: false, message: 'Pedido sem itens válidos.' };
+  /* BLOCO 1.1: "hora original da venda" só vale se vier de aparelho logado (nunca da chave pública) e for um instante recente e coerente. */
+  if (dados.timestampOriginal !== undefined) {
+    const tsO = Number(dados.timestampOriginal), agoraMs = Date.now();
+    if (perfil === 'publica' || !Number.isFinite(tsO) || tsO > agoraMs + 60000 || tsO < agoraMs - 24 * 3600000) delete dados.timestampOriginal;
+    else dados.timestampOriginal = Math.floor(tsO);
+  }
   const json = JSON.stringify(limpar_(dados, 0));
   if (json.length > FILA_MAX_CHARS) return { ok: false, message: 'Pedido grande demais.' };
   const sh = ss_().getSheetByName('Fila');

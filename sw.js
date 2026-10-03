@@ -4,7 +4,7 @@
    - Ícones, logo e manifest: guardados (cache primeiro).
    - Fotos do Google Drive: só são guardadas se o navegador conseguir ler a resposta (ver Item 20, passo 20.4); senão o navegador cuida delas.
    - NADA do Apps Script/planilha (script.google.com) é guardado aqui: dados, pedidos e login nunca passam pelo cache do service worker. */
-const SHELL = 'texas-shell-v3';
+const SHELL = 'texas-shell-v4';
 const ASSETS = 'texas-assets-v3';   // trocou ícone/logo/manifest? suba para v4
 const FOTOS = 'texas-fotos-v1';
 const FOTOS_MAX = 150;
