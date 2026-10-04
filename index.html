@@ -2850,7 +2850,7 @@ async function fetchContingencia_(opts, ms, repeticoes){
   }
 }
 /* ===================================================================================================
-   ETAPA 3a + 3b — NOVO SERVIDOR (Supabase): login, LEITURAS e GRAVAÇÕES DOS CADASTROS.   Versão: v-etapa-03b
+   ETAPA 3a + 3b — NOVO SERVIDOR (Supabase): login, LEITURAS e GRAVAÇÕES DOS CADASTROS.   Versão: v-etapa-03c1
    - Login, cardápio público e as telas de leitura vêm do Supabase.
    - Gravações de CADASTROS (produtos, combos, categorias, preços, adicionais, ingredientes, formas de pagamento, mesas,
      clientes, configurações e metas) já vão para o Supabase (funções api_* no banco).
@@ -2919,10 +2919,11 @@ function sbCfg_(sistema, chave, padrao){ const x = sistema.find(i=>i.chave===cha
 /* Lê tudo que o perfil pode ver (as regras do banco já filtram por perfil) e devolve no MESMO formato que a planilha devolvia. */
 async function sbMontarDados_(nivel){
   const L = (t, q)=>sbSelecionar_(t, q||'order=id', true);
-  const [formas, cats, prods, pprec, ping, combos, cprec, citens, adic, padic, sistema, usuarios, promos, estoque, mesas, clientes, movs] = await Promise.all([
+  const [formas, cats, prods, pprec, ping, combos, cprec, citens, adic, padic, sistema, usuarios, promos, estoque, mesas, clientes, movs, sangrias] = await Promise.all([
     L('formas_pagamento'), L('categorias'), L('produtos'), L('produto_precos'), L('produto_ingredientes'), L('combos'), L('combo_precos'),
-    L('combo_itens'), L('adicionais'), L('produto_adicionais'), L('sistema','order=chave'), L('usuarios'), L('promocoes'), L('estoque'), L('v_mesas'), L('clientes'), L('movimentacoes_estoque')
+    L('combo_itens'), L('adicionais'), L('produto_adicionais'), L('sistema','order=chave'), L('usuarios'), L('promocoes'), L('estoque'), L('v_mesas'), L('clientes'), L('movimentacoes_estoque'), L('sangrias')
   ]);
+  if(!usuarios.length) throw new SbSessaoExpirada_(); // quem está logado sempre enxerga ao menos a si mesmo; lista vazia = sessão encerrada
   const gestor = (nivel === 'Admin' || nivel === 'Operador'), admin = nivel === 'Admin', operacional = (nivel === 'Garçom' || nivel === 'Cozinha');
   const nomeIng = {}; estoque.forEach(e=>{ nomeIng[e.id] = e.ingrediente; });
   const loginDe = {}; usuarios.forEach(u=>{ loginDe[u.id] = u.login; });
@@ -2952,7 +2953,7 @@ async function sbMontarDados_(nivel){
     estoque: estoque.map(e=>{ const y = { id:e.id, nome:e.ingrediente, quantidade:Number(e.quantidade), minimo:Number(e.quantidade_minima), unidade:e.unidade||'un', custo:Number(e.custo_unitario)||0, ativo:e.status!=='Inativo' }; if(!gestor) delete y.custo; return y; }),
     movimentacoesEstoque: movs.map(m=>({ id:m.id, ingredienteNome:nomeIng[m.ingrediente_id]||'', tipo:m.tipo, quantidade:Number(m.quantidade), qtdAntes:Number(m.qtd_antes), qtdDepois:Number(m.qtd_depois), motivo:m.motivo_referencia||'', usuario:loginDe[m.usuario_id]||'', data:m.data })).sort((a,b)=>new Date(b.data)-new Date(a.data)),
     mesas: mesas.map(m=>({ id:m.id, numero:m.numero, status:m.status||'Livre', capacidade:m.capacidade||'', observacao:m.observacao||'', garcomResponsavel:m.garcom_responsavel||'', chamadoEm: m.chamado_em ? (Date.parse(m.chamado_em)||0) : 0 })).sort((a,b)=>Number(a.numero)-Number(b.numero)),
-    feedbacks: [], ocorrencias: [], maisPedidos: [], vendas: [], itensVenda: [], pagamentosVenda: [], despesas: [], despesasRecorrentes: [], ajustesPosVenda: [], sangrias: [],
+    feedbacks: [], ocorrencias: [], maisPedidos: [], vendas: [], itensVenda: [], pagamentosVenda: [], despesas: [], despesasRecorrentes: [], ajustesPosVenda: [], sangrias: sangrias.map(s=>({ id:s.id, data:sbDataBr_(s.data_hora), timestamp:Date.parse(s.data_hora)||0, valor:Number(s.valor), motivo:s.motivo||'', usuario:loginDe[s.usuario_id]||'' })),
     metas: admin || nivel==='Operador' ? { mensal: Number(sbCfg_(sistema,'MetaMensal',0))||0, diaria: Number(sbCfg_(sistema,'MetaDiaria',0))||0 } : { mensal:0, diaria:0 },
     sessaoCaixa: null, historicoCaixa: [], fechamentosEntrega: [], entregasFechadas: []
   };
@@ -2997,8 +2998,13 @@ const SB_ESCRITAS_ = {
   editarVisibilidadeCardapioCombo:['combos'], editarOrdemCardapioCombo:['combos'],
   addMesa:['mesas'], editarStatusMesa:['mesas'], excluirMesa:['mesas'],
   salvarConfigNotificacoes:{ config:'configNotificacoes' }, salvarConfigEstoque:{ configEstoque:'configEstoque' }, salvarConfigCardapio:{ config:'configCardapio' },
-  salvarConfigEntrega:{ configEntrega:'configEntrega' }, salvarMeta:{ metas:'metas' }, salvarCliente:['clientes']
+  salvarConfigEntrega:{ configEntrega:'configEntrega' }, salvarMeta:{ metas:'metas' }, salvarCliente:['clientes'],
+  criarUsuario:['usuarios'], editarUsuario:['usuarios'], excluirUsuario:['usuarios'], excluirCliente:['clientes'],
+  registrarEntradaEstoque:['estoque','movimentacoesEstoque'], registrarPerdaEstoque:['estoque','movimentacoesEstoque'], registrarInventarioEstoque:['estoque','movimentacoesEstoque'],
+  addSangria:['sangrias']
 };
+/* chamadas que só pedem ao banco e devolvem a resposta dele como está (sem reler as listas) */
+const SB_RPC_DIRETO_ = ['listarSessoes','encerrarSessaoRemota','verificarSenhaAdmin','trocarMinhaSenha'];
 function sbNomeFuncao_(action){ return 'api_' + action.replace(/[A-Z]/g, m=>'_' + m.toLowerCase()); }
 async function sbRpc_(fn, corpo){
   let s = sbSessaoLer_(); if(!s) throw new SbSessaoExpirada_();
@@ -3020,7 +3026,7 @@ async function sbEscrever_(action, payload){
   else Object.keys(mapa).forEach(k=>{ r[k] = todos[mapa[k]]; });
   return r;
 }
-const SB_NAO_MIGRADA_ = 'Esta ação ainda não foi migrada para o novo servidor (etapa 3c). Nada foi gravado.';
+const SB_NAO_MIGRADA_ = 'Esta ação ainda não foi migrada para o novo servidor (etapas 3c-2/3c-3). Nada foi gravado.';
 /* Roteador: devolve a resposta no formato antigo, ou undefined se a ação não for tratada aqui (não acontece com USAR_SUPABASE_ ligado). */
 async function sbRotear_(action, payload){
   try{
@@ -3052,6 +3058,11 @@ async function sbRotear_(action, payload){
       return dados;
     }
     if(SB_ESCRITAS_[action]) return await sbEscrever_(action, payload);
+    if(SB_RPC_DIRETO_.indexOf(action) !== -1){
+      const r = await sbRpc_(sbNomeFuncao_(action), { p: payload || {} });
+      if(action === 'trocarMinhaSenha' && r && r.ok){ const s = sbSessaoLer_(); if(s) r.token = s.access_token; }
+      return r;
+    }
     if(action === 'detectarNovosPedidos' || action === 'obterChaveContingencia' || action === 'obterStatusBackup') return { ok:false, naoMigrada:true };
     return { ok:false, naoMigrada:true, message: SB_NAO_MIGRADA_ };
   }catch(e){
