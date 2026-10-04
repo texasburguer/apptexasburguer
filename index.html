@@ -2871,7 +2871,7 @@ async function fetchContingencia_(opts, ms, repeticoes){
   }
 }
 /* ===================================================================================================
-   ETAPA 3a + 3b + 3c-4a — NOVO SERVIDOR (Supabase): login, LEITURAS, GRAVAÇÕES e PEDIDO PÚBLICO DO CARDÁPIO.   Versão: v-etapa-03c4a
+   ETAPA 3a + 3b + 3c — NOVO SERVIDOR (Supabase): login, LEITURAS, GRAVAÇÕES, PEDIDO PÚBLICO DO CARDÁPIO, MESA (QR), FEEDBACK, EDIÇÃO DE VENDA, AVISO DE PEDIDO NOVO, CUPONS, EVENTOS, FIDELIDADE/INDICAÇÕES, OCORRÊNCIAS e PRECIFICAÇÃO.   Versão: v-etapa-03c7
    - Login, cardápio público e as telas de leitura vêm do Supabase.
    - Gravações de CADASTROS (produtos, combos, categorias, preços, adicionais, ingredientes, formas de pagamento, mesas,
      clientes, configurações e metas) já vão para o Supabase (funções api_* no banco).
@@ -2889,11 +2889,31 @@ function sbEmail_(login){ return String(login||'').normalize('NFD').replace(/[\u
 function sbSessaoLer_(){ try{ return JSON.parse(localStorage.getItem(SB_SESSAO_KEY_)||'null'); }catch(e){ return null; } }
 function sbSessaoGravar_(s){ try{ if(s) localStorage.setItem(SB_SESSAO_KEY_, JSON.stringify(s)); else localStorage.removeItem(SB_SESSAO_KEY_); }catch(e){} }
 function sbFotoUrl_(id){ return id ? (SB_DRIVE_FOTO_ + id) : ''; }
-async function sbJson_(url, opts, ms){
-  const ctl = new AbortController(); const to = setTimeout(()=>ctl.abort(), ms || 30000);
-  try{ return await fetch(url, Object.assign({}, opts, { signal: ctl.signal })); }
-  catch(e){ if(e && e.name === 'AbortError'){ const t = new Error('O servidor demorou para responder'); t.timeout = true; throw t; } throw e; }
-  finally{ clearTimeout(to); }
+/* Nível ativo (Etapa 3): hoje só o nível 1 (Supabase) é usado; a troca automática para as planilhas é a Etapa 5. */
+let _sbNivelOk_ = true, _sbFaixaBase_ = '';
+function sbNivelMarcar_(ok){
+  if(_sbNivelOk_ === ok) return; _sbNivelOk_ = ok; sbFaixaTexto_();
+}
+function sbFaixaTexto_(){
+  const d = document.getElementById('sbFaixa'); if(!d) return;
+  d.style.background = _sbNivelOk_ ? '#b45309' : '#991b1b';
+  d.textContent = (_sbNivelOk_ ? '🟢 Nível 1: Supabase · ' : '🔴 Supabase sem resposta (nível 1) · ') + _sbFaixaBase_;
+}
+/* repetir = nº de novas tentativas em falha de rede/timeout/erro 5xx. Só é usado em LEITURAS (repetir uma gravação poderia duplicar). */
+async function sbJson_(url, opts, ms, repetir){
+  for(let t = 0; ; t++){
+    const ctl = new AbortController(); const to = setTimeout(()=>ctl.abort(), ms || 30000);
+    try{
+      const r = await fetch(url, Object.assign({}, opts, { signal: ctl.signal }));
+      if(r.status >= 500 && t < (repetir||0)){ await new Promise(x=>setTimeout(x, 800 * (t+1))); continue; }
+      sbNivelMarcar_(r.status < 500); return r;
+    }catch(e){
+      if(t < (repetir||0)){ await new Promise(x=>setTimeout(x, 800 * (t+1))); continue; }
+      sbNivelMarcar_(false);
+      if(e && e.name === 'AbortError'){ const te = new Error('O servidor demorou para responder'); te.timeout = true; throw te; }
+      throw e;
+    }finally{ clearTimeout(to); }
+  }
 }
 async function sbTokenPassword_(email, senha){
   const r = await sbJson_(SUPABASE_URL_ + '/auth/v1/token?grant_type=password', { method:'POST', headers:{ 'apikey': SUPABASE_CHAVE_, 'Content-Type':'application/json' }, body: JSON.stringify({ email, password: senha }) }, 20000);
@@ -2925,8 +2945,8 @@ async function sbSelecionar_(tabela, consulta, sessao){
     }
     const url = SUPABASE_URL_ + '/rest/v1/' + tabela + '?' + (consulta ? consulta + '&' : '') + 'select=*' ;
     const cab = { 'apikey': SUPABASE_CHAVE_, 'Authorization': 'Bearer ' + (s ? s.access_token : SUPABASE_CHAVE_), 'Range-Unit': 'items', 'Range': de + '-' + (de + TAM - 1) };
-    let r = await sbJson_(url, { headers: cab }, 30000);
-    if(r.status === 401 && sessao){ if(!(await sbRenovar_())) throw new SbSessaoExpirada_(); s = sbSessaoLer_(); cab.Authorization = 'Bearer ' + s.access_token; r = await sbJson_(url, { headers: cab }, 30000); if(r.status === 401) throw new SbSessaoExpirada_(); }
+    let r = await sbJson_(url, { headers: cab }, 30000, 2);
+    if(r.status === 401 && sessao){ if(!(await sbRenovar_())) throw new SbSessaoExpirada_(); s = sbSessaoLer_(); cab.Authorization = 'Bearer ' + s.access_token; r = await sbJson_(url, { headers: cab }, 30000, 2); if(r.status === 401) throw new SbSessaoExpirada_(); }
     if(!r.ok && r.status !== 206) throw new Error('Falha ao ler ' + tabela + ' (' + r.status + ')');
     const pag = await r.json(); itens.push.apply(itens, pag);
     if(pag.length < TAM) break; de += TAM;
@@ -2945,15 +2965,17 @@ async function sbMontarDados_(nivel, chaves){
     usuarios:['usuarios'], clientes:['clientes'], promocoes:['promocoes'], estoque:['estoque'], movimentacoesEstoque:['movimentacoes_estoque','estoque','usuarios'], mesas:['v_mesas'],
     sangrias:['sangrias','usuarios'], vendas:['v_vendas'], itensVenda:['v_itens_venda'], pagamentosVenda:['pagamentos_venda'], fidelidade:['v_fidelidade'],
     sessaoCaixa:['v_sessao_aberta'], historicoCaixa:['caixa_sessoes','usuarios'], fechamentosEntrega:['fechamentos_entrega','usuarios'], entregasFechadas:['entregas_fechadas','usuarios'],
-    despesas:['despesas'], despesasRecorrentes:['despesas_recorrentes'], ajustesPosVenda:['ajustes_pos_venda','despesas'] };
+    despesas:['despesas'], despesasRecorrentes:['despesas_recorrentes'], ajustesPosVenda:['ajustes_pos_venda','despesas'],
+    cupons:['cupons'], eventos:['eventos'], indicacoes:['v_indicacoes'], feedbacks:['feedbacks'], ocorrencias:['v_ocorrencias'], maisPedidos:['v_cardapio_mais_pedidos'] };
   const quer = chaves ? new Set([].concat.apply([], chaves.map(k=>DEPS[k]||[]))) : null;
-  const ORDEM = { v_vendas:'order=data_hora,id', v_fidelidade:'order=cliente_id', sistema:'order=chave', movimentacoes_estoque:'order=id', sangrias:'order=id', despesas:'order=data_hora,id', despesas_recorrentes:'order=criada_em,id', ajustes_pos_venda:'order=data_hora,id' };
+  const ORDEM = { v_vendas:'order=data_hora,id', v_fidelidade:'order=cliente_id', sistema:'order=chave', movimentacoes_estoque:'order=id', sangrias:'order=id', despesas:'order=data_hora,id', despesas_recorrentes:'order=criada_em,id', ajustes_pos_venda:'order=data_hora,id', cupons:'order=criado_em,id', eventos:'order=data,id', v_indicacoes:'order=data,id', feedbacks:'order=data,id', v_ocorrencias:'order=numero,id', v_cardapio_mais_pedidos:'order=posicao' };
   const L = (t, q)=> (!quer || quer.has(t) || t === 'usuarios') ? sbSelecionar_(t, q || ORDEM[t] || 'order=id', true) : Promise.resolve([]);
-  const [formas, cats, prods, pprec, ping, combos, cprec, citens, adic, padic, sistema, usuarios, promos, estoque, mesas, clientes, movs, sangrias, vendasDb, itensDb, pagDb, fidDb, sessAb, caixaDb, fechDb, entFechDb, despDb, recDb, ajDb] = await Promise.all([
+  const [formas, cats, prods, pprec, ping, combos, cprec, citens, adic, padic, sistema, usuarios, promos, estoque, mesas, clientes, movs, sangrias, vendasDb, itensDb, pagDb, fidDb, sessAb, caixaDb, fechDb, entFechDb, despDb, recDb, ajDb, cupDb, evDb, indDb, fbDb, ocDb, maisEqDb] = await Promise.all([
     L('formas_pagamento'), L('categorias'), L('produtos'), L('produto_precos'), L('produto_ingredientes'), L('combos'), L('combo_precos'),
     L('combo_itens'), L('adicionais'), L('produto_adicionais'), L('sistema'), L('usuarios'), L('promocoes'), L('estoque'), L('v_mesas'), L('clientes'), L('movimentacoes_estoque'), L('sangrias'),
     L('v_vendas'), L('v_itens_venda'), L('pagamentos_venda'), L('v_fidelidade'), L('v_sessao_aberta'), L('caixa_sessoes','order=abertura.desc,id'), L('fechamentos_entrega','order=fechado_em,id'), L('entregas_fechadas','order=id'),
-    L('despesas'), L('despesas_recorrentes'), L('ajustes_pos_venda')
+    L('despesas'), L('despesas_recorrentes'), L('ajustes_pos_venda'),
+    L('cupons'), L('eventos'), L('v_indicacoes'), L('feedbacks'), L('v_ocorrencias'), L('v_cardapio_mais_pedidos')
   ]);
   if(!usuarios.length) throw new SbSessaoExpirada_(); // quem está logado sempre enxerga ao menos a si mesmo; lista vazia = sessão encerrada
   const gestor = (nivel === 'Admin' || nivel === 'Operador'), admin = nivel === 'Admin', operacional = (nivel === 'Garçom' || nivel === 'Cozinha');
@@ -2981,11 +3003,16 @@ async function sbMontarDados_(nivel, chaves){
   const din = {
     usuarios: usuarios.map(u=>({ login:u.login, nivel:u.nivel, ativo:u.ativo, criadoEm:sbDataBr_(u.criado_em), nome:u.nome||'', telefone:u.telefone||'', id:u.id })),
     logRecentes: [], clientes: clientes.map(x=>{ const y = { id:x.id, nome:x.nome, telefone:x.telefone||'', dataNascimento:x.data_nascimento||'', endereco:x.endereco||'', comoConheceu:x.como_conheceu||'', primeiroContato:sbDataBr_(x.primeiro_contato), observacao:x.observacoes||'' }; if(nivel==='Garçom') delete y.observacao; return y; }), promocoes: nivel==='Garçom' ? [] : promos.map(p=>({ nome:p.nome, tipo:p.tipo, regra:p.regra_duplicidade, beneficio:p.beneficio, ativa:p.ativa })),
-    cupons: [], eventos: [], indicacoes: [], fidelidade: fidDb.map(f=>({ nome:f.nome||'', telefone:f.telefone||'', carimbos:Number(f.carimbos)||0, premios:Number(f.premios)||0, atualizado:f.atualizado||'', observacao:f.observacao||'', clienteId:f.cliente_id||'' })),
+    cupons: cupDb.map(c=>({ id:c.id, codigo:String(c.codigo||'').toUpperCase(), nome:c.nome||'', tipo:c.tipo||'percentual', valor:Number(c.valor)||0, freteGratis:!!c.frete_gratis, dataInicio:c.data_inicio||'', dataFim:c.data_fim||'', horaInicio:String(c.hora_inicio||'').slice(0,5), horaFim:String(c.hora_fim||'').slice(0,5), limiteTotal:Number(c.limite_total)||0, limitePorCliente:Number(c.limite_por_cliente)||0, valorMinimo:Number(c.valor_minimo)||0, ativa:c.ativa!==false, acumula:!!c.acumula, criadoEm:sbDataBr_(c.criado_em) })),
+    eventos: evDb.map(e=>({ id:e.id, nome:e.nome||'', tipo:e.tipo||'', data:e.data||'', horaInicio:String(e.hora_inicio||'').slice(0,5), horaFim:String(e.hora_fim||'').slice(0,5), local:e.local||'', contratante:e.contratante||'', telefone:e.telefone||'', status:e.status||'Orçamento', valorContratado:Number(e.valor_contratado)||0, valorRecebido:Number(e.valor_recebido)||0, valorAReceber:Number(e.valor_a_receber)||0, custoTotal:Number(e.custo_total)||0, resultado:Number(e.resultado)||0, observacoes:e.observacoes||'' })),
+    indicacoes: indDb.map(i=>({ nomeIndicador:i.nome_indicador||'', telIndicador:i.telefone_indicador||'', nomeIndicado:i.nome_indicado||'', telIndicado:i.telefone_indicado||'', data:sbDataBr_(i.data), resgatado:i.status==='Resgatado', observacao:i.observacoes||'', idIndicador:i.indicador_id||'', idIndicado:i.indicado_id||'' })),
+    fidelidade: fidDb.map(f=>({ nome:f.nome||'', telefone:f.telefone||'', carimbos:Number(f.carimbos)||0, premios:Number(f.premios)||0, atualizado:f.atualizado||'', observacao:f.observacao||'', clienteId:f.cliente_id||'' })),
     estoque: estoque.map(e=>{ const y = { id:e.id, nome:e.ingrediente, quantidade:Number(e.quantidade), minimo:Number(e.quantidade_minima), unidade:e.unidade||'un', custo:Number(e.custo_unitario)||0, ativo:e.status!=='Inativo' }; if(!gestor) delete y.custo; return y; }),
     movimentacoesEstoque: movs.map(m=>({ id:m.id, ingredienteNome:nomeIng[m.ingrediente_id]||'', tipo:m.tipo, quantidade:Number(m.quantidade), qtdAntes:Number(m.qtd_antes), qtdDepois:Number(m.qtd_depois), motivo:m.motivo_referencia||'', usuario:loginDe[m.usuario_id]||'', data:m.data })).sort((a,b)=>new Date(b.data)-new Date(a.data)),
     mesas: mesas.map(m=>({ id:m.id, numero:m.numero, status:m.status||'Livre', capacidade:m.capacidade||'', observacao:m.observacao||'', garcomResponsavel:m.garcom_responsavel||'', chamadoEm: m.chamado_em ? (Date.parse(m.chamado_em)||0) : 0 })).sort((a,b)=>Number(a.numero)-Number(b.numero)),
-    feedbacks: [], ocorrencias: [], maisPedidos: [],
+    feedbacks: fbDb.map(f=>({ id:f.id, vendaId:f.venda_id||'', telefone:f.telefone_cliente||'', nota:Number(f.nota)||0, comentario:f.comentario||'', data:sbDataBr_(f.data), status:f.status||'Novo', clienteId:f.cliente_id||'' })),
+    ocorrencias: ocDb.map(o=>({ id:o.id, numero:Number(o.numero)||0, data:sbDataBr_(o.data_hora), tipo:o.tipo||'', setor:o.setor||'', vendaId:o.venda_id||'', clienteNome:o.cliente||'', clienteTelefone:o.telefone||'', registradoPor:o.registrado_por||'', responsavel:o.responsavel||'', descricao:o.descricao||'', solucao:o.solucao||'', status:o.status||'Aberta', atualizada:sbDataBr_(o.atualizada_em), historico:Array.isArray(o.historico)?o.historico.join('\n'):String(o.historico||'') })),
+    maisPedidos: maisEqDb.map(m=>({ tipo:m.tipo, id:m.id })),
     vendas: vendasDb.map(v=>({ id:v.id, data:sbDataBr_(v.data_hora), timestamp:Date.parse(v.data_hora)||0, clienteNome:v.cliente_nome||'', clienteTelefone:v.cliente_telefone||'', formaPagamento:v.forma_pagamento||'',
       valorTotal:Number(v.valor_total)||0, custoTotal:Number(v.custo_total)||0, status:v.status, motivoCancelamento:v.motivo_cancelamento||'', tipoEntrega:v.tipo_entrega||'Retirada', statusPedido:v.status_pedido||'',
       endereco:v.endereco||'', complemento:v.complemento||'', referencia:v.referencia||'', observacoesEntrega:v.observacoes_entrega||'',
@@ -3018,10 +3045,11 @@ async function sbMontarDados_(nivel, chaves){
 const SB_VERSOES_ = { cad: 'sb-3a', din: 'sb-3a' }; // sem controle de versão na 3a: a tela se atualiza pela sincronização completa (a cada 15 min ou no botão Atualizar). Tempo real = Etapa 6.
 async function sbCardapioPublico_(){
   const P = (t, ordem)=>sbSelecionar_(t, 'order=' + ordem, false); // ordem fixa: a leitura em páginas não pode repetir nem pular linhas
-  const [cats, prods, combos, formas, citens, precos, adic, cfg, st] = await Promise.all([
+  const [cats, prods, combos, formas, citens, precos, adic, cfg, st, maisDb, esgDb] = await Promise.all([
     P('v_cardapio_categorias','id'), P('v_cardapio_produtos','id'), P('v_cardapio_combos','id'), P('v_cardapio_formas','id'), P('v_cardapio_combo_itens','combo_id,produto_id'),
     P('v_cardapio_precos','tipo,item_id,forma_pagamento_id'), P('v_cardapio_adicionais','produto_id,adicional_id'), P('v_cardapio_config','chave'),
-    P('v_cardapio_status','caixa_aberto').catch(()=>[{ caixa_aberto:false }])
+    P('v_cardapio_status','caixa_aberto').catch(()=>[{ caixa_aberto:false }]),
+    P('v_cardapio_mais_pedidos','posicao').catch(()=>[]), P('v_cardapio_esgotados','tipo,id').catch(()=>[])
   ]);
   const cfgv = {}; cfg.forEach(c=>{ cfgv[c.chave] = c.valor; });
   if(cfgv.MANUTENCAO) return { ok:false, manutencao:true, message: String(cfgv.MANUTENCAO.mensagem || cfgv.MANUTENCAO) };
@@ -3038,7 +3066,8 @@ async function sbCardapioPublico_(){
     adicionais, produtoAdicionais,
     comboItens: citens.map(x=>({ comboId:x.combo_id, produtoId:x.produto_id })),
     config: { kicker: cfgv.CardapioKicker || 'DELIVERY · SABOR QUE CONQUISTA', frase: cfgv.CardapioFrase || 'Peça pelo cardápio — rápido, sem complicação.', tempoEntrega: cfgv.CardapioTempoEntrega || '40-60 min', tempoRetirada: cfgv.CardapioTempoRetirada || '20-30 min', tempoMesa: cfgv.CardapioTempoMesa || '20-30 min', taxaEntrega: Number(cfgv.TaxaEntregaPadrao)||0 },
-    maisPedidos: [], caixaAberto: !!(st[0] && st[0].caixa_aberto), esgotados: { produtos: [], combos: [] }
+    maisPedidos: maisDb.map(m=>({ tipo:m.tipo, id:m.id })), caixaAberto: !!(st[0] && st[0].caixa_aberto),
+    esgotados: { produtos: esgDb.filter(x=>x.tipo==='produto').map(x=>x.id), combos: esgDb.filter(x=>x.tipo==='combo').map(x=>x.id) }
   };
 }
 
@@ -3052,23 +3081,29 @@ const SB_ESCRITAS_ = {
   excluirProduto:['produtos','produtoPrecos','produtoIngredientes'], editarVisibilidadeCardapioProduto:['produtos'], editarOrdemCardapioProduto:['produtos'],
   addCombo:['combos','comboPrecos','comboItens'], editarCombo:['combos','comboPrecos','comboItens'], excluirCombo:['combos','comboPrecos','comboItens'],
   editarVisibilidadeCardapioCombo:['combos'], editarOrdemCardapioCombo:['combos'],
-  addMesa:['mesas'], editarStatusMesa:['mesas'], excluirMesa:['mesas'],
+  addMesa:['mesas'], editarStatusMesa:['mesas'], excluirMesa:['mesas'], atenderChamadoMesa:['mesas'],
   salvarConfigNotificacoes:{ config:'configNotificacoes' }, salvarConfigEstoque:{ configEstoque:'configEstoque' }, salvarConfigCardapio:{ config:'configCardapio' },
   salvarConfigEntrega:{ configEntrega:'configEntrega' }, salvarMeta:{ metas:'metas' }, salvarCliente:['clientes'],
   criarUsuario:['usuarios'], editarUsuario:['usuarios'], excluirUsuario:['usuarios'], excluirCliente:['clientes'],
   registrarEntradaEstoque:['estoque','movimentacoesEstoque'], registrarPerdaEstoque:['estoque','movimentacoesEstoque'], registrarInventarioEstoque:['estoque','movimentacoesEstoque'],
   addSangria:['sangrias'],
   fecharContaMesa:['vendas','itensVenda','pagamentosVenda','mesas','fidelidade','clientes'], fecharPeriodoEntregador:['vendas','fechamentosEntrega','entregasFechadas'],
-  abrirCaixa:['sessaoCaixa'], cancelarVenda:['vendas','estoque'],
+  abrirCaixa:['sessaoCaixa'], cancelarVenda:['vendas','estoque'], editarVenda:['vendas','itensVenda','pagamentosVenda'],
   iniciarVenda:['vendas','itensVenda','pagamentosVenda','fidelidade','clientes','estoque','mesas'],
   aceitarPedido:['vendas','itensVenda','pagamentosVenda'], iniciarPreparoPedido:['vendas','itensVenda','pagamentosVenda'], avancarStatusPedido:['vendas','itensVenda','pagamentosVenda'], suspenderPedido:['vendas','itensVenda','pagamentosVenda'], retomarPedido:['vendas','itensVenda','pagamentosVenda'],
   atribuirEntregador:['vendas','itensVenda','pagamentosVenda'], confirmarRecebimentoPedido:['vendas','itensVenda','pagamentosVenda','fidelidade','clientes'], rejeitarPedido:['vendas','itensVenda','pagamentosVenda','estoque'],
   addDespesa:['despesas'], editarDespesa:['despesas'], pagarDespesa:['despesas'], cancelarDespesa:['despesas'], gerarDespesasMes:['despesas'],
   addDespesaRecorrente:['despesasRecorrentes','despesas'], editarDespesaRecorrente:['despesasRecorrentes','despesas'],
-  registrarAjustePosVenda:['ajustesPosVenda','despesas'], cancelarAjustePosVenda:['ajustesPosVenda','despesas']
+  registrarAjustePosVenda:['ajustesPosVenda','despesas'], cancelarAjustePosVenda:['ajustesPosVenda','despesas'],
+  seedCardapioTexasBurger:['categorias','produtos','produtoPrecos','combos','comboPrecos','comboItens','estoque','adicionais'],
+  salvarCupom:['cupons'], editarCupom:['cupons'], alternarCupom:['cupons'],
+  salvarEvento:['eventos'], cancelarEvento:['eventos'], adicionarCustoEvento:['eventos'], adicionarRecebimentoEvento:['eventos'],
+  addOrStampFidelidade:['fidelidade'], resgatarPremioFidelidade:['fidelidade'], indicarNovoCliente:['clientes','indicacoes','fidelidade'], toggleResgateIndicacao:['indicacoes'],
+  registrarOcorrencia:['ocorrencias'], atualizarOcorrencia:['ocorrencias'], editarStatusFeedback:['feedbacks'],
+  aplicarPrecoCalculadora:['produtoPrecos']
 };
 /* chamadas que só pedem ao banco e devolvem a resposta dele como está (sem reler as listas) */
-const SB_RPC_DIRETO_ = ['listarSessoes','encerrarSessaoRemota','verificarSenhaAdmin','trocarMinhaSenha','fecharCaixa','previewFechamentoEntrega'];
+const SB_RPC_DIRETO_ = ['listarSessoes','encerrarSessaoRemota','verificarSenhaAdmin','trocarMinhaSenha','fecharCaixa','previewFechamentoEntrega','getQrMesas','gerarNovoCodigoMesa','detectarNovosPedidos','simularPrecificacao'];
 function sbNomeFuncao_(action){ return 'api_' + action.replace(/[A-Z]/g, m=>'_' + m.toLowerCase()); }
 async function sbRpc_(fn, corpo){
   let s = sbSessaoLer_(); if(!s) throw new SbSessaoExpirada_();
@@ -3095,14 +3130,15 @@ async function sbEscrever_(action, payload){
   return r;
 }
 /* ETAPA 3c-4a — AÇÕES PÚBLICAS DO CARDÁPIO (sem login): o cliente fala com o banco só pela chave pública; preços, total, cupom e limites são decididos no servidor. */
-const SB_PUBLICAS_ = { criarPedidoCardapio:'api_criar_pedido_cardapio', getStatusPedidoPublico:'api_get_status_pedido_publico', cancelarPedidoCardapioPublico:'api_cancelar_pedido_cardapio_publico', validarCupomCardapio:'api_validar_cupom_cardapio' };
+const SB_PUBLICAS_ = { criarPedidoCardapio:'api_criar_pedido_cardapio', getStatusPedidoPublico:'api_get_status_pedido_publico', cancelarPedidoCardapioPublico:'api_cancelar_pedido_cardapio_publico', validarCupomCardapio:'api_validar_cupom_cardapio',
+  getMesaPublica:'api_get_mesa_publica', criarPedidoMesa:'api_criar_pedido_mesa', cancelarPedidoMesa:'api_cancelar_pedido_mesa', pedirContaMesa:'api_pedir_conta_mesa', chamarGarcomMesa:'api_chamar_garcom_mesa', addFeedback:'api_add_feedback' };
 async function sbRpcPublico_(fn, corpo){
   const r = await sbJson_(SUPABASE_URL_ + '/rest/v1/rpc/' + fn, { method:'POST', headers:{ 'apikey': SUPABASE_CHAVE_, 'Authorization': 'Bearer ' + SUPABASE_CHAVE_, 'Content-Type':'application/json' }, body: JSON.stringify(corpo) }, 30000);
   const j = await r.json().catch(()=>null);
   if(!r.ok) return { ok:false, message:'Não foi possível concluir agora (erro ' + r.status + '). Tente novamente em instantes.' };
   return j && typeof j === 'object' ? j : { ok:false, message:'Resposta inesperada do servidor.' };
 }
-const SB_NAO_MIGRADA_ = 'Esta ação ainda não foi migrada para o novo servidor (etapas 3c-2b/3c-3). Nada foi gravado.';
+const SB_NAO_MIGRADA_ = 'Esta ação ainda não foi migrada para o novo servidor (fotos e backup ficam para as próximas etapas). Nada foi gravado.';
 /* Roteador: devolve a resposta no formato antigo, ou undefined se a ação não for tratada aqui (não acontece com USAR_SUPABASE_ ligado). */
 let _sbDespMes_ = '';
 async function sbGarantirDespesasMes_(){ // faz o papel do gatilho diário da planilha: o banco só gera 1x por mês, então a chamada é barata
@@ -3146,7 +3182,7 @@ async function sbRotear_(action, payload){
       if(action === 'trocarMinhaSenha' && r && r.ok){ const s = sbSessaoLer_(); if(s) r.token = s.access_token; }
       return r;
     }
-    if(action === 'detectarNovosPedidos' || action === 'obterChaveContingencia' || action === 'obterStatusBackup') return { ok:false, naoMigrada:true };
+    if(action === 'obterChaveContingencia' || action === 'obterStatusBackup') return { ok:false, naoMigrada:true };
     return { ok:false, naoMigrada:true, message: SB_NAO_MIGRADA_ };
   }catch(e){
     if(e instanceof SbSessaoExpirada_){ sbSessaoGravar_(null); return { ok:false, sessaoExpirada:true, message:'Sessão expirada.' }; }
@@ -3157,8 +3193,8 @@ function sbFaixa_(){
   if(!USAR_SUPABASE_ || document.getElementById('sbFaixa')) return;
   const d = document.createElement('div'); d.id = 'sbFaixa';
   d.style.cssText = 'position:fixed;left:0;right:0;bottom:0;z-index:9999;background:#b45309;color:#fff;font:600 12px/1.3 system-ui,sans-serif;text-align:center;padding:4px 8px;pointer-events:none;';
-  d.textContent = '🧪 TESTE DO NOVO SERVIDOR (etapa 3c-3b): cadastros, caixa, vendas, pedidos, mesa, entregador e financeiro (despesas, contas do mês, ajustes) já gravam — editar venda, cupons, eventos, pedido do cardápio e outros ainda não';
-  document.body.appendChild(d);
+  _sbFaixaBase_ = '🧪 TESTE DO NOVO SERVIDOR (etapa 3c-7): cadastros, caixa, vendas, pedidos, mesa, entregador, financeiro, cupons, eventos, fidelidade, indicações, ocorrências, feedbacks e precificação já gravam — fotos e backup ainda não';
+  document.body.appendChild(d); sbFaixaTexto_();
 }
 
 async function apiCall(action, payload, _tentativa, _idemChave){
@@ -10556,7 +10592,10 @@ async function impComplementarProdutos_(){
 }
 
 /* PASSO 3 — envia a foto de quem está sem foto, um por vez */
+/* Envio de fotos (uploadFotoProduto/Combo) ainda roda só na planilha antiga; passa a valer na Etapa 8 (fotos). Mude para true quando for migrado. */
+const SB_FOTOS_MIGRADAS_ = false;
 async function impAplicarFotos_(){
+  if(USAR_SUPABASE_ && !SB_FOTOS_MIGRADAS_) return { total:0, ok:0, falhas:0, parou:false, adiada:true };
   const fila = [];
   (produtos || []).forEach(function(p){
     const arq = IMP_FOTOS_PRODUTOS_[impNorm_(p.nome)];
@@ -10589,6 +10628,7 @@ async function impAplicarFotos_(){
 }
 
 function impResumoFotos_(f){
+  if(f.adiada) return 'Fotos: o envio de fotos ainda não foi migrado para o novo servidor (Etapa 8) — os produtos ficam sem foto por enquanto.';
   if(!f.total) return 'Fotos: nada a enviar (todos os itens da lista já têm foto).';
   let t = 'Fotos: ' + f.ok + ' enviada(s)';
   if(f.falhas) t += ', ' + f.falhas + ' falharam' + (f.parou ? ' (parou após 5 falhas seguidas)' : '') + '. Confira a internet e se a pasta fotos-cardapio está publicada no GitHub; depois toque em "Só aplicar as fotos".';
@@ -10597,7 +10637,7 @@ function impResumoFotos_(f){
 
 async function importarCardapioInicial(){
   if(_impEmAndamento_) return;
-  if(!confirm('Isso vai cadastrar categorias, produtos, combos e bebidas do Texas Burger na planilha e enviar as fotos. Pode levar alguns minutos. Continuar?')) return;
+  if(!confirm('Isso vai cadastrar categorias, produtos, combos e bebidas do Texas Burger no sistema e, quando disponível, enviar as fotos. Pode levar alguns minutos. Continuar?')) return;
   _impEmAndamento_ = true;
   impMsg_('Importando… isso pode levar um tempinho, não feche a página.', 'ok');
   try{
