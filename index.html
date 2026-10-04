@@ -6136,6 +6136,12 @@ async function confirmarAbrirCaixa(){
   try{
     const r = await apiCall('abrirCaixa', { fundoCaixa });
     if(r.ok){ sessaoCaixa = r.sessaoCaixa; salvarCache(); renderStatusCaixa(); fecharModalAbrirCaixa(); }
+    else if(/já existe um caixa aberto/i.test(r.message||'')){
+      /* o servidor já tem um caixa aberto que a tela não conhecia: sincroniza e mostra o caixa aberto em vez de só dar erro */
+      await recarregarHistoricoCaixa();
+      if(sessaoCaixa){ fecharModalAbrirCaixa(); try{ renderStatusCaixa(); }catch(e2){} }
+      else showMsg('abrirCaixaMsg', r.message, 'warn');
+    }
     else showMsg('abrirCaixaMsg', r.message, 'warn');
   } catch(e){ showMsg('abrirCaixaMsg','Não foi possível abrir o caixa.','warn'); }
   finally { finalizarOperacaoUnica('abrirCaixa'); }
@@ -6190,7 +6196,14 @@ async function confirmarFecharCaixa_(){
   finally { finalizarOperacaoUnica('fecharCaixa'); }
 }
 async function recarregarHistoricoCaixa(){
-  try{ const r = await apiCall('getAll', {}); historicoCaixa = r.historicoCaixa || historicoCaixa; salvarCache(); renderHistoricoCaixa(); } catch(e){}
+  try{
+    const r = await apiCall('getAll', {});
+    aplicarDadosRecebidos(r);          // preenche vendas, itens, pagamentos, fechamentosEntrega, entregasFechadas etc.
+    historicoCaixa = r.historicoCaixa || historicoCaixa;
+    salvarCache();
+    renderHistoricoCaixa();
+    try{ renderizarTudo(); }catch(e){} // redesenha tudo (Entregas, Pedidos, Início) com os dados frescos
+  }catch(e){ /* se falhar, mantém o que já estava na tela */ }
 }
 function mostrarRelatorioFechamento(r, contado, entregasAuto){
   const linhasFormas = Object.keys(r.porForma||{}).map(f=>`${f}: ${formatarMoeda(r.porForma[f])}`).join('\n');

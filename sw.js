@@ -2,8 +2,10 @@
    Precisa ficar na MESMA pasta do HTML, em endereço https.
    - Página: mostra a cópia guardada NA HORA e confere a rede em segundo plano. Se a página mudou, avisa o app ("Nova versão disponível").
    - Ícones, logo e manifest: guardados (cache primeiro).
-   - Fotos do Google Drive: só são guardadas se o navegador conseguir ler a resposta (ver Item 20, passo 20.4); senão o navegador cuida delas.
-   - NADA do Apps Script/planilha (script.google.com) é guardado aqui: dados, pedidos e login nunca passam pelo cache do service worker. */
+   - Fotos do Google Drive: só são guardadas se o navegador conseguir ler a resposta (modo "cors"); senão o navegador cuida delas.
+   - BACKEND: NADA de Apps Script (script.google.com) nem de Supabase (*.supabase.co) é guardado aqui.
+     Dados, pedidos, login e RPCs nunca passam pelo cache do service worker — sempre vão direto para a rede.
+   - O único cache de dados é o de fotos (FOTOS) e o da casca/ícones (SHELL/ASSETS). Não adicionar outros. */
 const SHELL = 'texas-shell-v6';
 const ASSETS = 'texas-assets-v3';   // trocou ícone/logo/manifest? suba para v4
 const FOTOS = 'texas-fotos-v1';
