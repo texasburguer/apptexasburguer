@@ -2871,7 +2871,7 @@ async function fetchContingencia_(opts, ms, repeticoes){
   }
 }
 /* ===================================================================================================
-   ETAPA 3a + 3b — NOVO SERVIDOR (Supabase): login, LEITURAS e GRAVAÇÕES DOS CADASTROS.   Versão: v-etapa-03c3b
+   ETAPA 3a + 3b + 3c-4a — NOVO SERVIDOR (Supabase): login, LEITURAS, GRAVAÇÕES e PEDIDO PÚBLICO DO CARDÁPIO.   Versão: v-etapa-03c4a
    - Login, cardápio público e as telas de leitura vêm do Supabase.
    - Gravações de CADASTROS (produtos, combos, categorias, preços, adicionais, ingredientes, formas de pagamento, mesas,
      clientes, configurações e metas) já vão para o Supabase (funções api_* no banco).
@@ -3094,6 +3094,14 @@ async function sbEscrever_(action, payload){
   else Object.keys(mapa).forEach(k=>{ r[k] = todos[mapa[k]]; });
   return r;
 }
+/* ETAPA 3c-4a — AÇÕES PÚBLICAS DO CARDÁPIO (sem login): o cliente fala com o banco só pela chave pública; preços, total, cupom e limites são decididos no servidor. */
+const SB_PUBLICAS_ = { criarPedidoCardapio:'api_criar_pedido_cardapio', getStatusPedidoPublico:'api_get_status_pedido_publico', cancelarPedidoCardapioPublico:'api_cancelar_pedido_cardapio_publico', validarCupomCardapio:'api_validar_cupom_cardapio' };
+async function sbRpcPublico_(fn, corpo){
+  const r = await sbJson_(SUPABASE_URL_ + '/rest/v1/rpc/' + fn, { method:'POST', headers:{ 'apikey': SUPABASE_CHAVE_, 'Authorization': 'Bearer ' + SUPABASE_CHAVE_, 'Content-Type':'application/json' }, body: JSON.stringify(corpo) }, 30000);
+  const j = await r.json().catch(()=>null);
+  if(!r.ok) return { ok:false, message:'Não foi possível concluir agora (erro ' + r.status + '). Tente novamente em instantes.' };
+  return j && typeof j === 'object' ? j : { ok:false, message:'Resposta inesperada do servidor.' };
+}
 const SB_NAO_MIGRADA_ = 'Esta ação ainda não foi migrada para o novo servidor (etapas 3c-2b/3c-3). Nada foi gravado.';
 /* Roteador: devolve a resposta no formato antigo, ou undefined se a ação não for tratada aqui (não acontece com USAR_SUPABASE_ ligado). */
 let _sbDespMes_ = '';
@@ -3119,6 +3127,7 @@ async function sbRotear_(action, payload){
       if(s) sbJson_(SUPABASE_URL_ + '/auth/v1/logout', { method:'POST', headers:{ 'apikey': SUPABASE_CHAVE_, 'Authorization': 'Bearer ' + s.access_token } }, 8000).catch(()=>{});
       return { ok:true };
     }
+    if(SB_PUBLICAS_[action]) return await sbRpcPublico_(SB_PUBLICAS_[action], { p: payload || {} });
     if(action === 'getCardapio') return await sbCardapioPublico_();
     if(action === 'getVersoes') return Object.assign({ ok:true }, SB_VERSOES_);
     if(action === 'getAll' || action === 'getDadosGrupo'){
