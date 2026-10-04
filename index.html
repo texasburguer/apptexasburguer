@@ -2850,10 +2850,12 @@ async function fetchContingencia_(opts, ms, repeticoes){
   }
 }
 /* ===================================================================================================
-   ETAPA 3a — NOVO SERVIDOR (Supabase): login e LEITURAS.   Versão: v-etapa-03a
+   ETAPA 3a + 3b — NOVO SERVIDOR (Supabase): login, LEITURAS e GRAVAÇÕES DOS CADASTROS.   Versão: v-etapa-03b
    - Login, cardápio público e as telas de leitura vêm do Supabase.
-   - As GRAVAÇÕES ainda não foram migradas (etapas 3b e 3c): nesta versão elas são recusadas com aviso e NADA é gravado
-     (nem na planilha, para os dois lados nunca ficarem diferentes).
+   - Gravações de CADASTROS (produtos, combos, categorias, preços, adicionais, ingredientes, formas de pagamento, mesas,
+     clientes, configurações e metas) já vão para o Supabase (funções api_* no banco).
+   - As demais gravações (venda, caixa, estoque, despesas, cupons, usuários…) ainda não foram migradas (etapa 3c): são recusadas com aviso
+     e NADA é gravado (nem na planilha, para os dois lados nunca ficarem diferentes).
    - Para voltar ao servidor antigo (planilha) sem mexer em mais nada: troque USAR_SUPABASE_ para false.
    =================================================================================================== */
 const USAR_SUPABASE_ = true;
@@ -2917,12 +2919,13 @@ function sbCfg_(sistema, chave, padrao){ const x = sistema.find(i=>i.chave===cha
 /* Lê tudo que o perfil pode ver (as regras do banco já filtram por perfil) e devolve no MESMO formato que a planilha devolvia. */
 async function sbMontarDados_(nivel){
   const L = (t, q)=>sbSelecionar_(t, q||'order=id', true);
-  const [formas, cats, prods, pprec, ping, combos, cprec, citens, adic, padic, sistema, usuarios, promos, estoque, mesas] = await Promise.all([
+  const [formas, cats, prods, pprec, ping, combos, cprec, citens, adic, padic, sistema, usuarios, promos, estoque, mesas, clientes, movs] = await Promise.all([
     L('formas_pagamento'), L('categorias'), L('produtos'), L('produto_precos'), L('produto_ingredientes'), L('combos'), L('combo_precos'),
-    L('combo_itens'), L('adicionais'), L('produto_adicionais'), L('sistema','order=chave'), L('usuarios'), L('promocoes'), L('estoque'), L('mesas')
+    L('combo_itens'), L('adicionais'), L('produto_adicionais'), L('sistema','order=chave'), L('usuarios'), L('promocoes'), L('estoque'), L('v_mesas'), L('clientes'), L('movimentacoes_estoque')
   ]);
   const gestor = (nivel === 'Admin' || nivel === 'Operador'), admin = nivel === 'Admin', operacional = (nivel === 'Garçom' || nivel === 'Cozinha');
   const nomeIng = {}; estoque.forEach(e=>{ nomeIng[e.id] = e.ingrediente; });
+  const loginDe = {}; usuarios.forEach(u=>{ loginDe[u.id] = u.login; });
   const semCusto = x=>{ if(!gestor) delete x.custo; return x; };
   const cad = {
     formasPagamento: formas.map((f,i)=>({ id:f.id, nome:f.nome, ativa:f.ativa, visivelCardapio:f.visivel_cardapio, taxaPct:Number(f.taxa_percentual)||0, taxaFixa:Number(f.taxa_fixa)||0, prazoDias:Number(f.prazo_dias)||0, permiteTroco:f.permite_troco, ordem:Number(f.ordem)||(i+1) })).sort((a,b)=>a.ordem-b.ordem)
@@ -2944,11 +2947,11 @@ async function sbMontarDados_(nivel){
   };
   const din = {
     usuarios: usuarios.map(u=>({ login:u.login, nivel:u.nivel, ativo:u.ativo, criadoEm:sbDataBr_(u.criado_em), nome:u.nome||'', telefone:u.telefone||'', id:u.id })),
-    logRecentes: [], clientes: [], promocoes: nivel==='Garçom' ? [] : promos.map(p=>({ nome:p.nome, tipo:p.tipo, regra:p.regra_duplicidade, beneficio:p.beneficio, ativa:p.ativa })),
+    logRecentes: [], clientes: clientes.map(x=>{ const y = { id:x.id, nome:x.nome, telefone:x.telefone||'', dataNascimento:x.data_nascimento||'', endereco:x.endereco||'', comoConheceu:x.como_conheceu||'', primeiroContato:sbDataBr_(x.primeiro_contato), observacao:x.observacoes||'' }; if(nivel==='Garçom') delete y.observacao; return y; }), promocoes: nivel==='Garçom' ? [] : promos.map(p=>({ nome:p.nome, tipo:p.tipo, regra:p.regra_duplicidade, beneficio:p.beneficio, ativa:p.ativa })),
     cupons: [], eventos: [], indicacoes: [], fidelidade: [],
     estoque: estoque.map(e=>{ const y = { id:e.id, nome:e.ingrediente, quantidade:Number(e.quantidade), minimo:Number(e.quantidade_minima), unidade:e.unidade||'un', custo:Number(e.custo_unitario)||0, ativo:e.status!=='Inativo' }; if(!gestor) delete y.custo; return y; }),
-    movimentacoesEstoque: [],
-    mesas: mesas.map(m=>({ id:m.id, numero:m.numero, status:m.status||'Livre', capacidade:m.capacidade||'', observacao:m.observacao||'', garcomResponsavel:'', chamadoEm: m.chamado_em ? (Date.parse(m.chamado_em)||0) : 0 })).sort((a,b)=>Number(a.numero)-Number(b.numero)),
+    movimentacoesEstoque: movs.map(m=>({ id:m.id, ingredienteNome:nomeIng[m.ingrediente_id]||'', tipo:m.tipo, quantidade:Number(m.quantidade), qtdAntes:Number(m.qtd_antes), qtdDepois:Number(m.qtd_depois), motivo:m.motivo_referencia||'', usuario:loginDe[m.usuario_id]||'', data:m.data })).sort((a,b)=>new Date(b.data)-new Date(a.data)),
+    mesas: mesas.map(m=>({ id:m.id, numero:m.numero, status:m.status||'Livre', capacidade:m.capacidade||'', observacao:m.observacao||'', garcomResponsavel:m.garcom_responsavel||'', chamadoEm: m.chamado_em ? (Date.parse(m.chamado_em)||0) : 0 })).sort((a,b)=>Number(a.numero)-Number(b.numero)),
     feedbacks: [], ocorrencias: [], maisPedidos: [], vendas: [], itensVenda: [], pagamentosVenda: [], despesas: [], despesasRecorrentes: [], ajustesPosVenda: [], sangrias: [],
     metas: admin || nivel==='Operador' ? { mensal: Number(sbCfg_(sistema,'MetaMensal',0))||0, diaria: Number(sbCfg_(sistema,'MetaDiaria',0))||0 } : { mensal:0, diaria:0 },
     sessaoCaixa: null, historicoCaixa: [], fechamentosEntrega: [], entregasFechadas: []
@@ -2981,7 +2984,43 @@ async function sbCardapioPublico_(){
     maisPedidos: [], caixaAberto: !!(st[0] && st[0].caixa_aberto), esgotados: { produtos: [], combos: [] }
   };
 }
-const SB_NAO_MIGRADA_ = 'Esta ação ainda não foi migrada para o novo servidor (etapas 3b/3c). Nada foi gravado.';
+
+/* ---------- GRAVAÇÕES (3b): chamam as funções api_* do banco e devolvem as listas atualizadas, como a planilha fazia ---------- */
+const SB_ESCRITAS_ = {
+  addFormaPagamento:['formasPagamento','produtoPrecos','comboPrecos'], editarFormaPagamento:['formasPagamento'],
+  addCategoria:['categorias'], editarCategoria:['categorias'], excluirCategoria:['categorias'],
+  addIngrediente:['estoque','movimentacoesEstoque'], editarIngrediente:['estoque','movimentacoesEstoque'], excluirIngrediente:['estoque'],
+  addAdicional:['adicionais'], editarAdicional:['adicionais'], excluirAdicional:['adicionais','produtoAdicionais'], vincularAdicionaisEmLote:['produtoAdicionais'],
+  addProduto:['produtos','produtoPrecos','produtoIngredientes','produtoAdicionais','estoque'], editarProduto:['produtos','produtoPrecos','produtoIngredientes','produtoAdicionais','estoque'],
+  excluirProduto:['produtos','produtoPrecos','produtoIngredientes'], editarVisibilidadeCardapioProduto:['produtos'], editarOrdemCardapioProduto:['produtos'],
+  addCombo:['combos','comboPrecos','comboItens'], editarCombo:['combos','comboPrecos','comboItens'], excluirCombo:['combos','comboPrecos','comboItens'],
+  editarVisibilidadeCardapioCombo:['combos'], editarOrdemCardapioCombo:['combos'],
+  addMesa:['mesas'], editarStatusMesa:['mesas'], excluirMesa:['mesas'],
+  salvarConfigNotificacoes:{ config:'configNotificacoes' }, salvarConfigEstoque:{ configEstoque:'configEstoque' }, salvarConfigCardapio:{ config:'configCardapio' },
+  salvarConfigEntrega:{ configEntrega:'configEntrega' }, salvarMeta:{ metas:'metas' }, salvarCliente:['clientes']
+};
+function sbNomeFuncao_(action){ return 'api_' + action.replace(/[A-Z]/g, m=>'_' + m.toLowerCase()); }
+async function sbRpc_(fn, corpo){
+  let s = sbSessaoLer_(); if(!s) throw new SbSessaoExpirada_();
+  if(Date.now() > s.expira){ if(!(await sbRenovar_())) throw new SbSessaoExpirada_(); s = sbSessaoLer_(); }
+  const chamar = ()=>sbJson_(SUPABASE_URL_ + '/rest/v1/rpc/' + fn, { method:'POST', headers:{ 'apikey': SUPABASE_CHAVE_, 'Authorization': 'Bearer ' + s.access_token, 'Content-Type':'application/json' }, body: JSON.stringify(corpo) }, 30000);
+  let r = await chamar();
+  if(r.status === 401){ if(!(await sbRenovar_())) throw new SbSessaoExpirada_(); s = sbSessaoLer_(); r = await chamar(); if(r.status === 401) throw new SbSessaoExpirada_(); }
+  const j = await r.json().catch(()=>null);
+  if(!r.ok) return { ok:false, message:'Não foi possível salvar' + (j && j.message ? ' (' + j.message + ')' : ' (erro ' + r.status + ')') + '. Nada foi gravado.' };
+  return j && typeof j === 'object' ? j : { ok:false, message:'Resposta inesperada do servidor.' };
+}
+async function sbEscrever_(action, payload){
+  const mapa = SB_ESCRITAS_[action];
+  const r = await sbRpc_(sbNomeFuncao_(action), { p: payload || {} });
+  if(!r || r.ok !== true) return r;
+  const { cad, din } = await sbMontarDados_(currentUser ? currentUser.nivel : '');
+  const todos = Object.assign({}, cad, din);
+  if(Array.isArray(mapa)) mapa.forEach(k=>{ r[k] = todos[k]; });
+  else Object.keys(mapa).forEach(k=>{ r[k] = todos[mapa[k]]; });
+  return r;
+}
+const SB_NAO_MIGRADA_ = 'Esta ação ainda não foi migrada para o novo servidor (etapa 3c). Nada foi gravado.';
 /* Roteador: devolve a resposta no formato antigo, ou undefined se a ação não for tratada aqui (não acontece com USAR_SUPABASE_ ligado). */
 async function sbRotear_(action, payload){
   try{
@@ -3012,6 +3051,7 @@ async function sbRotear_(action, payload){
       dados.versoes = Object.assign({}, SB_VERSOES_); if(grupo) dados.grupo = grupo;
       return dados;
     }
+    if(SB_ESCRITAS_[action]) return await sbEscrever_(action, payload);
     if(action === 'detectarNovosPedidos' || action === 'obterChaveContingencia' || action === 'obterStatusBackup') return { ok:false, naoMigrada:true };
     return { ok:false, naoMigrada:true, message: SB_NAO_MIGRADA_ };
   }catch(e){
@@ -3023,7 +3063,7 @@ function sbFaixa_(){
   if(!USAR_SUPABASE_ || document.getElementById('sbFaixa')) return;
   const d = document.createElement('div'); d.id = 'sbFaixa';
   d.style.cssText = 'position:fixed;left:0;right:0;bottom:0;z-index:9999;background:#b45309;color:#fff;font:600 12px/1.3 system-ui,sans-serif;text-align:center;padding:4px 8px;pointer-events:none;';
-  d.textContent = '🧪 TESTE DO NOVO SERVIDOR (etapa 3a): só leitura — gravações ainda não migradas';
+  d.textContent = '🧪 TESTE DO NOVO SERVIDOR (etapa 3b): cadastros gravam no novo servidor — vendas, caixa e outros ainda não';
   document.body.appendChild(d);
 }
 
