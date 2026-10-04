@@ -720,6 +720,7 @@ function sanitizarEntrada_(v, chave, prof) {
 }
 /* ITEM 18 — cardápio por GET. Se o celular já tem a mesma versão (?v=...), responde só "igual" (poucos bytes). */
 function doGet(e) {
+  if (e && e.parameter && e.parameter.ping) return responder({ ok: true, servico: 'Texas Burger - Planilha principal', manutencao: manutencaoAtiva_() }); // ping leve do popup de conexão (não lê o cardápio)
   if (manutencaoAtiva_()) return responder({ ok: false, manutencao: true }); // ITEM 2.8: não lê o cardápio com a planilha sendo reescrita (o app cai no cache local)
   const dados = getCardapioPublico();
   const v = versaoCardapio_(dados);

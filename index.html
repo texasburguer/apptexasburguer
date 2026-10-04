@@ -499,6 +499,17 @@ th{color:var(--gold-dim);text-transform:uppercase;letter-spacing:.06em;border-bo
 
 /* --- Item 1 — Avisos: só o sino, pontinho no canto --- */
 header.brand .userbar #avisosBtnTopo{ position:relative; }
+header.brand .userbar #connDot{padding:0;width:30px;height:30px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;}
+#connDot i{display:block;width:12px;height:12px;border-radius:50%;background:#7a7a7a;box-shadow:0 0 0 2px rgba(255,255,255,.12);}
+#connDot.online i{background:#4cc35f;box-shadow:0 0 8px #4cc35f99;}
+#connDot.syncing i{background:#f0c93c;animation:connPulse 1s infinite;}
+#connDot.contingencia i{background:#f5902e;box-shadow:0 0 8px #f5902e99;}
+#connDot.offline i{background:#e0443a;box-shadow:0 0 8px #e0443a99;}
+@keyframes connPulse{50%{opacity:.35}}
+.conn-linha{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);}
+.conn-bolha{flex:0 0 auto;width:12px;height:12px;border-radius:50%;margin-top:4px;background:#7a7a7a;}
+.conn-bolha.ok{background:#4cc35f;} .conn-bolha.warn{background:#f5902e;} .conn-bolha.bad{background:#e0443a;} .conn-bolha.wait{background:#f0c93c;animation:connPulse 1s infinite;}
+.conn-linha small{display:block;color:var(--muted);font-size:12px;line-height:1.4;margin-top:2px;}
 header.brand .userbar #avisosBtnTopo.pendente::after{
   position:absolute; top:3px; right:3px; margin:0; width:7px; height:7px;
 }
@@ -900,9 +911,10 @@ body.perfil-garcom #btnFecharContaItens{display:none !important;}
   <header class="brand">
     <img class="brand-logo" src="logo-texas-burger.webp" alt="Texas Burger" width="470" height="441" decoding="async">
     <h1 class="sr-only">Texas Burger</h1>
-    <div class="status" id="connStatus">conectando à planilha...</div>
+    <div class="status" id="connStatus" style="display:none">conectando...</div>
     <div class="userbar">
       <span id="userbarTexto"></span>
+      <button id="connDot" class="conn-dot syncing" onclick="abrirModalConexao_()" title="Status da conexão" aria-label="Status da conexão"><i></i></button>
       <button id="avisosBtnTopo" onclick="abrirModalAvisos_()" title="Alertas de pedido" aria-label="Alertas de pedido">🔔</button>
       <button onclick="abrirAjuda()" title="Ajuda" aria-label="Ajuda">❓<span class="rot"> Ajuda</span></button>
       <button onclick="abrirModalTrocarSenha()" title="Senha" aria-label="Senha">🔑<span class="rot"> Senha</span></button>
@@ -1022,13 +1034,6 @@ body.perfil-garcom #btnFecharContaItens{display:none !important;}
       <div class="msg" id="adVincMsg"></div>
     </div>
 
-    <div class="card" id="importarCardapioCard">
-      <h2>Importar cardápio inicial</h2>
-      <p class="sub">Cadastra de uma vez as categorias, produtos, combos e bebidas do Texas Burger, já com preço da loja, preço do iFood e foto. Pode rodar com segurança mais de uma vez — se algo já existir pelo nome, não duplica, e a foto só é enviada para quem ainda está sem foto. Leva alguns minutos por causa das fotos: não feche a página.</p>
-      <button class="small-gold" style="width:100%;padding:10px;" onclick="importarCardapioInicial()">📥 Importar cardápio do Texas Burger</button>
-      <button class="ghost" style="width:100%;padding:10px;margin-top:8px;" onclick="aplicarFotosCardapioInicial()">📷 Só aplicar as fotos do cardápio inicial</button>
-      <div class="msg" id="importarCardapioMsg"></div>
-    </div>
 
   </section>
 
@@ -1832,10 +1837,18 @@ body.perfil-garcom #btnFecharContaItens{display:none !important;}
       <div class="msg" id="contingenciaMsg"></div>
     </div>
 
+    <div class="card" id="importarCardapioCard">
+      <h2>Importar cardápio inicial</h2>
+      <p class="sub">Cadastra de uma vez as categorias, produtos, combos e bebidas do Texas Burger, já com preço da loja, preço do iFood e foto. Pode rodar com segurança mais de uma vez — se algo já existir pelo nome, não duplica, e a foto só é enviada para quem ainda está sem foto. Leva alguns minutos por causa das fotos: não feche a página.</p>
+      <button class="small-gold" style="width:100%;padding:10px;" onclick="importarCardapioInicial()">📥 Importar cardápio do Texas Burger</button>
+      <button class="ghost" style="width:100%;padding:10px;margin-top:8px;" onclick="aplicarFotosCardapioInicial()">📷 Só aplicar as fotos do cardápio inicial</button>
+      <div class="msg" id="importarCardapioMsg"></div>
+    </div>
+
   </section>
 
 
-  <footer>Dados salvos na planilha do Google Sheets · uso interno Texas Burger</footer>
+  <footer>Dados salvos no Supabase · planilhas do Google como reserva · uso interno Texas Burger</footer>
 </div>
 
 <!-- MODAL PERFIL DO CLIENTE -->
@@ -2135,6 +2148,14 @@ body.perfil-garcom #btnFecharContaItens{display:none !important;}
       <button class="ghost" onclick="testarSomAviso_()" style="flex:1 1 100%;min-height:48px;">🔊 Testar som</button>
     </div>
     <div class="msg" id="avisosMsg"></div>
+  </div>
+</div>
+<div class="modal-overlay" id="conexaoModal">
+  <div class="modal-box">
+    <div class="modal-header"><h2>Conexão e servidores</h2><button class="close-btn" onclick="fecharFormModal('conexaoModal')">✕</button></div>
+    <div id="conexaoLista"></div>
+    <div id="conexaoInfo" class="sub" style="font-size:13px;line-height:1.7;margin-top:12px;"></div>
+    <div class="btnrow" style="margin-top:12px;"><button class="primary" id="conexaoVerificarBtn" onclick="verificarConexaoServidores_()" style="flex:1 1 100%;min-height:46px;">🔄 Verificar agora</button></div>
   </div>
 </div>
 <div class="modal-overlay" id="senhaPropriaModal">
@@ -3100,7 +3121,7 @@ function sbFaixa_(){
   if(!USAR_SUPABASE_ || document.getElementById('sbFaixa')) return;
   const d = document.createElement('div'); d.id = 'sbFaixa';
   d.style.cssText = 'position:fixed;left:0;right:0;bottom:0;z-index:9999;background:#b45309;color:#fff;font:600 12px/1.3 system-ui,sans-serif;text-align:center;padding:4px 8px;pointer-events:none;';
-  d.textContent = '🧪 TESTE DO NOVO SERVIDOR (etapa 3b): cadastros gravam no novo servidor — vendas, caixa e outros ainda não';
+  d.textContent = '🧪 TESTE DO NOVO SERVIDOR (etapa 3c-2a): cadastros, caixa e vendas já gravam — andamento de pedidos, entregas, despesas e outros ainda não';
   document.body.appendChild(d);
 }
 
@@ -8113,7 +8134,7 @@ const FILA_ROTULO_ESTADO = { pendente:'⏳ Aguardando', enviando:'📤 Enviando'
 function filaAtualizarBadge_(){
   let b = document.getElementById('filaBadge');
   if(!b){
-    const st = document.getElementById('connStatus'); if(!st) return;
+    const st = document.getElementById('connDot') || document.getElementById('connStatus'); if(!st) return;
     b = document.createElement('button'); b.id = 'filaBadge'; b.className = 'ghost';
     b.style.cssText = 'margin-left:6px;padding:2px 8px;font-size:11px;display:none;'; b.onclick = abrirFila;
     st.insertAdjacentElement('afterend', b);
@@ -8978,6 +8999,7 @@ function setConexaoStatus(estado, textoExtra){
     conexaoAtual = 'contingencia';
     const elE = document.getElementById('connStatus');
     elE.textContent = '🟠 MODO EMERGÊNCIA — só vendas (contingência)'; elE.className = 'status contingencia';
+    atualizarConnDot_();
     atualizarBloqueioVendaOffline();
     return;
   }
@@ -8991,8 +9013,85 @@ function setConexaoStatus(estado, textoExtra){
   };
   el.textContent = textos[estado] || textos.offline;
   el.className = 'status ' + (estado==='online' ? 'online' : (estado==='syncing' ? 'syncing' : (estado==='contingencia' ? 'contingencia' : 'offline')));
+  atualizarConnDot_();
   atualizarBloqueioVendaOffline();
 }
+/* ---------- BOLINHA E POPUP DE CONEXÃO: Supabase / planilha principal / contingência ---------- */
+const CONEXAO_VERSAO_ = 'v-etapa-03c2a';
+const SINCRONIZACAO_PLANILHAS_ATIVA_ = false; // vira true quando a Etapa 4 (fila_sync -> planilhas) estiver no ar
+let _connResultado_ = null;
+function atualizarConnDot_(){
+  const d = document.getElementById('connDot'); if(!d) return;
+  const el = document.getElementById('connStatus');
+  const est = (currentUser && currentUser.emergencia) ? 'contingencia' : conexaoAtual;
+  d.className = 'conn-dot ' + (['online','syncing','contingencia','offline'].indexOf(est) >= 0 ? est : 'offline');
+  const txt = el ? el.textContent : '';
+  d.title = txt + ' — toque para ver os detalhes'; d.setAttribute('aria-label', 'Status da conexão: ' + txt);
+}
+async function _connPing_(url, opts, ms){
+  const t0 = Date.now();
+  try{
+    const r = await sbJson_(url, opts || {}, ms);
+    const j = await r.json().catch(()=>null);
+    return { ok: r.ok, status: r.status, ms: Date.now()-t0, json: j };
+  }catch(e){
+    return { ok:false, ms: Date.now()-t0, erro: (e && e.timeout) ? ('sem resposta em ' + Math.round(ms/1000) + 's') : 'sem conexão' };
+  }
+}
+function _connHora_(t){ const d = new Date(t), p = n=>String(n).padStart(2,'0'); return p(d.getHours())+':'+p(d.getMinutes())+':'+p(d.getSeconds()); }
+function _connLinha_(rotulo, papel, cls, texto, detalhe){
+  return '<div class="conn-linha"><span class="conn-bolha ' + cls + '"></span><div style="flex:1;min-width:0;"><b>' + escH(rotulo) + '</b> <small style="display:inline;">' + escH(papel) + '</small>'
+    + '<div style="font-size:13px;">' + escH(texto) + '</div>' + (detalhe ? '<small>' + escH(detalhe) + '</small>' : '') + '</div></div>';
+}
+function renderConexaoModal_(){
+  const box = document.getElementById('conexaoLista'); if(!box) return;
+  const r = _connResultado_;
+  if(!r){
+    box.innerHTML = _connLinha_('Supabase','principal','wait','Verificando...') + _connLinha_('Planilha principal','reserva','wait','Verificando...') + _connLinha_('Planilha de contingência','último recurso','wait','Verificando...');
+  } else {
+    const ms = x => x.ms + ' ms';
+    const sb = r.sb, pl = r.pl, ct = r.ct;
+    const sbL = sb.ok ? _connLinha_('Supabase','principal','ok','Online · ' + ms(sb)) : _connLinha_('Supabase','principal','bad','Fora do ar', sb.erro || ('erro ' + sb.status));
+    let plL;
+    if(!pl.ok) plL = _connLinha_('Planilha principal','reserva','bad','Fora do ar', pl.erro || ('erro ' + pl.status));
+    else if(pl.json && pl.json.manutencao) plL = _connLinha_('Planilha principal','reserva','warn','Online, em manutenção', ms(pl));
+    else plL = _connLinha_('Planilha principal','reserva','ok','Online · ' + ms(pl));
+    let ctL;
+    if(!ct.ok || (ct.json && ct.json.ok === false)) ctL = _connLinha_('Planilha de contingência','último recurso','bad','Fora do ar', ct.erro || (ct.json && ct.json.message) || ('erro ' + ct.status));
+    else {
+      const j = ct.json || {}; const det = [];
+      if(typeof j.pendentes === 'number') det.push(j.pendentes + ' venda(s) pendente(s) de trazer');
+      if(j.espelhoAtualizadoEm) det.push('espelho atualizado em ' + j.espelhoAtualizadoEm);
+      ctL = _connLinha_('Planilha de contingência','último recurso','ok','Online · ' + ms(ct), det.join(' · '));
+    }
+    box.innerHTML = sbL + plL + ctL;
+  }
+  const info = [];
+  const u = currentUser || {};
+  info.push('<b>Usuário:</b> ' + escH((u.login || '—') + (u.nivel ? ' · ' + u.nivel : '')));
+  info.push('<b>Servidor em uso:</b> ' + (conexaoAtual==='contingencia' ? 'contingência' : (USAR_SUPABASE_ ? 'Supabase' : 'planilha (servidor antigo)')));
+  const el = document.getElementById('connStatus'); if(el) info.push('<b>Estado do app:</b> ' + escH(el.textContent));
+  info.push('<b>Internet do aparelho:</b> ' + (navigator.onLine ? 'conectada' : 'sem conexão'));
+  info.push('<b>Dados atualizados às:</b> ' + (ultimaSyncMs ? _connHora_(ultimaSyncMs) : '—'));
+  const nf = (typeof _fila !== 'undefined') ? _fila.length : 0, ne = (typeof _fila !== 'undefined') ? _fila.filter(i=>i.estado==='erro').length : 0;
+  info.push('<b>Fila de envio neste aparelho:</b> ' + (nf ? (nf + ' item(ns)' + (ne ? ', ' + ne + ' com erro' : '')) : 'vazia'));
+  info.push('<b>Planilhas:</b> ' + (SINCRONIZACAO_PLANILHAS_ATIVA_ ? 'recebem os dados em segundo plano' : 'ainda sem sincronização automática (chega na Etapa 4)'));
+  info.push('<b>Versão:</b> ' + CONEXAO_VERSAO_ + (r ? ' · verificado às ' + _connHora_(r.quando) : ''));
+  document.getElementById('conexaoInfo').innerHTML = info.join('<br>');
+}
+async function verificarConexaoServidores_(){
+  const btn = document.getElementById('conexaoVerificarBtn'); if(btn){ btn.disabled = true; btn.textContent = 'Verificando...'; }
+  _connResultado_ = null; renderConexaoModal_();
+  const [sb, pl, ct] = await Promise.all([
+    _connPing_(SUPABASE_URL_ + '/rest/v1/v_cardapio_status?select=*&limit=1', { headers:{ apikey: SUPABASE_CHAVE_ } }, 8000),
+    _connPing_(API_URL + '?ping=1', {}, 12000),
+    _connPing_(CONTINGENCIA_API_URL, {}, 12000)
+  ]);
+  _connResultado_ = { sb, pl, ct, quando: Date.now() };
+  renderConexaoModal_();
+  if(btn){ btn.disabled = false; btn.textContent = '🔄 Verificar agora'; }
+}
+function abrirModalConexao_(){ renderConexaoModal_(); abrirFormModal('conexaoModal'); verificarConexaoServidores_(); }
 function atualizarBloqueioVendaOffline(){
   const btn = document.getElementById('vBtn');
   if(!btn) return;
