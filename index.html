@@ -2970,6 +2970,12 @@ async function sbMontarDados_(nivel, chaves){
   const quer = chaves ? new Set([].concat.apply([], chaves.map(k=>DEPS[k]||[]))) : null;
   const ORDEM = { v_vendas:'order=data_hora,id', v_fidelidade:'order=cliente_id', sistema:'order=chave', movimentacoes_estoque:'order=id', sangrias:'order=id', despesas:'order=data_hora,id', despesas_recorrentes:'order=criada_em,id', ajustes_pos_venda:'order=data_hora,id', cupons:'order=criado_em,id', eventos:'order=data,id', v_indicacoes:'order=data,id', feedbacks:'order=data,id', v_ocorrencias:'order=numero,id', v_cardapio_mais_pedidos:'order=posicao' };
   const L = (t, q)=> (!quer || quer.has(t) || t === 'usuarios') ? sbSelecionar_(t, q || ORDEM[t] || 'order=id', true) : Promise.resolve([]);
+  // versões dos registros lidas ANTES dos dados: se algo mudar no meio, a versão fica mais antiga que o dado e o pior caso é um aviso de conflito (nunca uma edição perdida)
+  let verReg = {};
+  if(nivel === 'Admin' || nivel === 'Operador' || nivel === 'Garçom'){
+    const todas = SB_CHAVES_VERSAO_.cad.concat(SB_CHAVES_VERSAO_.din), pedir = chaves ? todas.filter(k=>chaves.indexOf(k) !== -1) : todas;
+    if(pedir.length){ try{ const rv = await sbRpc_('api_versoes_registros', { p:{ chaves: pedir } }); if(rv && rv.ok === true && rv.versoes) verReg = rv.versoes; }catch(e){ if(e instanceof SbSessaoExpirada_) throw e; } }
+  }
   const [formas, cats, prods, pprec, ping, combos, cprec, citens, adic, padic, sistema, usuarios, promos, estoque, mesas, clientes, movs, sangrias, vendasDb, itensDb, pagDb, fidDb, sessAb, caixaDb, fechDb, entFechDb, despDb, recDb, ajDb, cupDb, evDb, indDb, fbDb, ocDb, maisEqDb] = await Promise.all([
     L('formas_pagamento'), L('categorias'), L('produtos'), L('produto_precos'), L('produto_ingredientes'), L('combos'), L('combo_precos'),
     L('combo_itens'), L('adicionais'), L('produto_adicionais'), L('sistema'), L('usuarios'), L('promocoes'), L('estoque'), L('v_mesas'), L('clientes'), L('movimentacoes_estoque'), L('sangrias'),
@@ -3040,9 +3046,31 @@ async function sbMontarDados_(nivel, chaves){
       totalVendas:Number(r.total_vendas)||0, totalDespesas:Number(r.total_despesas)||0, saldoFinal:Number(r.saldo_final)||0, status:r.status, usuarioAbertura:loginDe[r.usuario_abertura]||'', usuarioFechamento:loginDe[r.usuario_fechamento]||'',
       valorContado:r.valor_contado===null||r.valor_contado===undefined?null:Number(r.valor_contado), diferenca:r.diferenca===null||r.diferenca===undefined?null:Number(r.diferenca), reconciliadasQtd:0, reconciliadoDinheiro:0 })), fechamentosEntrega: fechDb.map(f=>({ id:f.id, dataRef:String(f.data_ref), entregador:loginDe[f.entregador_id]||'', qtd:Number(f.qtd_entregas)||0, totalTaxas:Number(f.total_taxas)||0, ajudaDiaria:Number(f.ajuda_diaria)||0, totalDevido:Number(f.total_devido)||0, valorPago:Number(f.valor_pago)||0, diferenca:Number(f.diferenca)||0, fechadoEm:sbDataBr_(f.fechado_em), fechadoPor:loginDe[f.fechado_por]||'', observacao:f.observacao||'', requisicaoId:f.requisicao_id||'' })), entregasFechadas: entFechDb.map(f=>({ id:f.id, fechamentoId:f.fechamento_id, vendaId:f.venda_id, dataRef:String(f.data_ref), entregador:loginDe[f.entregador_id]||'', taxa:Number(f.taxa)||0 }))
   };
+  [['cad', cad], ['din', din]].forEach(([g, obj])=>{ SB_CHAVES_VERSAO_[g].forEach(k=>{ const m = verReg[k]; if(m && Array.isArray(obj[k])) obj[k].forEach(x=>{ if(x && m[x.id]) x._v = m[x.id]; }); }); });
   return { cad, din };
 }
-const SB_VERSOES_ = { cad: 'sb-3a', din: 'sb-3a' }; // sem controle de versão na 3a: a tela se atualiza pela sincronização completa (a cada 15 min ou no botão Atualizar). Tempo real = Etapa 6.
+/* FASE 3 / itens 4 e 5 do plano de correção — VERSÕES
+   1) O banco mantém 2 carimbos (cad = cadastros, din = movimento) que sobem a cada gravação confirmada; a sincronização em segundo plano só baixa quando eles mudam.
+   2) Cada registro editável recebe _v (carimbo do conteúdo); toda edição devolve a _v que a pessoa estava vendo e o banco recusa se outra pessoa mexeu antes. */
+async function sbVersoes_(){
+  try{ const r = await sbRpc_('api_versoes', {}); if(r && r.ok === true && r.cad !== undefined && r.din !== undefined) return { cad:String(r.cad), din:String(r.din) }; }
+  catch(e){ if(e instanceof SbSessaoExpirada_) throw e; }
+  return null;
+}
+function sbVersoesDesconhecidas_(){ const x = 'x' + Date.now(); return { cad:x, din:x }; } // banco não respondeu: valor sempre diferente, força baixar tudo (seguro)
+const SB_CHAVES_VERSAO_ = { cad:['produtos','combos','adicionais','formasPagamento','categorias'], din:['clientes','cupons','eventos','despesas','despesasRecorrentes','usuarios','vendas'] };
+/* ações que mudam dados "filhos" (preços, adicionais) e, por isso, a versão de um registro que a resposta não devolve: a tela se atualiza sozinha logo depois */
+const SB_REFRESH_APOS_ = new Set(['addFormaPagamento','vincularAdicionaisEmLote','excluirAdicional','aplicarPrecoCalculadora']);
+function sbAnexarVersao_(action, payload){ // como a planilha fazia: a edição leva a versão (_v) que a pessoa estava vendo
+  try{
+    if(!VERSAO_FRONT_[action] || !payload || payload.versaoEsperada !== undefined) return payload;
+    const chave = payload.id || (action === 'editarUsuario' ? payload.loginAlvo : '');
+    if(!chave) return payload;
+    const atual = (VERSAO_FRONT_[action]() || []).find(x=>(payload.id ? x.id === payload.id : String(x.login).toLowerCase() === String(chave).toLowerCase()));
+    if(atual && atual._v) return Object.assign({}, payload, { versaoEsperada: atual._v });
+  }catch(e){}
+  return payload;
+}
 async function sbCardapioPublico_(){
   const P = (t, ordem)=>sbSelecionar_(t, 'order=' + ordem, false); // ordem fixa: a leitura em páginas não pode repetir nem pular linhas
   const [cats, prods, combos, formas, citens, precos, adic, cfg, st, maisDb, esgDb] = await Promise.all([
@@ -3120,9 +3148,10 @@ async function sbEscrever_(action, payload){
   const mapa = SB_ESCRITAS_[action];
   let chaveIdem = '';
   if(SB_IDEM_NOVAS_.indexOf(action) !== -1 && !(payload && payload.requisicaoId)){ try{ chaveIdem = idemChave_(action, payload); payload = Object.assign({}, payload, { requisicaoId: idemId_(chaveIdem) }); }catch(e){ chaveIdem = ''; } }
+  payload = sbAnexarVersao_(action, payload);
   const r = await sbRpc_(sbNomeFuncao_(action), { p: payload || {} });
   if(chaveIdem && r && (r.ok === true || r.ok === false)) idemLimpar_(chaveIdem);
-  if(!r || r.ok !== true) return r;
+  if(!r || (r.ok !== true && !r.conflito)) return r; // no conflito também devolve o estado atual (como a planilha fazia)
   const { cad, din } = await sbMontarDados_(currentUser ? currentUser.nivel : '', Array.isArray(mapa) ? mapa : Object.keys(mapa).map(k=>mapa[k]));
   const todos = Object.assign({}, cad, din);
   if(Array.isArray(mapa)) mapa.forEach(k=>{ r[k] = todos[k]; });
@@ -3165,15 +3194,16 @@ async function sbRotear_(action, payload){
     }
     if(SB_PUBLICAS_[action]) return await sbRpcPublico_(SB_PUBLICAS_[action], { p: payload || {} });
     if(action === 'getCardapio') return await sbCardapioPublico_();
-    if(action === 'getVersoes') return Object.assign({ ok:true }, SB_VERSOES_);
+    if(action === 'getVersoes') return Object.assign({ ok:true }, (await sbVersoes_()) || sbVersoesDesconhecidas_());
     if(action === 'getAll' || action === 'getDadosGrupo'){
       const nivel = currentUser ? currentUser.nivel : '';
       if(nivel === 'Admin' || nivel === 'Operador'){ try{ await sbGarantirDespesasMes_(); }catch(e){ if(e instanceof SbSessaoExpirada_) throw e; } }
+      const verAntes = (await sbVersoes_()) || sbVersoesDesconhecidas_(); // carimbo lido ANTES dos dados: se algo mudar no meio, a próxima checagem baixa de novo
       const { cad, din } = await sbMontarDados_(nivel);
       const gestor = (nivel === 'Admin' || nivel === 'Operador');
       const grupo = (gestor && action === 'getDadosGrupo') ? (payload.grupo === 'cad' ? 'cad' : 'din') : '';
       const dados = Object.assign({ ok:true }, grupo === 'din' ? {} : cad, grupo === 'cad' ? {} : din);
-      dados.versoes = Object.assign({}, SB_VERSOES_); if(grupo) dados.grupo = grupo;
+      dados.versoes = Object.assign({}, verAntes); if(grupo) dados.grupo = grupo;
       return dados;
     }
     if(SB_ESCRITAS_[action]) return await sbEscrever_(action, payload);
@@ -3228,7 +3258,7 @@ function mostrarManutencao_(msg){
 async function _apiCallRaw(action, payload, _tentativa, _idemChave){
   if(currentUser && currentUser.emergencia) throw new Error('Modo emergência: este aparelho não fala com a planilha principal'); // BLOCO 1.3 (age como falha de rede: nada é gravado nem apagado)
   payload = payload || {};
-  if(USAR_SUPABASE_){ const _rsb = await sbRotear_(action, payload); if(_rsb !== undefined){ if(_rsb && _rsb.sessaoExpirada){ try{ _fila.forEach(i=>{ if(i.estado==='pendente' || i.estado==='retry' || i.estado==='enviando'){ i.estado='erro'; i.erro='Sessão expirada — entre de novo e toque em "Tentar de novo"'; } }); filaSalvar_(); }catch(e){} localStorage.removeItem(SESSAO_KEY); localStorage.removeItem(CONTINGENCIA_CHAVE_KEY); localStorage.removeItem(CACHE_KEY); currentUser = null; alert('Sua sessão expirou. Faça login novamente.'); location.reload(); } return _rsb; } }
+  if(USAR_SUPABASE_){ const _rsb = await sbRotear_(action, payload); if(_rsb !== undefined){ if(_rsb && _rsb.sessaoExpirada){ try{ _fila.forEach(i=>{ if(i.estado==='pendente' || i.estado==='retry' || i.estado==='enviando'){ i.estado='erro'; i.erro='Sessão expirada — entre de novo e toque em "Tentar de novo"'; } }); filaSalvar_(); }catch(e){} localStorage.removeItem(SESSAO_KEY); localStorage.removeItem(CONTINGENCIA_CHAVE_KEY); localStorage.removeItem(CACHE_KEY); currentUser = null; alert('Sua sessão expirou. Faça login novamente.'); location.reload(); } if(_rsb && (_rsb.conflito || _rsb.duplicado)) atualizarAposDuplicado_(); else if(_rsb && _rsb.ok === true && SB_REFRESH_APOS_.has(action)) setTimeout(atualizarAposDuplicado_, 400); return _rsb; } }
   const _chaveVer = payload.id || (action === 'editarUsuario' ? payload.loginAlvo : ''); // BLOCO 4.1: usuário é identificado pelo login
   if(_tentativa === undefined && VERSAO_FRONT_[action] && _chaveVer && payload.versaoEsperada === undefined){
     try{ const atual = (VERSAO_FRONT_[action]()||[]).find(x=>(payload.id ? x.id === payload.id : String(x.login).toLowerCase() === String(_chaveVer).toLowerCase())); if(atual && atual._v) payload = Object.assign({}, payload, { versaoEsperada: atual._v }); }catch(e){}
