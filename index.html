@@ -2871,7 +2871,7 @@ async function fetchContingencia_(opts, ms, repeticoes){
   }
 }
 /* ===================================================================================================
-   ETAPA 3a + 3b — NOVO SERVIDOR (Supabase): login, LEITURAS e GRAVAÇÕES DOS CADASTROS.   Versão: v-etapa-03c2a
+   ETAPA 3a + 3b — NOVO SERVIDOR (Supabase): login, LEITURAS e GRAVAÇÕES DOS CADASTROS.   Versão: v-etapa-03c3b
    - Login, cardápio público e as telas de leitura vêm do Supabase.
    - Gravações de CADASTROS (produtos, combos, categorias, preços, adicionais, ingredientes, formas de pagamento, mesas,
      clientes, configurações e metas) já vão para o Supabase (funções api_* no banco).
@@ -2944,14 +2944,16 @@ async function sbMontarDados_(nivel, chaves){
     configCardapio:['sistema'], categoriasDespesa:[], configEntrega:['sistema'], configEstoque:['sistema'], configNotificacoes:['sistema'], metas:['sistema'],
     usuarios:['usuarios'], clientes:['clientes'], promocoes:['promocoes'], estoque:['estoque'], movimentacoesEstoque:['movimentacoes_estoque','estoque','usuarios'], mesas:['v_mesas'],
     sangrias:['sangrias','usuarios'], vendas:['v_vendas'], itensVenda:['v_itens_venda'], pagamentosVenda:['pagamentos_venda'], fidelidade:['v_fidelidade'],
-    sessaoCaixa:['v_sessao_aberta'], historicoCaixa:['caixa_sessoes','usuarios'], fechamentosEntrega:['fechamentos_entrega','usuarios'], entregasFechadas:['entregas_fechadas','usuarios'] };
+    sessaoCaixa:['v_sessao_aberta'], historicoCaixa:['caixa_sessoes','usuarios'], fechamentosEntrega:['fechamentos_entrega','usuarios'], entregasFechadas:['entregas_fechadas','usuarios'],
+    despesas:['despesas'], despesasRecorrentes:['despesas_recorrentes'], ajustesPosVenda:['ajustes_pos_venda','despesas'] };
   const quer = chaves ? new Set([].concat.apply([], chaves.map(k=>DEPS[k]||[]))) : null;
-  const ORDEM = { v_vendas:'order=data_hora,id', v_fidelidade:'order=cliente_id', sistema:'order=chave', movimentacoes_estoque:'order=id', sangrias:'order=id' };
+  const ORDEM = { v_vendas:'order=data_hora,id', v_fidelidade:'order=cliente_id', sistema:'order=chave', movimentacoes_estoque:'order=id', sangrias:'order=id', despesas:'order=data_hora,id', despesas_recorrentes:'order=criada_em,id', ajustes_pos_venda:'order=data_hora,id' };
   const L = (t, q)=> (!quer || quer.has(t) || t === 'usuarios') ? sbSelecionar_(t, q || ORDEM[t] || 'order=id', true) : Promise.resolve([]);
-  const [formas, cats, prods, pprec, ping, combos, cprec, citens, adic, padic, sistema, usuarios, promos, estoque, mesas, clientes, movs, sangrias, vendasDb, itensDb, pagDb, fidDb, sessAb, caixaDb, fechDb, entFechDb] = await Promise.all([
+  const [formas, cats, prods, pprec, ping, combos, cprec, citens, adic, padic, sistema, usuarios, promos, estoque, mesas, clientes, movs, sangrias, vendasDb, itensDb, pagDb, fidDb, sessAb, caixaDb, fechDb, entFechDb, despDb, recDb, ajDb] = await Promise.all([
     L('formas_pagamento'), L('categorias'), L('produtos'), L('produto_precos'), L('produto_ingredientes'), L('combos'), L('combo_precos'),
     L('combo_itens'), L('adicionais'), L('produto_adicionais'), L('sistema'), L('usuarios'), L('promocoes'), L('estoque'), L('v_mesas'), L('clientes'), L('movimentacoes_estoque'), L('sangrias'),
-    L('v_vendas'), L('v_itens_venda'), L('pagamentos_venda'), L('v_fidelidade'), L('v_sessao_aberta'), L('caixa_sessoes','order=abertura.desc,id'), L('fechamentos_entrega','order=fechado_em,id'), L('entregas_fechadas','order=id')
+    L('v_vendas'), L('v_itens_venda'), L('pagamentos_venda'), L('v_fidelidade'), L('v_sessao_aberta'), L('caixa_sessoes','order=abertura.desc,id'), L('fechamentos_entrega','order=fechado_em,id'), L('entregas_fechadas','order=id'),
+    L('despesas'), L('despesas_recorrentes'), L('ajustes_pos_venda')
   ]);
   if(!usuarios.length) throw new SbSessaoExpirada_(); // quem está logado sempre enxerga ao menos a si mesmo; lista vazia = sessão encerrada
   const gestor = (nivel === 'Admin' || nivel === 'Operador'), admin = nivel === 'Admin', operacional = (nivel === 'Garçom' || nivel === 'Cozinha');
@@ -2995,7 +2997,16 @@ async function sbMontarDados_(nivel, chaves){
       .map(v=>{ if(nivel==='Entregador'||nivel==='Garçom'||nivel==='Cozinha') delete v.custoTotal; if(nivel==='Cozinha'){ delete v.clienteTelefone; delete v.endereco; delete v.complemento; delete v.referencia; } return v; }),
     itensVenda: itensDb.map(i=>{ const y = { id:i.id, vendaId:i.venda_id, produtoId:i.produto_id||'', comboId:i.combo_id||'', descricao:i.descricao||'', quantidade:Number(i.quantidade), valorUnitario:Number(i.valor_unitario), custoUnitario:Number(i.custo_unitario)||0, valorTotalItem:Number(i.valor_total_item), adicionaisIds:i.adicionais_ids||[] }; if(!gestor) delete y.custoUnitario; return y; }),
     pagamentosVenda: pagDb.map(p=>({ id:p.id, vendaId:p.venda_id, forma:p.forma_pagamento, valor:Number(p.valor), taxa:Number(p.taxa_aplicada)||0 })),
-    despesas: [], despesasRecorrentes: [], ajustesPosVenda: [], sangrias: sangrias.map(s=>({ id:s.id, data:sbDataBr_(s.data_hora), timestamp:Date.parse(s.data_hora)||0, valor:Number(s.valor), motivo:s.motivo||'', usuario:loginDe[s.usuario_id]||'' })),
+    despesas: despDb.map(d=>({ id:d.id, data:sbDataBr_(d.data_hora), timestamp:Date.parse(d.data_hora)||0, descricao:d.descricao||'', valor:Number(d.valor)||0, observacao:d.observacao||'',
+      status: d.status==='Cancelada' ? 'Cancelada' : 'Confirmada', motivoCancelamento:d.motivo_cancelamento||'', categoria:d.categoria||'Outros', vencimento:d.vencimento?String(d.vencimento):'',
+      situacao: (d.status==='A pagar' || d.situacao==='A pagar') ? 'A pagar' : 'Paga', recorrenteId:d.recorrente_id||'', competencia:d.competencia||'', saiuDoCaixa:d.saiu_do_caixa!==false })),
+    despesasRecorrentes: recDb.map(r=>({ id:r.id, descricao:r.descricao||'', categoria:r.categoria||'Outros', valor:Number(r.valor)||0, diaVencimento:Number(r.dia_vencimento)||1, periodicidade:r.periodicidade||'Mensal',
+      ativa:r.ativa!==false, observacao:r.observacao||'', inicio:r.inicio?String(r.inicio).slice(0,7):'', termino:r.termino?String(r.termino).slice(0,7):'' })),
+    ajustesPosVenda: ajDb.map(a=>{ const dp = despDb.find(x=>x.id===a.despesa_id); return { id:a.id, data:sbDataBr_(a.data_hora), timestamp:Date.parse(a.data_hora)||0, vendaId:a.venda_id, numero:Number(a.pedido_numero)||0,
+      clienteNome:a.cliente||'', clienteTelefone:a.telefone||'', tipo:a.tipo, valor:Number(a.valor)||0, motivo:a.motivo||'', detalhe:a.detalhe||'',
+      saida: !a.saida ? 'Sem saída de dinheiro' : ((dp && dp.saiu_do_caixa===false) ? 'Fora do caixa' : 'Do caixa'), despesaId:a.despesa_id||'', status:a.status==='Cancelado'?'Cancelado':'Ativo',
+      autorizadoPor:loginDe[a.autorizado_por]||'', registradoPor:loginDe[a.registrado_por]||'', motivoCancelamento:a.motivo_cancelamento||'' }; }),
+    sangrias: sangrias.map(s=>({ id:s.id, data:sbDataBr_(s.data_hora), timestamp:Date.parse(s.data_hora)||0, valor:Number(s.valor), motivo:s.motivo||'', usuario:loginDe[s.usuario_id]||'' })),
     metas: admin || nivel==='Operador' ? { mensal: Number(sbCfg_(sistema,'MetaMensal',0))||0, diaria: Number(sbCfg_(sistema,'MetaDiaria',0))||0 } : { mensal:0, diaria:0 },
     sessaoCaixa: sessAb.length ? { id:sessAb[0].id, abertura:sbDataBr_(sessAb[0].abertura), aberturaTimestamp:Date.parse(sessAb[0].abertura)||0, fundoCaixa:Number(sessAb[0].fundo_caixa)||0, status:'Aberto', usuarioAbertura:sessAb[0].usuario_abertura||'' } : null,
     historicoCaixa: caixaDb.map(r=>({ id:r.id, abertura:sbDataBr_(r.abertura), aberturaTimestamp:Date.parse(r.abertura)||0, fundoCaixa:Number(r.fundo_caixa)||0, fechamento:r.fechamento?sbDataBr_(r.fechamento):'', fechamentoTimestamp:r.fechamento?Date.parse(r.fechamento):null,
@@ -3051,7 +3062,10 @@ const SB_ESCRITAS_ = {
   abrirCaixa:['sessaoCaixa'], cancelarVenda:['vendas','estoque'],
   iniciarVenda:['vendas','itensVenda','pagamentosVenda','fidelidade','clientes','estoque','mesas'],
   aceitarPedido:['vendas','itensVenda','pagamentosVenda'], iniciarPreparoPedido:['vendas','itensVenda','pagamentosVenda'], avancarStatusPedido:['vendas','itensVenda','pagamentosVenda'], suspenderPedido:['vendas','itensVenda','pagamentosVenda'], retomarPedido:['vendas','itensVenda','pagamentosVenda'],
-  atribuirEntregador:['vendas','itensVenda','pagamentosVenda'], confirmarRecebimentoPedido:['vendas','itensVenda','pagamentosVenda','fidelidade','clientes'], rejeitarPedido:['vendas','itensVenda','pagamentosVenda','estoque']
+  atribuirEntregador:['vendas','itensVenda','pagamentosVenda'], confirmarRecebimentoPedido:['vendas','itensVenda','pagamentosVenda','fidelidade','clientes'], rejeitarPedido:['vendas','itensVenda','pagamentosVenda','estoque'],
+  addDespesa:['despesas'], editarDespesa:['despesas'], pagarDespesa:['despesas'], cancelarDespesa:['despesas'], gerarDespesasMes:['despesas'],
+  addDespesaRecorrente:['despesasRecorrentes','despesas'], editarDespesaRecorrente:['despesasRecorrentes','despesas'],
+  registrarAjustePosVenda:['ajustesPosVenda','despesas'], cancelarAjustePosVenda:['ajustesPosVenda','despesas']
 };
 /* chamadas que só pedem ao banco e devolvem a resposta dele como está (sem reler as listas) */
 const SB_RPC_DIRETO_ = ['listarSessoes','encerrarSessaoRemota','verificarSenhaAdmin','trocarMinhaSenha','fecharCaixa','previewFechamentoEntrega'];
@@ -3066,9 +3080,13 @@ async function sbRpc_(fn, corpo){
   if(!r.ok) return { ok:false, message:'Não foi possível salvar' + (j && j.message ? ' (' + j.message + ')' : ' (erro ' + r.status + ')') + '. Nada foi gravado.' };
   return j && typeof j === 'object' ? j : { ok:false, message:'Resposta inesperada do servidor.' };
 }
+const SB_IDEM_NOVAS_ = ['addDespesa','pagarDespesa','registrarAjustePosVenda','cancelarAjustePosVenda']; // o banco já devolve a resposta guardada se o mesmo pedido chegar duas vezes
 async function sbEscrever_(action, payload){
   const mapa = SB_ESCRITAS_[action];
+  let chaveIdem = '';
+  if(SB_IDEM_NOVAS_.indexOf(action) !== -1 && !(payload && payload.requisicaoId)){ try{ chaveIdem = idemChave_(action, payload); payload = Object.assign({}, payload, { requisicaoId: idemId_(chaveIdem) }); }catch(e){ chaveIdem = ''; } }
   const r = await sbRpc_(sbNomeFuncao_(action), { p: payload || {} });
+  if(chaveIdem && r && (r.ok === true || r.ok === false)) idemLimpar_(chaveIdem);
   if(!r || r.ok !== true) return r;
   const { cad, din } = await sbMontarDados_(currentUser ? currentUser.nivel : '', Array.isArray(mapa) ? mapa : Object.keys(mapa).map(k=>mapa[k]));
   const todos = Object.assign({}, cad, din);
@@ -3078,6 +3096,11 @@ async function sbEscrever_(action, payload){
 }
 const SB_NAO_MIGRADA_ = 'Esta ação ainda não foi migrada para o novo servidor (etapas 3c-2b/3c-3). Nada foi gravado.';
 /* Roteador: devolve a resposta no formato antigo, ou undefined se a ação não for tratada aqui (não acontece com USAR_SUPABASE_ ligado). */
+let _sbDespMes_ = '';
+async function sbGarantirDespesasMes_(){ // faz o papel do gatilho diário da planilha: o banco só gera 1x por mês, então a chamada é barata
+  const mes = new Date().toISOString().slice(0,7); if(_sbDespMes_ === mes) return;
+  const r = await sbRpc_('api_garantir_despesas_do_mes', { p:{} }); if(r && r.ok === true) _sbDespMes_ = mes;
+}
 async function sbRotear_(action, payload){
   try{
     if(action === 'autenticar'){
@@ -3100,6 +3123,7 @@ async function sbRotear_(action, payload){
     if(action === 'getVersoes') return Object.assign({ ok:true }, SB_VERSOES_);
     if(action === 'getAll' || action === 'getDadosGrupo'){
       const nivel = currentUser ? currentUser.nivel : '';
+      if(nivel === 'Admin' || nivel === 'Operador'){ try{ await sbGarantirDespesasMes_(); }catch(e){ if(e instanceof SbSessaoExpirada_) throw e; } }
       const { cad, din } = await sbMontarDados_(nivel);
       const gestor = (nivel === 'Admin' || nivel === 'Operador');
       const grupo = (gestor && action === 'getDadosGrupo') ? (payload.grupo === 'cad' ? 'cad' : 'din') : '';
@@ -3124,7 +3148,7 @@ function sbFaixa_(){
   if(!USAR_SUPABASE_ || document.getElementById('sbFaixa')) return;
   const d = document.createElement('div'); d.id = 'sbFaixa';
   d.style.cssText = 'position:fixed;left:0;right:0;bottom:0;z-index:9999;background:#b45309;color:#fff;font:600 12px/1.3 system-ui,sans-serif;text-align:center;padding:4px 8px;pointer-events:none;';
-  d.textContent = '🧪 TESTE DO NOVO SERVIDOR (etapa 3c-2b2): cadastros, caixa, vendas, andamento dos pedidos, mesa e fechamento de entregador já gravam — editar venda, despesas, cupons, pedido do cardápio e outros ainda não';
+  d.textContent = '🧪 TESTE DO NOVO SERVIDOR (etapa 3c-3b): cadastros, caixa, vendas, pedidos, mesa, entregador e financeiro (despesas, contas do mês, ajustes) já gravam — editar venda, cupons, eventos, pedido do cardápio e outros ainda não';
   document.body.appendChild(d);
 }
 
