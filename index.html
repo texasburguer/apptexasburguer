@@ -2944,14 +2944,14 @@ async function sbMontarDados_(nivel, chaves){
     configCardapio:['sistema'], categoriasDespesa:[], configEntrega:['sistema'], configEstoque:['sistema'], configNotificacoes:['sistema'], metas:['sistema'],
     usuarios:['usuarios'], clientes:['clientes'], promocoes:['promocoes'], estoque:['estoque'], movimentacoesEstoque:['movimentacoes_estoque','estoque','usuarios'], mesas:['v_mesas'],
     sangrias:['sangrias','usuarios'], vendas:['v_vendas'], itensVenda:['v_itens_venda'], pagamentosVenda:['pagamentos_venda'], fidelidade:['v_fidelidade'],
-    sessaoCaixa:['v_sessao_aberta'], historicoCaixa:['caixa_sessoes','usuarios'] };
+    sessaoCaixa:['v_sessao_aberta'], historicoCaixa:['caixa_sessoes','usuarios'], fechamentosEntrega:['fechamentos_entrega','usuarios'], entregasFechadas:['entregas_fechadas','usuarios'] };
   const quer = chaves ? new Set([].concat.apply([], chaves.map(k=>DEPS[k]||[]))) : null;
   const ORDEM = { v_vendas:'order=data_hora,id', v_fidelidade:'order=cliente_id', sistema:'order=chave', movimentacoes_estoque:'order=id', sangrias:'order=id' };
   const L = (t, q)=> (!quer || quer.has(t) || t === 'usuarios') ? sbSelecionar_(t, q || ORDEM[t] || 'order=id', true) : Promise.resolve([]);
-  const [formas, cats, prods, pprec, ping, combos, cprec, citens, adic, padic, sistema, usuarios, promos, estoque, mesas, clientes, movs, sangrias, vendasDb, itensDb, pagDb, fidDb, sessAb, caixaDb] = await Promise.all([
+  const [formas, cats, prods, pprec, ping, combos, cprec, citens, adic, padic, sistema, usuarios, promos, estoque, mesas, clientes, movs, sangrias, vendasDb, itensDb, pagDb, fidDb, sessAb, caixaDb, fechDb, entFechDb] = await Promise.all([
     L('formas_pagamento'), L('categorias'), L('produtos'), L('produto_precos'), L('produto_ingredientes'), L('combos'), L('combo_precos'),
     L('combo_itens'), L('adicionais'), L('produto_adicionais'), L('sistema'), L('usuarios'), L('promocoes'), L('estoque'), L('v_mesas'), L('clientes'), L('movimentacoes_estoque'), L('sangrias'),
-    L('v_vendas'), L('v_itens_venda'), L('pagamentos_venda'), L('v_fidelidade'), L('v_sessao_aberta'), L('caixa_sessoes','order=abertura.desc,id')
+    L('v_vendas'), L('v_itens_venda'), L('pagamentos_venda'), L('v_fidelidade'), L('v_sessao_aberta'), L('caixa_sessoes','order=abertura.desc,id'), L('fechamentos_entrega','order=fechado_em,id'), L('entregas_fechadas','order=id')
   ]);
   if(!usuarios.length) throw new SbSessaoExpirada_(); // quem está logado sempre enxerga ao menos a si mesmo; lista vazia = sessão encerrada
   const gestor = (nivel === 'Admin' || nivel === 'Operador'), admin = nivel === 'Admin', operacional = (nivel === 'Garçom' || nivel === 'Cozinha');
@@ -3000,7 +3000,7 @@ async function sbMontarDados_(nivel, chaves){
     sessaoCaixa: sessAb.length ? { id:sessAb[0].id, abertura:sbDataBr_(sessAb[0].abertura), aberturaTimestamp:Date.parse(sessAb[0].abertura)||0, fundoCaixa:Number(sessAb[0].fundo_caixa)||0, status:'Aberto', usuarioAbertura:sessAb[0].usuario_abertura||'' } : null,
     historicoCaixa: caixaDb.map(r=>({ id:r.id, abertura:sbDataBr_(r.abertura), aberturaTimestamp:Date.parse(r.abertura)||0, fundoCaixa:Number(r.fundo_caixa)||0, fechamento:r.fechamento?sbDataBr_(r.fechamento):'', fechamentoTimestamp:r.fechamento?Date.parse(r.fechamento):null,
       totalVendas:Number(r.total_vendas)||0, totalDespesas:Number(r.total_despesas)||0, saldoFinal:Number(r.saldo_final)||0, status:r.status, usuarioAbertura:loginDe[r.usuario_abertura]||'', usuarioFechamento:loginDe[r.usuario_fechamento]||'',
-      valorContado:r.valor_contado===null||r.valor_contado===undefined?null:Number(r.valor_contado), diferenca:r.diferenca===null||r.diferenca===undefined?null:Number(r.diferenca), reconciliadasQtd:0, reconciliadoDinheiro:0 })), fechamentosEntrega: [], entregasFechadas: []
+      valorContado:r.valor_contado===null||r.valor_contado===undefined?null:Number(r.valor_contado), diferenca:r.diferenca===null||r.diferenca===undefined?null:Number(r.diferenca), reconciliadasQtd:0, reconciliadoDinheiro:0 })), fechamentosEntrega: fechDb.map(f=>({ id:f.id, dataRef:String(f.data_ref), entregador:loginDe[f.entregador_id]||'', qtd:Number(f.qtd_entregas)||0, totalTaxas:Number(f.total_taxas)||0, ajudaDiaria:Number(f.ajuda_diaria)||0, totalDevido:Number(f.total_devido)||0, valorPago:Number(f.valor_pago)||0, diferenca:Number(f.diferenca)||0, fechadoEm:sbDataBr_(f.fechado_em), fechadoPor:loginDe[f.fechado_por]||'', observacao:f.observacao||'', requisicaoId:f.requisicao_id||'' })), entregasFechadas: entFechDb.map(f=>({ id:f.id, fechamentoId:f.fechamento_id, vendaId:f.venda_id, dataRef:String(f.data_ref), entregador:loginDe[f.entregador_id]||'', taxa:Number(f.taxa)||0 }))
   };
   return { cad, din };
 }
@@ -3047,13 +3047,14 @@ const SB_ESCRITAS_ = {
   criarUsuario:['usuarios'], editarUsuario:['usuarios'], excluirUsuario:['usuarios'], excluirCliente:['clientes'],
   registrarEntradaEstoque:['estoque','movimentacoesEstoque'], registrarPerdaEstoque:['estoque','movimentacoesEstoque'], registrarInventarioEstoque:['estoque','movimentacoesEstoque'],
   addSangria:['sangrias'],
+  fecharContaMesa:['vendas','itensVenda','pagamentosVenda','mesas','fidelidade','clientes'], fecharPeriodoEntregador:['vendas','fechamentosEntrega','entregasFechadas'],
   abrirCaixa:['sessaoCaixa'], cancelarVenda:['vendas','estoque'],
   iniciarVenda:['vendas','itensVenda','pagamentosVenda','fidelidade','clientes','estoque','mesas'],
   aceitarPedido:['vendas','itensVenda','pagamentosVenda'], iniciarPreparoPedido:['vendas','itensVenda','pagamentosVenda'], avancarStatusPedido:['vendas','itensVenda','pagamentosVenda'], suspenderPedido:['vendas','itensVenda','pagamentosVenda'], retomarPedido:['vendas','itensVenda','pagamentosVenda'],
   atribuirEntregador:['vendas','itensVenda','pagamentosVenda'], confirmarRecebimentoPedido:['vendas','itensVenda','pagamentosVenda','fidelidade','clientes'], rejeitarPedido:['vendas','itensVenda','pagamentosVenda','estoque']
 };
 /* chamadas que só pedem ao banco e devolvem a resposta dele como está (sem reler as listas) */
-const SB_RPC_DIRETO_ = ['listarSessoes','encerrarSessaoRemota','verificarSenhaAdmin','trocarMinhaSenha','fecharCaixa'];
+const SB_RPC_DIRETO_ = ['listarSessoes','encerrarSessaoRemota','verificarSenhaAdmin','trocarMinhaSenha','fecharCaixa','previewFechamentoEntrega'];
 function sbNomeFuncao_(action){ return 'api_' + action.replace(/[A-Z]/g, m=>'_' + m.toLowerCase()); }
 async function sbRpc_(fn, corpo){
   let s = sbSessaoLer_(); if(!s) throw new SbSessaoExpirada_();
@@ -3123,7 +3124,7 @@ function sbFaixa_(){
   if(!USAR_SUPABASE_ || document.getElementById('sbFaixa')) return;
   const d = document.createElement('div'); d.id = 'sbFaixa';
   d.style.cssText = 'position:fixed;left:0;right:0;bottom:0;z-index:9999;background:#b45309;color:#fff;font:600 12px/1.3 system-ui,sans-serif;text-align:center;padding:4px 8px;pointer-events:none;';
-  d.textContent = '🧪 TESTE DO NOVO SERVIDOR (etapa 3c-2b1): cadastros, caixa, vendas e andamento dos pedidos já gravam — editar venda, fechar conta da mesa, fechamento de entregador, despesas e outros ainda não';
+  d.textContent = '🧪 TESTE DO NOVO SERVIDOR (etapa 3c-2b2): cadastros, caixa, vendas, andamento dos pedidos, mesa e fechamento de entregador já gravam — editar venda, despesas, cupons, pedido do cardápio e outros ainda não';
   document.body.appendChild(d);
 }
 
