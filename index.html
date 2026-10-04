@@ -903,9 +903,7 @@ body.perfil-garcom #btnFecharContaItens{display:none !important;}
 <div class="wrap" id="mainWrap">
 
   <div class="setup-warning" id="setupWarning">
-    ⚠ A página ainda não está ligada à planilha. Procure a linha
-    <code>const API_URL = "..."</code> no início do script e cole ali a URL do seu
-    Apps Script (a que termina em <code>/exec</code>).
+    🟢 Sistema ativo: Supabase. O Apps Script permanece apenas como servidor de reserva/emergência.
   </div>
 
   <header class="brand">
@@ -921,11 +919,17 @@ body.perfil-garcom #btnFecharContaItens{display:none !important;}
       <button onclick="sair()">Sair</button>
     </div>
   </header>
+  <div id="devBar" style="display:none;background:#122213;border:1px solid #4caf50;border-radius:10px;padding:10px 12px;margin:0 0 12px;font-size:13px;line-height:1.45;">
+    🛠️ <b>Modo Desenvolvedor</b> — vendo o sistema como:
+    <select id="devVerComo" onchange="devMudarVisao(this.value)" style="width:auto;display:inline-block;margin-left:6px;"><option value="Desenvolvedor">Desenvolvedor (padrão)</option><option value="Admin">Admin</option><option value="Operador">Operador</option><option value="Garçom">Garçom</option><option value="Cozinha">Cozinha</option><option value="Entregador">Entregador</option><option value="Desenvolvedor">Desenvolvedor (acesso total)</option></select>
+    <div class="obs-line" style="margin-top:6px;">Isto é só um filtro visual — suas ações continuam com acesso total. Ao trocar, a tela reabre na aba padrão do perfil escolhido.</div>
+  </div>
 
   <nav class="tabs">
     <button class="tab-btn active" data-tab="inicio" data-entregador-ok="1">Início</button>
     <button class="tab-btn" data-tab="caixa">Caixa<span class="dot"></span></button>
     <button class="tab-btn" data-tab="pedidos" data-entregador-ok="1">Pedidos<span class="dot" id="pedidosDot"></span></button>
+    <button class="tab-btn" data-tab="entregas" data-entregador-ok="1">Entregas<span class="dot" id="entregasDot"></span></button>
     <button class="tab-btn" data-tab="clientes">Clientes</button>
     <button class="tab-btn" data-tab="notificacoes">Notificações<span class="dot" id="notifDot"></span></button>
     <button class="tab-btn" data-tab="administrador" data-admin="1">Administrador<span class="dot" id="adminDot"></span></button>
@@ -2391,7 +2395,7 @@ body.perfil-garcom #btnFecharContaItens{display:none !important;}
       <label>Telefone com DDD (obrigatório para Entregador)</label><input type="tel" id="uNovoTelefone" maxlength="25" inputmode="tel" placeholder="(00) 00000-0000">
       <label>Senha</label><input type="password" id="uNovaSenha" placeholder="Senha">
       <label>Nível</label>
-      <select id="uNovoNivel"><option value="Operador">Operador de caixa</option><option value="Garçom">Garçom</option><option value="Cozinha">Cozinha</option><option value="Admin">Admin</option><option value="Entregador">Entregador</option></select>
+      <select id="uNovoNivel"><option value="Operador">Operador de caixa</option><option value="Garçom">Garçom</option><option value="Cozinha">Cozinha</option><option value="Admin">Admin</option><option value="Entregador">Entregador</option><option value="Desenvolvedor">Desenvolvedor (acesso total)</option></select>
       <label>Sua senha de administrador</label><input type="password" id="uSenhaAdminNovo" placeholder="Confirme com sua senha">
       <button class="primary" onclick="criarUsuarioApp()">Criar acesso</button>
       <div class="msg" id="uMsg"></div>
@@ -2959,7 +2963,7 @@ function sbDataBr_(iso){ if(!iso) return ''; const d = new Date(iso); if(isNaN(d
 function sbCfg_(sistema, chave, padrao){ const x = sistema.find(i=>i.chave===chave); if(!x || x.valor===null || x.valor==='' || x.valor===undefined) return padrao; return x.valor; }
 /* Lê tudo que o perfil pode ver (as regras do banco já filtram por perfil) e devolve no MESMO formato que a planilha devolvia. */
 async function sbMontarDados_(nivel, chaves){
-  const DEPS = { formasPagamento:['formas_pagamento'], categorias:['categorias'], produtos:['produtos'], produtoPrecos:['produto_precos'], produtoIngredientes:['produto_ingredientes','estoque'],
+  const DEPS = { formasPagamento:['formas_pagamento','v_formas_operacional'], categorias:['categorias'], produtos:['produtos'], produtoPrecos:['produto_precos'], produtoIngredientes:['produto_ingredientes','estoque'],
     combos:['combos'], comboPrecos:['combo_precos'], comboItens:['combo_itens'], adicionais:['adicionais'], produtoAdicionais:['produto_adicionais'],
     configCardapio:['sistema'], categoriasDespesa:[], configEntrega:['sistema'], configEstoque:['sistema'], configNotificacoes:['sistema'], metas:['sistema'],
     usuarios:['usuarios'], clientes:['clientes'], promocoes:['promocoes'], estoque:['estoque'], movimentacoesEstoque:['movimentacoes_estoque','estoque','usuarios'], mesas:['v_mesas'],
@@ -2976,20 +2980,20 @@ async function sbMontarDados_(nivel, chaves){
     const todas = SB_CHAVES_VERSAO_.cad.concat(SB_CHAVES_VERSAO_.din), pedir = chaves ? todas.filter(k=>chaves.indexOf(k) !== -1) : todas;
     if(pedir.length){ try{ const rv = await sbRpc_('api_versoes_registros', { p:{ chaves: pedir } }); if(rv && rv.ok === true && rv.versoes) verReg = rv.versoes; }catch(e){ if(e instanceof SbSessaoExpirada_) throw e; } }
   }
-  const [formas, cats, prods, pprec, ping, combos, cprec, citens, adic, padic, sistema, usuarios, promos, estoque, mesas, clientes, movs, sangrias, vendasDb, itensDb, pagDb, fidDb, sessAb, caixaDb, fechDb, entFechDb, despDb, recDb, ajDb, cupDb, evDb, indDb, fbDb, ocDb, maisEqDb] = await Promise.all([
-    L('formas_pagamento'), L('categorias'), L('produtos'), L('produto_precos'), L('produto_ingredientes'), L('combos'), L('combo_precos'),
+  const gestor = (nivel === 'Admin' || nivel === 'Operador'), admin = nivel === 'Admin', operacional = (nivel === 'Garçom' || nivel === 'Cozinha' || nivel === 'Entregador');
+  const [formas, formasOp, cats, prods, pprec, ping, combos, cprec, citens, adic, padic, sistema, usuarios, promos, estoque, mesas, clientes, movs, sangrias, vendasDb, itensDb, pagDb, fidDb, sessAb, caixaDb, fechDb, entFechDb, despDb, recDb, ajDb, cupDb, evDb, indDb, fbDb, ocDb, maisEqDb] = await Promise.all([
+    (gestor ? L('formas_pagamento') : Promise.resolve([])), (gestor ? Promise.resolve([]) : L('v_formas_operacional','order=ordem')), L('categorias'), L('produtos'), L('produto_precos'), L('produto_ingredientes'), L('combos'), L('combo_precos'),
     L('combo_itens'), L('adicionais'), L('produto_adicionais'), L('sistema'), L('usuarios'), L('promocoes'), L('estoque'), L('v_mesas'), L('clientes'), L('movimentacoes_estoque'), L('sangrias'),
     L('v_vendas'), L('v_itens_venda'), L('pagamentos_venda'), L('v_fidelidade'), L('v_sessao_aberta'), L('caixa_sessoes','order=abertura.desc,id'), L('fechamentos_entrega','order=fechado_em,id'), L('entregas_fechadas','order=id'),
     L('despesas'), L('despesas_recorrentes'), L('ajustes_pos_venda'),
     L('cupons'), L('eventos'), L('v_indicacoes'), L('feedbacks'), L('v_ocorrencias'), L('v_cardapio_mais_pedidos')
   ]);
   if(!usuarios.length) throw new SbSessaoExpirada_(); // quem está logado sempre enxerga ao menos a si mesmo; lista vazia = sessão encerrada
-  const gestor = (nivel === 'Admin' || nivel === 'Operador'), admin = nivel === 'Admin', operacional = (nivel === 'Garçom' || nivel === 'Cozinha');
   const nomeIng = {}; estoque.forEach(e=>{ nomeIng[e.id] = e.ingrediente; });
   const loginDe = {}; usuarios.forEach(u=>{ loginDe[u.id] = u.login; });
   const semCusto = x=>{ if(!gestor) delete x.custo; return x; };
   const cad = {
-    formasPagamento: formas.map((f,i)=>({ id:f.id, nome:f.nome, ativa:f.ativa, visivelCardapio:f.visivel_cardapio, taxaPct:Number(f.taxa_percentual)||0, taxaFixa:Number(f.taxa_fixa)||0, prazoDias:Number(f.prazo_dias)||0, permiteTroco:f.permite_troco, ordem:Number(f.ordem)||(i+1) })).sort((a,b)=>a.ordem-b.ordem)
+    formasPagamento: (formas.length ? formas : formasOp).map((f,i)=>({ id:f.id, nome:f.nome, ativa:f.ativa !== false, visivelCardapio:f.visivel_cardapio !== false, taxaPct:Number(f.taxa_percentual)||0, taxaFixa:Number(f.taxa_fixa)||0, prazoDias:Number(f.prazo_dias)||0, permiteTroco:f.permite_troco, ordem:Number(f.ordem)||(i+1) })).sort((a,b)=>a.ordem-b.ordem)
       .map(f=> operacional ? { id:f.id, nome:f.nome, ativa:f.ativa, permiteTroco:f.permiteTroco, ordem:f.ordem } : f),
     categorias: cats.map(c=>({ id:c.id, nome:c.nome, ativa:c.ativa, ordem:Number(c.ordem)||0 })).sort((a,b)=>a.ordem-b.ordem),
     produtos: prods.map(p=>({ id:p.id, nome:p.nome, descricao:p.descricao||'', categoria:p.categoria_id||'', ativo:p.ativo, fotoId:p.foto_id_principal||'', fotoUrl:sbFotoUrl_(p.foto_id_principal), destaque:p.destaque, estoqueProprioIngredienteId:p.estoque_proprio_ingrediente_id||'', ordemCardapio:Number(p.ordem_cardapio)||0 })),
@@ -3518,7 +3522,7 @@ async function tentarLogin(){
     return;
   }
   if(r.ok){
-    currentUser = { login: r.login, nivel: r.nivel, token: r.token };
+    currentUser = { login: r.login, nivel: r.nivel, nivelReal: r.nivel, token: r.token };
     localStorage.setItem(SESSAO_KEY, JSON.stringify(currentUser));
     emergenciaRegistrar_(r.login, senha, r.nivel); // BLOCO 1.3: cria/renova o acesso de emergência por 30 dias
     entrarNoApp();
@@ -3533,7 +3537,7 @@ function entrarNoApp(){
   document.getElementById('cardapioPublico').classList.add('hidden');
   document.getElementById('cdFabCarrinho').classList.remove('show');
   document.getElementById('mainWrap').classList.add('unlocked');
-  document.getElementById('userbarTexto').textContent = currentUser.login + ' · ' + currentUser.nivel;
+  document.getElementById('userbarTexto').textContent = currentUser.login + ' · ' + currentUser.nivel + (currentUser.nivelReal === 'Desenvolvedor' && currentUser.nivel !== 'Desenvolvedor' ? ' (Dev)' : '');
   aplicarPermissoesNivel();
   if(currentUser.emergencia){ // BLOCO 1.3: modo emergência = só o Caixa
     document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('hidden-tab', b.dataset.tab !== 'caixa'));
@@ -3546,9 +3550,10 @@ function entrarNoApp(){
   setTimeout(oferecerRecuperarCarrinho_, 800);  // ITEM 2.7
 }
 /* ETAPA 4: abas visíveis por perfil (a barra continua sendo a mesma de 7 abas; o backend valida cada ação de qualquer forma) */
-const NAV_POR_PERFIL_ = { 'Cozinha':['inicio','pedidos','notificacoes'], 'Garçom':['inicio','caixa','pedidos','clientes'] };
+const NAV_POR_PERFIL_ = { 'Cozinha':['inicio','pedidos','notificacoes'], 'Garçom':['inicio','caixa','pedidos','entregas','clientes'], 'Entregador':['inicio','entregas','pedidos'] };
 function aplicarPermissoesNivel(){
-  const admin = currentUser && currentUser.nivel === 'Admin';
+  const ehDesenvolvedor = !!(currentUser && currentUser.nivelReal === 'Desenvolvedor');
+  const admin = currentUser && (currentUser.nivel === 'Admin' || currentUser.nivel === 'Desenvolvedor');
   const entregador = currentUser && currentUser.nivel === 'Entregador';
   let primeiroVisivel = null;
   const nivelAtual = currentUser ? currentUser.nivel : '';
@@ -3581,6 +3586,27 @@ function aplicarPermissoesNivel(){
   if(['Cozinha','Admin','Operador','Garçom','Entregador'].indexOf(nivelAtual)!==-1 && !currentUser.emergencia) iniciarDetectorCozinha();
   pedidosPainel_(nivelAtual==='Entregador' ? 'entregas' : 'pedidos');
   atualizarCardAvisos_();
+  const barra = document.getElementById('devBar');
+  if(barra){
+    barra.style.display = ehDesenvolvedor ? 'block' : 'none';
+    const sel = document.getElementById('devVerComo');
+    if(sel && ehDesenvolvedor) sel.value = currentUser.nivel;
+    if(ehDesenvolvedor){
+      const trocado = currentUser.nivel !== 'Desenvolvedor';
+      barra.style.borderColor = trocado ? '#e0b53a' : '#4caf50';
+      barra.style.background = trocado ? '#241d0d' : '#122213';
+    }
+  }
+}
+function devMudarVisao(nivel){
+  if(!currentUser || currentUser.nivelReal !== 'Desenvolvedor') return;
+  if(['Desenvolvedor','Admin','Operador','Garçom','Cozinha','Entregador'].indexOf(nivel) === -1) return;
+  currentUser.nivel = nivel;
+  document.getElementById('userbarTexto').textContent = currentUser.login + ' · ' + nivel + (nivel === 'Desenvolvedor' ? '' : ' (Dev)');
+  aplicarPermissoesNivel();
+  try{ renderizarTudo(); }catch(e){}
+  const primeiro = document.querySelector('.tab-btn:not(.hidden-tab)');
+  if(primeiro) primeiro.click();
 }
 /* ETAPA 7 / 11B: quem fez login (Admin, Operador, Garçom) recebe da planilha principal a chave INTERNA da contingência
    e a guarda neste aparelho, para conseguir ler a parte interna do espelho (clientes) se a principal cair.
@@ -7960,7 +7986,7 @@ const MANUAL_AJUDA_ = {
 Admin:{ nome:'Administrador', secoes:[
   _aj.entrar('Início, Caixa, Pedidos, Entregas, Clientes, Notificações e Administrador'),
   { t:'Onde fica cada coisa', itens:['A aba Administrador tem uma barra dividida em 5 grupos: Painel (Visão Geral, Relatórios); Financeiro (Financeiro, Histórico, Eventos); Catálogo (Produtos, Estoque, Custos e Precificação, Cardápio Digital, Promoções); Operação (Mesas, Entregas, Ocorrências, Feedbacks); Sistema (Usuários e Permissões, Avisos, Auditoria, Backup).','Caixa, Pedidos, Entregas e Clientes funcionam como nos outros perfis, e você pode tudo.'] },
-  { t:'Criar usuário e trocar senha', passos:['Administrador → Usuários e Permissões.','Em “Criar acesso”, preencha Login e Senha e escolha o perfil (Operador de caixa, Garçom, Cozinha, Entregador ou Admin).','Digite “Sua senha de administrador” e toque em “Criar acesso”.','Para mudar nome, telefone, perfil, situação ou redefinir a senha de alguém, toque em “editar” na lista “Usuários cadastrados” e use o formulário. Tudo fica na Auditoria. No seu próprio acesso o perfil fica travado e a senha se troca em “🔑 Senha”.'],
+  { t:'Criar usuário e trocar senha', passos:['Administrador → Usuários e Permissões.','Em “Criar acesso”, preencha Login e Senha e escolha o perfil (Operador de caixa, Garçom, Cozinha, Entregador, Admin ou Desenvolvedor).','Digite “Sua senha de administrador” e toque em “Criar acesso”.','Perfil Desenvolvedor: você cria como qualquer outro, mas depois de criado fica travado — só o próprio Desenvolvedor edita ou troca a senha. Nem você, nem ele, excluem esse acesso.','Para mudar nome, telefone, perfil, situação ou redefinir a senha de alguém, toque em “editar” na lista “Usuários cadastrados” e use o formulário. Tudo fica na Auditoria. No seu próprio acesso o perfil fica travado e a senha se troca em “🔑 Senha”.'],
     comuns:['Entregador não aparece na escolha de entregas: o usuário está inativo ou não tem o perfil Entregador.','Funcionário esqueceu a senha: só você troca, não existe “esqueci minha senha”.','Você esqueceu a sua: rode redefinirSenhaAdminEmergencia no editor do Apps Script; ele gera uma senha temporária.'] },
   { t:'Cadastrar produtos e estoque', passos:['Administrador → Catálogo → Produtos → “Cadastrar produto”.','Informe nome, categoria, preço e custo (a margem aparece sozinha). O preço vale para todas as formas de pagamento.','Só abra “⚙️ Opções avançadas” para preço diferente numa forma (ex.: iFood) ou para a ficha técnica (ingredientes).','Se o item tem estoque próprio (bebida, por exemplo), marque a opção e informe quantidade e mínimo.'],
     comuns:['“Importar cardápio inicial” só precisa rodar uma vez; o que já existe pelo nome não é duplicado.','Cada venda baixa o estoque pela ficha técnica. Ingrediente no mínimo gera aviso em Notificações, sem bloquear a venda.'] },
@@ -8175,8 +8201,11 @@ async function salvarBackupAutomatico(){
 function restaurarBackupUI(id){
   const b = bkHistorico.find(x=>x.id===id); if(!b) return;
   if(!confirm('Restaurar o backup de '+formatarDataHoraISO(b.quando)+'?\n\nOs dados atuais (clientes, vendas, estoque etc.) serão SUBSTITUÍDOS pelos do backup. Um backup de segurança será criado antes.')) return;
-  const palavra = prompt('Para confirmar, digite RESTAURAR (em maiúsculas):');
-  if(palavra!=='RESTAURAR'){ showMsg('restMsg','Restauração cancelada.','warn'); return; }
+  if(sessaoCaixa){ showMsg('restMsg','Feche o caixa antes de restaurar.','warn'); return; }
+  const ativos = vendas.filter(v=>v.status==='Confirmada' && ['Recebido','Em preparo','Pronta','Saiu para entrega'].indexOf(v.statusPedido)!==-1);
+  if(ativos.length){ showMsg('restMsg','Há '+ativos.length+' pedido(s) em andamento. Finalize tudo antes de restaurar.','warn'); return; }
+  const palavra = prompt('Isso vai substituir TODOS os dados atuais e o cardápio público fica indisponível durante o processo.\n\nPara confirmar, digite: RESTAURAR FECHADO');
+  if(palavra!=='RESTAURAR FECHADO'){ showMsg('restMsg','Restauração cancelada.','warn'); return; }
   abrirModalSenhaAdmin(async (senha)=>{
     if(!iniciarOperacaoUnica('restaurar')) return;
     showMsg('restMsg','Restaurando... não feche o app.','ok');
@@ -8223,11 +8252,15 @@ _fila.forEach(i=>{ if(i.estado === 'enviando') i.estado = 'retry'; }); // recarr
 const _filaEmVoo = new Set();
 function filaSalvar_(){ try{ localStorage.setItem(FILA_KEY, JSON.stringify(_fila)); }catch(e){} filaAtualizarBadge_(); }
 async function apiCallFila(action, payload, rotulo){
-  const item = { id: novaRequisicao_(), action, payload: Object.assign({}, payload), rotulo: rotulo || action, estado: 'pendente', tentativas: 0, criadoEm: Date.now(), erro: '' };
+  // Idempotência: mesmo conteúdo = mesmo id. 3 cliques seguidos no botão viram 1 envio.
+  const chave = idemChave_(action, payload);
+  const id = idemId_(chave);
+  if(_fila.some(x => x.id === id)) return { ok: true, enfileirado: true, message: '📡 Este lançamento já está na fila — será enviado quando a internet voltar.' };
+  const item = { id, action, payload: Object.assign({}, payload), rotulo: rotulo || action, estado: 'pendente', tentativas: 0, criadoEm: Date.now(), erro: '', idemChave: chave };
   item.payload.requisicaoId = item.id;
   _fila.push(item); filaSalvar_();
   const r = await filaEnviarItem_(item, true);
-  if(r) return r;
+  if(r) { idemLimpar_(chave); return r; }
   return { ok: true, enfileirado: true, message: '📡 Sem conexão — salvo neste aparelho e será enviado sozinho quando a internet voltar.' };
 }
 /* Retorna: resposta do servidor | null (falha de rede) | undefined (já em envio, ignorado). */
@@ -8238,7 +8271,7 @@ async function filaEnviarItem_(item, imediato){
   try{
     const r = await apiCall(item.action, item.payload);
     if(r && r.manutencao){ item.estado = 'retry'; item.tentativas = Math.max(0, item.tentativas - 1); item.erro = 'Sistema em manutenção'; filaSalvar_(); return null; }  // ITEM 2.8
-    if(r && r.ok !== false){ _fila = _fila.filter(x=>x.id !== item.id); filaSalvar_(); return r; }
+    if(r && r.ok !== false){ _fila = _fila.filter(x=>x.id !== item.id); if(item.idemChave) idemLimpar_(item.idemChave); filaSalvar_(); return r; }
     if(imediato){ _fila = _fila.filter(x=>x.id !== item.id); filaSalvar_(); return r; } // quem chamou já mostra o erro
     item.estado = 'erro'; item.erro = (r && r.message) || 'Recusado pelo servidor'; filaSalvar_();
     return r;
@@ -8627,7 +8660,12 @@ function renderFluxoPrevisto(){
 function saldoEsperadoGaveta(){
   if(!sessaoCaixa) return 0;
   const abertura = sessaoCaixa.aberturaTimestamp;
-  const idsVendas = new Set(vendas.filter(v=>v.status==='Confirmada' && v.timestamp>=abertura && v.statusPagamento!=='A Receber').map(v=>v.id));
+  // Alinhado ao servidor (api_fechar_caixa): dinheiro conta na sessão em que ENTROU (recebido_em), não na em que a venda foi criada.
+  const idsVendas = new Set(vendas.filter(v=>{
+    if(v.status !== 'Confirmada' || v.statusPagamento === 'A Receber') return false;
+    const quando = v.timestampRecebimento || v.timestamp;
+    return quando >= abertura;
+  }).map(v=>v.id));
   const { totalDinheiro } = totaisPorFormaNaSessao(idsVendas);
   const desp = despesas.filter(d=>despesaEfetiva(d) && d.saiuDoCaixa!==false && d.timestamp>=abertura).reduce((s,d)=>s+Number(d.valor),0);
   const sang = sangrias.filter(s=>s.timestamp>=abertura).reduce((s,sg)=>s+Number(sg.valor),0);
@@ -8667,6 +8705,10 @@ function gerarRelatorio(){
 }
 function renderizarGrafico(vendasMes, ano, mes){
   const diasNoMes = new Date(ano, mes, 0).getDate();
+  if(!Number.isFinite(diasNoMes) || diasNoMes < 28 || diasNoMes > 31){
+    document.getElementById('rGrafico').innerHTML = '<div class="notif-empty">Período inválido para o gráfico.</div>';
+    return;
+  }
   const totalPorDia = new Array(diasNoMes+1).fill(0);
   vendasMes.forEach(v=>{ const d = new Date(v.timestamp).getDate(); totalPorDia[d] += Number(v.valorTotal); });
   const max = Math.max(...totalPorDia, 1);
@@ -8820,10 +8862,14 @@ async function criarUsuarioApp(){
 /* ETAPA D: formulário de edição de usuário (substitui os três prompt() soltos). Sobre si mesmo, o Admin não muda o próprio perfil,
    não se desativa e troca a senha pelo botão "🔑 Senha" (trocar a senha por aqui derrubaria a própria sessão). */
 let uEditLogin = '', uEditOriginal = null, uEditOcupado = false;
-const PERFIS_USUARIO_ = [['Admin','Admin'],['Operador','Operador de caixa'],['Garçom','Garçom'],['Cozinha','Cozinha'],['Entregador','Entregador']];
+const PERFIS_USUARIO_ = [['Admin','Admin'],['Operador','Operador de caixa'],['Garçom','Garçom'],['Cozinha','Cozinha'],['Entregador','Entregador'],['Desenvolvedor','Desenvolvedor (acesso total)']];
 function ehMeuLogin_(login){ return !!(currentUser && String(currentUser.login).toLowerCase()===String(login).toLowerCase()); }
 function editarUsuarioPrompt(login){
   const u = usuarios.find(x=>x.login===login); if(!u) return;
+  if(u.nivel === 'Desenvolvedor' && !(currentUser && currentUser.nivelReal === 'Desenvolvedor')){
+    alert('Este acesso é protegido: só o próprio Desenvolvedor pode editá-lo. Nada foi alterado.');
+    return;
+  }
   uEditLogin = u.login; uEditOriginal = { nome:u.nome||'', telefone:u.telefone||'', nivel:u.nivel, ativo:!!u.ativo };
   const eu = ehMeuLogin_(u.login);
   document.getElementById('ueTitulo').textContent = 'Editar usuário — '+u.login;
@@ -8876,6 +8922,11 @@ function toggleAtivoUsuario(login, ativoAtual){
   }).catch(()=>alert('Não foi possível atualizar.'));
 }
 function excluirUsuarioPrompt(login){
+  const alvo = usuarios.find(x=>x.login===login);
+  if(alvo && alvo.nivel === 'Desenvolvedor'){
+    alert('O acesso de Desenvolvedor não pode ser excluído por aqui. Nada foi alterado.');
+    return;
+  }
   if(!confirm('Excluir o usuário "'+login+'"?')) return;
   const senha = prompt('Senha do administrador para confirmar:');
   if(senha===null) return;
@@ -8934,9 +8985,15 @@ function renderUsuarios(){
   const tbody = document.getElementById('uTable');
   try{ carregarSessoes_(false); }catch(e){}
   if(!usuarios.length){ tbody.innerHTML = '<tr class="empty-row"><td colspan="4">Nenhum usuário.</td></tr>'; return; }
-  tbody.innerHTML = usuarios.map(u=>`
-    <tr><td>${escH(u.login)}${u.nome?`<div class="obs-line">${escH(u.nome)}</div>`:''}${u.nivel==='Entregador'?`<div class="obs-line">${u.telefone?'📞 '+escH(u.telefone):'⚠ sem telefone'}</div>`:''}</td><td>${u.nivel}</td><td><span class="badge ${u.ativo?'done':'baixo'}">${u.ativo?'Ativo':'Inativo'}</span></td>
-    <td><button class="ghost" data-usr-acao="editar" data-usr-login="${escH(u.login)}">editar</button><button class="ghost" data-usr-acao="toggle" data-usr-login="${escH(u.login)}" data-usr-ativo="${u.ativo?1:0}">${u.ativo?'desativar':'ativar'}</button><button class="ghost" data-usr-acao="excluir" data-usr-login="${escH(u.login)}">excluir</button></td></tr>`).join('');
+  const souDev = !!(currentUser && currentUser.nivelReal === 'Desenvolvedor');
+  tbody.innerHTML = usuarios.map(u=>{
+    const protegido = (u.nivel === 'Desenvolvedor' && !souDev);
+    const acoes = protegido
+      ? '<span class="obs-line" title="Este acesso é protegido: só o próprio Desenvolvedor altera.">🔒 protegido</span>'
+      : `<button class="ghost" data-usr-acao="editar" data-usr-login="${escH(u.login)}">editar</button><button class="ghost" data-usr-acao="toggle" data-usr-login="${escH(u.login)}" data-usr-ativo="${u.ativo?1:0}">${u.ativo?'desativar':'ativar'}</button><button class="ghost" data-usr-acao="excluir" data-usr-login="${escH(u.login)}">excluir</button>`;
+    return `<tr><td>${escH(u.login)}${u.nome?`<div class="obs-line">${escH(u.nome)}</div>`:''}${u.nivel==='Entregador'?`<div class="obs-line">${u.telefone?'📞 '+escH(u.telefone):'⚠ sem telefone'}</div>`:''}</td><td>${u.nivel}</td><td><span class="badge ${u.ativo?'done':'baixo'}">${u.ativo?'Ativo':'Inativo'}</span></td>
+    <td>${acoes}</td></tr>`;
+  }).join('');
 }
 /* ITEM 2.1 — Sessões ativas (Admin). Só leitura + encerrar; nenhum limite de sessões simultâneas (começar só com rastreio). */
 let _sessoesCarregadasEm = 0;
@@ -9205,7 +9262,7 @@ function renderConexaoModal_(){
   info.push('<b>Dados atualizados às:</b> ' + (ultimaSyncMs ? _connHora_(ultimaSyncMs) : '—'));
   const nf = (typeof _fila !== 'undefined') ? _fila.length : 0, ne = (typeof _fila !== 'undefined') ? _fila.filter(i=>i.estado==='erro').length : 0;
   info.push('<b>Fila de envio neste aparelho:</b> ' + (nf ? (nf + ' item(ns)' + (ne ? ', ' + ne + ' com erro' : '')) : 'vazia'));
-  info.push('<b>Planilhas:</b> ' + (SINCRONIZACAO_PLANILHAS_ATIVA_ ? 'recebem os dados em segundo plano' : 'ainda sem sincronização automática (chega na Etapa 4)'));
+  info.push('<b>Servidor de reserva:</b> ' + (SINCRONIZACAO_PLANILHAS_ATIVA_ ? 'Apps Script disponível para contingência' : 'Apps Script permanece em standby'));
   info.push('<b>Versão:</b> ' + CONEXAO_VERSAO_ + (r ? ' · verificado às ' + _connHora_(r.quando) : ''));
   document.getElementById('conexaoInfo').innerHTML = info.join('<br>');
 }
@@ -10305,7 +10362,7 @@ async function enviarFeedbackPublico(){
 (function tentarRestaurarSessao(){
   try{
     const raw = localStorage.getItem(SESSAO_KEY);
-    if(raw){ currentUser = JSON.parse(raw); entrarNoApp(); return; }
+    if(raw){ currentUser = JSON.parse(raw); if(!currentUser.nivelReal) currentUser.nivelReal = currentUser.nivel; entrarNoApp(); return; }
   } catch(e){}
   carregarCardapioPublico();
 })();
