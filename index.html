@@ -2850,7 +2850,7 @@ async function fetchContingencia_(opts, ms, repeticoes){
   }
 }
 /* ===================================================================================================
-   ETAPA 3a + 3b — NOVO SERVIDOR (Supabase): login, LEITURAS e GRAVAÇÕES DOS CADASTROS.   Versão: v-etapa-03c1
+   ETAPA 3a + 3b — NOVO SERVIDOR (Supabase): login, LEITURAS e GRAVAÇÕES DOS CADASTROS.   Versão: v-etapa-03c2a
    - Login, cardápio público e as telas de leitura vêm do Supabase.
    - Gravações de CADASTROS (produtos, combos, categorias, preços, adicionais, ingredientes, formas de pagamento, mesas,
      clientes, configurações e metas) já vão para o Supabase (funções api_* no banco).
@@ -2917,11 +2917,20 @@ const SB_CATEGORIAS_DESPESA_ = ['Insumos','Aluguel','Energia','Água','Gás','In
 function sbDataBr_(iso){ if(!iso) return ''; const d = new Date(iso); if(isNaN(d)) return ''; const p = n=>String(n).padStart(2,'0'); return p(d.getDate())+'/'+p(d.getMonth()+1)+'/'+d.getFullYear()+' '+p(d.getHours())+':'+p(d.getMinutes()); }
 function sbCfg_(sistema, chave, padrao){ const x = sistema.find(i=>i.chave===chave); if(!x || x.valor===null || x.valor==='' || x.valor===undefined) return padrao; return x.valor; }
 /* Lê tudo que o perfil pode ver (as regras do banco já filtram por perfil) e devolve no MESMO formato que a planilha devolvia. */
-async function sbMontarDados_(nivel){
-  const L = (t, q)=>sbSelecionar_(t, q||'order=id', true);
-  const [formas, cats, prods, pprec, ping, combos, cprec, citens, adic, padic, sistema, usuarios, promos, estoque, mesas, clientes, movs, sangrias] = await Promise.all([
+async function sbMontarDados_(nivel, chaves){
+  const DEPS = { formasPagamento:['formas_pagamento'], categorias:['categorias'], produtos:['produtos'], produtoPrecos:['produto_precos'], produtoIngredientes:['produto_ingredientes','estoque'],
+    combos:['combos'], comboPrecos:['combo_precos'], comboItens:['combo_itens'], adicionais:['adicionais'], produtoAdicionais:['produto_adicionais'],
+    configCardapio:['sistema'], categoriasDespesa:[], configEntrega:['sistema'], configEstoque:['sistema'], configNotificacoes:['sistema'], metas:['sistema'],
+    usuarios:['usuarios'], clientes:['clientes'], promocoes:['promocoes'], estoque:['estoque'], movimentacoesEstoque:['movimentacoes_estoque','estoque','usuarios'], mesas:['v_mesas'],
+    sangrias:['sangrias','usuarios'], vendas:['v_vendas'], itensVenda:['v_itens_venda'], pagamentosVenda:['pagamentos_venda'], fidelidade:['v_fidelidade'],
+    sessaoCaixa:['v_sessao_aberta'], historicoCaixa:['caixa_sessoes','usuarios'] };
+  const quer = chaves ? new Set([].concat.apply([], chaves.map(k=>DEPS[k]||[]))) : null;
+  const ORDEM = { v_vendas:'order=data_hora,id', v_fidelidade:'order=cliente_id', sistema:'order=chave', movimentacoes_estoque:'order=id', sangrias:'order=id' };
+  const L = (t, q)=> (!quer || quer.has(t) || t === 'usuarios') ? sbSelecionar_(t, q || ORDEM[t] || 'order=id', true) : Promise.resolve([]);
+  const [formas, cats, prods, pprec, ping, combos, cprec, citens, adic, padic, sistema, usuarios, promos, estoque, mesas, clientes, movs, sangrias, vendasDb, itensDb, pagDb, fidDb, sessAb, caixaDb] = await Promise.all([
     L('formas_pagamento'), L('categorias'), L('produtos'), L('produto_precos'), L('produto_ingredientes'), L('combos'), L('combo_precos'),
-    L('combo_itens'), L('adicionais'), L('produto_adicionais'), L('sistema','order=chave'), L('usuarios'), L('promocoes'), L('estoque'), L('v_mesas'), L('clientes'), L('movimentacoes_estoque'), L('sangrias')
+    L('combo_itens'), L('adicionais'), L('produto_adicionais'), L('sistema'), L('usuarios'), L('promocoes'), L('estoque'), L('v_mesas'), L('clientes'), L('movimentacoes_estoque'), L('sangrias'),
+    L('v_vendas'), L('v_itens_venda'), L('pagamentos_venda'), L('v_fidelidade'), L('v_sessao_aberta'), L('caixa_sessoes','order=abertura.desc,id')
   ]);
   if(!usuarios.length) throw new SbSessaoExpirada_(); // quem está logado sempre enxerga ao menos a si mesmo; lista vazia = sessão encerrada
   const gestor = (nivel === 'Admin' || nivel === 'Operador'), admin = nivel === 'Admin', operacional = (nivel === 'Garçom' || nivel === 'Cozinha');
@@ -2949,13 +2958,28 @@ async function sbMontarDados_(nivel){
   const din = {
     usuarios: usuarios.map(u=>({ login:u.login, nivel:u.nivel, ativo:u.ativo, criadoEm:sbDataBr_(u.criado_em), nome:u.nome||'', telefone:u.telefone||'', id:u.id })),
     logRecentes: [], clientes: clientes.map(x=>{ const y = { id:x.id, nome:x.nome, telefone:x.telefone||'', dataNascimento:x.data_nascimento||'', endereco:x.endereco||'', comoConheceu:x.como_conheceu||'', primeiroContato:sbDataBr_(x.primeiro_contato), observacao:x.observacoes||'' }; if(nivel==='Garçom') delete y.observacao; return y; }), promocoes: nivel==='Garçom' ? [] : promos.map(p=>({ nome:p.nome, tipo:p.tipo, regra:p.regra_duplicidade, beneficio:p.beneficio, ativa:p.ativa })),
-    cupons: [], eventos: [], indicacoes: [], fidelidade: [],
+    cupons: [], eventos: [], indicacoes: [], fidelidade: fidDb.map(f=>({ nome:f.nome||'', telefone:f.telefone||'', carimbos:Number(f.carimbos)||0, premios:Number(f.premios)||0, atualizado:f.atualizado||'', observacao:f.observacao||'', clienteId:f.cliente_id||'' })),
     estoque: estoque.map(e=>{ const y = { id:e.id, nome:e.ingrediente, quantidade:Number(e.quantidade), minimo:Number(e.quantidade_minima), unidade:e.unidade||'un', custo:Number(e.custo_unitario)||0, ativo:e.status!=='Inativo' }; if(!gestor) delete y.custo; return y; }),
     movimentacoesEstoque: movs.map(m=>({ id:m.id, ingredienteNome:nomeIng[m.ingrediente_id]||'', tipo:m.tipo, quantidade:Number(m.quantidade), qtdAntes:Number(m.qtd_antes), qtdDepois:Number(m.qtd_depois), motivo:m.motivo_referencia||'', usuario:loginDe[m.usuario_id]||'', data:m.data })).sort((a,b)=>new Date(b.data)-new Date(a.data)),
     mesas: mesas.map(m=>({ id:m.id, numero:m.numero, status:m.status||'Livre', capacidade:m.capacidade||'', observacao:m.observacao||'', garcomResponsavel:m.garcom_responsavel||'', chamadoEm: m.chamado_em ? (Date.parse(m.chamado_em)||0) : 0 })).sort((a,b)=>Number(a.numero)-Number(b.numero)),
-    feedbacks: [], ocorrencias: [], maisPedidos: [], vendas: [], itensVenda: [], pagamentosVenda: [], despesas: [], despesasRecorrentes: [], ajustesPosVenda: [], sangrias: sangrias.map(s=>({ id:s.id, data:sbDataBr_(s.data_hora), timestamp:Date.parse(s.data_hora)||0, valor:Number(s.valor), motivo:s.motivo||'', usuario:loginDe[s.usuario_id]||'' })),
+    feedbacks: [], ocorrencias: [], maisPedidos: [],
+    vendas: vendasDb.map(v=>({ id:v.id, data:sbDataBr_(v.data_hora), timestamp:Date.parse(v.data_hora)||0, clienteNome:v.cliente_nome||'', clienteTelefone:v.cliente_telefone||'', formaPagamento:v.forma_pagamento||'',
+      valorTotal:Number(v.valor_total)||0, custoTotal:Number(v.custo_total)||0, status:v.status, motivoCancelamento:v.motivo_cancelamento||'', tipoEntrega:v.tipo_entrega||'Retirada', statusPedido:v.status_pedido||'',
+      endereco:v.endereco||'', complemento:v.complemento||'', referencia:v.referencia||'', observacoesEntrega:v.observacoes_entrega||'',
+      timestampPronta:v.pronta_em?Date.parse(v.pronta_em):null, timestampConcluida:v.concluida_em?Date.parse(v.concluida_em):null,
+      statusPagamento:v.status_pagamento||'Pago', timestampRecebimento:v.recebido_em?Date.parse(v.recebido_em):null,
+      valorOriginal:Number(v.valor_original)||Number(v.valor_total)||0, valorDesconto:Number(v.valor_desconto)||0, descontoDetalhe:v.desconto_detalhe||'', entregador:v.entregador||'',
+      timestampSaiu:v.saiu_em?Date.parse(v.saiu_em):null, origem:v.origem||'Balcão', mesaId:v.mesa_id||'', taxaEntrega:Number(v.taxa_entrega)||0, fechamentoEntregaId:v.fechamento_entrega_id||'',
+      registradoPor:v.registrado_por||'', numero:Number(v.numero)||0, timestampInicioPreparo:v.inicio_preparo_em?Date.parse(v.inicio_preparo_em):null }))
+      .map(v=>{ if(nivel==='Entregador'||nivel==='Garçom'||nivel==='Cozinha') delete v.custoTotal; if(nivel==='Cozinha'){ delete v.clienteTelefone; delete v.endereco; delete v.complemento; delete v.referencia; } return v; }),
+    itensVenda: itensDb.map(i=>{ const y = { id:i.id, vendaId:i.venda_id, produtoId:i.produto_id||'', comboId:i.combo_id||'', descricao:i.descricao||'', quantidade:Number(i.quantidade), valorUnitario:Number(i.valor_unitario), custoUnitario:Number(i.custo_unitario)||0, valorTotalItem:Number(i.valor_total_item), adicionaisIds:i.adicionais_ids||[] }; if(!gestor) delete y.custoUnitario; return y; }),
+    pagamentosVenda: pagDb.map(p=>({ id:p.id, vendaId:p.venda_id, forma:p.forma_pagamento, valor:Number(p.valor), taxa:Number(p.taxa_aplicada)||0 })),
+    despesas: [], despesasRecorrentes: [], ajustesPosVenda: [], sangrias: sangrias.map(s=>({ id:s.id, data:sbDataBr_(s.data_hora), timestamp:Date.parse(s.data_hora)||0, valor:Number(s.valor), motivo:s.motivo||'', usuario:loginDe[s.usuario_id]||'' })),
     metas: admin || nivel==='Operador' ? { mensal: Number(sbCfg_(sistema,'MetaMensal',0))||0, diaria: Number(sbCfg_(sistema,'MetaDiaria',0))||0 } : { mensal:0, diaria:0 },
-    sessaoCaixa: null, historicoCaixa: [], fechamentosEntrega: [], entregasFechadas: []
+    sessaoCaixa: sessAb.length ? { id:sessAb[0].id, abertura:sbDataBr_(sessAb[0].abertura), aberturaTimestamp:Date.parse(sessAb[0].abertura)||0, fundoCaixa:Number(sessAb[0].fundo_caixa)||0, status:'Aberto', usuarioAbertura:sessAb[0].usuario_abertura||'' } : null,
+    historicoCaixa: caixaDb.map(r=>({ id:r.id, abertura:sbDataBr_(r.abertura), aberturaTimestamp:Date.parse(r.abertura)||0, fundoCaixa:Number(r.fundo_caixa)||0, fechamento:r.fechamento?sbDataBr_(r.fechamento):'', fechamentoTimestamp:r.fechamento?Date.parse(r.fechamento):null,
+      totalVendas:Number(r.total_vendas)||0, totalDespesas:Number(r.total_despesas)||0, saldoFinal:Number(r.saldo_final)||0, status:r.status, usuarioAbertura:loginDe[r.usuario_abertura]||'', usuarioFechamento:loginDe[r.usuario_fechamento]||'',
+      valorContado:r.valor_contado===null||r.valor_contado===undefined?null:Number(r.valor_contado), diferenca:r.diferenca===null||r.diferenca===undefined?null:Number(r.diferenca), reconciliadasQtd:0, reconciliadoDinheiro:0 })), fechamentosEntrega: [], entregasFechadas: []
   };
   return { cad, din };
 }
@@ -3001,10 +3025,12 @@ const SB_ESCRITAS_ = {
   salvarConfigEntrega:{ configEntrega:'configEntrega' }, salvarMeta:{ metas:'metas' }, salvarCliente:['clientes'],
   criarUsuario:['usuarios'], editarUsuario:['usuarios'], excluirUsuario:['usuarios'], excluirCliente:['clientes'],
   registrarEntradaEstoque:['estoque','movimentacoesEstoque'], registrarPerdaEstoque:['estoque','movimentacoesEstoque'], registrarInventarioEstoque:['estoque','movimentacoesEstoque'],
-  addSangria:['sangrias']
+  addSangria:['sangrias'],
+  abrirCaixa:['sessaoCaixa'], cancelarVenda:['vendas','estoque'],
+  iniciarVenda:['vendas','itensVenda','pagamentosVenda','fidelidade','clientes','estoque','mesas']
 };
 /* chamadas que só pedem ao banco e devolvem a resposta dele como está (sem reler as listas) */
-const SB_RPC_DIRETO_ = ['listarSessoes','encerrarSessaoRemota','verificarSenhaAdmin','trocarMinhaSenha'];
+const SB_RPC_DIRETO_ = ['listarSessoes','encerrarSessaoRemota','verificarSenhaAdmin','trocarMinhaSenha','fecharCaixa'];
 function sbNomeFuncao_(action){ return 'api_' + action.replace(/[A-Z]/g, m=>'_' + m.toLowerCase()); }
 async function sbRpc_(fn, corpo){
   let s = sbSessaoLer_(); if(!s) throw new SbSessaoExpirada_();
@@ -3020,13 +3046,13 @@ async function sbEscrever_(action, payload){
   const mapa = SB_ESCRITAS_[action];
   const r = await sbRpc_(sbNomeFuncao_(action), { p: payload || {} });
   if(!r || r.ok !== true) return r;
-  const { cad, din } = await sbMontarDados_(currentUser ? currentUser.nivel : '');
+  const { cad, din } = await sbMontarDados_(currentUser ? currentUser.nivel : '', Array.isArray(mapa) ? mapa : Object.keys(mapa).map(k=>mapa[k]));
   const todos = Object.assign({}, cad, din);
   if(Array.isArray(mapa)) mapa.forEach(k=>{ r[k] = todos[k]; });
   else Object.keys(mapa).forEach(k=>{ r[k] = todos[mapa[k]]; });
   return r;
 }
-const SB_NAO_MIGRADA_ = 'Esta ação ainda não foi migrada para o novo servidor (etapas 3c-2/3c-3). Nada foi gravado.';
+const SB_NAO_MIGRADA_ = 'Esta ação ainda não foi migrada para o novo servidor (etapas 3c-2b/3c-3). Nada foi gravado.';
 /* Roteador: devolve a resposta no formato antigo, ou undefined se a ação não for tratada aqui (não acontece com USAR_SUPABASE_ ligado). */
 async function sbRotear_(action, payload){
   try{
