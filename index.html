@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <!-- SEGURANÇA: mesmo que algum texto malicioso escapasse, a página só consegue falar com o Google Apps Script (planilha e contingência). -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' https: data: blob:; connect-src 'self' https://script.google.com https://script.googleusercontent.com https://awryywtgqfaxppayzpca.supabase.co; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none';">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' https: data: blob:; connect-src 'self' https://script.google.com https://script.googleusercontent.com https://awryywtgqfaxppayzpca.supabase.co wss://awryywtgqfaxppayzpca.supabase.co; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none';">
 <meta name="referrer" content="no-referrer">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0b0705">
@@ -783,6 +783,7 @@ body.perfil-garcom #btnFecharContaItens{display:none !important;}
   <div class="modal-box">
     <div class="modal-header"><h2>Fechar o caixa</h2><button class="close-btn" onclick="fecharModalConfirmarCaixa_()">✕</button></div>
     <p class="sub">Conte o dinheiro que está na gaveta e digite o valor. O sistema compara com o esperado e avisa se bateu, sobrou ou faltou.</p><span id="fcEsperado" style="display:none;"></span>
+    <div id="fcAcertosEntregadores" class="obs-line" style="display:none;margin:6px 0;"></div>
     <label for="fcContado">Dinheiro contado na gaveta (R$)</label>
     <input type="number" id="fcContado" inputmode="decimal" step="0.01" min="0" placeholder="0,00" oninput="atualizarResultadoGaveta_()">
     <div id="fcResultado" style="margin:6px 0 2px;min-height:22px;font-weight:700;"></div>
@@ -931,6 +932,7 @@ body.perfil-garcom #btnFecharContaItens{display:none !important;}
     <button class="tab-btn" data-tab="caixa">Caixa<span class="dot"></span></button>
     <button class="tab-btn" data-tab="pedidos" data-entregador-ok="1">Pedidos<span class="dot" id="pedidosDot"></span></button>
     <button class="tab-btn" data-tab="entregas" data-entregador-ok="1">Entregas<span class="dot" id="entregasDot"></span></button>
+    <button class="tab-btn" data-tab="meusganhos">Meus ganhos</button>
     <button class="tab-btn" data-tab="clientes">Clientes</button>
     <button class="tab-btn" data-tab="notificacoes">Notificações<span class="dot" id="notifDot"></span></button>
     <button class="tab-btn" data-tab="administrador" data-admin="1">Administrador<span class="dot" id="adminDot"></span></button>
@@ -1333,6 +1335,20 @@ body.perfil-garcom #btnFecharContaItens{display:none !important;}
 
 
   <!-- =========================== FINANCEIRO (ADMIN) =========================== -->
+  <section class="tab" id="tab-meusganhos">
+    <div class="card">
+      <div class="card-header" style="margin-bottom:8px;"><h2 style="margin:0;">💰 Meus ganhos</h2></div>
+      <div class="btnrow" style="margin:0 0 8px;align-items:center;"><button type="button" class="ghost" onclick="atualizarAgora_()">🔄 Atualizar</button></div>
+      <div id="ganhosHoje"></div>
+    </div>
+    <div class="card">
+      <div class="card-header" style="margin-bottom:8px;"><h2 style="margin:0;">📅 Dias anteriores</h2></div>
+      <label for="ganhosPeriodo">Período</label>
+      <select id="ganhosPeriodo" onchange="renderMeusGanhos()"><option value="7">Últimos 7 dias</option><option value="30" selected>Últimos 30 dias</option><option value="90">Últimos 90 dias</option></select>
+      <div id="ganhosResumo" style="margin:10px 0;"></div>
+      <div id="ganhosLista"></div>
+    </div>
+  </section>
   <section class="tab" id="tab-financeiro">
         <div class="admin-subnav" data-admin-nav="1"></div>
     <div class="card">
@@ -1677,6 +1693,7 @@ body.perfil-garcom #btnFecharContaItens{display:none !important;}
       <div id="entFechPreview" style="display:none;margin-top:10px;">
         <div id="entFechResumo" class="obs-line"></div>
         <label for="entFechPago">Valor pago ao entregador (R$)</label><input type="number" id="entFechPago" step="0.01" min="0" inputmode="decimal">
+        <label for="entFechForma">Forma de pagamento</label><select id="entFechForma"><option value="Dinheiro">Dinheiro (sai da gaveta)</option><option value="Pix">Pix (não sai da gaveta)</option></select>
         <label for="entFechObs">Observação (obrigatória se o valor pago for diferente do devido)</label><input type="text" id="entFechObs">
         <button class="small-gold" id="entFechBtn" style="margin-top:8px;" onclick="fecharPeriodoUI()">Fechar período</button>
       </div>
@@ -2924,7 +2941,7 @@ async function sbTokenPassword_(email, senha){
   const r = await sbJson_(SUPABASE_URL_ + '/auth/v1/token?grant_type=password', { method:'POST', headers:{ 'apikey': SUPABASE_CHAVE_, 'Content-Type':'application/json' }, body: JSON.stringify({ email, password: senha }) }, 20000);
   return { status: r.status, corpo: await r.json().catch(()=>({})) };
 }
-function sbGuardarTokens_(c){ sbSessaoGravar_({ access_token: c.access_token, refresh_token: c.refresh_token, expira: Date.now() + ((c.expires_in||3600) - 60) * 1000 }); }
+function sbGuardarTokens_(c){ sbSessaoGravar_({ access_token: c.access_token, refresh_token: c.refresh_token, expira: Date.now() + ((c.expires_in||3600) - 60) * 1000 }); try{ if(typeof rtEnviarToken_ === 'function') rtEnviarToken_(c.access_token); }catch(e){} }
 let _sbRenovando_ = null;
 async function sbRenovar_(){
   if(_sbRenovando_) return _sbRenovando_;
@@ -2959,7 +2976,7 @@ async function sbSelecionar_(tabela, consulta, sessao){
   return itens;
 }
 const SB_NOTIF_PADRAO_ = { pedido:['Admin','Operador'], entrega:['Admin','Operador'], estoque:['Admin','Operador','Cozinha'], financeiro:['Admin'], ocorrencia:['Admin','Operador'], sistema:['Admin'], fidelidade:['Admin','Operador'], indicacao:['Admin','Operador'], aniversario:['Admin','Operador'], inativos:['Admin','Operador'] };
-const SB_CATEGORIAS_DESPESA_ = ['Insumos','Aluguel','Energia','Água','Gás','Internet/Telefone','Salários','Impostos','Manutenção','Marketing','Embalagens','Outros'];
+const SB_CATEGORIAS_DESPESA_ = ['Insumos','Aluguel','Energia','Água','Gás','Internet/Telefone','Salários','Impostos','Manutenção','Marketing','Embalagens','Entregadores','Outros'];
 function sbDataBr_(iso){ if(!iso) return ''; const d = new Date(iso); if(isNaN(d)) return ''; const p = n=>String(n).padStart(2,'0'); return p(d.getDate())+'/'+p(d.getMonth()+1)+'/'+d.getFullYear()+' '+p(d.getHours())+':'+p(d.getMinutes()); }
 function sbCfg_(sistema, chave, padrao){ const x = sistema.find(i=>i.chave===chave); if(!x || x.valor===null || x.valor==='' || x.valor===undefined) return padrao; return x.valor; }
 /* Lê tudo que o perfil pode ver (as regras do banco já filtram por perfil) e devolve no MESMO formato que a planilha devolvia. */
@@ -3049,7 +3066,7 @@ async function sbMontarDados_(nivel, chaves){
     sessaoCaixa: sessAb.length ? { id:sessAb[0].id, abertura:sbDataBr_(sessAb[0].abertura), aberturaTimestamp:Date.parse(sessAb[0].abertura)||0, fundoCaixa:Number(sessAb[0].fundo_caixa)||0, status:'Aberto', usuarioAbertura:sessAb[0].usuario_abertura||'' } : null,
     historicoCaixa: caixaDb.map(r=>({ id:r.id, abertura:sbDataBr_(r.abertura), aberturaTimestamp:Date.parse(r.abertura)||0, fundoCaixa:Number(r.fundo_caixa)||0, fechamento:r.fechamento?sbDataBr_(r.fechamento):'', fechamentoTimestamp:r.fechamento?Date.parse(r.fechamento):null,
       totalVendas:Number(r.total_vendas)||0, totalDespesas:Number(r.total_despesas)||0, saldoFinal:Number(r.saldo_final)||0, status:r.status, usuarioAbertura:loginDe[r.usuario_abertura]||'', usuarioFechamento:loginDe[r.usuario_fechamento]||'',
-      valorContado:r.valor_contado===null||r.valor_contado===undefined?null:Number(r.valor_contado), diferenca:r.diferenca===null||r.diferenca===undefined?null:Number(r.diferenca), reconciliadasQtd:0, reconciliadoDinheiro:0 })), fechamentosEntrega: fechDb.map(f=>({ id:f.id, dataRef:String(f.data_ref), entregador:loginDe[f.entregador_id]||'', qtd:Number(f.qtd_entregas)||0, totalTaxas:Number(f.total_taxas)||0, ajudaDiaria:Number(f.ajuda_diaria)||0, totalDevido:Number(f.total_devido)||0, valorPago:Number(f.valor_pago)||0, diferenca:Number(f.diferenca)||0, fechadoEm:sbDataBr_(f.fechado_em), fechadoPor:loginDe[f.fechado_por]||'', observacao:f.observacao||'', requisicaoId:f.requisicao_id||'' })), entregasFechadas: entFechDb.map(f=>({ id:f.id, fechamentoId:f.fechamento_id, vendaId:f.venda_id, dataRef:String(f.data_ref), entregador:loginDe[f.entregador_id]||'', taxa:Number(f.taxa)||0 }))
+      valorContado:r.valor_contado===null||r.valor_contado===undefined?null:Number(r.valor_contado), diferenca:r.diferenca===null||r.diferenca===undefined?null:Number(r.diferenca), reconciliadasQtd:0, reconciliadoDinheiro:0 })), fechamentosEntrega: fechDb.map(f=>({ id:f.id, dataRef:String(f.data_ref), entregador:loginDe[f.entregador_id]||'', qtd:Number(f.qtd_entregas)||0, totalTaxas:Number(f.total_taxas)||0, ajudaDiaria:Number(f.ajuda_diaria)||0, totalDevido:Number(f.total_devido)||0, valorPago:Number(f.valor_pago)||0, diferenca:Number(f.diferenca)||0, fechadoEm:sbDataBr_(f.fechado_em), fechadoPor:loginDe[f.fechado_por]||'', observacao:f.observacao||'', requisicaoId:f.requisicao_id||'', formaPagamento:f.forma_pagamento||'' })), entregasFechadas: entFechDb.map(f=>({ id:f.id, fechamentoId:f.fechamento_id, vendaId:f.venda_id, dataRef:String(f.data_ref), entregador:loginDe[f.entregador_id]||'', taxa:Number(f.taxa)||0 }))
   };
   [['cad', cad], ['din', din]].forEach(([g, obj])=>{ SB_CHAVES_VERSAO_[g].forEach(k=>{ const m = verReg[k]; if(m && Array.isArray(obj[k])) obj[k].forEach(x=>{ if(x && m[x.id]) x._v = m[x.id]; }); }); });
   return { cad, din };
@@ -3120,7 +3137,7 @@ const SB_ESCRITAS_ = {
   criarUsuario:['usuarios'], editarUsuario:['usuarios'], excluirUsuario:['usuarios'], excluirCliente:['clientes'],
   registrarEntradaEstoque:['estoque','movimentacoesEstoque'], registrarPerdaEstoque:['estoque','movimentacoesEstoque'], registrarInventarioEstoque:['estoque','movimentacoesEstoque'],
   addSangria:['sangrias'],
-  fecharContaMesa:['vendas','itensVenda','pagamentosVenda','mesas','fidelidade','clientes'], fecharPeriodoEntregador:['vendas','fechamentosEntrega','entregasFechadas'],
+  fecharContaMesa:['vendas','itensVenda','pagamentosVenda','mesas','fidelidade','clientes'], fecharPeriodoEntregador:['vendas','fechamentosEntrega','entregasFechadas','despesas'],
   abrirCaixa:['sessaoCaixa'], cancelarVenda:['vendas','estoque'], editarVenda:['vendas','itensVenda','pagamentosVenda'],
   iniciarVenda:['vendas','itensVenda','pagamentosVenda','fidelidade','clientes','estoque','mesas'],
   aceitarPedido:['vendas','itensVenda','pagamentosVenda'], iniciarPreparoPedido:['vendas','itensVenda','pagamentosVenda'], avancarStatusPedido:['vendas','itensVenda','pagamentosVenda'], suspenderPedido:['vendas','itensVenda','pagamentosVenda'], retomarPedido:['vendas','itensVenda','pagamentosVenda'],
@@ -3540,6 +3557,7 @@ function entrarNoApp(){
   document.getElementById('mainWrap').classList.add('unlocked');
   document.getElementById('userbarTexto').textContent = rotuloBarraUsuario_();
   aplicarPermissoesNivel();
+  try{ rtIniciar_(); }catch(e){}
   if(currentUser.emergencia){ // BLOCO 1.3: modo emergência = só o Caixa
     document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('hidden-tab', b.dataset.tab !== 'caixa'));
     document.querySelectorAll('.atalho-btn').forEach(b=>{ b.style.display = 'none'; });
@@ -3551,7 +3569,7 @@ function entrarNoApp(){
   setTimeout(oferecerRecuperarCarrinho_, 800);  // ITEM 2.7
 }
 /* ETAPA 4: abas visíveis por perfil (a barra continua sendo a mesma de 7 abas; o backend valida cada ação de qualquer forma) */
-const NAV_POR_PERFIL_ = { 'Cozinha':['inicio','pedidos','notificacoes'], 'Garçom':['inicio','caixa','pedidos','entregas','clientes'], 'Entregador':['inicio','entregas','pedidos'] };
+const NAV_POR_PERFIL_ = { 'Cozinha':['inicio','pedidos','notificacoes'], 'Garçom':['inicio','caixa','pedidos','entregas','clientes'], 'Entregador':['inicio','pedidos','meusganhos'] };
 function aplicarPermissoesNivel(){
   const ehDesenvolvedor = !!(currentUser && currentUser.nivelReal === 'Desenvolvedor');
   const admin = currentUser && currentUser.nivel === 'Admin';
@@ -3567,6 +3585,7 @@ function aplicarPermissoesNivel(){
     if(abasDoPerfil) visivel = abasDoPerfil.indexOf(btn.dataset.tab) !== -1;
     else if(entregador) visivel = btn.dataset.entregadorOk === '1';
     else { const restrito = btn.dataset.admin === '1'; visivel = !restrito || admin || (nivelAtual==='Operador' && btn.dataset.tab==='administrador'); }
+    if(btn.dataset.tab === 'meusganhos') visivel = (nivelAtual === 'Entregador');
     btn.classList.toggle('hidden-tab', !visivel);
     if(visivel && !primeiroVisivel) primeiroVisivel = btn;
   });
@@ -3694,6 +3713,7 @@ async function sair(){
     }
     if(_fila.length && !confirm('Ainda há ' + _fila.length + ' item(ns) sem enviar.\n\nSe sair agora, eles ficam guardados neste aparelho e só serão enviados quando alguém entrar nele de novo (aparecem no botão "na fila").\n\nSair mesmo assim?')) return;
   }
+  rtParar_();
   if(currentUser && currentUser.token) apiCall('encerrarSessao', {}).catch(()=>{});
   try{ sessionStorage.removeItem(CARRINHO_RASCUNHO_KEY); }catch(e){}  // ITEM 2.7: saiu de propósito = não oferecer o carrinho de volta
   localStorage.removeItem(SESSAO_KEY); localStorage.removeItem(CONTINGENCIA_CHAVE_KEY); localStorage.removeItem(CACHE_KEY); // SEGURANÇA: não deixa clientes/vendas/financeiro guardados no aparelho depois de sair
@@ -3780,10 +3800,12 @@ document.querySelectorAll('.tab-btn').forEach(btn=>{
   btn.addEventListener('click', ()=>{
     if(btn.classList.contains('hidden-tab')) return;
     if(btn.dataset.tab==='administrador'){ abrirAdministrador('visaogeral'); return; }
+    if(btn.dataset.tab==='entregas'){ abrirPedidosPainel_('entregas'); return; } /* Pedidos e Entregas são uma aba só: esta não tem seção própria */
     document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
     btn.classList.add('active');
     ativarApenasSecao_('tab-'+btn.dataset.tab);
     if(btn.dataset.tab==='inicio') { try{ renderInicio(); }catch(e){} }
+    if(btn.dataset.tab==='meusganhos') { try{ renderMeusGanhos(); }catch(e){} }
   });
 });
 /* Pedidos e Entregas NÃO atualizam mais ao abrir a aba. A atualização é: botão "Atualizar" (na hora) ou o timer de 3 minutos
@@ -5576,6 +5598,7 @@ function atualizarStatusDetector_(erro){
   if(btn) btn.textContent = cozinhaSomLigado ? '🔊 Som: ligado' : '🔇 Som: desligado';
   if(!el) return;
   el.textContent = erro ? '⚠️ Sem conexão com a planilha — tentando de novo em 3 min. Toque em “Verificar agora”.' : (cozinhaUltimaChecagem ? '🔔 Detector ligado · última verificação às '+cozinhaUltimaChecagem.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',second:'2-digit'})+' · '+vendas.length+' pedidos carregados' : 'Detector iniciando…');
+  if(el && !erro && typeof _rt_ !== 'undefined' && _rt_.ativo) el.textContent = '⚡ Tempo real ligado — os pedidos aparecem na hora.';
   atualizarTelaLigadaUI_();
 }
 function beepCozinha_(){ if(!cozinhaSomLigado) return; somAlerta_(); }
@@ -5785,13 +5808,13 @@ function iniciarDetectorCozinha(){
   atualizarStatusDetector_();
   if(souDetectorLeve_()){
     chipAtivarAvisosLeve_();
-    cozinhaTimer = setInterval(()=>detectarNovosCozinha_(false), SYNC_INTERVALO_MS);
+    cozinhaTimer = setInterval(()=>{ if(!_rt_.ativo) detectarNovosCozinha_(false); }, SYNC_INTERVALO_MS);
     document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) detectarNovosCozinha_(false); });
     detectarNovosCozinha_(true);
     return; // sem "manter tela ligada": no celular do entregador/garçom isso gastaria bateria à toa
   }
   manterTelaLigada_();
-  cozinhaTimer = setInterval(()=>detectarNovosCozinha_(false), SYNC_INTERVALO_MS); // 3 min (era 30 s): menos chamadas ao Apps Script
+  cozinhaTimer = setInterval(()=>{ if(!_rt_.ativo) detectarNovosCozinha_(false); }, SYNC_INTERVALO_MS); // 3 min (era 30 s): menos chamadas ao Apps Script
   setInterval(manterTelaLigada_, 30000); // só local (bloqueio de tela), não chama a planilha
   setInterval(atualizarTelaLigadaUI_, 15000); // recalcula o aviso de "sem verificação há N min"
   document.addEventListener('visibilitychange', ()=>{
@@ -5948,13 +5971,51 @@ function alertasDeEntregas(){
   }
   return out;
 }
+function renderMeusGanhos(){
+  const hojeBox = document.getElementById('ganhosHoje'), lista = document.getElementById('ganhosLista'), resumo = document.getElementById('ganhosResumo');
+  if(!hojeBox || !lista) return;
+  const eu = String(loginVisao_()).toLowerCase();
+  const hoje = dataLocalISO(new Date());
+  const minhasVendas = vendas.filter(v=>v.status==='Confirmada' && v.tipoEntrega==='Entrega' && v.statusPedido==='Entregue' && v.timestampConcluida && String(v.entregador||'').toLowerCase()===eu);
+  const porDia = {};
+  minhasVendas.forEach(v=>{ const d = dataLocalISO(new Date(v.timestampConcluida)); const x = porDia[d] || (porDia[d] = { qtd:0, taxas:0 }); x.qtd++; x.taxas = arred2(x.taxas + (Number(v.taxaEntrega)||0)); });
+  const fech = {};
+  fechamentosEntrega.filter(f=>String(f.entregador||'').toLowerCase()===eu).forEach(f=>{ fech[f.dataRef] = f; });
+  const fmtData = d=>d.split('-').reverse().join('/');
+  // hoje
+  const h = porDia[hoje] || { qtd:0, taxas:0 }, fh = fech[hoje];
+  const ajudaHoje = fh ? fh.ajudaDiaria : (h.qtd ? (Number(configEntrega.ajudaDiaria)||0) : 0);
+  hojeBox.innerHTML = `<div class="obs-line">Hoje: <b>${h.qtd}</b> entrega(s) concluída(s) · Taxas: <b>${formatarMoeda(h.taxas)}</b>${ajudaHoje?` · Ajuda diária: <b>${formatarMoeda(ajudaHoje)}</b>`:''}</div>`
+    + `<div style="font-size:20px;font-weight:800;margin:6px 0;color:var(--gold);">${formatarMoeda(arred2(h.taxas + ajudaHoje))}</div>`
+    + `<div class="obs-line">${fh ? '✅ Dia já acertado com o administrador.' : 'Valor previsto. O acerto oficial é feito pelo administrador no fechamento.'}</div>`;
+  // dias anteriores
+  const dias = Number(document.getElementById('ganhosPeriodo').value) || 30;
+  const corte = new Date(); corte.setHours(0,0,0,0); corte.setDate(corte.getDate() - dias);
+  const corteIso = dataLocalISO(corte);
+  const datas = Object.keys(Object.assign({}, porDia, fech)).filter(d=>d < hoje && d >= corteIso).sort().reverse();
+  let totalDevido = 0, totalPago = 0, totalAberto = 0, totalEntregas = 0;
+  const linhas = datas.map(d=>{
+    const f = fech[d], p = porDia[d] || { qtd:0, taxas:0 };
+    if(f){
+      totalDevido += f.totalDevido; totalPago += f.valorPago; totalEntregas += f.qtd;
+      return `<div class="notif-card"><b>${fmtData(d)}</b> — ${f.qtd} entrega(s)<div class="obs-line">Taxas ${formatarMoeda(f.totalTaxas)} + ajuda ${formatarMoeda(f.ajudaDiaria)} = <b>${formatarMoeda(f.totalDevido)}</b></div><div class="obs-line">✅ Pago <b>${formatarMoeda(f.valorPago)}</b>${f.formaPagamento?' · '+escH(f.formaPagamento):''}${f.diferenca!==0?' · diferença '+formatarMoeda(f.diferenca):''}</div></div>`;
+    }
+    const previsto = arred2(p.taxas + (p.qtd ? (Number(configEntrega.ajudaDiaria)||0) : 0));
+    totalAberto += previsto; totalEntregas += p.qtd;
+    return `<div class="notif-card"><b>${fmtData(d)}</b> — ${p.qtd} entrega(s)<div class="obs-line">Taxas ${formatarMoeda(p.taxas)} · previsto <b>${formatarMoeda(previsto)}</b></div><div class="obs-line">⏳ Aguardando acerto do administrador</div></div>`;
+  });
+  resumo.innerHTML = datas.length
+    ? `<div class="obs-line">No período: <b>${totalEntregas}</b> entrega(s) · acertado <b>${formatarMoeda(arred2(totalDevido))}</b> · pago <b>${formatarMoeda(arred2(totalPago))}</b>${totalAberto?` · aguardando acerto <b>${formatarMoeda(arred2(totalAberto))}</b>`:''}</div>`
+    : '';
+  lista.innerHTML = linhas.length ? linhas.join('') : '<div class="notif-empty">Nenhum dia anterior neste período.</div>';
+}
 function renderEntregasFinanceiro(){
   const nivel = currentUser && currentUser.nivel;
   const admin = nivel==='Admin';
   const cfg = document.getElementById('entregasConfigCard'), fech = document.getElementById('entregasFechamentoCard'), meu = document.getElementById('entregasMeuDiaCard');
   if(cfg) cfg.style.display = admin ? 'block':'none';
   if(fech) fech.style.display = admin ? 'block':'none';
-  if(meu) meu.style.display = nivel==='Entregador' ? 'block':'none';
+  if(meu) meu.style.display = 'none'; /* agora está na aba Meus ganhos */
   if(admin){
     const ci = document.getElementById('cfgTaxaEntrega'), ca = document.getElementById('cfgAjudaDiaria');
     if(ci && document.activeElement!==ci && document.activeElement!==ca){ ci.value = configEntrega.taxaPadrao; ca.value = configEntrega.ajudaDiaria; }
@@ -6012,7 +6073,7 @@ async function fecharPeriodoUI(){
   if(!iniciarOperacaoUnica('fechar-entregas')) return;
   const btn = document.getElementById('entFechBtn'); btn.disabled = true;
   try{
-    const r = await apiCall('fecharPeriodoEntregador', { entregador: document.getElementById('entFechEntregador').value, dataRef: document.getElementById('entFechData').value, valorPago: document.getElementById('entFechPago').value, observacao: document.getElementById('entFechObs').value.trim(), requisicaoId: fechamentoRequisicaoId });
+    const r = await apiCall('fecharPeriodoEntregador', { entregador: document.getElementById('entFechEntregador').value, dataRef: document.getElementById('entFechData').value, valorPago: document.getElementById('entFechPago').value, forma: document.getElementById('entFechForma').value, observacao: document.getElementById('entFechObs').value.trim(), requisicaoId: fechamentoRequisicaoId });
     if(r.ok){
       vendas = r.vendas || vendas; fechamentosEntrega = r.fechamentosEntrega || fechamentosEntrega; entregasFechadas = r.entregasFechadas || entregasFechadas;
       salvarCache(); limparPreviewFechamento(); showMsg('entFechMsg', r.message, 'ok'); renderEntregas(); renderNotificacoes();
@@ -6213,6 +6274,22 @@ function pendenciasCaixaLocal_(){
   return t.length ? t.join('\n') : '';
 }
 let _fcEsperado_ = 0;
+/* Entregas concluídas e ainda sem acerto: o fechamento do caixa as acerta em dinheiro, da gaveta (igual ao servidor). */
+function acertosAutoEntregadores_(){
+  if(!sessaoCaixa) return [];
+  const abertura = sessaoCaixa.aberturaTimestamp;
+  const grupos = {};
+  vendas.filter(v=>v.status==='Confirmada' && v.tipoEntrega==='Entrega' && v.statusPedido==='Entregue' && !v.fechamentoEntregaId && v.entregador && v.timestampConcluida && v.timestampConcluida>=abertura).forEach(v=>{
+    const dia = dataLocalISO(new Date(v.timestampConcluida)), k = String(v.entregador).toLowerCase()+'|'+dia;
+    const g = grupos[k] || (grupos[k] = { entregador:v.entregador, dia, taxas:0, qtd:0 });
+    g.qtd++; g.taxas = arred2(g.taxas + (Number(v.taxaEntrega)||0));
+  });
+  return Object.values(grupos).map(g=>{
+    const jaTeve = fechamentosEntrega.some(f=>String(f.entregador||'').toLowerCase()===String(g.entregador).toLowerCase() && f.dataRef===g.dia);
+    const ajuda = jaTeve ? 0 : (Number(configEntrega.ajudaDiaria)||0);
+    return Object.assign(g, { ajuda, total: arred2(g.taxas + ajuda) });
+  });
+}
 function diferencaGaveta_(){
   const bruto = String(document.getElementById('fcContado').value).replace(',','.');
   if(bruto === '' || isNaN(Number(bruto)) || Number(bruto) < 0) return null;
@@ -6231,7 +6308,14 @@ function fecharCaixaAgora(){
   if(!sessaoCaixa) return;
   const pend = pendenciasCaixaLocal_();
   if(pend){ alert('Não é possível fechar o caixa enquanto houver pendências:\n\n'+pend+'\n\nFinalize, receba ou cancele e tente de novo.'); return; }
-  const esperado = saldoEsperadoGaveta();
+  const acertos = acertosAutoEntregadores_();
+  const totalAcertos = acertos.reduce((a,x)=>a+x.total, 0);
+  const esperado = arred2(saldoEsperadoGaveta() - totalAcertos);
+  const boxAc = document.getElementById('fcAcertosEntregadores');
+  if(boxAc){
+    boxAc.style.display = acertos.length ? 'block' : 'none';
+    boxAc.innerHTML = acertos.length ? '🛵 <b>Acerto dos entregadores (em dinheiro, sai da gaveta ao fechar):</b><br>' + acertos.map(x=>escH(x.entregador)+' ('+x.dia.split('-').reverse().join('/')+'): '+formatarMoeda(x.total)).join('<br>') + '<br><span style="opacity:.8;">Se algum foi pago no Pix, feche o acerto dele antes em Administrador → Entregadores e taxas.</span>' : '';
+  }
   document.getElementById('fcEsperado').textContent = formatarMoeda(esperado);
   document.getElementById('fcContado').value = ''; _fcEsperado_ = esperado; atualizarResultadoGaveta_();
   document.getElementById('fcSenha').value = '';
@@ -6669,7 +6753,7 @@ function imprimirPlacasQr_(todas){
   if(!lista.length) return;
   const css = '@page{size:A4;margin:10mm}*{box-sizing:border-box}body{margin:0;font-family:Arial,Helvetica,sans-serif;color:#000}.placa{page-break-after:always;border:3px solid #000;border-radius:18px;padding:12mm 10mm;text-align:center;min-height:270mm}.placa:last-child{page-break-after:auto}.logo{width:70mm}.mesa{font-size:44pt;font-weight:900;margin:6mm 0 2mm}.qr{width:110mm;margin:0 auto 6mm}.qr svg{width:100%;height:auto;display:block}.passos{font-size:16pt;line-height:1.7;text-align:left;display:inline-block;margin-top:4mm}.peq{font-size:13pt;margin-top:8mm;color:#444}';
   const ifr = document.createElement('iframe');
-  ifr.style.cssText = 'position:fixed;right:0;bottom:0;width:1px;height:1px;border:0;opacity:0;';
+  ifr.style.cssText = 'position:fixed;left:-10000px;top:0;border:0;width:794px;height:1200px;';
   document.body.appendChild(ifr);
   const d = ifr.contentWindow.document;
   d.open(); d.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>QR das mesas</title><style>'+css+'</style></head><body>'+lista.map(placaQrHtml_).join('')+'</body></html>'); d.close();
@@ -7391,14 +7475,15 @@ function imprimirDocumento(corpo, titulo, formato){
   const html = docs.map(x => logoImpressaoHtml_(f) + x).join('<div style="page-break-after:always;break-after:page;"></div>');
   { const t0 = Date.now(); for(let k=_ifrsImpressao.length-1;k>=0;k--){ if(t0 - _ifrsImpressao[k].t > 20000){ try{ _ifrsImpressao[k].el.remove(); }catch(e){} _ifrsImpressao.splice(k,1); } } }
   const ifr = document.createElement('iframe');
-  ifr.style.cssText = 'position:fixed;right:0;bottom:0;width:1px;height:1px;border:0;opacity:0;';
+  /* quadro com o tamanho real da folha, fora da tela (um quadro de 1px faz a logo e o texto saírem espremidos em alguns navegadores) */
+  ifr.style.cssText = 'position:fixed;left:-10000px;top:0;border:0;width:' + (f==='A4' ? 794 : (f==='58mm' ? 219 : 302)) + 'px;height:1200px;';
   document.body.appendChild(ifr);
   _ifrsImpressao.push({ el: ifr, t: Date.now() });
   const d = ifr.contentWindow.document;
   d.open(); d.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>${escR(titulo)}</title><style>${cssImpressao(f)}</style></head><body>${html}</body></html>`); d.close();
   /* espera a logo carregar antes de abrir a impressão (no máximo 2 s, para nunca travar) */
   const imagens = Array.from(d.images || []);
-  const prontas = Promise.all(imagens.map(im => im.complete ? null : new Promise(r => { im.onload = im.onerror = r; })));
+  const prontas = Promise.all(imagens.map(im => (im.complete ? null : new Promise(r => { im.onload = im.onerror = r; })))).then(()=>Promise.all(imagens.map(im => (im.decode ? im.decode().catch(()=>{}) : null))));
   Promise.race([prontas, new Promise(r => setTimeout(r, 2000))]).then(() => setTimeout(() => {
     try{ ifr.contentWindow.focus(); ifr.contentWindow.print(); }
     catch(e){ alert('Este aparelho não abriu a impressão. Use "Copiar" ou "Enviar WhatsApp".'); }
@@ -7709,7 +7794,7 @@ async function salvarDespesaModal(){
   finally { setBotoesOcupados(false); }
 }
 /* ---------- FASE 8B — CONTAS A PAGAR E DESPESAS MENSAIS ---------- */
-const CATEGORIAS_DESPESA_PADRAO = ['Insumos','Aluguel','Energia','Água','Gás','Internet/Telefone','Salários','Impostos','Manutenção','Marketing','Embalagens','Outros'];
+const CATEGORIAS_DESPESA_PADRAO = ['Insumos','Aluguel','Energia','Água','Gás','Internet/Telefone','Salários','Impostos','Manutenção','Marketing','Embalagens','Entregadores','Outros'];
 function listaCategoriasDespesa(){ return (categoriasDespesa && categoriasDespesa.length) ? categoriasDespesa : CATEGORIAS_DESPESA_PADRAO; }
 function ehAdminAtual(){ return !!currentUser && currentUser.nivel === 'Admin'; }
 function despesaEfetiva(d){ return d.status==='Confirmada' && d.situacao!=='A pagar'; }
@@ -9408,6 +9493,74 @@ async function init(){
    estava digitando nem trocar preços no meio de uma venda. */
 let usuarioNoMeioDeFormulario = false;
 let sincronizacaoEmAndamento = false;
+/* ============================================================
+   TEMPO REAL (Supabase Realtime) — pedidos aparecem na hora para Cozinha, Entregador, Garçom, Caixa e Administrador.
+   O Realtime respeita as regras de acesso de cada perfil. Se a conexão cair, os temporizadores antigos voltam a
+   funcionar como reserva e, ao reconectar, a tela busca tudo de novo (nada se perde).
+   ============================================================ */
+const _rt_ = { ws:null, hb:null, deb:null, rec:null, tentativas:0, ref:1, ativo:false, ultimaMsg:0, parado:true };
+const RT_TOPICO_ = 'realtime:texas-pedidos';
+function rtEnviar_(obj){ try{ if(_rt_.ws && _rt_.ws.readyState === 1){ _rt_.ws.send(JSON.stringify(obj)); return true; } }catch(e){} return false; }
+function rtIniciar_(){
+  _rt_.parado = false;
+  if(!currentUser || currentUser.emergencia || _rt_.ws || typeof WebSocket === 'undefined') return;
+  const sessao = sbSessaoLer_(); if(!sessao || !sessao.access_token) return;
+  let ws;
+  try{ ws = new WebSocket(SUPABASE_URL_.replace('https://','wss://') + '/realtime/v1/websocket?apikey=' + encodeURIComponent(SUPABASE_CHAVE_) + '&vsn=1.0.0'); }
+  catch(e){ rtReagendar_(); return; }
+  _rt_.ws = ws;
+  ws.onopen = ()=>{
+    _rt_.ultimaMsg = Date.now();
+    const atual = sbSessaoLer_() || sessao;
+    rtEnviar_({ topic: RT_TOPICO_, event:'phx_join', ref:String(_rt_.ref++), payload:{ config:{ broadcast:{ ack:false, self:false }, presence:{ key:'' }, postgres_changes:[{ event:'*', schema:'public', table:'vendas' }], private:false }, access_token: atual.access_token } });
+    clearInterval(_rt_.hb);
+    _rt_.hb = setInterval(()=>{
+      if(Date.now() - _rt_.ultimaMsg > 70000){ try{ ws.close(); }catch(e){} return; } /* sem resposta: conexão morta */
+      rtEnviar_({ topic:'phoenix', event:'heartbeat', payload:{}, ref:String(_rt_.ref++) });
+    }, 25000);
+  };
+  ws.onmessage = (ev)=>{
+    let m; try{ m = JSON.parse(ev.data); }catch(e){ return; }
+    _rt_.ultimaMsg = Date.now();
+    if(m.event === 'postgres_changes'){ rtAvisoPedido_(); return; }
+    if(m.event === 'phx_reply' && m.topic === RT_TOPICO_){
+      if(m.payload && m.payload.status === 'ok'){ _rt_.tentativas = 0; if(!_rt_.ativo){ _rt_.ativo = true; atualizarStatusDetector_(); } rtAtualizarTela_(0); /* recupera o que passou enquanto estava desconectado */ }
+      else { try{ ws.close(); }catch(e){} }
+      return;
+    }
+    if(m.event === 'phx_error' || m.event === 'phx_close'){ try{ ws.close(); }catch(e){} }
+  };
+  ws.onclose = ()=>{ clearInterval(_rt_.hb); _rt_.ws = null; if(_rt_.ativo){ _rt_.ativo = false; atualizarStatusDetector_(); } if(!_rt_.parado && currentUser) rtReagendar_(); };
+  ws.onerror = ()=>{ try{ ws.close(); }catch(e){} };
+}
+function rtReagendar_(){
+  clearTimeout(_rt_.rec);
+  const esperas = [1000, 2000, 4000, 8000, 15000, 30000];
+  const ms = esperas[Math.min(_rt_.tentativas++, esperas.length - 1)];
+  _rt_.rec = setTimeout(async ()=>{
+    if(_rt_.parado || !currentUser) return;
+    const s = sbSessaoLer_(); if(s && Date.now() > s.expira){ try{ await sbRenovar_(); }catch(e){} }
+    rtIniciar_();
+  }, ms);
+}
+function rtParar_(){ _rt_.parado = true; clearTimeout(_rt_.rec); clearTimeout(_rt_.deb); clearInterval(_rt_.hb); _rt_.ativo = false; try{ if(_rt_.ws) _rt_.ws.close(); }catch(e){} _rt_.ws = null; }
+function rtEnviarToken_(token){ if(_rt_.ws) rtEnviar_({ topic: RT_TOPICO_, event:'access_token', payload:{ access_token: token }, ref:String(_rt_.ref++) }); }
+function rtAvisoPedido_(){ clearTimeout(_rt_.deb); _rt_.deb = setTimeout(()=>rtAtualizarTela_(0), 300); }
+async function rtAtualizarTela_(tent){
+  if(!currentUser || currentUser.emergencia) return;
+  /* 1) avisos (som, vibração, notificação) de pedido novo; 2) atualiza os dados de qualquer mudança (status, cancelamento...) */
+  if(souDetector_()){ try{ await detectarNovosCozinha_(false); }catch(e){} }
+  if(Date.now() - ultimaSyncMs < 1500) return; /* o detector já atualizou agora */
+  if(sincronizacaoEmAndamento || !seguroParaSincronizar()){ /* ocupado agora (venda em andamento, janela aberta...): tenta de novo logo em seguida */
+    if((tent||0) < 20){ clearTimeout(_rt_.deb); _rt_.deb = setTimeout(()=>rtAtualizarTela_((tent||0) + 1), 3000); }
+    return;
+  }
+  sincronizarEmSegundoPlano();
+}
+document.addEventListener('visibilitychange', ()=>{
+  if(document.hidden || !currentUser || _rt_.parado) return;
+  if(!_rt_.ws || (Date.now() - _rt_.ultimaMsg > 45000)){ try{ if(_rt_.ws) _rt_.ws.close(); else rtIniciar_(); }catch(e){} }
+});
 function configurarSincronizacaoAutomatica(){
   const seletorCampos = 'input, select, textarea';
   document.addEventListener('focusin', (e)=>{
@@ -9428,7 +9581,7 @@ function configurarSincronizacaoAutomatica(){
   /* Timer de 3 min: só atualiza com o app visível, logado e quando nada está sendo feito (venda, formulário, janela aberta).
      Se não for seguro agora, simplesmente pula e tenta na próxima rodada. A Cozinha usa o detector próprio. */
   setInterval(()=>{
-    if(!currentUser || document.hidden || currentUser.nivel==='Cozinha') return;
+    if(!currentUser || document.hidden || currentUser.nivel==='Cozinha' || _rt_.ativo) return;
     if(Date.now()-ultimaSyncMs < SYNC_INTERVALO_MS - 10000) return; // já atualizou há pouco (botão, volta ao app, detector)
     sincronizarEmSegundoPlano(); // já confere apiConfigurada() e seguroParaSincronizar()
   }, SYNC_INTERVALO_MS);
@@ -9701,7 +9854,7 @@ function renderizarTudo(){
   _desenhar(()=>popularSelectIngredientes('pIngredienteSelect')); _desenhar(()=>popularSelectIngredientes('ppIngredienteSelect'));
   _desenhar(()=>popularSelectProdutosParaCombo('koProdutoSelect')); _desenhar(()=>popularSelectProdutosParaCombo('kkProdutoSelect'));
   _desenhar(()=>renderVendas()); _desenhar(()=>renderDespesas()); _desenhar(()=>renderAjustes()); _desenhar(()=>renderContasPagar()); _desenhar(()=>renderDespesasRecorrentes()); _desenhar(()=>renderResumoPrevisto()); _desenhar(()=>renderFluxoPrevisto()); _desenhar(()=>atualizarMargemPreview()); _desenhar(()=>atualizarMargemPreviewCombo());
-  _desenhar(()=>atualizarMetaUI()); _desenhar(()=>atualizarResumoHoje()); if(_secAtiva==='tab-relatorios') _desenhar(()=>gerarRelatorio()); _desenhar(()=>renderNotificacoes()); _desenhar(()=>renderPedidos()); _desenhar(()=>renderEntregas());
+  _desenhar(()=>atualizarMetaUI()); _desenhar(()=>atualizarResumoHoje()); if(_secAtiva==='tab-relatorios') _desenhar(()=>gerarRelatorio()); _desenhar(()=>renderNotificacoes()); _desenhar(()=>renderPedidos()); _desenhar(()=>renderEntregas()); _desenhar(()=>renderMeusGanhos());
   _desenhar(()=>renderStatusCaixa()); _desenhar(()=>renderHistoricoCaixa()); _desenhar(()=>renderUsuarios()); _desenhar(()=>devPopularVisoes_()); _desenhar(()=>renderLog()); _desenhar(()=>renderFeedbacks()); _desenhar(()=>renderConfigCardapio());
   _desenhar(()=>renderMesas()); _desenhar(()=>renderMesasPickerCaixa());
 }
