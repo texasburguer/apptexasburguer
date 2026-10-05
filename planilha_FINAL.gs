@@ -29,7 +29,7 @@ let AUTORIZADOR_ATUAL = ''; // FASE 9: quem autorizou a operação sensível (Ad
 
 /* Perfis do sistema (ITEM 6). Adicionar um nível novo aqui já libera ele em toda
    validação de cadastro de usuário — não precisa mexer em mais nenhum lugar. */
-const NIVEIS_VALIDOS = ['Admin', 'Operador', 'Garçom', 'Cozinha', 'Entregador'];
+const NIVEIS_VALIDOS = ['Admin', 'Operador', 'Garçom', 'Cozinha', 'Entregador', 'Desenvolvedor'];
 
 /* ---------- CONTINGÊNCIA (Item 81) ----------
    API separada, numa conta Google diferente, que serve de plano B: espelho de
@@ -1464,7 +1464,7 @@ function verificarSenhaDoUsuarioAtual_(senha) {
 /* Dupla trava para operação sensível: OU a sessão validada já é de um Admin,
    OU foi digitada a senha de um Admin agora (fluxo do Operador pedindo autorização). */
 function exigeConfirmacaoAdmin(senhaAdminConfirmacao) {
-  if (NIVEL_ATUAL === 'Admin') { AUTORIZADOR_ATUAL = USUARIO_ATUAL; return true; }
+  if (NIVEL_ATUAL === 'Admin' || NIVEL_ATUAL === 'Desenvolvedor') { AUTORIZADOR_ATUAL = USUARIO_ATUAL; return true; }
   return verificarAdmin(senhaAdminConfirmacao);
 }
 
@@ -1524,7 +1524,8 @@ function checarPermissao_(action, nivel) {
   const regra = PERMISSOES_ACAO[action];
   if (!regra) return false; // ação sem regra explícita: negada por padrão
   if (regra === '*') return !!nivel;
-  return regra.indexOf(nivel) !== -1;
+  const nivelEfetivo = nivel === 'Desenvolvedor' ? 'Admin' : nivel;
+  return regra.indexOf(nivelEfetivo) !== -1;
 }
 /* Política para NOVAS senhas de funcionário (as atuais continuam valendo até serem trocadas). */
 function erroSenhaFraca_(senha, login) {
@@ -1591,6 +1592,10 @@ function editarUsuario(loginAlvo, novaSenha, novoNivel, novoAtivo, senhaAdminCon
     if (String(sh.getRange(i, 1).getValue()).toLowerCase() === String(loginAlvo).toLowerCase()) {
       const nivelAtual = sh.getRange(i, 3).getValue();
       const ativoAtual = sh.getRange(i, 4).getValue();
+      const ehDesenvolvedorAlvo = nivelAtual === 'Desenvolvedor';
+      if (ehDesenvolvedorAlvo && NIVEL_ATUAL !== 'Desenvolvedor') return { ok: false, message: 'A conta de Desenvolvedor só pode ser editada por um Desenvolvedor.' };
+      if (novoNivel === 'Desenvolvedor' && NIVEL_ATUAL !== 'Desenvolvedor') return { ok: false, message: 'Somente um Desenvolvedor pode promover um usuário para Desenvolvedor.' };
+      if (ehDesenvolvedorAlvo && NIVEL_ATUAL === 'Desenvolvedor' && novoAtivo === false && String(loginAlvo).toLowerCase() === String(USUARIO_ATUAL).toLowerCase()) return { ok: false, message: 'O Desenvolvedor não pode desativar a própria conta.' };
       const seraAdmin = novoNivel !== undefined ? novoNivel === 'Admin' : nivelAtual === 'Admin';
       const seraAtivo = novoAtivo !== undefined ? (novoAtivo ? 'Sim' : 'Não') : ativoAtual;
       if (nivelAtual === 'Admin' && (!seraAdmin || seraAtivo === 'Não')) {
@@ -1614,7 +1619,10 @@ function excluirUsuario(loginAlvo, senhaAdminConfirmacao) {
   const sh = ss_().getSheetByName('Usuários'); const last = sh.getLastRow();
   for (let i = 2; i <= last; i++) {
     if (String(sh.getRange(i, 1).getValue()).toLowerCase() === String(loginAlvo).toLowerCase()) {
-      if (sh.getRange(i, 3).getValue() === 'Admin') {
+      const nivelAlvo = sh.getRange(i, 3).getValue();
+      if (nivelAlvo === 'Desenvolvedor' && NIVEL_ATUAL !== 'Desenvolvedor') return { ok: false, message: 'A conta de Desenvolvedor só pode ser excluída por um Desenvolvedor.' };
+      if (nivelAlvo === 'Desenvolvedor') return { ok: false, message: 'A conta de Desenvolvedor não pode ser excluída.' };
+      if (nivelAlvo === 'Admin') {
         const admins = readUsuarios().filter(u => u.nivel === 'Admin' && u.ativo && u.login.toLowerCase() !== loginAlvo.toLowerCase());
         if (admins.length === 0) return { ok: false, message: 'Não é possível excluir o último administrador.' };
       }
@@ -1814,6 +1822,9 @@ function maisPedidosEmCache_() {
   return m.lista;
 }
 function getAllData(grupo) {
+  const nivelOriginal = NIVEL_ATUAL;
+  const desenvolvedor = nivelOriginal === 'Desenvolvedor';
+  if (desenvolvedor) NIVEL_ATUAL = 'Admin';
   const vers = versoesAtuais_(); // lida ANTES dos dados: se algo mudar durante a leitura, a próxima conferência baixa de novo
   { const cacheEstr = CacheService.getScriptCache();
     if (!cacheEstr.get('estr_ok')) { criarEstruturasNovosRecursos(ss_()); cacheEstr.put('estr_ok', '1', 21600); } } // antes rodava a cada chamada
@@ -1861,6 +1872,7 @@ function getAllData(grupo) {
   if (NIVEL_ATUAL === 'Garçom') dados.feedbacks = []; // telefone e comentário dos clientes: só Admin/Operador
   if (NIVEL_ATUAL === 'Cozinha') ['clientes', 'fidelidade', 'indicacoes', 'promocoes', 'pagamentosVenda', 'feedbacks'].forEach(k => { dados[k] = []; });
   dados.versoes = vers; if (grupo) dados.grupo = grupo; // ITEM 19
+  NIVEL_ATUAL = nivelOriginal;
   return dados;
 }
 
@@ -5117,7 +5129,7 @@ const BACKUP_MAX_TENTATIVAS = 3;
 const BACKUP_FREQUENCIAS = ['12h', 'diaria', 'semanal'];
 /* Abas que a restauração NUNCA sobrescreve: evita trancar o admin para fora
    (Usuários) e apagar o rastro do próprio incidente (Auditoria/Log/Backups). */
-const ABAS_PRESERVADAS_RESTAURACAO = ['Usuários', 'Auditoria', 'Log', 'Backups'];
+const ABAS_PRESERVADAS_RESTAURACAO = ['Usuários', 'Auditoria', 'Log', 'Backups', 'Requisicoes', 'ContingenciaReconciliada'];
 const ARMAZ_ATENCAO_PCT = 70, ARMAZ_CRITICO_PCT = 90;
 
 function abaBackups_() {
@@ -5313,8 +5325,14 @@ function fazerBackupManual_() { return executarBackup_('Manual'); }
    + palavra RESTAURAR + backup existente no histórico com status Sucesso. Antes de tocar em
    qualquer dado, cria um backup de segurança; se ele falhar, a restauração é cancelada. */
 function restaurarBackup(backupId, senhaAdmin, confirmacao) {
-  if (confirmacao !== 'RESTAURAR') return { ok: false, message: 'Confirmação incorreta. Digite RESTAURAR.' };
-  if (!verificarAdmin(senhaAdmin)) return { ok: false, message: 'Senha de administrador incorreta.' };
+  if (confirmacao !== 'RESTAURAR FECHADO') return { ok: false, message: 'Confirmação incorreta. Digite RESTAURAR FECHADO.' };
+  if (!verificarAdmin(senhaAdmin) && NIVEL_ATUAL !== 'Desenvolvedor') return { ok: false, message: 'Senha de administrador incorreta.' };
+  if (readSessaoAberta()) return { ok: false, message: 'Não é possível restaurar enquanto houver um caixa aberto. Feche o caixa antes de restaurar.' };
+  const pedidosAtivos = readVendas().filter(v =>
+    v.status === 'Confirmada' &&
+    ['Recebido', 'Em preparo', 'Pronta', 'Saiu para entrega'].indexOf(String(v.statusPedido || '')) !== -1
+  );
+  if (pedidosAtivos.length) return { ok: false, message: 'Não é possível restaurar enquanto houver pedidos ativos confirmados. Finalize, entregue ou encerre os pedidos pendentes antes de restaurar.' };
   const sh = abaBackups_(); const last = sh.getLastRow(); let arquivoId = '', nomeArq = '';
   for (let i = 2; i <= last; i++) {
     const r = sh.getRange(i, 1, 1, 6).getValues()[0];

@@ -782,9 +782,10 @@ body.perfil-garcom #btnFecharContaItens{display:none !important;}
 <div class="modal-overlay" id="cxConfirmarModal">
   <div class="modal-box">
     <div class="modal-header"><h2>Fechar o caixa</h2><button class="close-btn" onclick="fecharModalConfirmarCaixa_()">✕</button></div>
-    <p class="sub">Saldo esperado em dinheiro: <b id="fcEsperado" style="color:var(--gold);"></b></p>
+    <p class="sub">Conte o dinheiro que está na gaveta e digite o valor. O sistema compara com o esperado e avisa se bateu, sobrou ou faltou.</p><span id="fcEsperado" style="display:none;"></span>
     <label for="fcContado">Dinheiro contado na gaveta (R$)</label>
-    <input type="number" id="fcContado" inputmode="decimal" step="0.01" min="0">
+    <input type="number" id="fcContado" inputmode="decimal" step="0.01" min="0" placeholder="0,00" oninput="atualizarResultadoGaveta_()">
+    <div id="fcResultado" style="margin:6px 0 2px;min-height:22px;font-weight:700;"></div>
     <label for="fcSenha">Sua senha, para confirmar o fechamento</label>
     <input type="password" id="fcSenha" autocomplete="current-password">
     <div class="msg" id="cxConfirmarMsg"></div>
@@ -921,8 +922,8 @@ body.perfil-garcom #btnFecharContaItens{display:none !important;}
   </header>
   <div id="devBar" style="display:none;background:#122213;border:1px solid #4caf50;border-radius:10px;padding:10px 12px;margin:0 0 12px;font-size:13px;line-height:1.45;">
     🛠️ <b>Modo Desenvolvedor</b> — vendo o sistema como:
-    <select id="devVerComo" onchange="devMudarVisao(this.value)" style="width:auto;display:inline-block;margin-left:6px;"><option value="Admin">Admin</option><option value="Operador">Operador</option><option value="Garçom">Garçom</option><option value="Cozinha">Cozinha</option><option value="Entregador">Entregador</option></select>
-    <div class="obs-line" style="margin-top:6px;">Isto é só um filtro visual — suas ações continuam com acesso total. Ao trocar, a tela reabre na aba padrão do perfil escolhido.</div>
+    <select id="devVerComo" onchange="devMudarVisao(this.value)" style="width:auto;display:inline-block;margin-left:6px;"><option value="Admin">Admin (visão normal)</option></select>
+    <div class="obs-line" style="margin-top:6px;">Você vê a tela dessa pessoa, com as entregas e mesas dela. Suas ações continuam com acesso total. Ao trocar, a tela reabre na aba padrão do perfil escolhido.</div>
   </div>
 
   <nav class="tabs">
@@ -2395,7 +2396,7 @@ body.perfil-garcom #btnFecharContaItens{display:none !important;}
       <label>Telefone com DDD (obrigatório para Entregador)</label><input type="tel" id="uNovoTelefone" maxlength="25" inputmode="tel" placeholder="(00) 00000-0000">
       <label>Senha</label><input type="password" id="uNovaSenha" placeholder="Senha">
       <label>Nível</label>
-      <select id="uNovoNivel"><option value="Operador">Operador de caixa</option><option value="Garçom">Garçom</option><option value="Cozinha">Cozinha</option><option value="Admin">Admin</option><option value="Entregador">Entregador</option><option value="Desenvolvedor">Desenvolvedor (acesso total)</option></select>
+      <select id="uNovoNivel"><option value="Operador">Operador de caixa</option><option value="Garçom">Garçom</option><option value="Cozinha">Cozinha</option><option value="Admin">Admin</option><option value="Entregador">Entregador</option></select>
       <label>Sua senha de administrador</label><input type="password" id="uSenhaAdminNovo" placeholder="Confirme com sua senha">
       <button class="primary" onclick="criarUsuarioApp()">Criar acesso</button>
       <div class="msg" id="uMsg"></div>
@@ -3522,7 +3523,7 @@ async function tentarLogin(){
     return;
   }
   if(r.ok){
-    currentUser = { login: r.login, nivel: r.nivel, nivelReal: r.nivel, token: r.token };
+    currentUser = { login: r.login, nivel: (r.nivel === 'Desenvolvedor' ? 'Admin' : r.nivel), nivelReal: r.nivel, token: r.token };
     localStorage.setItem(SESSAO_KEY, JSON.stringify(currentUser));
     emergenciaRegistrar_(r.login, senha, r.nivel); // BLOCO 1.3: cria/renova o acesso de emergência por 30 dias
     entrarNoApp();
@@ -3537,7 +3538,7 @@ function entrarNoApp(){
   document.getElementById('cardapioPublico').classList.add('hidden');
   document.getElementById('cdFabCarrinho').classList.remove('show');
   document.getElementById('mainWrap').classList.add('unlocked');
-  document.getElementById('userbarTexto').textContent = currentUser.login + ' · ' + currentUser.nivel + (currentUser.nivelReal === 'Desenvolvedor' && currentUser.nivel !== 'Desenvolvedor' ? ' (Dev)' : '');
+  document.getElementById('userbarTexto').textContent = rotuloBarraUsuario_();
   aplicarPermissoesNivel();
   if(currentUser.emergencia){ // BLOCO 1.3: modo emergência = só o Caixa
     document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('hidden-tab', b.dataset.tab !== 'caixa'));
@@ -3553,7 +3554,7 @@ function entrarNoApp(){
 const NAV_POR_PERFIL_ = { 'Cozinha':['inicio','pedidos','notificacoes'], 'Garçom':['inicio','caixa','pedidos','entregas','clientes'], 'Entregador':['inicio','entregas','pedidos'] };
 function aplicarPermissoesNivel(){
   const ehDesenvolvedor = !!(currentUser && currentUser.nivelReal === 'Desenvolvedor');
-  const admin = currentUser && (currentUser.nivel === 'Admin' || currentUser.nivel === 'Desenvolvedor');
+  const admin = currentUser && currentUser.nivel === 'Admin';
   const entregador = currentUser && currentUser.nivel === 'Entregador';
   let primeiroVisivel = null;
   const nivelAtual = currentUser ? currentUser.nivel : '';
@@ -3590,20 +3591,42 @@ function aplicarPermissoesNivel(){
   if(barra){
     barra.style.display = ehDesenvolvedor ? 'block' : 'none';
     const sel = document.getElementById('devVerComo');
-    if(sel && ehDesenvolvedor) sel.value = (currentUser.nivel === 'Desenvolvedor' ? 'Admin' : currentUser.nivel);
+    if(sel && ehDesenvolvedor) devPopularVisoes_();
     if(ehDesenvolvedor){
-      const trocado = currentUser.nivel !== 'Desenvolvedor' && currentUser.nivel !== 'Admin';
+      const trocado = currentUser.nivel !== 'Admin';
       barra.style.borderColor = trocado ? '#e0b53a' : '#4caf50';
       barra.style.background = trocado ? '#241d0d' : '#122213';
     }
   }
 }
-function devMudarVisao(nivel){
+function loginVisao_(){ return currentUser ? (currentUser.verComo || currentUser.login) : ''; }
+function rotuloBarraUsuario_(){
+  if(!currentUser) return '';
+  if(currentUser.nivelReal !== 'Desenvolvedor') return currentUser.login + ' · ' + currentUser.nivel;
+  if(!currentUser.verComo) return currentUser.login + ' · Desenvolvedor';
+  const u = (typeof usuarios !== 'undefined' ? usuarios : []).find(x=>String(x.login).toLowerCase()===String(currentUser.verComo).toLowerCase());
+  return currentUser.login + ' · Desenvolvedor (vendo como ' + currentUser.nivel + ' — ' + ((u && u.nome) || currentUser.verComo) + ')';
+}
+/* Seletor do modo Desenvolvedor: lista as PESSOAS (ex.: Entregador — João), não só os perfis. */
+function devPopularVisoes_(){
+  const sel = document.getElementById('devVerComo'); if(!sel || !currentUser || currentUser.nivelReal !== 'Desenvolvedor') return;
+  const ordem = ['Operador','Garçom','Cozinha','Entregador'], rot = { 'Operador':'Operador de caixa', 'Garçom':'Garçom', 'Cozinha':'Cozinha', 'Entregador':'Entregador' };
+  const lista = (typeof usuarios !== 'undefined' ? usuarios : []).filter(u=>u.ativo && ordem.indexOf(u.nivel)!==-1)
+    .sort((a,b)=>ordem.indexOf(a.nivel)-ordem.indexOf(b.nivel) || String(a.login).localeCompare(String(b.login)));
+  const html = '<option value="Admin">Admin (visão normal)</option>' + lista.map(u=>'<option value="'+escH(u.login)+'">'+rot[u.nivel]+' — '+escH(u.nome||u.login)+'</option>').join('');
+  if(sel.dataset.sig !== html){ sel.innerHTML = html; sel.dataset.sig = html; }
+  sel.value = currentUser.verComo || 'Admin';
+}
+function devMudarVisao(valor){
   if(!currentUser || currentUser.nivelReal !== 'Desenvolvedor') return;
-  if(['Admin','Operador','Garçom','Cozinha','Entregador'].indexOf(nivel) === -1) return;
-  if(nivel === 'Admin') nivel = 'Desenvolvedor'; /* Admin no seletor = visão normal (Desenvolvedor vê o mesmo que Admin) */
-  currentUser.nivel = nivel;
-  document.getElementById('userbarTexto').textContent = currentUser.login + ' · ' + nivel + (nivel === 'Desenvolvedor' ? '' : ' (Dev)');
+  let nivel = 'Admin', quem = '';
+  if(valor && valor !== 'Admin'){
+    const u = (typeof usuarios !== 'undefined' ? usuarios : []).find(x=>String(x.login).toLowerCase()===String(valor).toLowerCase());
+    if(!u || ['Operador','Garçom','Cozinha','Entregador'].indexOf(u.nivel) === -1) return;
+    nivel = u.nivel; quem = u.login;
+  }
+  currentUser.nivel = nivel; currentUser.verComo = quem;
+  document.getElementById('userbarTexto').textContent = rotuloBarraUsuario_();
   aplicarPermissoesNivel();
   try{ renderizarTudo(); }catch(e){}
   const primeiro = document.querySelector('.tab-btn:not(.hidden-tab)');
@@ -5843,7 +5866,7 @@ function renderEntregas(){
   const souEntregador = currentUser && currentUser.nivel === 'Entregador';
   const _ef = document.getElementById('entFmt'); if(_ef) _ef.value = lerFormato('entrega','80mm');
   let pendentes = vendas.filter(v=>v.status==='Confirmada' && v.tipoEntrega==='Entrega' && v.statusPedido && !(v.statusPedido==='Entregue' && v.statusPagamento!=='A Receber')).sort((a,b)=>a.timestamp-b.timestamp);
-  if(souEntregador) pendentes = pendentes.filter(v=>v.entregador===currentUser.login);
+  if(souEntregador) pendentes = pendentes.filter(v=>v.entregador===loginVisao_());
 
   if(souEntregador){
     const idsAtuais = pendentes.map(v=>v.id);
@@ -5888,7 +5911,7 @@ function renderEntregas(){
   }
   const hoje = dataLocalISO(new Date());
   let concluidas = vendas.filter(v=>v.status==='Confirmada' && v.tipoEntrega==='Entrega' && v.statusPedido==='Entregue' && v.statusPagamento!=='A Receber' && dataLocalISO(new Date(v.timestamp))===hoje).sort((a,b)=>b.timestamp-a.timestamp);
-  if(souEntregador) concluidas = concluidas.filter(v=>v.entregador===currentUser.login);
+  if(souEntregador) concluidas = concluidas.filter(v=>v.entregador===loginVisao_());
   const box2 = document.getElementById('entregasConcluidasLista');
   if(box2){
     box2.innerHTML = concluidas.length ? concluidas.map(v=>{
@@ -6051,10 +6074,10 @@ function renderInicio(){
   const inicioDia = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate()).getTime();
   const fmt = (n)=>formatarMoeda(n);
   const sd = document.getElementById('inicioSaudacao');
-  if(sd) sd.textContent = 'Olá, '+currentUser.login+' · '+agora.toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'2-digit'});
+  if(sd) sd.textContent = 'Olá, '+loginVisao_()+' · '+agora.toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'2-digit'});
 
   const ativos = vendas.filter(v=>v.status==='Confirmada' && v.statusPedido && !['Retirada','Entregue','Servida'].includes(v.statusPedido));
-  const meusAtivos = nivel==='Entregador' ? ativos.filter(v=>v.tipoEntrega==='Entrega' && v.entregador===currentUser.login) : ativos;
+  const meusAtivos = nivel==='Entregador' ? ativos.filter(v=>v.tipoEntrega==='Entrega' && v.entregador===loginVisao_()) : ativos;
   const conta = (st)=>meusAtivos.filter(v=>v.statusPedido===st).length;
   const novos = conta('Recebido'), preparo = conta('Em preparo'), prontos = conta('Pronta'), naRua = conta('Saiu para entrega');
   const blocos = [];
@@ -6189,13 +6212,28 @@ function pendenciasCaixaLocal_(){
   if(nr.length) t.push('Pedidos não recebidos: '+ls(nr));
   return t.length ? t.join('\n') : '';
 }
+let _fcEsperado_ = 0;
+function diferencaGaveta_(){
+  const bruto = String(document.getElementById('fcContado').value).replace(',','.');
+  if(bruto === '' || isNaN(Number(bruto)) || Number(bruto) < 0) return null;
+  return Math.round((Number(bruto) - _fcEsperado_) * 100) / 100;
+}
+function atualizarResultadoGaveta_(){
+  const el = document.getElementById('fcResultado'); if(!el) return;
+  const d = diferencaGaveta_();
+  if(d === null){ el.textContent = ''; el.style.color = ''; return; }
+  const esp = ' (esperado ' + formatarMoeda(_fcEsperado_) + ')';
+  if(Math.abs(d) < 0.01){ el.textContent = '✅ Caixa batido' + esp; el.style.color = '#4caf50'; }
+  else if(d > 0){ el.textContent = '⬆️ Sobra de ' + formatarMoeda(d) + esp; el.style.color = '#e0b53a'; }
+  else { el.textContent = '⬇️ Falta de ' + formatarMoeda(-d) + esp; el.style.color = '#ff6b5b'; }
+}
 function fecharCaixaAgora(){
   if(!sessaoCaixa) return;
   const pend = pendenciasCaixaLocal_();
   if(pend){ alert('Não é possível fechar o caixa enquanto houver pendências:\n\n'+pend+'\n\nFinalize, receba ou cancele e tente de novo.'); return; }
   const esperado = saldoEsperadoGaveta();
   document.getElementById('fcEsperado').textContent = formatarMoeda(esperado);
-  document.getElementById('fcContado').value = esperado.toFixed(2);
+  document.getElementById('fcContado').value = ''; _fcEsperado_ = esperado; atualizarResultadoGaveta_();
   document.getElementById('fcSenha').value = '';
   const m = document.getElementById('cxConfirmarMsg'); m.textContent = ''; m.className = 'msg';
   document.getElementById('fcBtn').disabled = false;
@@ -6207,6 +6245,8 @@ async function confirmarFecharCaixa_(){
   const senha = document.getElementById('fcSenha').value;
   if(document.getElementById('fcContado').value==='' || isNaN(contado) || contado<0) return showMsg('cxConfirmarMsg','Digite quanto dinheiro há na gaveta (pode ser zero).','warn');
   if(!senha) return showMsg('cxConfirmarMsg','Digite a sua senha para confirmar.','warn');
+  const dif = diferencaGaveta_();
+  if(dif !== null && Math.abs(dif) >= 0.01 && !confirm((dif > 0 ? 'Sobra de ' : 'Falta de ') + formatarMoeda(Math.abs(dif)) + ' na gaveta. Fechar o caixa mesmo assim?')) return;
   if(!iniciarOperacaoUnica('fecharCaixa')) return;
   const btn = document.getElementById('fcBtn'); btn.disabled = true;
   try{
@@ -6618,7 +6658,7 @@ function renderQrPreview_(){
   document.getElementById('qrLinkTxt').textContent = qrLinkMesa_(m);
 }
 function placaQrHtml_(m){
-  return `<div class="placa"><img class="logo" src="${QR_BASE_URL_}logo-texas-burger.webp" alt="Texas Burger">
+  return `<div class="placa"><img class="logo" src="${LOGO_IMP_COR_}" alt="Texas Burger">
     <div class="mesa">MESA ${escR(m.numero)}</div>
     <div class="qr">${QR_.svg(qrLinkMesa_(m), 2)}</div>
     <div class="passos"><b>1.</b> Aponte a câmera do celular para o QR Code<br><b>2.</b> Escolha seus itens e envie o pedido<br><b>3.</b> Aguarde a confirmação — o pagamento é feito no caixa</div>
@@ -6627,13 +6667,15 @@ function placaQrHtml_(m){
 function imprimirPlacasQr_(todas){
   const lista = todas ? _qrMesas : [qrMesaSelecionada_()].filter(Boolean);
   if(!lista.length) return;
-  const css = '@page{size:A4;margin:10mm}*{box-sizing:border-box}body{margin:0;font-family:Arial,Helvetica,sans-serif;color:#000}.placa{page-break-after:always;border:3px solid #000;border-radius:18px;padding:12mm 10mm;text-align:center;min-height:270mm}.placa:last-child{page-break-after:auto}.logo{width:70mm;background:#000;border-radius:14px;padding:3mm}.mesa{font-size:44pt;font-weight:900;margin:6mm 0 2mm}.qr{width:110mm;margin:0 auto 6mm}.qr svg{width:100%;height:auto;display:block}.passos{font-size:16pt;line-height:1.7;text-align:left;display:inline-block;margin-top:4mm}.peq{font-size:13pt;margin-top:8mm;color:#444}';
+  const css = '@page{size:A4;margin:10mm}*{box-sizing:border-box}body{margin:0;font-family:Arial,Helvetica,sans-serif;color:#000}.placa{page-break-after:always;border:3px solid #000;border-radius:18px;padding:12mm 10mm;text-align:center;min-height:270mm}.placa:last-child{page-break-after:auto}.logo{width:70mm}.mesa{font-size:44pt;font-weight:900;margin:6mm 0 2mm}.qr{width:110mm;margin:0 auto 6mm}.qr svg{width:100%;height:auto;display:block}.passos{font-size:16pt;line-height:1.7;text-align:left;display:inline-block;margin-top:4mm}.peq{font-size:13pt;margin-top:8mm;color:#444}';
   const ifr = document.createElement('iframe');
   ifr.style.cssText = 'position:fixed;right:0;bottom:0;width:1px;height:1px;border:0;opacity:0;';
   document.body.appendChild(ifr);
   const d = ifr.contentWindow.document;
   d.open(); d.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>QR das mesas</title><style>'+css+'</style></head><body>'+lista.map(placaQrHtml_).join('')+'</body></html>'); d.close();
-  setTimeout(()=>{ try{ ifr.contentWindow.focus(); ifr.contentWindow.print(); }catch(e){ alert('Este aparelho não abriu a impressão. Use "Baixar PNG" e imprima a imagem.'); } setTimeout(()=>ifr.remove(), 60000); }, 600);
+  const imgsQr = Array.from(d.images || []);
+  const prontasQr = Promise.all(imgsQr.map(im => im.complete ? null : new Promise(r => { im.onload = im.onerror = r; })));
+  Promise.race([prontasQr, new Promise(r => setTimeout(r, 2500))]).then(()=>setTimeout(()=>{ try{ ifr.contentWindow.focus(); ifr.contentWindow.print(); }catch(e){ alert('Este aparelho não abriu a impressão. Use "Baixar PNG" e imprima a imagem.'); } setTimeout(()=>ifr.remove(), 60000); }, 200));
 }
 function baixarQrPng_(){
   const m = qrMesaSelecionada_(); if(!m) return;
@@ -6743,7 +6785,7 @@ function souStaffCaixa_(){ return !!(currentUser && (currentUser.nivel==='Admin'
 function podeVerMesas_(){ return !!(currentUser && ['Admin','Operador','Garçom'].indexOf(currentUser.nivel)!==-1); }
 function mesasVisiveis_(){
   const todas = mesas || [];
-  if(souGarcom_()) return todas.filter(m=>m.status!=='Livre' && String(m.garcomResponsavel||'').toLowerCase()===String(currentUser.login).toLowerCase());
+  if(souGarcom_()) return todas.filter(m=>m.status!=='Livre' && String(m.garcomResponsavel||'').toLowerCase()===String(loginVisao_()).toLowerCase());
   return todas;
 }
 function contaDaMesa_(mesaId){
@@ -8863,7 +8905,7 @@ async function criarUsuarioApp(){
 /* ETAPA D: formulário de edição de usuário (substitui os três prompt() soltos). Sobre si mesmo, o Admin não muda o próprio perfil,
    não se desativa e troca a senha pelo botão "🔑 Senha" (trocar a senha por aqui derrubaria a própria sessão). */
 let uEditLogin = '', uEditOriginal = null, uEditOcupado = false;
-const PERFIS_USUARIO_ = [['Admin','Admin'],['Operador','Operador de caixa'],['Garçom','Garçom'],['Cozinha','Cozinha'],['Entregador','Entregador'],['Desenvolvedor','Desenvolvedor (acesso total)']];
+const PERFIS_USUARIO_ = [['Admin','Admin'],['Operador','Operador de caixa'],['Garçom','Garçom'],['Cozinha','Cozinha'],['Entregador','Entregador']];
 function ehMeuLogin_(login){ return !!(currentUser && String(currentUser.login).toLowerCase()===String(login).toLowerCase()); }
 function editarUsuarioPrompt(login){
   const u = usuarios.find(x=>x.login===login); if(!u) return;
@@ -8877,7 +8919,7 @@ function editarUsuarioPrompt(login){
   document.getElementById('ueNome').value = uEditOriginal.nome;
   document.getElementById('ueTelefone').value = uEditOriginal.telefone;
   const selN = document.getElementById('ueNivel');
-  selN.innerHTML = PERFIS_USUARIO_.map(p=>`<option value="${p[0]}">${p[1]}</option>`).join('');
+  selN.innerHTML = PERFIS_USUARIO_.concat(u.nivel === 'Desenvolvedor' ? [['Desenvolvedor','Desenvolvedor (acesso total)']] : []).map(p=>`<option value="${p[0]}">${p[1]}</option>`).join('');
   selN.value = u.nivel; selN.disabled = eu;
   const selA = document.getElementById('ueAtivo');
   selA.value = u.ativo ? 'Sim' : 'Não'; selA.disabled = eu;
@@ -8991,7 +9033,7 @@ function renderUsuarios(){
     const protegido = (u.nivel === 'Desenvolvedor' && !souDev);
     const acoes = protegido
       ? '<span class="obs-line" title="Este acesso é protegido: só o próprio Desenvolvedor altera.">🔒 protegido</span>'
-      : `<button class="ghost" data-usr-acao="editar" data-usr-login="${escH(u.login)}">editar</button><button class="ghost" data-usr-acao="toggle" data-usr-login="${escH(u.login)}" data-usr-ativo="${u.ativo?1:0}">${u.ativo?'desativar':'ativar'}</button><button class="ghost" data-usr-acao="excluir" data-usr-login="${escH(u.login)}">excluir</button>`;
+      : `<button class="ghost" data-usr-acao="editar" data-usr-login="${escH(u.login)}">editar</button><button class="ghost" data-usr-acao="toggle" data-usr-login="${escH(u.login)}" data-usr-ativo="${u.ativo?1:0}">${u.ativo?'desativar':'ativar'}</button>${u.nivel==='Desenvolvedor' ? '' : `<button class="ghost" data-usr-acao="excluir" data-usr-login="${escH(u.login)}">excluir</button>`}`;
     return `<tr><td>${escH(u.login)}${u.nome?`<div class="obs-line">${escH(u.nome)}</div>`:''}${u.nivel==='Entregador'?`<div class="obs-line">${u.telefone?'📞 '+escH(u.telefone):'⚠ sem telefone'}</div>`:''}</td><td>${u.nivel}</td><td><span class="badge ${u.ativo?'done':'baixo'}">${u.ativo?'Ativo':'Inativo'}</span></td>
     <td>${acoes}</td></tr>`;
   }).join('');
@@ -9660,7 +9702,7 @@ function renderizarTudo(){
   _desenhar(()=>popularSelectProdutosParaCombo('koProdutoSelect')); _desenhar(()=>popularSelectProdutosParaCombo('kkProdutoSelect'));
   _desenhar(()=>renderVendas()); _desenhar(()=>renderDespesas()); _desenhar(()=>renderAjustes()); _desenhar(()=>renderContasPagar()); _desenhar(()=>renderDespesasRecorrentes()); _desenhar(()=>renderResumoPrevisto()); _desenhar(()=>renderFluxoPrevisto()); _desenhar(()=>atualizarMargemPreview()); _desenhar(()=>atualizarMargemPreviewCombo());
   _desenhar(()=>atualizarMetaUI()); _desenhar(()=>atualizarResumoHoje()); if(_secAtiva==='tab-relatorios') _desenhar(()=>gerarRelatorio()); _desenhar(()=>renderNotificacoes()); _desenhar(()=>renderPedidos()); _desenhar(()=>renderEntregas());
-  _desenhar(()=>renderStatusCaixa()); _desenhar(()=>renderHistoricoCaixa()); _desenhar(()=>renderUsuarios()); _desenhar(()=>renderLog()); _desenhar(()=>renderFeedbacks()); _desenhar(()=>renderConfigCardapio());
+  _desenhar(()=>renderStatusCaixa()); _desenhar(()=>renderHistoricoCaixa()); _desenhar(()=>renderUsuarios()); _desenhar(()=>devPopularVisoes_()); _desenhar(()=>renderLog()); _desenhar(()=>renderFeedbacks()); _desenhar(()=>renderConfigCardapio());
   _desenhar(()=>renderMesas()); _desenhar(()=>renderMesasPickerCaixa());
 }
 
@@ -10363,7 +10405,7 @@ async function enviarFeedbackPublico(){
 (function tentarRestaurarSessao(){
   try{
     const raw = localStorage.getItem(SESSAO_KEY);
-    if(raw){ currentUser = JSON.parse(raw); if(!currentUser.nivelReal) currentUser.nivelReal = currentUser.nivel; entrarNoApp(); return; }
+    if(raw){ currentUser = JSON.parse(raw); if(!currentUser.nivelReal) currentUser.nivelReal = currentUser.nivel; if(currentUser.nivelReal === 'Desenvolvedor'){ currentUser.nivel = 'Admin'; currentUser.verComo = ''; } entrarNoApp(); return; }
   } catch(e){}
   carregarCardapioPublico();
 })();
