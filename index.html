@@ -921,7 +921,7 @@ body.perfil-garcom #btnFecharContaItens{display:none !important;}
   </header>
   <div id="devBar" style="display:none;background:#122213;border:1px solid #4caf50;border-radius:10px;padding:10px 12px;margin:0 0 12px;font-size:13px;line-height:1.45;">
     🛠️ <b>Modo Desenvolvedor</b> — vendo o sistema como:
-    <select id="devVerComo" onchange="devMudarVisao(this.value)" style="width:auto;display:inline-block;margin-left:6px;"><option value="Desenvolvedor">Desenvolvedor (padrão)</option><option value="Admin">Admin</option><option value="Operador">Operador</option><option value="Garçom">Garçom</option><option value="Cozinha">Cozinha</option><option value="Entregador">Entregador</option><option value="Desenvolvedor">Desenvolvedor (acesso total)</option></select>
+    <select id="devVerComo" onchange="devMudarVisao(this.value)" style="width:auto;display:inline-block;margin-left:6px;"><option value="Admin">Admin</option><option value="Operador">Operador</option><option value="Garçom">Garçom</option><option value="Cozinha">Cozinha</option><option value="Entregador">Entregador</option></select>
     <div class="obs-line" style="margin-top:6px;">Isto é só um filtro visual — suas ações continuam com acesso total. Ao trocar, a tela reabre na aba padrão do perfil escolhido.</div>
   </div>
 
@@ -3590,9 +3590,9 @@ function aplicarPermissoesNivel(){
   if(barra){
     barra.style.display = ehDesenvolvedor ? 'block' : 'none';
     const sel = document.getElementById('devVerComo');
-    if(sel && ehDesenvolvedor) sel.value = currentUser.nivel;
+    if(sel && ehDesenvolvedor) sel.value = (currentUser.nivel === 'Desenvolvedor' ? 'Admin' : currentUser.nivel);
     if(ehDesenvolvedor){
-      const trocado = currentUser.nivel !== 'Desenvolvedor';
+      const trocado = currentUser.nivel !== 'Desenvolvedor' && currentUser.nivel !== 'Admin';
       barra.style.borderColor = trocado ? '#e0b53a' : '#4caf50';
       barra.style.background = trocado ? '#241d0d' : '#122213';
     }
@@ -3600,7 +3600,8 @@ function aplicarPermissoesNivel(){
 }
 function devMudarVisao(nivel){
   if(!currentUser || currentUser.nivelReal !== 'Desenvolvedor') return;
-  if(['Desenvolvedor','Admin','Operador','Garçom','Cozinha','Entregador'].indexOf(nivel) === -1) return;
+  if(['Admin','Operador','Garçom','Cozinha','Entregador'].indexOf(nivel) === -1) return;
+  if(nivel === 'Admin') nivel = 'Desenvolvedor'; /* Admin no seletor = visão normal (Desenvolvedor vê o mesmo que Admin) */
   currentUser.nivel = nivel;
   document.getElementById('userbarTexto').textContent = currentUser.login + ' · ' + nivel + (nivel === 'Desenvolvedor' ? '' : ' (Dev)');
   aplicarPermissoesNivel();
