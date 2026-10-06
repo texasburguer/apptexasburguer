@@ -11035,7 +11035,19 @@ function sb410Montar_(){
   aba.insertAdjacentHTML('beforeend', `
   <div class="card" id="sb410Sync"><h2>Sincronização com as planilhas</h2><div id="sb410SyncBox">Carregando…</div>
     <button class="small-gold" style="width:100%;padding:10px;margin-top:8px;" onclick="sb410SyncAgora()">Sincronizar agora</button></div>
-  <div class="card" id="sb410Bk"><h2>Backup do Supabase</h2><div id="sb410BkBox">Carregando…</div>
+  <div class="card" id="sb410Bk"><h2>Backup do Supabase</h2>
+    <div style="border:1px solid #3a2c1c;border-radius:10px;padding:10px;margin-bottom:10px;">
+      <label style="display:flex;gap:8px;align-items:center;font-weight:600;"><input type="checkbox" id="sb410BkAuto" style="width:auto;"> Backup automático diário</label>
+      <div class="obs-line" id="sb410BkAutoSt" style="margin:4px 0 8px;"></div>
+      <label for="sb410BkHora">Horário (Brasília)</label>
+      <select id="sb410BkHora" style="width:100%;margin-bottom:8px;"></select>
+      <label for="sb410BkRet">Guardar os backups automáticos por</label>
+      <select id="sb410BkRet" style="width:100%;margin-bottom:8px;"><option value="3">3 dias</option><option value="7">7 dias</option><option value="14">14 dias</option><option value="30">30 dias</option></select>
+      <button class="small-gold" style="width:100%;padding:10px;" onclick="sb410BkCfgSalvar()">Salvar configuração</button>
+      <div class="msg" id="sb410BkCfgMsg"></div>
+      <div class="obs-line">Backups manuais e os de antes de uma restauração nunca são apagados sozinhos.</div>
+    </div>
+    <div id="sb410BkBox">Carregando…</div>
     <button class="small-gold" style="width:100%;padding:10px;margin-top:8px;" onclick="sb410BkAgora()">Fazer backup agora</button></div>
   <div class="card" id="sb410Esp"><h2>Uso do Supabase</h2><div id="sb410EspBox">Carregando…</div></div>
   <div class="card" id="sb410Fotos"><h2>Fotos (Google Drive)</h2>
@@ -11062,7 +11074,7 @@ function sb410Carregar_(){
   sb410SyncStatus();
   const adm = sb410Admin_();
   ['sb410Bk','sb410Esp','sb410Fotos','sb410Integ'].forEach(id=>{ const e=document.getElementById(id); if(e) e.style.display = adm ? '' : 'none'; });
-  if(adm){ sb410BkLista(); sb410Espaco(); sb410FotoCarregarPadrao(); }
+  if(adm){ sb410BkLista(); sb410BkCfgCarregar(); sb410Espaco(); sb410FotoCarregarPadrao(); }
 }
 
 /* ---------- Etapa 4: sincronização ---------- */
@@ -11098,6 +11110,36 @@ async function sb410BkLista(){
       ${b.status==='Sucesso'?`<button class="ghost" style="margin-top:4px;padding:4px 10px;font-size:11px;" onclick="sb410BkRestaurar('${escH(b.id)}')">Restaurar</button>`:''}</div>`).join('')
       : '<span class="obs-line">Nenhum backup ainda.</span>';
   }catch(e){ box.textContent = 'Não foi possível carregar.'; }
+}
+async function sb410BkCfgCarregar(){
+  const h = document.getElementById('sb410BkHora');
+  if(h && !h.options.length) for(let i=0;i<24;i++) h.insertAdjacentHTML('beforeend','<option value="'+i+'">'+String(i).padStart(2,'0')+':00</option>');
+  try{
+    const c = await sbSelecionar_('sistema','chave=in.(BACKUP_AUTO_ATIVO,BACKUP_HORA)',true);
+    const v = k => (c.find(x=>x.chave===k)||{}).valor;
+    const bc = await sbSelecionar_('backup_config','id=eq.true',true);
+    const on = v('BACKUP_AUTO_ATIVO') === true;
+    const a = document.getElementById('sb410BkAuto'), r = document.getElementById('sb410BkRet'), st = document.getElementById('sb410BkAutoSt');
+    if(a) a.checked = on;
+    if(h) h.value = String(v('BACKUP_HORA') ?? 4);
+    if(r && bc[0]) r.value = String(bc[0].auto_retencao_dias);
+    if(st) st.textContent = on ? 'Ligado: um backup por dia no horário escolhido.' : '⚠️ Desligado: nenhum backup é feito sozinho. Só os manuais.';
+  }catch(e){}
+}
+async function sb410BkCfgSalvar(){
+  const on = !!document.getElementById('sb410BkAuto').checked, hora = Number(document.getElementById('sb410BkHora').value), ret = Number(document.getElementById('sb410BkRet').value);
+  const m = document.getElementById('sb410BkCfgMsg'); if(m) m.textContent = 'Salvando…';
+  try{
+    const t = await sb410Token_();
+    const H = { apikey:SUPABASE_CHAVE_, Authorization:'Bearer '+t, 'Content-Type':'application/json', Prefer:'return=minimal' };
+    const pat = (url, corpo) => sbJson_(SUPABASE_URL_+'/rest/v1/'+url, { method:'PATCH', headers:H, body:JSON.stringify(corpo) });
+    await pat('sistema?chave=eq.BACKUP_AUTO_ATIVO', { valor:on });
+    await pat('sistema?chave=eq.BACKUP_HORA', { valor:hora });
+    await pat('sistema?chave=eq.BACKUP_FREQ', { valor:'diario' });
+    await pat('backup_config?id=eq.true', { auto_retencao_dias:ret });
+    if(m) m.textContent = 'Configuração salva.';
+    sb410BkCfgCarregar();
+  }catch(e){ if(m) m.textContent = 'Não foi possível salvar agora.'; }
 }
 async function sb410BkAgora(){
   if(!confirm('Fazer backup agora? Pode levar alguns segundos.')) return;
