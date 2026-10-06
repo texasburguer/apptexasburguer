@@ -2918,8 +2918,10 @@ function sbNivelMarcar_(ok){
 }
 function sbFaixaTexto_(){
   const d = document.getElementById('sbFaixa'); if(!d) return;
-  d.style.background = _sbNivelOk_ ? '#b45309' : '#991b1b';
-  d.textContent = (_sbNivelOk_ ? '🟢 Nível 1: Supabase · ' : '🔴 Supabase sem resposta (nível 1) · ') + _sbFaixaBase_;
+  if(_sbNivelOk_){ d.style.display = 'none'; d.textContent = ''; return; }   // tudo normal: sem faixa
+  d.style.background = '#991b1b';
+  d.textContent = '🔴 Supabase sem resposta' + (_sbFaixaBase_ ? ' · ' + _sbFaixaBase_ : '');
+  d.style.display = 'block';
 }
 /* repetir = nº de novas tentativas em falha de rede/timeout/erro 5xx. Só é usado em LEITURAS (repetir uma gravação poderia duplicar). */
 async function sbJson_(url, opts, ms, repetir){
@@ -3235,6 +3237,7 @@ async function sbRotear_(action, payload){
       return r;
     }
     if(action === 'uploadFotoProduto' || action === 'uploadFotoCombo') return await sbUploadFoto_(action, payload);   // ETAPA 8 (Edge Function → Drive)
+    if(action === 'excluirFotoProduto' || action === 'excluirFotoCombo') return await sbRemoverFoto_(action, payload);   // Edge Function remover-foto
     if(action === 'obterChaveContingencia' || action === 'obterStatusBackup') return { ok:false, naoMigrada:true };
     return { ok:false, naoMigrada:true, message: SB_NAO_MIGRADA_ };
   }catch(e){
@@ -3246,7 +3249,7 @@ function sbFaixa_(){
   if(!USAR_SUPABASE_ || document.getElementById('sbFaixa')) return;
   const d = document.createElement('div'); d.id = 'sbFaixa';
   d.style.cssText = 'position:fixed;left:0;right:0;bottom:0;z-index:9999;background:#b45309;color:#fff;font:600 12px/1.3 system-ui,sans-serif;text-align:center;padding:4px 8px;pointer-events:none;';
-  _sbFaixaBase_ = '🧪 TESTE DO NOVO SERVIDOR (etapas 3 a 10): cadastros, caixa, vendas, pedidos, financeiro, fotos (Drive), backup, sincronização e tempo real já estão no Supabase';
+  _sbFaixaBase_ = '';
   document.body.appendChild(d); sbFaixaTexto_();
 }
 
@@ -9333,8 +9336,7 @@ function setConexaoStatus(estado, textoExtra){
   atualizarBloqueioVendaOffline();
 }
 /* ---------- BOLINHA E POPUP DE CONEXÃO: Supabase / planilha principal / contingência ---------- */
-const CONEXAO_VERSAO_ = 'v-etapa-03c2b1';
-const SINCRONIZACAO_PLANILHAS_ATIVA_ = false; // vira true quando a Etapa 4 (fila_sync -> planilhas) estiver no ar
+const SINCRONIZACAO_PLANILHAS_ATIVA_ = true; // Etapa 4 no ar: a fila_sync envia tudo para a planilha principal
 let _connResultado_ = null;
 function atualizarConnDot_(){
   const d = document.getElementById('connDot'); if(!d) return;
@@ -9391,8 +9393,8 @@ function renderConexaoModal_(){
   info.push('<b>Dados atualizados às:</b> ' + (ultimaSyncMs ? _connHora_(ultimaSyncMs) : '—'));
   const nf = (typeof _fila !== 'undefined') ? _fila.length : 0, ne = (typeof _fila !== 'undefined') ? _fila.filter(i=>i.estado==='erro').length : 0;
   info.push('<b>Fila de envio neste aparelho:</b> ' + (nf ? (nf + ' item(ns)' + (ne ? ', ' + ne + ' com erro' : '')) : 'vazia'));
-  info.push('<b>Servidor de reserva:</b> ' + (SINCRONIZACAO_PLANILHAS_ATIVA_ ? 'Apps Script disponível para contingência' : 'Apps Script permanece em standby'));
-  info.push('<b>Versão:</b> ' + CONEXAO_VERSAO_ + (r ? ' · verificado às ' + _connHora_(r.quando) : ''));
+  info.push('<b>Servidor de reserva:</b> ' + (SINCRONIZACAO_PLANILHAS_ATIVA_ ? 'planilhas sincronizadas com o Supabase e prontas para assumir' : 'planilhas ainda não sincronizadas'));
+  if(r) info.push('<b>Verificado às:</b> ' + _connHora_(r.quando));
   document.getElementById('conexaoInfo').innerHTML = info.join('<br>');
 }
 async function verificarConexaoServidores_(){
@@ -11111,8 +11113,25 @@ async function sb410Espaco(){
     box.innerHTML = `<div style="height:12px;background:#3a2c1c;border-radius:6px;overflow:hidden;"><div style="width:${Math.min(100,j.percentual)}%;height:100%;background:${cor};"></div></div>
       <div class="stat-row" style="margin-top:10px;"><div class="stat-box"><b>${j.db_mb} MB</b>Usado</div><div class="stat-box"><b>${j.percentual}%</b>De 500 MB</div>
       <div class="stat-box"><b>${j.vendas_total}</b>Vendas ativas</div><div class="stat-box"><b>${j.vendas_arquivadas}</b>Arquivadas</div></div>
-      <span class="obs-line">Vendas com mais de 90 dias vão para a planilha (abas Arquivo_*) e saem do Supabase.</span>`;
+      <span class="obs-line">Vendas com mais de 90 dias vão para a planilha (abas Arquivo_*) e saem do Supabase, todo dia de madrugada.</span>
+      <div style="margin-top:10px;border-top:1px solid #3a2c1c;padding-top:10px;">
+        <label for="sb410ArqDias">Liberar espaço agora: mandar para a planilha o que tem mais de</label>
+        <select id="sb410ArqDias" style="width:100%;margin:6px 0;"><option value="90">90 dias</option><option value="60">60 dias</option><option value="30">30 dias (mínimo permitido)</option></select>
+        <button class="small-gold" style="width:100%;padding:10px;" onclick="sb410ArquivarAgora()">Mandar para a planilha agora</button>
+        <div class="msg" id="sb410ArqMsg"></div>
+      </div>`;
   }catch(e){ box.textContent = '—'; }
+}
+
+async function sb410ArquivarAgora(){
+  const dias = Number((document.getElementById('sb410ArqDias')||{}).value) || 90;
+  if(!confirm('Mandar para a planilha as vendas e caixas fechados com mais de ' + dias + ' dias e tirá-los do Supabase? Eles continuam guardados nas abas Arquivo_* da planilha. Pode levar alguns minutos; não feche a página.')) return;
+  const m = document.getElementById('sb410ArqMsg'); if(m) m.textContent = 'Arquivando…';
+  try{
+    const j = await sb410Edge_('arquivar-antigos', { dias: dias, manual: true }, 280000);
+    if(m) m.textContent = j.ok ? ('Pronto: ' + (j.vendas||0) + ' venda(s) e ' + (j.caixas||0) + ' caixa(s) arquivados.') : ('Parou: ' + (j.message || j.erro || 'falha') + ' (' + (j.vendas||0) + ' venda(s) e ' + (j.caixas||0) + ' caixa(s) já arquivados).');
+  }catch(e){ if(m) m.textContent = 'Sem conexão. Confira o resultado antes de repetir.'; }
+  sb410Espaco();
 }
 
 /* ---------- Etapa 8: fotos só no Drive ---------- */
@@ -11151,6 +11170,18 @@ async function sbUploadFoto_(action, p){
     const lista = action === 'uploadFotoCombo' ? combos : produtos, alvo = action === 'uploadFotoCombo' ? p.comboId : p.produtoId;
     const it = (lista || []).find(x => x.id === alvo);
     if(it && j.id_principal){ it.fotoId = j.id_principal; it.fotoUrl = j.fotoUrl; }
+    j.produtos = produtos; j.combos = combos;
+  }
+  return j;
+}
+
+async function sbRemoverFoto_(action, p){
+  const corpo = action === 'excluirFotoCombo' ? { comboId: p.comboId } : { produtoId: p.produtoId };
+  const j = await sb410Edge_('remover-foto', corpo, 60000);
+  if(j && j.ok){
+    const lista = action === 'excluirFotoCombo' ? combos : produtos, alvo = action === 'excluirFotoCombo' ? p.comboId : p.produtoId;
+    const it = (lista || []).find(x => x.id === alvo);
+    if(it){ it.fotoId = ''; it.fotoUrl = ''; }
     j.produtos = produtos; j.combos = combos;
   }
   return j;
