@@ -7428,7 +7428,7 @@ function podeVenderContingencia_(){
 }
 async function venderEmContingencia_(ctx){
   if(!podeVenderContingencia_()){ showMsg('vMsg','🔴 Sem conexão com a planilha e sem contingência disponível para esta venda (desconto e mesa não são aceitos).','warn'); return; }
-  if(!confirm((ctx.preventivo ? 'A planilha principal está muito lenta (2 falhas seguidas).' : 'A planilha principal não respondeu.') + '\n\nRegistrar esta venda na CONTINGÊNCIA?\n• Ela fica guardada e entra na planilha sozinha quando a principal voltar.\n• Estoque, fidelidade e o total do caixa só atualizam depois disso.\n• Não confirme se a venda já apareceu em Vendas.')) return 'recusou';
+  if(!confirm((ctx.preventivo ? 'O servidor está muito lento (2 falhas seguidas).' : 'O servidor não respondeu.') + '\n\nRegistrar esta venda na CONTINGÊNCIA?\n• Ela fica guardada e entra no sistema quando o servidor voltar (o Admin recebe sozinho ao reabrir o app).\n• Estoque, fidelidade e o total do caixa só atualizam depois disso.\n• Não confirme se a venda já apareceu em Vendas.')) return 'recusou';
   const idRequisicao = ctx.reqConteudo ? reqIdPersist_('venda', ctx.reqConteudo) : novaRequisicao_(); // o MESMO id da tentativa ao servidor: se a venda já tinha entrado, a reconciliação não duplica
   const idFila = 'cx-' + idRequisicao.replace(/[^A-Za-z0-9_-]/g,'');
   const itens = ctx.carrinho.map(it=>({ produtoId: it.produtoId||undefined, comboId: it.comboId||undefined, descricao: it.descricao, quantidade: it.quantidade, valorUnitario: it.valorUnitario, custoUnitario: it.custoUnitario||0, adicionaisIds: it.adicionaisIds||[] }));
@@ -11267,7 +11267,8 @@ async function sb410Integ(){
 <script>
 /* ===================== ETAPA 5 — QUEDA DO SUPABASE ===================== */
 const SB5_FALHAS_PARA_AVISAR_ = 3;   // espelha contingencia_config.falhas_para_planilha (padrão 3)
-let _sb5Falhas_ = 0, _sb5Queda_ = false;
+let _sb5Falhas_ = 0, _sb5Queda_ = false, _sb5Reserva_ = false, _sb5Sonda_ = null, _sb5AvisoTimer_ = null;
+const SB5_SONDA_MS_ = 20000;   // com o Supabase fora, testa a volta a cada 20 s
 function sb5Faixa_(){
   let d = document.getElementById('sb5Faixa');
   if(!d){
@@ -11281,8 +11282,49 @@ function sb5Atualizar_(){
   const d = sb5Faixa_();
   if(!_sb5Queda_){ d.style.display = 'none'; return; }
   const n = (typeof _fila !== 'undefined') ? _fila.filter(i => i.estado !== 'erro').length : 0;
-  d.textContent = '🟠 Sem conexão com o servidor — o que for lançado fica salvo neste aparelho' + (n ? ' (' + n + ' na fila)' : '') + ' e é enviado sozinho quando voltar.';
+  d.textContent = '🟠 Modo reserva — sem conexão com o Supabase. Vendas do Caixa vão para a contingência e entram sozinhas na volta; os dados atualizam a cada 3 minutos. O que for lançado fica salvo neste aparelho' + (n ? ' (' + n + ' na fila)' : '') + '.';
   d.style.display = 'block';
+}
+/* MODO RESERVA: com o Supabase fora (3 falhas seguidas) o app (a) para o tempo real e volta às atualizações de 3 e 15 minutos,
+   (b) marca "sem conexão" para o Caixa lançar a venda na contingência (com confirmação), (c) testa a volta a cada 20 s.
+   Na volta: reenvia a fila do aparelho, o Admin lança as vendas da contingência no Supabase, atualiza os dados e religa o tempo real. */
+function sb5Sondar_(){
+  return new Promise(res=>{
+    const c = (typeof AbortController !== 'undefined') ? new AbortController() : null, t = setTimeout(()=>{ try{ if(c) c.abort(); }catch(e){} res(false); }, 6000);
+    fetch(SUPABASE_URL_ + '/rest/v1/', { headers:{ apikey: SUPABASE_CHAVE_ }, signal: c ? c.signal : undefined, cache:'no-store' })
+      .then(r=>{ clearTimeout(t); res(r.status < 500); }).catch(()=>{ clearTimeout(t); res(false); });
+  });
+}
+function sb5EntrarReserva_(){
+  if(_sb5Reserva_) return; _sb5Reserva_ = true;
+  try{ sb6Parar(); }catch(e){}
+  try{ rtParar_(); }catch(e){}
+  try{ setConexaoStatus('offline', 'Supabase fora do ar — modo reserva'); }catch(e){}
+  clearInterval(_sb5Sonda_);
+  _sb5Sonda_ = setInterval(async ()=>{ if(_sb5Reserva_ && await sb5Sondar_()) sb5SairReserva_(); }, SB5_SONDA_MS_);
+  sb5Atualizar_();
+}
+function sb5Aviso_(texto, cor){
+  const d = sb5Faixa_(); d.style.background = cor || '#166534'; d.textContent = texto; d.style.display = 'block';
+  clearTimeout(_sb5AvisoTimer_); _sb5AvisoTimer_ = setTimeout(()=>{ d.style.background = '#b45309'; sb5Atualizar_(); }, 15000);
+}
+async function sb5SairReserva_(){
+  if(!_sb5Reserva_ && !_sb5Queda_) return;
+  _sb5Reserva_ = false; _sb5Queda_ = false; _sb5Falhas_ = 0; clearInterval(_sb5Sonda_); _sb5Sonda_ = null;
+  try{ sbNivelMarcar_(true); }catch(e){}
+  sb5Atualizar_();
+  try{ setConexaoStatus('syncing'); }catch(e){}
+  try{ await filaProcessar(); }catch(e){}
+  let lancadas = 0, problemas = 0;
+  if(currentUser && currentUser.nivel === 'Admin' && !currentUser.emergencia){
+    try{ const r = await apiCall('reconciliarContingenciaAgora', {}); if(r && r.ok){ lancadas = r.reaplicadas || 0; problemas = (r.falhas || []).length; } }catch(e){}
+  }
+  try{ await atualizarAposDuplicado_(); }catch(e){}
+  try{ if(typeof rtIniciar_ === 'function' && currentUser && !currentUser.emergencia) rtIniciar_(); }catch(e){}
+  try{ sb6Iniciar(); }catch(e){}
+  try{ setConexaoStatus('online'); }catch(e){}
+  if(lancadas || problemas) sb5Aviso_('🟢 Supabase voltou. ' + lancadas + ' venda(s) da contingência lançada(s)' + (problemas ? ' · ' + problemas + ' com problema (veja Armazenamento → Contingência)' : '') + '.', problemas ? '#b45309' : '#166534');
+  else sb5Aviso_('🟢 Supabase voltou. Tudo sincronizado.');
 }
 (function(){
   const orig = window.sbNivelMarcar_;
@@ -11290,14 +11332,15 @@ function sb5Atualizar_(){
   window.sbNivelMarcar_ = function(ok){
     if(ok){
       _sb5Falhas_ = 0;
-      if(_sb5Queda_){ _sb5Queda_ = false; sb5Atualizar_(); setTimeout(()=>{ try{ filaProcessar(); }catch(e){} try{ atualizarAposDuplicado_(); }catch(e){} }, 600); }
+      if((_sb5Queda_ || _sb5Reserva_) && !window._sb5Saindo_){ window._sb5Saindo_ = true; sb5SairReserva_().finally(()=>{ window._sb5Saindo_ = false; }); }
     } else {
       _sb5Falhas_++;
-      if(!_sb5Queda_ && _sb5Falhas_ >= SB5_FALHAS_PARA_AVISAR_){ _sb5Queda_ = true; sb5Atualizar_(); }
+      if(!_sb5Queda_ && _sb5Falhas_ >= SB5_FALHAS_PARA_AVISAR_){ _sb5Queda_ = true; sb5EntrarReserva_(); }
     }
     return orig.apply(this, arguments);
   };
   setInterval(()=>{ if(_sb5Queda_) sb5Atualizar_(); }, 5000);   // mantém o contador da fila em dia
+  window.addEventListener('online', ()=>{ if(_sb5Reserva_) sb5Sondar_().then(ok=>{ if(ok) sb5SairReserva_(); }); });   // o celular voltou da rede: testa já
 })();
 
 /* ===================== ETAPA 6 — TEMPO REAL ===================== */
