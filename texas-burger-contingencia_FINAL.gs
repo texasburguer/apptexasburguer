@@ -29,7 +29,7 @@ const FILA_MAX_PENDENTES = 300, FILA_MAX_CHARS = 30000;
 const FILA_MAX_PUBLICA = 100, FILA_MAX_PUBLICA_10MIN = 30;
 const PERMISSOES = {
   servidor: ['listarPendentes', 'marcarSincronizado', 'atualizarEspelho', 'getEspelho', 'getEspelhoPublico', 'getEspelhoInterno',
-             'guardarBackup', 'getArmazenamento', 'listarFotos', 'guardarFoto', 'removerFotosOrfas'],
+             'guardarBackup', 'getArmazenamento', 'listarFotos', 'guardarFoto', 'removerFotosOrfas', 'syncLote'],
   interna:  ['enfileirar', 'getEspelhoPublico', 'getEspelhoInterno'],
   publica:  ['enfileirar', 'getEspelhoPublico']
 };
@@ -144,6 +144,7 @@ function doPost(e) {
       case 'listarFotos': r = listarFotos_(); break;
       case 'guardarFoto': r = guardarFoto(body.idOrigem, body.base64); break;
       case 'removerFotosOrfas': r = removerFotosOrfas(body.ids); break;
+      case 'syncLote': r = ctSyncLote_(body.itens); break;   // ETAPA 4 — espelho das tabelas do Supabase (abas SB_<tabela>)
       default: r = { ok: false, message: 'Ação desconhecida.' };
     }
     return responder(r);
@@ -380,4 +381,74 @@ function getArmazenamentoCont_() {
   const itF = pastaFotos_().getFiles();
   while (itF.hasNext()) { const f = itF.next(); cats['Fotos (cópia)'].qtd++; cats['Fotos (cópia)'].bytes += f.getSize(); }
   return { ok: true, drive: armazenamento_(), categorias: cats, backups: backups.slice(0, 10) };
+}
+
+
+/* =====================================================================
+   ETAPA 4 — ESPELHO DO SUPABASE NA CONTINGÊNCIA (ação "syncLote")
+   Só a CHAVE_SERVIDOR pode chamar. Recebe os itens da fila_sync ({id, tabela, registro_id, operacao, payload}) e mantém
+   uma aba "SB_<tabela>" por tabela (uma linha por registro, coluna A = id). Só vale o ÚLTIMO estado de cada registro.
+   Não toca em Fila nem Espelho. Reenvio do mesmo lote não duplica.
+   ===================================================================== */
+function ctCelula_(v) {
+  if (v === null || v === undefined) return '';
+  if (typeof v === 'number' || typeof v === 'boolean') return v;
+  let t = (typeof v === 'object') ? JSON.stringify(v) : String(v);
+  if (t.length > 40000) t = t.slice(0, 40000);
+  if (/^[=+\-@]/.test(t) || /^\d{4}-\d{2}-\d{2}/.test(t) || /^[\d.,\s:]+(e\d+)?$/i.test(t)) t = "'" + t;
+  return t;
+}
+function ctAba_(nome) {
+  const ss = ss_();
+  let sh = ss.getSheetByName(nome);
+  if (!sh) { sh = ss.insertSheet(nome); sh.getRange(1, 1).setValue('_id'); sh.setFrozenRows(1); }
+  return sh;
+}
+function ctUpsert_(nomeAba, linhas, remover) {
+  const sh = ctAba_(nomeAba);
+  let cab = sh.getLastColumn() ? sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(String) : ['_id'];
+  if (!cab.length || cab[0] === '') cab = ['_id'];
+  const novas = [];
+  linhas.forEach(function (l) { Object.keys(l.dados).forEach(function (k) { if (cab.indexOf(k) === -1 && novas.indexOf(k) === -1) novas.push(k); }); });
+  if (novas.length) { cab = cab.concat(novas); sh.getRange(1, 1, 1, cab.length).setValues([cab]); }
+  const ultima = sh.getLastRow();
+  const ids = ultima > 1 ? sh.getRange(2, 1, ultima - 1, 1).getValues().map(function (r) { return String(r[0]).replace(/^'/, ''); }) : [];
+  const pos = {}; ids.forEach(function (id, i) { pos[id] = i + 2; });
+  const novasLinhas = []; let gravadas = 0;
+  linhas.forEach(function (l) {
+    const linha = cab.map(function (c, i) { return i === 0 ? ctCelula_(l.id) : (c in l.dados ? ctCelula_(l.dados[c]) : ''); });
+    const p = pos[String(l.id)];
+    if (p) sh.getRange(p, 1, 1, cab.length).setValues([linha]);
+    else { novasLinhas.push(linha); pos[String(l.id)] = -1; }
+    gravadas++;
+  });
+  if (novasLinhas.length) sh.getRange(sh.getLastRow() + 1, 1, novasLinhas.length, cab.length).setValues(novasLinhas);
+  let removidas = 0;
+  if (remover && remover.length) {
+    const alvo = {}; remover.forEach(function (id) { alvo[String(id)] = true; });
+    const atuais = sh.getLastRow() > 1 ? sh.getRange(2, 1, sh.getLastRow() - 1, 1).getValues() : [];
+    for (let i = atuais.length - 1; i >= 0; i--) {
+      if (alvo[String(atuais[i][0]).replace(/^'/, '')]) { sh.deleteRow(i + 2); removidas++; }
+    }
+  }
+  return { gravadas: gravadas, removidas: removidas };
+}
+function ctSyncLote_(itens) {
+  if (!Array.isArray(itens) || itens.length > 500) return { ok: false, message: 'Lote inválido.' };
+  const ultimo = {};
+  itens.forEach(function (it) { if (it && it.tabela && it.registro_id != null) ultimo[it.tabela + '|' + it.registro_id] = it; });
+  const porTabela = {};
+  Object.keys(ultimo).forEach(function (k) {
+    const it = ultimo[k]; const t = String(it.tabela).replace(/[^a-z0-9_]/gi, '');
+    if (!t) return;
+    porTabela[t] = porTabela[t] || { up: [], del: [] };
+    if (it.operacao === 'DELETE') porTabela[t].del.push(String(it.registro_id));
+    else porTabela[t].up.push({ id: String(it.registro_id), dados: it.payload || {} });
+  });
+  let total = 0;
+  Object.keys(porTabela).forEach(function (t) {
+    const r = ctUpsert_('SB_' + t, porTabela[t].up, porTabela[t].del);
+    total += r.gravadas + r.removidas;
+  });
+  return { ok: true, processados: total };
 }

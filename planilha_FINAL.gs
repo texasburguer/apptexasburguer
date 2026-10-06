@@ -5757,12 +5757,14 @@ function reconciliarContingencia() {
    O espelho grava em abas "SB_<tabela>" (uma linha por registro, coluna A = id). As abas antigas
    (Vendas, ItensVenda…) NÃO são mexidas: o mapeamento delas depende do plano de colunas da Etapa 0.
    ============================================================================ */
+/* Chave que a Edge Function envia. Já vem preenchida aqui; se existir a propriedade de script SB_CHAVE_SERVIDOR, ela tem prioridade. */
+const SB_CHAVE_SERVIDOR_PADRAO_ = 'txbsb-dPcBNH9tYyZ1K_cKKzBoWGKgrQ0QKch-EBe0TFc6bis';
 const ACOES_SERVIDOR_SB_ = ['syncLote', 'arquivar', 'replicarFotos', 'contarVendasHoje', 'uploadFotoSb', 'excluirFotoSb'];
 const SB_FUSO_ = 'America/Sao_Paulo';
 const SB_LIMITE_CELULA_ = 40000;
 
 function acaoServidorSb_(action, body) {
-  const esperada = PropertiesService.getScriptProperties().getProperty('SB_CHAVE_SERVIDOR') || '';
+  const esperada = PropertiesService.getScriptProperties().getProperty('SB_CHAVE_SERVIDOR') || SB_CHAVE_SERVIDOR_PADRAO_;
   if (!esperada || !sbIgual_(String(body.chave || ''), esperada)) return { ok: false, message: 'Chave inválida.' };
   const lock = LockService.getScriptLock();
   try { lock.waitLock(25000); } catch (e) { return { ok: false, ocupado: true, message: 'Planilha ocupada.' }; }

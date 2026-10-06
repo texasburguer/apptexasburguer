@@ -3246,7 +3246,7 @@ function sbFaixa_(){
   if(!USAR_SUPABASE_ || document.getElementById('sbFaixa')) return;
   const d = document.createElement('div'); d.id = 'sbFaixa';
   d.style.cssText = 'position:fixed;left:0;right:0;bottom:0;z-index:9999;background:#b45309;color:#fff;font:600 12px/1.3 system-ui,sans-serif;text-align:center;padding:4px 8px;pointer-events:none;';
-  _sbFaixaBase_ = '🧪 TESTE DO NOVO SERVIDOR (etapa 3c-7): cadastros, caixa, vendas, pedidos, mesa, entregador, financeiro, cupons, eventos, fidelidade, indicações, ocorrências, feedbacks e precificação já gravam — fotos e backup ainda não';
+  _sbFaixaBase_ = '🧪 TESTE DO NOVO SERVIDOR (etapas 3 a 10): cadastros, caixa, vendas, pedidos, financeiro, fotos (Drive), backup, sincronização e tempo real já estão no Supabase';
   document.body.appendChild(d); sbFaixaTexto_();
 }
 
@@ -11042,6 +11042,13 @@ function sb410Montar_(){
 }
 function sb410Carregar_(){
   sb410Montar_();
+  try{ // no servidor novo os cartões antigos (planilha) não têm dados: ficam escondidos, os sb410* fazem o papel deles
+    const velhos = ['Backup','Histórico e restauração','Google Drive','Conferência de integridade'];
+    document.querySelectorAll('#tab-armazenamento > .card').forEach(c=>{
+      if(c.id && c.id.indexOf('sb410') === 0) return;
+      const h = c.querySelector('h2'); if(h && velhos.indexOf(h.textContent.trim()) !== -1) c.style.display = 'none';
+    });
+  }catch(e){}
   if(!sb410Gestor_()) return;
   sb410SyncStatus();
   const adm = sb410Admin_();
