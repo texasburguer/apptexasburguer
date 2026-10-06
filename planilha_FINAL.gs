@@ -5749,7 +5749,6 @@ function reconciliarContingencia() {
 
    1) Propriedades do script (Configurações do projeto → Propriedades):
         SB_CHAVE_SERVIDOR      = mesma chave que vai em PRINCIPAL_CHAVE_SERVIDOR na Edge Function (comece com txbsb-)
-        DRIVE_CONTINGENCIA_ID  = ID da pasta de fotos da contingência (só para replicar fotos)
    2) Em doPost, logo depois de  const action = body.action;  acrescente UMA linha:
         if (ACOES_SERVIDOR_SB_.indexOf(action) !== -1) return responder(acaoServidorSb_(action, body));
       (antes de sanitizarEntrada_, para o conteúdo não ser alterado)
@@ -5758,7 +5757,7 @@ function reconciliarContingencia() {
    O espelho grava em abas "SB_<tabela>" (uma linha por registro, coluna A = id). As abas antigas
    (Vendas, ItensVenda…) NÃO são mexidas: o mapeamento delas depende do plano de colunas da Etapa 0.
    ============================================================================ */
-const ACOES_SERVIDOR_SB_ = ['syncLote', 'arquivar', 'replicarFotos', 'contarVendasHoje'];
+const ACOES_SERVIDOR_SB_ = ['syncLote', 'arquivar', 'replicarFotos', 'contarVendasHoje', 'uploadFotoSb', 'excluirFotoSb'];
 const SB_FUSO_ = 'America/Sao_Paulo';
 const SB_LIMITE_CELULA_ = 40000;
 
@@ -5771,6 +5770,8 @@ function acaoServidorSb_(action, body) {
     if (action === 'syncLote') return sbSyncLote_(body.itens);
     if (action === 'arquivar') return sbArquivar_(body);
     if (action === 'replicarFotos') return sbReplicarFotos_(body.itens);
+    if (action === 'uploadFotoSb') return sbUploadFotoSb_(body);
+    if (action === 'excluirFotoSb') return sbExcluirFotoSb_(body.ids);
     if (action === 'contarVendasHoje') return sbContarVendasHoje_(body.data);
     return { ok: false, message: 'Ação desconhecida.' };
   } catch (e) {
@@ -5884,19 +5885,36 @@ function sbArquivar_(b) {
   return { ok: false, message: 'Tipo de arquivamento desconhecido.' };
 }
 
-/* ETAPA 8 — copia a foto do Drive principal para a pasta da contingência. Devolve [{id, foto_id_contingencia}]. */
-function sbReplicarFotos_(itens) {
-  const pastaId = PropertiesService.getScriptProperties().getProperty('DRIVE_CONTINGENCIA_ID');
-  if (!pastaId) return { ok: false, message: 'DRIVE_CONTINGENCIA_ID não configurado.' };
-  const pasta = DriveApp.getFolderById(pastaId);
-  const resultados = [], falhas = [];
-  (itens || []).forEach(function (p) {
+/* ETAPA 8 — fotos. O envio usa _uploadFotoSegura (valida tipo/tamanho) e a cópia para a reserva usa a mesma
+   contingência que o app já tinha (chamarContingencia_ 'guardarFoto'): nada de pasta ou conta nova. */
+function sbUploadFotoSb_(b) {
+  const r = _uploadFotoSegura(b.nomeBase || 'item', b.base64Data, b.mimeType, null);
+  if (!r.ok) return r;
+  let reserva = '';
+  if (b.copiarContingencia) {
     try {
-      if (!p.foto_id_principal) return;
-      const copia = DriveApp.getFileById(p.foto_id_principal).makeCopy('txb-' + String(p.nome || p.id).slice(0, 40) + '-' + Date.now(), pasta);
-      copia.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-      resultados.push({ id: p.id, foto_id_contingencia: copia.getId() });
-    } catch (e) { falhas.push(String(p.id)); }
+      const bytes = DriveApp.getFileById(r.fotoId).getBlob().getBytes();
+      const c = chamarContingencia_('guardarFoto', { idOrigem: r.fotoId, base64: Utilities.base64Encode(bytes) });
+      if (c && c.ok) reserva = c.fotoIdReserva;
+    } catch (e) { /* a foto principal já está salva; a reserva é copiada depois pelo botão de sincronizar */ }
+  }
+  return { ok: true, fotoId: r.fotoId, fotoReservaId: reserva };
+}
+function sbExcluirFotoSb_(ids) {
+  (ids || []).forEach(function (id) { try { DriveApp.getFileById(id).setTrashed(true); } catch (e) { /* já não existe */ } });
+  return { ok: true };
+}
+function sbReplicarFotos_(itens) {
+  const inicio = Date.now(), resultados = [], falhas = [];
+  (itens || []).forEach(function (p) {
+    if (Date.now() - inicio > 200000 || !p.foto_id_principal) return;
+    try {
+      const bytes = DriveApp.getFileById(p.foto_id_principal).getBlob().getBytes();
+      if (bytes.length > 5 * 1024 * 1024) { falhas.push(p.id + ': maior que 5 MB'); return; }
+      const c = chamarContingencia_('guardarFoto', { idOrigem: p.foto_id_principal, base64: Utilities.base64Encode(bytes) });
+      if (c && c.ok) resultados.push({ tipo: p.tipo, id: p.id, foto_id_contingencia: c.fotoIdReserva });
+      else falhas.push(p.id + ': ' + ((c && c.message) || 'recusada'));
+    } catch (e) { falhas.push(p.id + ': ' + e.message); }
   });
   return { ok: true, resultados: resultados, falhas: falhas, message: falhas.length ? falhas.length + ' foto(s) não copiadas.' : '' };
 }
