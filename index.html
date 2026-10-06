@@ -1854,7 +1854,7 @@ body.perfil-garcom #btnFecharContaItens{display:none !important;}
       <div id="contingenciaStatus" style="font-size:13px;margin-bottom:10px;">Carregando status...</div>
       <div id="contingenciaArmazenamento" style="font-size:13px;margin-bottom:10px;"></div>
       <button class="small-gold" style="width:100%;padding:10px;" onclick="sincronizarContingenciaUI()">🔄 Sincronizar espelho agora</button>
-      <button class="ghost" style="width:100%;padding:10px;margin-top:8px;" onclick="ativarSincronizacaoContingenciaUI()">Ativar sincronização automática diária (3h)</button>
+      <div class="obs-line" style="margin-top:8px;">🕒 Sincronização automática ativa: o espelho é atualizado todo dia às 3h.</div>
       <button class="ghost" style="width:100%;padding:10px;margin-top:8px;" onclick="reconciliarContingenciaUI()">⬇️ Trazer vendas pendentes da contingência</button>
       <div class="msg" id="contingenciaMsg"></div>
     </div>
@@ -3238,7 +3238,14 @@ async function sbRotear_(action, payload){
     }
     if(action === 'uploadFotoProduto' || action === 'uploadFotoCombo') return await sbUploadFoto_(action, payload);   // ETAPA 8 (Edge Function → Drive)
     if(action === 'excluirFotoProduto' || action === 'excluirFotoCombo') return await sbRemoverFoto_(action, payload);   // Edge Function remover-foto
-    if(action === 'obterChaveContingencia' || action === 'obterStatusBackup') return { ok:false, naoMigrada:true };
+    // Contingência e Drive: Edge Function planilha-admin (Admin/Operador logado) → Apps Script da planilha principal
+    if(action === 'obterArmazenamento') return await sb410Edge_('planilha-admin', { acao:'armazenamento' }, 90000);
+    if(action === 'obterArmazenamentoContingencia') return await sb410Edge_('planilha-admin', { acao:'armazenamentoContingencia' }, 90000);
+    if(action === 'sincronizarContingenciaAgora') return await sb410Edge_('planilha-admin', { acao:'sincronizarContingencia' }, 150000);
+    if(action === 'reconciliarContingenciaAgora') return await sb410Edge_('planilha-admin', { acao:'reconciliarContingencia' }, 150000);
+    if(action === 'obterChaveContingencia') return await sb410Edge_('planilha-admin', { acao:'chaveContingencia' }, 30000);
+    if(action === 'ativarSincronizacaoContingencia') return { ok:true, message:'A sincronização automática já está ativa: o espelho da contingência é atualizado todo dia às 3h.' };
+    if(action === 'obterStatusBackup') return { ok:false, naoMigrada:true };
     return { ok:false, naoMigrada:true, message: SB_NAO_MIGRADA_ };
   }catch(e){
     if(e instanceof SbSessaoExpirada_){ sbSessaoGravar_(null); return { ok:false, sessaoExpirada:true, message:'Sessão expirada.' }; }
@@ -11045,7 +11052,7 @@ function sb410Montar_(){
 function sb410Carregar_(){
   sb410Montar_();
   try{ // no servidor novo os cartões antigos (planilha) não têm dados: ficam escondidos, os sb410* fazem o papel deles
-    const velhos = ['Backup','Histórico e restauração','Google Drive','Conferência de integridade'];
+    const velhos = ['Backup','Histórico e restauração','Conferência de integridade'];
     document.querySelectorAll('#tab-armazenamento > .card').forEach(c=>{
       if(c.id && c.id.indexOf('sb410') === 0) return;
       const h = c.querySelector('h2'); if(h && velhos.indexOf(h.textContent.trim()) !== -1) c.style.display = 'none';

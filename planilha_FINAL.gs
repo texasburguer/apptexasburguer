@@ -5759,7 +5759,8 @@ function reconciliarContingencia() {
    ============================================================================ */
 /* Chave que a Edge Function envia. Já vem preenchida aqui; se existir a propriedade de script SB_CHAVE_SERVIDOR, ela tem prioridade. */
 const SB_CHAVE_SERVIDOR_PADRAO_ = 'txbsb-dPcBNH9tYyZ1K_cKKzBoWGKgrQ0QKch-EBe0TFc6bis';
-const ACOES_SERVIDOR_SB_ = ['syncLote', 'arquivar', 'replicarFotos', 'contarVendasHoje', 'uploadFotoSb', 'excluirFotoSb'];
+const ACOES_SERVIDOR_SB_ = ['syncLote', 'arquivar', 'replicarFotos', 'contarVendasHoje', 'uploadFotoSb', 'excluirFotoSb',
+  'sbSincronizarContingencia', 'sbArmazenamento', 'sbArmazenamentoContingencia', 'sbChaveContingencia', 'sbListarPendentesContingencia', 'sbMarcarSincronizadoContingencia'];
 const SB_FUSO_ = 'America/Sao_Paulo';
 const SB_LIMITE_CELULA_ = 40000;
 
@@ -5775,6 +5776,12 @@ function acaoServidorSb_(action, body) {
     if (action === 'uploadFotoSb') return sbUploadFotoSb_(body);
     if (action === 'excluirFotoSb') return sbExcluirFotoSb_(body.ids);
     if (action === 'contarVendasHoje') return sbContarVendasHoje_(body.data);
+    if (action === 'sbSincronizarContingencia') return sbSincronizarContingencia_();
+    if (action === 'sbArmazenamento') return sbObterArmazenamento_();
+    if (action === 'sbArmazenamentoContingencia') return obterArmazenamentoContingencia();
+    if (action === 'sbChaveContingencia') return sbChaveContingencia_();
+    if (action === 'sbListarPendentesContingencia') return sbListarPendentesContingencia_();
+    if (action === 'sbMarcarSincronizadoContingencia') return sbMarcarSincronizadoContingencia_(body.ids);
     return { ok: false, message: 'Ação desconhecida.' };
   } catch (e) {
     return { ok: false, message: 'Erro: ' + String(e && e.message || e).slice(0, 300) };
@@ -5937,4 +5944,151 @@ function sbContarVendasHoje_(data) {
     if (Utilities.formatDate(d, SB_FUSO_, 'yyyy-MM-dd') === data) total++;
   });
   return { ok: true, total: total };
+}
+
+
+/* ============================================================================
+   TEXAS BURGER — ETAPA 2 (CORREÇÕES PÓS-MIGRAÇÃO): CONTINGÊNCIA E ARMAZENAMENTO
+   Colar no FIM do arquivo novo do Apps Script (o mesmo das Etapas 4, 7, 8 e 9) e republicar o Web App.
+   O espelho da contingência agora é montado a partir das abas SB_<tabela> (o que o Supabase envia),
+   e não mais das abas antigas (Produtos, Clientes…), que deixaram de ser atualizadas.
+   Chamadas só pela Edge Function "planilha-admin" (chave do servidor); as chaves da contingência
+   continuam só nas Propriedades do script.
+   ============================================================================ */
+function sbLerAba_(nome) {
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(nome);
+  if (!sh || sh.getLastRow() < 2 || sh.getLastColumn() < 2) return [];
+  const cab = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(String);
+  return sh.getRange(2, 1, sh.getLastRow() - 1, cab.length).getValues().map(function (r) {
+    const o = {}; for (let i = 1; i < cab.length; i++) if (cab[i]) o[cab[i]] = r[i]; return o;
+  }).filter(function (o) { return o.id !== undefined && String(o.id) !== ''; });
+}
+function sbBool_(v) { return v === true || String(v).toLowerCase() === 'true'; }
+function sbNum_(v) { const n = Number(v); return isFinite(n) ? n : 0; }
+function sbUrlFoto_(id) { return id ? ('https://drive.google.com/uc?export=view&id=' + id) : ''; }
+
+/* Copia para a contingência só as fotos que ela ainda não tem (ids vêm de SB_produtos / SB_combos). */
+function sbSincronizarFotosContingencia_(prods, combos, limiteMs) {
+  const inicio = Date.now();
+  const res = { mapa: {}, enviadas: 0, faltam: 0, falhas: [], removidas: 0, totalFotos: 0 };
+  const ids = {};
+  prods.forEach(function (p) { if (p.foto_id_principal) ids[p.foto_id_principal] = true; });
+  combos.forEach(function (c) { if (c.foto_id_principal) ids[c.foto_id_principal] = true; });
+  const lista = Object.keys(ids); res.totalFotos = lista.length;
+  const l = chamarContingencia_('listarFotos');
+  if (!l || !l.ok) { res.falhas.push((l && l.message) || 'listarFotos falhou'); return res; }
+  res.mapa = l.fotos || {};
+  const faltando = lista.filter(function (id) { return !res.mapa[id]; });
+  for (let i = 0; i < faltando.length; i++) {
+    if (Date.now() - inicio > limiteMs) { res.faltam = faltando.length - i; break; }
+    const id = faltando[i];
+    try {
+      const bytes = DriveApp.getFileById(id).getBlob().getBytes();
+      if (bytes.length > 5 * 1024 * 1024) { res.falhas.push(id + ': maior que 5 MB'); continue; }
+      const r = chamarContingencia_('guardarFoto', { idOrigem: id, base64: Utilities.base64Encode(bytes) });
+      if (r && r.ok) { res.mapa[id] = r.fotoIdReserva; res.enviadas++; } else res.falhas.push(id + ': ' + ((r && r.message) || 'recusada'));
+    } catch (e) { res.falhas.push(id + ': ' + e.message); }
+  }
+  if (!res.faltam && !res.falhas.length && lista.length) { // só limpa fotos órfãs (de produtos que mudaram de foto ou foram removidos) quando tudo está em dia
+    try { const rm = chamarContingencia_('removerFotosOrfas', { ids: lista }); if (rm && rm.ok) res.removidas = rm.removidas || 0; } catch (e) {}
+  }
+  return res;
+}
+
+/* Monta o mesmo "espelho" que a contingência sempre recebeu (formato idêntico ao antigo), agora lendo as abas SB_. */
+function sbSincronizarContingencia_() {
+  const cat = sbLerAba_('SB_categorias'), prods = sbLerAba_('SB_produtos'), combos = sbLerAba_('SB_combos');
+  if (!prods.length && !combos.length) return { ok: false, message: 'As abas SB_produtos/SB_combos estão vazias: a sincronização com o Supabase ainda não chegou aqui. Rode "Sincronizar agora" e tente de novo.' };
+  let fotos = { mapa: {}, enviadas: 0, faltam: 0, falhas: [], totalFotos: 0 };
+  try { fotos = sbSincronizarFotosContingencia_(prods, combos, 20000); } catch (eF) { registrarLog('Falha ao copiar fotos para a contingência', '', eF.message); }
+  const reserva = function (id) { return (id && fotos.mapa[id]) || ''; };
+  const cfg = {}; sbLerAba_('SB_sistema').forEach(function (r) { cfg[String(r.chave)] = r.valor; });
+  const txt = function (k, pad) { const v = cfg[k]; return (v === undefined || v === null || v === '') ? pad : String(v); };
+  const formas = sbLerAba_('SB_formas_pagamento').map(function (f, i) {
+    return { id: f.id, nome: f.nome, ativa: sbBool_(f.ativa), visivelCardapio: sbBool_(f.visivel_cardapio), taxaPct: sbNum_(f.taxa_percentual), taxaFixa: sbNum_(f.taxa_fixa),
+             prazoDias: sbNum_(f.prazo_dias), permiteTroco: sbBool_(f.permite_troco), ordem: sbNum_(f.ordem) || (i + 1) };
+  }).sort(function (a, b) { return a.ordem - b.ordem; });
+  const dados = {
+    publico: {
+      categorias: cat.map(function (c) { return { id: c.id, nome: c.nome, ativa: sbBool_(c.ativa), ordem: sbNum_(c.ordem) }; }).sort(function (a, b) { return a.ordem - b.ordem; }),
+      produtos: prods.map(function (p) { return { id: p.id, nome: p.nome, descricao: p.descricao || '', categoria: p.categoria_id || '', ativo: sbBool_(p.ativo), fotoUrl: sbUrlFoto_(p.foto_id_principal), fotoReservaId: reserva(p.foto_id_principal), destaque: sbBool_(p.destaque), ordemCardapio: sbNum_(p.ordem_cardapio) }; }),
+      produtoPrecos: sbLerAba_('SB_produto_precos').map(function (x) { return { produtoId: x.produto_id, formaPagamentoId: x.forma_pagamento_id, preco: sbNum_(x.preco) }; }),
+      combos: combos.map(function (c) { return { id: c.id, nome: c.nome, categoria: c.categoria_id || '', ativo: sbBool_(c.ativo), fotoUrl: sbUrlFoto_(c.foto_id_principal), fotoReservaId: reserva(c.foto_id_principal), destaque: sbBool_(c.destaque), ordemCardapio: sbNum_(c.ordem_cardapio) }; }),
+      comboPrecos: sbLerAba_('SB_combo_precos').map(function (x) { return { comboId: x.combo_id, formaPagamentoId: x.forma_pagamento_id, preco: sbNum_(x.preco) }; }),
+      adicionais: sbLerAba_('SB_adicionais').map(function (a) { return { id: a.id, nome: a.nome, preco: sbNum_(a.preco), ativo: sbBool_(a.ativo) }; }),
+      produtoAdicionais: sbLerAba_('SB_produto_adicionais').map(function (x) { return { id: x.id, produtoId: x.produto_id, adicionalId: x.adicional_id }; }),
+      comboItens: sbLerAba_('SB_combo_itens').map(function (x) { return { comboId: x.combo_id, produtoId: x.produto_id }; }),
+      formasPagamento: formas.map(function (f) { return { id: f.id, nome: f.nome, ativa: f.ativa, visivelCardapio: f.visivelCardapio, permiteTroco: f.permiteTroco, ordem: f.ordem }; }),
+      configCardapio: { kicker: txt('CardapioKicker', 'DELIVERY · SABOR QUE CONQUISTA'), frase: txt('CardapioFrase', 'Peça pelo cardápio — rápido, sem complicação.'),
+        tempoEntrega: txt('CardapioTempoEntrega', '40-60 min'), tempoRetirada: txt('CardapioTempoRetirada', '20-30 min'), tempoMesa: txt('CardapioTempoMesa', '20-30 min'),
+        taxaEntrega: sbNum_(cfg['TaxaEntregaPadrao']) }
+    },
+    interno: {
+      clientes: sbLerAba_('SB_clientes').map(function (c) { return { id: c.id, nome: c.nome, telefone: c.telefone }; }),
+      formasPagamentoCompleto: formas
+    }
+  };
+  try {
+    const r = chamarContingencia_('atualizarEspelho', { dados: dados });
+    const nota = ' Fotos: ' + fotos.enviadas + ' copiada(s) agora' + (fotos.faltam ? ', faltam ' + fotos.faltam + ' (sincronize de novo)' : '') + (fotos.falhas.length ? ', ' + fotos.falhas.length + ' com falha (veja o Log)' : '') + '.';
+    if (r) r.message = ((r.message || '') + nota).trim();
+    if (fotos.falhas.length) registrarLog('Fotos que não foram para a contingência', '', fotos.falhas.slice(0, 5).join(' | '));
+    registrarLog('Contingência sincronizada (a partir do Supabase)', '', (r && r.message) || '');
+    return r;
+  } catch (e) {
+    registrarLog('Falha ao sincronizar contingência', '', e.message);
+    return { ok: false, message: 'Não foi possível falar com a API de contingência: ' + e.message };
+  }
+}
+/* Gatilho opcional (diário, 3h): rode UMA vez no editor para ativar o espelho automático. */
+function sbGarantirTriggerContingencia() {
+  const tem = ScriptApp.getProjectTriggers().some(function (t) { return t.getHandlerFunction() === 'sbSincronizarContingenciaAuto'; });
+  if (!tem) ScriptApp.newTrigger('sbSincronizarContingenciaAuto').timeBased().everyDays(1).atHour(3).create();
+  return 'Espelho automático da contingência ativado (todo dia às 3h).';
+}
+function sbSincronizarContingenciaAuto() {
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(25000)) return;
+  try { sbSincronizarContingencia_(); } catch (e) { registrarLog('Falha no espelho automático da contingência', '', e.message); } finally { lock.releaseLock(); }
+}
+
+function sbChaveContingencia_() {
+  try { return { ok: true, chave: chaveContingencia_('CONTINGENCIA_CHAVE_INTERNA') }; }
+  catch (e) { return { ok: false, message: 'Contingência sem chave configurada.' }; }
+}
+function sbListarPendentesContingencia_() {
+  try { const r = chamarContingencia_('listarPendentes'); return (r && r.ok) ? { ok: true, pendentes: r.pendentes || [] } : { ok: false, message: (r && r.message) || 'A contingência recusou a chamada.' }; }
+  catch (e) { return { ok: false, message: 'Não foi possível falar com a contingência: ' + e.message }; }
+}
+function sbMarcarSincronizadoContingencia_(ids) {
+  let n = 0; const falhas = [];
+  (ids || []).slice(0, 100).forEach(function (id) {
+    try { const r = chamarContingencia_('marcarSincronizado', { id: String(id) }); if (r && r.ok) n++; else falhas.push(String(id)); } catch (e) { falhas.push(String(id)); }
+  });
+  return { ok: true, marcadas: n, falhas: falhas };
+}
+
+/* Espaço do Google Drive desta conta (mesmo formato de antes), classificando as fotos pelas abas SB_. */
+function sbObterArmazenamento_() {
+  const arm = obterArmazenamentoDrive_();
+  const cats = { 'Imagens de produtos': { qtd: 0, bytes: 0 }, 'Imagens de combos': { qtd: 0, bytes: 0 }, 'Outras imagens': { qtd: 0, bytes: 0 },
+                 'Arquivos de backup': { qtd: 0, bytes: 0 }, 'Arquivos do sistema': { qtd: 1, bytes: 0 } };
+  const fp = {}, fc = {};
+  sbLerAba_('SB_produtos').forEach(function (p) { if (p.foto_id_principal) fp[p.foto_id_principal] = true; });
+  sbLerAba_('SB_combos').forEach(function (c) { if (c.foto_id_principal) fc[c.foto_id_principal] = true; });
+  const arquivos = [];
+  const varrer = function (pasta, catFn, limite) {
+    const it = pasta.getFiles(); let n = 0;
+    while (it.hasNext() && n++ < limite) {
+      const f = it.next(), c = catFn(f), b = f.getSize();
+      cats[c].qtd++; cats[c].bytes += b;
+      arquivos.push({ nome: f.getName(), categoria: c, tamanho: b, criadoEm: f.getDateCreated().toISOString() });
+    }
+  };
+  try { varrer(obterPastaFotos_(), function (f) { return fp[f.getId()] ? 'Imagens de produtos' : fc[f.getId()] ? 'Imagens de combos' : 'Outras imagens'; }, 500); } catch (e) {}
+  try { varrer(obterPastaBackups_(), function () { return 'Arquivos de backup'; }, 200); } catch (e) {}
+  try { const ssf = DriveApp.getFileById(SpreadsheetApp.getActiveSpreadsheet().getId()); cats['Arquivos do sistema'].bytes = tamanhoAproximadoPlanilha_(ssf.getId()) || ssf.getSize();
+        arquivos.push({ nome: ssf.getName() + ' (planilha principal)', categoria: 'Arquivos do sistema', tamanho: cats['Arquivos do sistema'].bytes, criadoEm: ssf.getDateCreated().toISOString() }); } catch (e) {}
+  arquivos.sort(function (a, b) { return b.tamanho - a.tamanho; });
+  return { ok: true, drive: arm, categorias: cats, arquivos: arquivos.slice(0, 30), totalArquivos: arquivos.length };
 }

@@ -6143,4 +6143,59 @@ SELECT cron.schedule('sync-alerta-30min','*/30 * * * *', $$ SELECT public.api_sy
 SELECT cron.schedule('backup-horario','0 * * * *', $$ SELECT public.chamar_edge('criar-backup','{"tipo":"Automático","cron":true}'); $$);
 SELECT cron.schedule('arquivar-diario','0 8 * * *', $$ SELECT public.chamar_edge('arquivar-antigos'); $$);                     -- 5h
 SELECT cron.schedule('integridade-semanal','0 9 * * 0', $$ SELECT public.chamar_edge('conferir-integridade'); $$);               -- dom 6h
+-- ============================================================================
+-- CORREÇÕES PÓS-MIGRAÇÃO · ETAPA 2 — CONTINGÊNCIA (vendas feitas na contingência entram no Supabase)
+-- ============================================================================
+create table if not exists public.contingencia_reconciliada (
+  id_fila text primary key,
+  venda_id uuid,
+  origem text,
+  usuario_id uuid,
+  criado_em timestamptz not null default now());
+alter table public.contingencia_reconciliada enable row level security;
+drop policy if exists contrec_admin on public.contingencia_reconciliada;
+create policy contrec_admin on public.contingencia_reconciliada for select to authenticated using (tem_nivel('Admin'));
+grant select on public.contingencia_reconciliada to authenticated;
+grant all on public.contingencia_reconciliada to service_role;
+
+create or replace function public.api_reconciliar_venda_contingencia(p jsonb)
+returns jsonb language plpgsql security definer set search_path to 'public' as $$
+declare
+  v_id text := nullif(left(btrim(coalesce(p->>'idFila','')), 120), '');
+  d jsonb := p->'dados'; v_ja contingencia_reconciliada%rowtype; v_r jsonb; v_req text; v_venda uuid; v_origem text;
+begin
+  if not tem_nivel('Admin') then return _negado(); end if;
+  if v_id is null or jsonb_typeof(d) <> 'object' or jsonb_typeof(d->'itens') <> 'array' then return _falha('Item da fila da contingência inválido.'); end if;
+  perform pg_advisory_xact_lock(hashtext('recon:' || v_id));
+  select * into v_ja from contingencia_reconciliada where id_fila = v_id;
+  if found then return jsonb_build_object('ok', true, 'jaFeita', true, 'id', v_ja.venda_id); end if;
+
+  v_origem := coalesce(d->>'origem', '');
+  if v_origem = 'Cardápio' then
+    v_r := _criar_pedido_publico((d - 'desconto' - 'senhaAdminConfirmacao') || jsonb_build_object('requisicaoId', v_id), null);
+  elsif v_origem = 'Caixa' then
+    v_req := coalesce(nullif(d->>'requisicaoOriginal', ''), v_id);
+    v_r := api_iniciar_venda((d - 'desconto' - 'senhaAdminConfirmacao' - 'timestampOriginal' - 'requisicaoOriginal' - 'emergenciaOperador')
+      || jsonb_build_object('origem', 'Balcão', 'requisicaoId', v_req));
+  else
+    return _falha('Origem desconhecida na fila: ' || left(v_origem, 40));
+  end if;
+
+  if coalesce(v_r->>'ok', '') <> 'true' then
+    return jsonb_build_object('ok', false, 'message', coalesce(v_r->>'message', 'Não foi possível lançar a venda.'));
+  end if;
+  v_venda := nullif(v_r->>'id', '')::uuid;
+  insert into contingencia_reconciliada (id_fila, venda_id, origem, usuario_id) values (v_id, v_venda, v_origem, auth.uid()) on conflict do nothing;
+  perform _auditar('Venda da contingência reconciliada',
+    'Fila ' || v_id || ' · origem ' || v_origem || ' · venda ' || left(coalesce(v_venda::text, ''), 8)
+      || case when coalesce(d->>'emergenciaOperador', '') <> '' then ' · feita em modo emergência por ' || left(d->>'emergenciaOperador', 40) else '' end, '');
+  return jsonb_build_object('ok', true, 'id', v_venda, 'numero', v_r->'numero', 'duplicado', coalesce((v_r->>'duplicado')::boolean, false));
+end $$;
+revoke all on function public.api_reconciliar_venda_contingencia(jsonb) from public, anon;
+grant execute on function public.api_reconciliar_venda_contingencia(jsonb) to authenticated, service_role;
+
+-- Espelho da contingência todo dia às 3h (Brasília = 6h UTC)
+select cron.unschedule(jobname) from cron.job where jobname = 'contingencia-espelho-diario';
+select cron.schedule('contingencia-espelho-diario', '0 6 * * *', $$ select public.chamar_edge('planilha-admin', '{"acao":"sincronizarContingencia"}'::jsonb); $$);
+
 -- FIM
