@@ -791,6 +791,7 @@ function doPost(e) {
   try { body = JSON.parse(e.postData.contents); } catch (err) { return responder({ ok: false, message: 'Requisição inválida.' }); }
   if (!body || typeof body !== 'object' || Array.isArray(body) || typeof body.action !== 'string') return responder({ ok: false, message: 'Requisição inválida.' });
   const action = body.action;
+    if (ACOES_SERVIDOR_SB_.indexOf(action) !== -1) return responder(acaoServidorSb_(action, body));   // ETAPAS 4/7/8/9 — chamadas da Edge Function (antes da sanitização)
   body = sanitizarEntrada_(body, '', 0);
   USUARIO_ATUAL = ''; NIVEL_ATUAL = ''; AUTORIZADOR_ATUAL = ''; APARELHO_ATUAL = '';
   { // ITEM 2.8: em manutenção, todo mundo (inclusive o cardápio público) recebe aviso na hora; só Admin passa.
@@ -5741,3 +5742,179 @@ function reconciliarContingencia() {
 
 /* As chaves da contingência (CONTINGENCIA_CHAVE_SERVIDOR e CONTINGENCIA_CHAVE_INTERNA) ficam SOMENTE nas Propriedades do script
    (Configurações do projeto -> Propriedades do script). Nunca escreva chave no código. Para trocar: rotacionarChavesSensiveis() no projeto da contingência. */
+
+/* ============================================================================
+   TEXAS BURGER — SINCRONIZAÇÃO COM O SUPABASE (Etapas 4, 7, 8 e 9)
+   Arquivo NOVO no mesmo projeto do Apps Script da planilha principal (+ Arquivo → "Novo arquivo de script").
+
+   1) Propriedades do script (Configurações do projeto → Propriedades):
+        SB_CHAVE_SERVIDOR      = mesma chave que vai em PRINCIPAL_CHAVE_SERVIDOR na Edge Function (comece com txbsb-)
+        DRIVE_CONTINGENCIA_ID  = ID da pasta de fotos da contingência (só para replicar fotos)
+   2) Em doPost, logo depois de  const action = body.action;  acrescente UMA linha:
+        if (ACOES_SERVIDOR_SB_.indexOf(action) !== -1) return responder(acaoServidorSb_(action, body));
+      (antes de sanitizarEntrada_, para o conteúdo não ser alterado)
+   3) Republicar o Web App (nova versão).
+
+   O espelho grava em abas "SB_<tabela>" (uma linha por registro, coluna A = id). As abas antigas
+   (Vendas, ItensVenda…) NÃO são mexidas: o mapeamento delas depende do plano de colunas da Etapa 0.
+   ============================================================================ */
+const ACOES_SERVIDOR_SB_ = ['syncLote', 'arquivar', 'replicarFotos', 'contarVendasHoje'];
+const SB_FUSO_ = 'America/Sao_Paulo';
+const SB_LIMITE_CELULA_ = 40000;
+
+function acaoServidorSb_(action, body) {
+  const esperada = PropertiesService.getScriptProperties().getProperty('SB_CHAVE_SERVIDOR') || '';
+  if (!esperada || !sbIgual_(String(body.chave || ''), esperada)) return { ok: false, message: 'Chave inválida.' };
+  const lock = LockService.getScriptLock();
+  try { lock.waitLock(25000); } catch (e) { return { ok: false, ocupado: true, message: 'Planilha ocupada.' }; }
+  try {
+    if (action === 'syncLote') return sbSyncLote_(body.itens);
+    if (action === 'arquivar') return sbArquivar_(body);
+    if (action === 'replicarFotos') return sbReplicarFotos_(body.itens);
+    if (action === 'contarVendasHoje') return sbContarVendasHoje_(body.data);
+    return { ok: false, message: 'Ação desconhecida.' };
+  } catch (e) {
+    return { ok: false, message: 'Erro: ' + String(e && e.message || e).slice(0, 300) };
+  } finally { lock.releaseLock(); }
+}
+
+function sbIgual_(a, b) { // comparação sem atalho por tamanho/posição
+  if (a.length !== b.length) return false;
+  let d = 0; for (let i = 0; i < a.length; i++) d |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return d === 0;
+}
+
+/* Valor → célula. Texto que o Sheets converteria sozinho (datas, números, fórmulas) ganha apóstrofo para ficar texto;
+   números de verdade continuam números (evita o problema de "número formatado como texto"). */
+function sbCelula_(v) {
+  if (v === null || v === undefined) return '';
+  if (typeof v === 'number' || typeof v === 'boolean') return v;
+  let s = (typeof v === 'object') ? JSON.stringify(v) : String(v);
+  if (s.length > SB_LIMITE_CELULA_) s = s.slice(0, SB_LIMITE_CELULA_);
+  if (/^[=+\-@]/.test(s) || /^\d{4}-\d{2}-\d{2}/.test(s) || /^[\d.,\s:]+(e\d+)?$/i.test(s)) s = "'" + s;
+  return s;
+}
+
+function sbAba_(nome) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sh = ss.getSheetByName(nome);
+  if (!sh) { sh = ss.insertSheet(nome); sh.getRange(1, 1).setValue('_id'); sh.setFrozenRows(1); }
+  return sh;
+}
+
+/* Upsert/remoção por id numa aba. linhas = [{id, dados}], remover = [id]. Devolve {gravadas, removidas}. */
+function sbUpsert_(nomeAba, linhas, remover) {
+  const sh = sbAba_(nomeAba);
+  let cab = sh.getLastColumn() ? sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(String) : ['_id'];
+  if (!cab.length || cab[0] === '') cab = ['_id'];
+  // colunas novas
+  const novas = [];
+  linhas.forEach(function (l) { Object.keys(l.dados).forEach(function (k) { if (cab.indexOf(k) === -1 && novas.indexOf(k) === -1) novas.push(k); }); });
+  if (novas.length) { cab = cab.concat(novas); sh.getRange(1, 1, 1, cab.length).setValues([cab]); }
+  const ultima = sh.getLastRow();
+  const ids = ultima > 1 ? sh.getRange(2, 1, ultima - 1, 1).getValues().map(function (r) { return String(r[0]); }) : [];
+  const pos = {}; ids.forEach(function (id, i) { pos[id] = i + 2; });
+
+  const novasLinhas = []; let gravadas = 0;
+  linhas.forEach(function (l) {
+    const linha = cab.map(function (c, i) { return i === 0 ? sbCelula_(l.id) : (c in l.dados ? sbCelula_(l.dados[c]) : ''); });
+    const p = pos[String(l.id)];
+    if (p) {
+      // atualiza só as colunas enviadas (mantém o que a planilha tiver em colunas extras)
+      sh.getRange(p, 1, 1, cab.length).setValues([linha]);
+    } else { novasLinhas.push(linha); pos[String(l.id)] = -1; }
+    gravadas++;
+  });
+  if (novasLinhas.length) sh.getRange(sh.getLastRow() + 1, 1, novasLinhas.length, cab.length).setValues(novasLinhas);
+
+  let removidas = 0;
+  if (remover && remover.length) {
+    const alvo = {}; remover.forEach(function (id) { alvo[String(id)] = true; });
+    const atuais = sh.getLastRow() > 1 ? sh.getRange(2, 1, sh.getLastRow() - 1, 1).getValues() : [];
+    for (let i = atuais.length - 1; i >= 0; i--) {
+      if (alvo[String(atuais[i][0]).replace(/^'/, '')]) { sh.deleteRow(i + 2); removidas++; }
+    }
+  }
+  return { gravadas: gravadas, removidas: removidas };
+}
+
+/* ETAPA 4 — itens da fila_sync: {id, tabela, registro_id, operacao, payload}. Só vale o ÚLTIMO estado de cada registro. */
+function sbSyncLote_(itens) {
+  if (!Array.isArray(itens)) return { ok: false, message: 'Lote inválido.' };
+  const ultimo = {}; // tabela|id -> item
+  itens.forEach(function (it) { if (it && it.tabela && it.registro_id != null) ultimo[it.tabela + '|' + it.registro_id] = it; });
+  const porTabela = {};
+  Object.keys(ultimo).forEach(function (k) {
+    const it = ultimo[k]; const t = String(it.tabela).replace(/[^a-z0-9_]/gi, '');
+    if (!t) return;
+    porTabela[t] = porTabela[t] || { up: [], del: [] };
+    if (it.operacao === 'DELETE') porTabela[t].del.push(String(it.registro_id));
+    else porTabela[t].up.push({ id: String(it.registro_id), dados: it.payload || {} });
+  });
+  let total = 0;
+  Object.keys(porTabela).forEach(function (t) {
+    const r = sbUpsert_('SB_' + t, porTabela[t].up, porTabela[t].del);
+    total += r.gravadas + r.removidas;
+  });
+  return { ok: true, processados: total };
+}
+
+/* ETAPA 7 — arquivo permanente. Grava por id (reenvio não duplica), confere e só então tira do espelho. */
+function sbArquivar_(b) {
+  function pacote(lista, aba, chaveAba) {
+    const linhas = (lista || []).map(function (r) {
+      if (!r || r.id == null) throw new Error('Linha sem id em ' + aba);
+      return { id: String(r.id), dados: r };
+    });
+    sbUpsert_(aba, linhas, []);
+    sbUpsert_(chaveAba, [], linhas.map(function (l) { return l.id; })); // sai do espelho "vivo"
+    return linhas.length;
+  }
+  if (b.tipo === 'vendas') {
+    const n = pacote(b.vendas, 'Arquivo_Vendas', 'SB_vendas');
+    pacote(b.itens, 'Arquivo_Itens', 'SB_itens_venda');
+    pacote(b.pagamentos, 'Arquivo_Pagamentos', 'SB_pagamentos_venda');
+    return { ok: true, recebidas: n };
+  }
+  if (b.tipo === 'caixa') {
+    const n = pacote(b.caixas, 'Arquivo_Caixa', 'SB_caixa_sessoes');
+    pacote(b.sangrias, 'Arquivo_Sangrias', 'SB_sangrias');
+    return { ok: true, recebidas: n };
+  }
+  return { ok: false, message: 'Tipo de arquivamento desconhecido.' };
+}
+
+/* ETAPA 8 — copia a foto do Drive principal para a pasta da contingência. Devolve [{id, foto_id_contingencia}]. */
+function sbReplicarFotos_(itens) {
+  const pastaId = PropertiesService.getScriptProperties().getProperty('DRIVE_CONTINGENCIA_ID');
+  if (!pastaId) return { ok: false, message: 'DRIVE_CONTINGENCIA_ID não configurado.' };
+  const pasta = DriveApp.getFolderById(pastaId);
+  const resultados = [], falhas = [];
+  (itens || []).forEach(function (p) {
+    try {
+      if (!p.foto_id_principal) return;
+      const copia = DriveApp.getFileById(p.foto_id_principal).makeCopy('txb-' + String(p.nome || p.id).slice(0, 40) + '-' + Date.now(), pasta);
+      copia.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+      resultados.push({ id: p.id, foto_id_contingencia: copia.getId() });
+    } catch (e) { falhas.push(String(p.id)); }
+  });
+  return { ok: true, resultados: resultados, falhas: falhas, message: falhas.length ? falhas.length + ' foto(s) não copiadas.' : '' };
+}
+
+/* ETAPA 9 — vendas confirmadas do dia (horário de Brasília) no espelho. data = 'yyyy-MM-dd'. */
+function sbContarVendasHoje_(data) {
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('SB_vendas');
+  if (!sh || sh.getLastRow() < 2) return { ok: true, total: 0 };
+  const cab = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(String);
+  const iS = cab.indexOf('status'), iD = cab.indexOf('data_hora');
+  if (iS < 0 || iD < 0) return { ok: false, message: 'Colunas status/data_hora não encontradas em SB_vendas.' };
+  const v = sh.getRange(2, 1, sh.getLastRow() - 1, cab.length).getValues();
+  let total = 0;
+  v.forEach(function (r) {
+    if (String(r[iS]) !== 'Confirmada') return;
+    const d = (r[iD] instanceof Date) ? r[iD] : new Date(String(r[iD]));
+    if (isNaN(d.getTime())) return;
+    if (Utilities.formatDate(d, SB_FUSO_, 'yyyy-MM-dd') === data) total++;
+  });
+  return { ok: true, total: total };
+}

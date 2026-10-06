@@ -3189,7 +3189,7 @@ async function sbRpcPublico_(fn, corpo){
   if(!r.ok) return { ok:false, message:'Não foi possível concluir agora (erro ' + r.status + '). Tente novamente em instantes.' };
   return j && typeof j === 'object' ? j : { ok:false, message:'Resposta inesperada do servidor.' };
 }
-const SB_NAO_MIGRADA_ = 'Esta ação ainda não foi migrada para o novo servidor (fotos e backup ficam para as próximas etapas). Nada foi gravado.';
+const SB_NAO_MIGRADA_ = 'Esta ação ainda não foi migrada para o novo servidor (remoção de foto e alguns itens de backup ficam para as próximas etapas). Nada foi gravado.';
 /* Roteador: devolve a resposta no formato antigo, ou undefined se a ação não for tratada aqui (não acontece com USAR_SUPABASE_ ligado). */
 let _sbDespMes_ = '';
 async function sbGarantirDespesasMes_(){ // faz o papel do gatilho diário da planilha: o banco só gera 1x por mês, então a chamada é barata
@@ -3234,6 +3234,7 @@ async function sbRotear_(action, payload){
       if(action === 'trocarMinhaSenha' && r && r.ok){ const s = sbSessaoLer_(); if(s) r.token = s.access_token; }
       return r;
     }
+    if(action === 'uploadFotoProduto' || action === 'uploadFotoCombo') return await sbUploadFoto_(action, payload);   // ETAPA 8 (Edge Function → Drive)
     if(action === 'obterChaveContingencia' || action === 'obterStatusBackup') return { ok:false, naoMigrada:true };
     return { ok:false, naoMigrada:true, message: SB_NAO_MIGRADA_ };
   }catch(e){
@@ -10903,8 +10904,8 @@ async function impComplementarProdutos_(){
 }
 
 /* PASSO 3 — envia a foto de quem está sem foto, um por vez */
-/* Envio de fotos (uploadFotoProduto/Combo) ainda roda só na planilha antiga; passa a valer na Etapa 8 (fotos). Mude para true quando for migrado. */
-const SB_FOTOS_MIGRADAS_ = false;
+/* Envio de fotos (uploadFotoProduto/Combo) migrado na Etapa 8: vai pela Edge Function upload-foto direto para o Google Drive. */
+const SB_FOTOS_MIGRADAS_ = true;
 async function impAplicarFotos_(){
   if(USAR_SUPABASE_ && !SB_FOTOS_MIGRADAS_) return { total:0, ok:0, falhas:0, parou:false, adiada:true };
   const fila = [];
@@ -10979,5 +10980,293 @@ async function aplicarFotosCardapioInicial(){
   } finally { _impEmAndamento_ = false; }
 }
 </script>
+<!-- ═══════════ TEXAS BURGER — ETAPAS 4, 7, 8 e 9 (frontend) ═══════════
+     APLICADO no index.html.
+     Não mexe nos cartões de Backup/Armazenamento que já existem: cria cartões novos (ids sb410*) no fim da aba Armazenamento.
+     Etapas 5 e 6 (modo reserva e tempo real) NÃO estão aqui: dependem do index.html novo. -->
+<div id="sb410FotoModal" class="modal-overlay" onclick="if(event.target===this)sb410FotoResp_(null)">
+  <div class="modal-box" style="max-width:420px;">
+    <h2 style="margin:0 0 6px;">Onde salvar esta foto?</h2>
+    <p class="sub">As fotos ficam só no Google Drive.</p>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <button class="ghost" style="padding:12px;" onclick="sb410FotoResp_('principal')">☁️ Drive principal (recomendado)</button>
+      <button class="ghost" style="padding:12px;" onclick="sb410FotoResp_('contingencia')">🟦 Drive da contingência</button>
+      <button class="ghost" style="padding:12px;" onclick="sb410FotoResp_('ambos')">🟣 Os dois (mais seguro)</button>
+    </div>
+    <label style="display:flex;gap:8px;align-items:center;margin-top:12px;font-size:13px;"><input type="checkbox" id="sb410FotoLembrar" style="width:auto;"> Lembrar minha escolha</label>
+    <button class="ghost" style="margin-top:10px;width:100%;" onclick="sb410FotoResp_(null)">Cancelar</button>
+  </div>
+</div>
+
+<script>
+/* ---------- base ---------- */
+async function sb410Token_(){
+  let s = sbSessaoLer_(); if(!s) throw new SbSessaoExpirada_();
+  if(Date.now() > s.expira){ if(!(await sbRenovar_())) throw new SbSessaoExpirada_(); s = sbSessaoLer_(); }
+  return s.access_token;
+}
+async function sb410Rpc_(fn){
+  const t = await sb410Token_();
+  const r = await sbJson_(SUPABASE_URL_+'/rest/v1/rpc/'+fn, { method:'POST', headers:{ apikey:SUPABASE_CHAVE_, Authorization:'Bearer '+t, 'Content-Type':'application/json' }, body:'{}' }, 20000, 1);
+  return await r.json();
+}
+async function sb410Edge_(nome, corpo, ms){
+  const t = await sb410Token_();
+  const r = await sbJson_(SUPABASE_URL_+'/functions/v1/'+nome, { method:'POST', headers:{ Authorization:'Bearer '+t, 'Content-Type':'application/json' }, body: JSON.stringify(corpo||{}) }, ms||60000);
+  return await r.json().catch(()=>({ ok:false, message:'Resposta inválida do servidor.' }));
+}
+const sb410Fmt_ = iso => iso ? new Date(iso).toLocaleString('pt-BR') : '—';
+const sb410Admin_ = () => !!currentUser && currentUser.nivel === 'Admin';
+const sb410Gestor_ = () => !!currentUser && (currentUser.nivel === 'Admin' || currentUser.nivel === 'Operador');
+
+/* ---------- cartões (criados uma vez, no fim da aba Armazenamento) ---------- */
+function sb410Montar_(){
+  const aba = document.getElementById('tab-armazenamento');
+  if(!aba || !USAR_SUPABASE_ || document.getElementById('sb410Sync')) return;
+  aba.insertAdjacentHTML('beforeend', `
+  <div class="card" id="sb410Sync"><h2>Sincronização com as planilhas</h2><div id="sb410SyncBox">Carregando…</div>
+    <button class="small-gold" style="width:100%;padding:10px;margin-top:8px;" onclick="sb410SyncAgora()">Sincronizar agora</button></div>
+  <div class="card" id="sb410Bk"><h2>Backup do Supabase</h2><div id="sb410BkBox">Carregando…</div>
+    <button class="small-gold" style="width:100%;padding:10px;margin-top:8px;" onclick="sb410BkAgora()">Fazer backup agora</button></div>
+  <div class="card" id="sb410Esp"><h2>Uso do Supabase</h2><div id="sb410EspBox">Carregando…</div></div>
+  <div class="card" id="sb410Fotos"><h2>Fotos (Google Drive)</h2>
+    <label for="sb410FotoPadrao">Ao enviar uma foto nova</label>
+    <select id="sb410FotoPadrao" style="width:100%;margin-bottom:8px;" onchange="sb410FotoSalvarPadrao(this.value)">
+      <option value="principal">Salvar no Drive principal</option><option value="contingencia">Salvar no Drive da contingência</option>
+      <option value="ambos">Salvar nos dois</option><option value="perguntar">Perguntar sempre</option></select>
+    <button class="ghost" style="width:100%;padding:10px;" onclick="sb410FotoSync()">Copiar fotos antigas para a contingência</button>
+    <div class="msg" id="sb410FotoMsg"></div></div>
+  <div class="card" id="sb410Integ"><h2>Conferência de integridade</h2>
+    <p class="sub">Compara as vendas de hoje no Supabase com a planilha.</p>
+    <button class="ghost" style="width:100%;padding:10px;" onclick="sb410Integ()">Conferir agora</button><div class="msg" id="sb410IntegMsg"></div></div>`);
+}
+function sb410Carregar_(){
+  sb410Montar_();
+  if(!sb410Gestor_()) return;
+  sb410SyncStatus();
+  const adm = sb410Admin_();
+  ['sb410Bk','sb410Esp','sb410Fotos','sb410Integ'].forEach(id=>{ const e=document.getElementById(id); if(e) e.style.display = adm ? '' : 'none'; });
+  if(adm){ sb410BkLista(); sb410Espaco(); sb410FotoCarregarPadrao(); }
+}
+
+/* ---------- Etapa 4: sincronização ---------- */
+async function sb410SyncStatus(){
+  const box = document.getElementById('sb410SyncBox'); if(!box) return;
+  try{
+    const j = await sb410Rpc_('api_sync_status');
+    if(!j || !j.ok){ box.textContent = 'Sem dados.'; return; }
+    const horas = j.principal_ultimo_ok ? Math.round((Date.now()-new Date(j.principal_ultimo_ok).getTime())/3600000) : null;
+    const travada = j.pendentes_principal > (j.alerta_itens||500) || (j.pendentes_principal>0 && (horas===null || horas > (j.alerta_horas||6)));
+    box.innerHTML = `<div class="stat-row">
+      <div class="stat-box"><b>${j.pendentes_principal}</b>Pendentes (principal)</div>
+      <div class="stat-box"><b>${j.pendentes_contingencia}</b>Pendentes (contingência)</div>
+      <div class="stat-box"><b>${j.erros_principal}</b>Com erro</div></div>
+      <span class="obs-line">Principal: último envio ${sb410Fmt_(j.principal_ultimo_ok)}${j.principal_ultimo_erro_msg?' · último erro: '+escH(j.principal_ultimo_erro_msg):''}</span>
+      <span class="obs-line">Contingência: último envio ${sb410Fmt_(j.contingencia_ultimo_ok)}${j.contingencia_ultimo_erro_msg?' · último erro: '+escH(j.contingencia_ultimo_erro_msg):''}</span>
+      ${travada?'<span class="obs-line" style="color:#ffb3ab;">⚠️ Fila parada — confira o acesso às planilhas e a cota do Apps Script.</span>':''}`;
+  }catch(e){ box.textContent = 'Não foi possível carregar.'; }
+}
+async function sb410SyncAgora(){
+  const box = document.getElementById('sb410SyncBox'); if(box) box.textContent = 'Sincronizando…';
+  try{ const j = await sb410Edge_('sync-fila', {}, 90000); if(!j.ok) alert('Falha: '+(j.message||'erro')); }catch(e){ alert('Sem conexão.'); }
+  sb410SyncStatus();
+}
+
+/* ---------- Etapa 7: backup e espaço ---------- */
+async function sb410BkLista(){
+  const box = document.getElementById('sb410BkBox'); if(!box) return;
+  try{
+    const l = await sbSelecionar_('backups','order=data_hora.desc&limit=10',true);
+    box.innerHTML = l.length ? l.map(b=>`<div style="margin:6px 0;"><b>${sb410Fmt_(b.data_hora)}</b> · ${escH(b.tipo)} · <span class="badge ${b.status==='Sucesso'?'done':(b.status==='Erro'?'baixo':'pend')}">${escH(b.status)}</span>
+      ${b.tamanho_bytes?`<span class="obs-line">${Math.round(b.tamanho_bytes/1024)} KB${b.erro?' · '+escH(b.erro):''}</span>`:(b.erro?`<span class="obs-line">${escH(b.erro)}</span>`:'')}
+      ${b.status==='Sucesso'?`<button class="ghost" style="margin-top:4px;padding:4px 10px;font-size:11px;" onclick="sb410BkRestaurar('${escH(b.id)}')">Restaurar</button>`:''}</div>`).join('')
+      : '<span class="obs-line">Nenhum backup ainda.</span>';
+  }catch(e){ box.textContent = 'Não foi possível carregar.'; }
+}
+async function sb410BkAgora(){
+  if(!confirm('Fazer backup agora? Pode levar alguns segundos.')) return;
+  try{ const j = await sb410Edge_('criar-backup', { tipo:'Manual' }, 120000);
+    alert(j.ok ? 'Backup feito ('+Math.round((j.tamanho||0)/1024)+' KB).' : 'Erro: '+(j.message||'falha')); }catch(e){ alert('Sem conexão.'); }
+  sb410BkLista();
+}
+async function sb410BkRestaurar(id){
+  if(!confirm('Restaurar este backup? Os dados atuais serão substituídos (usuários, auditoria e backups são preservados). Um backup de segurança é feito antes.')) return;
+  const senha = prompt('Digite a senha do Administrador:'); if(!senha) return;
+  try{ const j = await sb410Edge_('restaurar-backup', { backupId:id, senhaAdmin:senha }, 240000);
+    alert(j.message || (j.ok?'Restaurado.':'Erro.')); if(j.ok) location.reload(); }catch(e){ alert('Sem conexão. Confira o estado antes de repetir.'); }
+}
+async function sb410Espaco(){
+  const box = document.getElementById('sb410EspBox'); if(!box) return;
+  try{
+    const j = await sb410Rpc_('api_espaco_uso');
+    if(!j || !j.ok){ box.textContent = '—'; return; }
+    const cor = j.percentual > 90 ? '#e0443a' : j.percentual > 70 ? '#f5902e' : '#4cc35f';
+    box.innerHTML = `<div style="height:12px;background:#3a2c1c;border-radius:6px;overflow:hidden;"><div style="width:${Math.min(100,j.percentual)}%;height:100%;background:${cor};"></div></div>
+      <div class="stat-row" style="margin-top:10px;"><div class="stat-box"><b>${j.db_mb} MB</b>Usado</div><div class="stat-box"><b>${j.percentual}%</b>De 500 MB</div>
+      <div class="stat-box"><b>${j.vendas_total}</b>Vendas ativas</div><div class="stat-box"><b>${j.vendas_arquivadas}</b>Arquivadas</div></div>
+      <span class="obs-line">Vendas com mais de 90 dias vão para a planilha (abas Arquivo_*) e saem do Supabase.</span>`;
+  }catch(e){ box.textContent = '—'; }
+}
+
+/* ---------- Etapa 8: fotos só no Drive ---------- */
+let _sb410FotoRes_ = null;
+function sb410FotoResp_(d){
+  document.getElementById('sb410FotoModal').classList.remove('open');
+  if(d && document.getElementById('sb410FotoLembrar').checked) sb410FotoSalvarPadrao(d);
+  const f = _sb410FotoRes_; _sb410FotoRes_ = null; if(f) f(d);
+}
+function sb410FotoPerguntar_(){ return new Promise(res=>{ _sb410FotoRes_ = res; document.getElementById('sb410FotoLembrar').checked = false; document.getElementById('sb410FotoModal').classList.add('open'); }); }
+async function sb410FotoCarregarPadrao(){
+  try{ const c = await sbSelecionar_('configuracoes_fotos','id=eq.true',true); const s = document.getElementById('sb410FotoPadrao'); if(s && c[0]) s.value = c[0].destino_padrao_upload; }catch(e){}
+}
+async function sb410FotoSalvarPadrao(v){
+  try{ const t = await sb410Token_();
+    await sbJson_(SUPABASE_URL_+'/rest/v1/configuracoes_fotos?id=eq.true', { method:'PATCH', headers:{ apikey:SUPABASE_CHAVE_, Authorization:'Bearer '+t, 'Content-Type':'application/json', Prefer:'return=minimal' }, body: JSON.stringify({ destino_padrao_upload:v, atualizado_em:new Date().toISOString() }) }, 15000);
+    const s = document.getElementById('sb410FotoPadrao'); if(s) s.value = v;
+  }catch(e){}
+}
+async function sb410FotoSync(){
+  const m = document.getElementById('sb410FotoMsg'); if(m) m.textContent = 'Copiando…';
+  try{ const j = await sb410Edge_('sincronizar-fotos', {}, 120000); if(m) m.textContent = j.ok ? (j.message || (j.replicadas||0)+' foto(s) copiada(s).') : 'Erro: '+(j.message||'falha'); }
+  catch(e){ if(m) m.textContent = 'Sem conexão.'; }
+}
+/* Chamada pelo roteador (sbRotear_) no lugar do "ainda não migrada" — ver LEIA-ME */
+async function sbUploadFoto_(action, p){
+  let destino = 'principal';
+  try{ const c = await sbSelecionar_('configuracoes_fotos','id=eq.true',true); destino = (c[0] && c[0].destino_padrao_upload) || 'principal'; }catch(e){}
+  if(destino === 'perguntar'){ destino = await sb410FotoPerguntar_(); if(!destino) return { ok:false, message:'Envio cancelado.' }; }
+  const corpo = { nomeBase:p.nomeBase, base64Data:p.base64Data, mimeType:p.mimeType, destino };
+  if(action === 'uploadFotoCombo') corpo.comboId = p.comboId; else corpo.produtoId = p.produtoId;
+  const j = await sb410Edge_('upload-foto', corpo, 90000);
+  if(j && j.ok){
+    j.fotoId = j.id_principal || j.id_contingencia; j.fotoUrl = sbFotoUrl_(j.fotoId);
+    // quem chama espera as listas atualizadas (r.produtos / r.combos)
+    const lista = action === 'uploadFotoCombo' ? combos : produtos, alvo = action === 'uploadFotoCombo' ? p.comboId : p.produtoId;
+    const it = (lista || []).find(x => x.id === alvo);
+    if(it && j.id_principal){ it.fotoId = j.id_principal; it.fotoUrl = j.fotoUrl; }
+    j.produtos = produtos; j.combos = combos;
+  }
+  return j;
+}
+
+/* ---------- Etapa 9: integridade ---------- */
+async function sb410Integ(){
+  const m = document.getElementById('sb410IntegMsg'); if(m) m.textContent = 'Conferindo…';
+  try{ const j = await sb410Edge_('conferir-integridade', {}, 60000);
+    if(m) m.textContent = j.ok ? `Supabase: ${j.supabase} · Planilha: ${j.planilha} · Diferença: ${j.dif} (na fila: ${j.pendentes_fila})` : 'Erro: '+(j.message||'falha'); }
+  catch(e){ if(m) m.textContent = 'Sem conexão.'; }
+}
+
+/* ---------- gancho: ao abrir Administrador → Armazenamento ---------- */
+(function(){
+  const orig = window.abrirAdministrador;
+  if(typeof orig !== 'function') return;
+  window.abrirAdministrador = function(sub){
+    const r = orig.apply(this, arguments);
+    try{ const ativa = document.querySelector('#tab-armazenamento'); if(ativa && ativa.classList.contains('active')) sb410Carregar_(); }catch(e){}
+    return r;
+  };
+})();
+</script>
+
+<!-- ═══════════ TEXAS BURGER — ETAPAS 5 e 6 (RASCUNHO, NÃO TESTADO) ═══════════
+     Colar ANTES de </body> do index.html, DEPOIS do bloco das etapas 4-7-8-9.
+     Escrito contra o index.html enviado em 2026-10-05; rever quando chegar o arquivo atualizado.
+     Etapa 5 (aqui): detecta a queda do Supabase, avisa com faixa laranja e reenvia a fila do aparelho sozinha na volta.
+       As vendas já ficam guardadas pelo mecanismo que o app tem (fila offline + requisicaoId, sem duplicar).
+       NÃO inclui a troca automática para a planilha principal / contingência (precisa da decisão de mapeamento).
+     Etapa 6 (aqui): tempo real por WebSocket direto (sem biblioteca). O evento só avisa "mudou algo";
+       os dados são baixados de novo pelo caminho normal do app. Requer a seção "ETAPA 6" do SQL. -->
+<script>
+/* ===================== ETAPA 5 — QUEDA DO SUPABASE ===================== */
+const SB5_FALHAS_PARA_AVISAR_ = 3;   // espelha contingencia_config.falhas_para_planilha (padrão 3)
+let _sb5Falhas_ = 0, _sb5Queda_ = false;
+function sb5Faixa_(){
+  let d = document.getElementById('sb5Faixa');
+  if(!d){
+    d = document.createElement('div'); d.id = 'sb5Faixa';
+    d.style.cssText = 'display:none;position:fixed;top:0;left:0;right:0;z-index:9998;background:#b45309;color:#fff;padding:8px 12px;text-align:center;font:700 13px/1.3 system-ui,sans-serif;';
+    document.body.appendChild(d);
+  }
+  return d;
+}
+function sb5Atualizar_(){
+  const d = sb5Faixa_();
+  if(!_sb5Queda_){ d.style.display = 'none'; return; }
+  const n = (typeof _fila !== 'undefined') ? _fila.filter(i => i.estado !== 'erro').length : 0;
+  d.textContent = '🟠 Sem conexão com o servidor — o que for lançado fica salvo neste aparelho' + (n ? ' (' + n + ' na fila)' : '') + ' e é enviado sozinho quando voltar.';
+  d.style.display = 'block';
+}
+(function(){
+  const orig = window.sbNivelMarcar_;
+  if(typeof orig !== 'function') return;
+  window.sbNivelMarcar_ = function(ok){
+    if(ok){
+      _sb5Falhas_ = 0;
+      if(_sb5Queda_){ _sb5Queda_ = false; sb5Atualizar_(); setTimeout(()=>{ try{ filaProcessar(); }catch(e){} try{ atualizarAposDuplicado_(); }catch(e){} }, 600); }
+    } else {
+      _sb5Falhas_++;
+      if(!_sb5Queda_ && _sb5Falhas_ >= SB5_FALHAS_PARA_AVISAR_){ _sb5Queda_ = true; sb5Atualizar_(); }
+    }
+    return orig.apply(this, arguments);
+  };
+  setInterval(()=>{ if(_sb5Queda_) sb5Atualizar_(); }, 5000);   // mantém o contador da fila em dia
+})();
+
+/* ===================== ETAPA 6 — TEMPO REAL ===================== */
+let _sb6Ws_ = null, _sb6Hb_ = null, _sb6Tok_ = null, _sb6Tent_ = 0, _sb6Retry_ = null, _sb6Deb_ = null, _sb6Parado_ = true, _sb6Pendente_ = false, _sb6Ref_ = 1;
+const SB6_TOPICO_ = 'realtime:txb-rt';
+async function sb6Token_(){
+  let s = sbSessaoLer_(); if(!s) return null;
+  if(Date.now() > s.expira){ if(!(await sbRenovar_())) return null; s = sbSessaoLer_(); }
+  return s ? s.access_token : null;
+}
+function sb6Enviar_(topic, event, payload){ try{ if(_sb6Ws_ && _sb6Ws_.readyState === 1) _sb6Ws_.send(JSON.stringify({ topic, event, payload, ref: String(_sb6Ref_++), join_ref: '1' })); }catch(e){} }
+async function sb6Conectar_(){
+  if(_sb6Ws_ || _sb6Parado_ || !USAR_SUPABASE_ || !currentUser || currentUser.emergencia) return;
+  const tok = await sb6Token_(); if(!tok || _sb6Parado_ || _sb6Ws_) return;
+  let ws;
+  try{ ws = new WebSocket(SUPABASE_URL_.replace(/^http/, 'ws') + '/realtime/v1/websocket?apikey=' + encodeURIComponent(SUPABASE_CHAVE_) + '&vsn=1.0.0'); }
+  catch(e){ return sb6Reagendar_(); }
+  _sb6Ws_ = ws;
+  ws.onopen = () => {
+    _sb6Tent_ = 0;
+    ws.send(JSON.stringify({ topic: SB6_TOPICO_, event: 'phx_join', ref: '1', join_ref: '1', payload: {
+      config: { broadcast: { ack: false, self: false }, presence: { key: '' }, private: false,
+        postgres_changes: [ { event: '*', schema: 'public', table: 'vendas' }, { event: '*', schema: 'public', table: 'mesas' } ] },
+      access_token: tok } }));
+    _sb6Hb_ = setInterval(() => sb6Enviar_('phoenix', 'heartbeat', {}), 25000);
+    _sb6Tok_ = setInterval(async () => { const t = await sb6Token_(); if(t) sb6Enviar_(SB6_TOPICO_, 'access_token', { access_token: t }); }, 20 * 60000);
+  };
+  ws.onmessage = (m) => {
+    let j; try{ j = JSON.parse(m.data); }catch(e){ return; }
+    if(j.event === 'postgres_changes') sb6Mudou_();
+    else if(j.event === 'phx_reply' && j.topic === SB6_TOPICO_ && j.payload && j.payload.status === 'error') { console.warn('[Tempo real] recusado', j.payload); try{ ws.close(); }catch(e){} }
+  };
+  ws.onclose = () => { clearInterval(_sb6Hb_); clearInterval(_sb6Tok_); _sb6Ws_ = null; if(!_sb6Parado_) sb6Reagendar_(); };
+  ws.onerror = () => { try{ ws.close(); }catch(e){} };
+}
+function sb6Reagendar_(){
+  clearTimeout(_sb6Retry_);
+  const ms = Math.min(30000, 1000 * Math.pow(2, Math.min(_sb6Tent_++, 5)));
+  _sb6Retry_ = setTimeout(sb6Conectar_, ms);
+}
+function sb6Mudou_(){
+  clearTimeout(_sb6Deb_);
+  _sb6Deb_ = setTimeout(()=>{
+    if(document.hidden){ _sb6Pendente_ = true; return; }          // aba em segundo plano: atualiza quando voltar
+    try{ atualizarAposDuplicado_(); }catch(e){}                    // caminho normal do app; respeita pop-ups abertos
+  }, 1500);
+}
+document.addEventListener('visibilitychange', ()=>{ if(!document.hidden && _sb6Pendente_){ _sb6Pendente_ = false; sb6Mudou_(); } });
+function sb6Iniciar(){ _sb6Parado_ = false; sb6Conectar_(); }
+function sb6Parar(){ _sb6Parado_ = true; clearTimeout(_sb6Retry_); clearInterval(_sb6Hb_); clearInterval(_sb6Tok_); try{ if(_sb6Ws_) _sb6Ws_.close(); }catch(e){} _sb6Ws_ = null; }
+(function(){
+  const entrar = window.entrarNoApp, sairOrig = window.sair;
+  if(typeof entrar === 'function') window.entrarNoApp = function(){ const r = entrar.apply(this, arguments); setTimeout(sb6Iniciar, 1200); return r; };
+  if(typeof sairOrig === 'function') window.sair = async function(){ sb6Parar(); return sairOrig.apply(this, arguments); };
+})();
+</script>
+
 </body>
 </html>

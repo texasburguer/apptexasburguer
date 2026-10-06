@@ -1,7 +1,7 @@
 -- =====================================================================
 -- TEXAS BURGER — SUPABASE — ESTRUTURA COMPLETA + DADOS
 -- Projeto: texas-burger (awryywtgqfaxppayzpca) · região sa-east-1 · Postgres 17
--- Gerado em: 2026-10-04 (Fase 3 + correções dos itens 1 a 12 do Plano de Correção)
+-- Gerado em: 2026-10-05 (Fase 3 + correções dos itens 1 a 12 + ETAPAS 4 A 10: seção 14 no final)
 --
 -- CONTEÚDO (nesta ordem):
 --   1. Extensões        2. Tipos (enums)     3. Sequências
@@ -9,6 +9,7 @@
 --   7. Funções (166)    8. Views (18)
 --   9. Dados            10. Triggers (74)    11. RLS + políticas (76)
 --  12. Permissões (GRANT/REVOKE)             13. Ajuste das sequências
+--  14. Etapas 4 a 10 (sync, reserva, tempo real, backup/arquivo, fotos, integridade, crons)
 --
 -- OBSERVAÇÕES
 --  * Pode ser rodado inteiro no SQL Editor (é idempotente na estrutura
@@ -5825,4 +5826,321 @@ SELECT setval(pg_get_serial_sequence('public.fila_sync','id'), 2767, true);
 -- OPCIONAL (exige superusuário; o Supabase já cria): trigger de evento que liga RLS em tabelas novas
 -- CREATE EVENT TRIGGER ensure_rls ON ddl_command_end EXECUTE FUNCTION public.rls_auto_enable();
 
+-- FIM
+
+-- 14. ETAPAS 4 A 10 --------------------------------------------------
+-- Antes: SELECT vault.create_secret('<service_role_key>','service_key');  (uma vez)
+CREATE EXTENSION IF NOT EXISTS pg_cron WITH SCHEMA pg_catalog;
+CREATE EXTENSION IF NOT EXISTS pg_net WITH SCHEMA extensions;
+
+-- ═════ ETAPA 4 — SINCRONIZAÇÃO EM SEGUNDO PLANO ═════
+CREATE INDEX IF NOT EXISTS fila_sync_pend_principal_idx ON public.fila_sync (id) WHERE principal_ok_em IS NULL;
+CREATE INDEX IF NOT EXISTS fila_sync_pend_contingencia_idx ON public.fila_sync (id) WHERE contingencia_ok_em IS NULL;
+
+CREATE TABLE IF NOT EXISTS public.sync_estado (
+  id boolean PRIMARY KEY DEFAULT true CHECK (id),
+  principal_ultimo_ok timestamptz, principal_ultimo_erro timestamptz, principal_ultimo_erro_msg text,
+  contingencia_ultimo_ok timestamptz, contingencia_ultimo_erro timestamptz, contingencia_ultimo_erro_msg text,
+  contingencia_atraso_minutos int NOT NULL DEFAULT 60,
+  alerta_itens_limite int NOT NULL DEFAULT 500,
+  alerta_horas_limite int NOT NULL DEFAULT 6,
+  atualizado_em timestamptz NOT NULL DEFAULT now());
+INSERT INTO public.sync_estado (id) VALUES (true) ON CONFLICT DO NOTHING;
+ALTER TABLE public.sync_estado ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS sync_estado_admin ON public.sync_estado;
+CREATE POLICY sync_estado_admin ON public.sync_estado FOR ALL TO authenticated
+  USING (tem_nivel('Admin')) WITH CHECK (tem_nivel('Admin'));
+GRANT ALL ON public.sync_estado TO authenticated, service_role;
+
+-- Mesma função de antes + trava: o arquivamento apaga SEM enfileirar
+-- (senão o DELETE chegaria na planilha e apagaria o que foi arquivado lá).
+CREATE OR REPLACE FUNCTION public.enfileirar_sync()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public' AS $function$
+declare reg jsonb; rid text;
+begin
+  if current_setting('txb.sem_fila', true) = 'on' then return null; end if;
+  if tg_op = 'DELETE' then reg := to_jsonb(old); else reg := to_jsonb(new); end if;
+  rid := coalesce(reg->>'id', reg->>'chave');
+  insert into fila_sync (tabela, registro_id, operacao, payload)
+  values (tg_table_name, rid, tg_op::op_sync, case when tg_op = 'DELETE' then null else reg end);
+  return null;
+end $function$;
+
+CREATE OR REPLACE FUNCTION public.api_sync_status()
+RETURNS jsonb LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path TO 'public' AS $$
+DECLARE v_e sync_estado%rowtype;
+BEGIN
+  IF NOT tem_nivel('Admin','Operador') THEN RETURN _negado(); END IF;
+  SELECT * INTO v_e FROM sync_estado WHERE id=true;
+  RETURN jsonb_build_object('ok',true,
+    'pendentes_principal',(SELECT count(*) FROM fila_sync WHERE principal_ok_em IS NULL),
+    'pendentes_contingencia',(SELECT count(*) FROM fila_sync WHERE contingencia_ok_em IS NULL),
+    'erros_principal',(SELECT count(*) FROM fila_sync WHERE principal_erro IS NOT NULL AND principal_ok_em IS NULL),
+    'erros_contingencia',(SELECT count(*) FROM fila_sync WHERE contingencia_erro IS NOT NULL AND contingencia_ok_em IS NULL),
+    'principal_ultimo_ok',v_e.principal_ultimo_ok,'principal_ultimo_erro',v_e.principal_ultimo_erro,
+    'principal_ultimo_erro_msg',v_e.principal_ultimo_erro_msg,
+    'contingencia_ultimo_ok',v_e.contingencia_ultimo_ok,'contingencia_ultimo_erro',v_e.contingencia_ultimo_erro,
+    'contingencia_ultimo_erro_msg',v_e.contingencia_ultimo_erro_msg,
+    'itens_mais_antigos',(SELECT coalesce(jsonb_agg(x ORDER BY x->>'em'),'[]'::jsonb) FROM (
+        SELECT jsonb_build_object('tabela',tabela,'id',registro_id,'em',criado_em,'tentativas',principal_tentativas,'erro',principal_erro) x
+        FROM fila_sync WHERE principal_ok_em IS NULL ORDER BY id LIMIT 20) q),
+    'alerta_itens',v_e.alerta_itens_limite,'alerta_horas',v_e.alerta_horas_limite);
+END $$;
+REVOKE ALL ON FUNCTION public.api_sync_status() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.api_sync_status() TO authenticated, service_role;
+
+CREATE OR REPLACE FUNCTION public.api_sync_lote(p_limite int DEFAULT 100)
+RETURNS jsonb LANGUAGE sql SECURITY DEFINER SET search_path TO 'public' AS $$
+  SELECT jsonb_build_object('ok',true,'itens',coalesce(jsonb_agg(jsonb_build_object(
+    'id',id,'tabela',tabela,'registro_id',registro_id,'operacao',operacao,'payload',payload,'criado_em',criado_em)
+    ORDER BY id),'[]'::jsonb))
+  FROM (SELECT * FROM fila_sync WHERE principal_ok_em IS NULL ORDER BY id LIMIT p_limite) t $$;
+
+CREATE OR REPLACE FUNCTION public.api_sync_marcar(p_ids bigint[], p_destino text, p_ok boolean, p_erro text DEFAULT NULL)
+RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public' AS $$
+BEGIN
+  IF p_destino = 'principal' THEN
+    IF p_ok THEN UPDATE fila_sync SET principal_ok_em=now(), principal_erro=NULL WHERE id = ANY(p_ids);
+    ELSE UPDATE fila_sync SET principal_tentativas=principal_tentativas+1, principal_erro=left(coalesce(p_erro,'erro'),500) WHERE id = ANY(p_ids); END IF;
+    UPDATE sync_estado SET
+      principal_ultimo_ok = CASE WHEN p_ok THEN now() ELSE principal_ultimo_ok END,
+      principal_ultimo_erro = CASE WHEN NOT p_ok THEN now() ELSE principal_ultimo_erro END,
+      principal_ultimo_erro_msg = CASE WHEN NOT p_ok THEN left(coalesce(p_erro,''),500) ELSE principal_ultimo_erro_msg END,
+      atualizado_em=now() WHERE id=true;
+  ELSE
+    IF p_ok THEN UPDATE fila_sync SET contingencia_ok_em=now(), contingencia_erro=NULL WHERE id = ANY(p_ids);
+    ELSE UPDATE fila_sync SET contingencia_tentativas=contingencia_tentativas+1, contingencia_erro=left(coalesce(p_erro,'erro'),500) WHERE id = ANY(p_ids); END IF;
+    UPDATE sync_estado SET
+      contingencia_ultimo_ok = CASE WHEN p_ok THEN now() ELSE contingencia_ultimo_ok END,
+      contingencia_ultimo_erro = CASE WHEN NOT p_ok THEN now() ELSE contingencia_ultimo_erro END,
+      contingencia_ultimo_erro_msg = CASE WHEN NOT p_ok THEN left(coalesce(p_erro,''),500) ELSE contingencia_ultimo_erro_msg END,
+      atualizado_em=now() WHERE id=true;
+  END IF;
+  RETURN jsonb_build_object('ok',true);
+END $$;
+
+CREATE OR REPLACE FUNCTION public.api_sync_limpar()
+RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public' AS $$
+DECLARE v_n int;
+BEGIN
+  WITH d AS (DELETE FROM fila_sync WHERE principal_ok_em IS NOT NULL AND contingencia_ok_em IS NOT NULL
+    AND principal_ok_em < now() - interval '30 days' RETURNING id) SELECT count(*) INTO v_n FROM d;
+  RETURN jsonb_build_object('ok',true,'removidos',v_n);
+END $$;
+
+-- O alerta vai para a auditoria (não existe a tabela ai_insights nesta estrutura)
+CREATE OR REPLACE FUNCTION public.api_sync_verificar_alerta()
+RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public' AS $$
+DECLARE v_e sync_estado%rowtype; v_pend int; v_horas numeric;
+BEGIN
+  SELECT * INTO v_e FROM sync_estado WHERE id=true;
+  SELECT count(*) INTO v_pend FROM fila_sync WHERE principal_ok_em IS NULL;
+  v_horas := CASE WHEN v_pend = 0 THEN 0 WHEN v_e.principal_ultimo_ok IS NULL THEN 999
+                  ELSE extract(epoch from (now()-v_e.principal_ultimo_ok))/3600 END;
+  IF (v_pend > v_e.alerta_itens_limite OR v_horas > v_e.alerta_horas_limite)
+     AND NOT EXISTS (SELECT 1 FROM auditoria WHERE acao='ALERTA: fila de sincronização parada' AND data_hora > now() - interval '6 hours') THEN
+    INSERT INTO auditoria (usuario_login, acao, detalhes)
+    VALUES ('sistema','ALERTA: fila de sincronização parada', v_pend||' itens pendentes · último envio há '||round(v_horas)||'h');
+  END IF;
+  RETURN jsonb_build_object('ok',true,'pendentes',v_pend,'horas',v_horas);
+END $$;
+
+REVOKE ALL ON FUNCTION public.api_sync_lote(int), public.api_sync_marcar(bigint[],text,boolean,text),
+  public.api_sync_limpar(), public.api_sync_verificar_alerta() FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.api_sync_lote(int), public.api_sync_marcar(bigint[],text,boolean,text),
+  public.api_sync_limpar(), public.api_sync_verificar_alerta() TO service_role;
+
+-- ═════ ETAPA 5 — MODO RESERVA (limites; o app hoje usa 3 falhas fixas) ═════
+CREATE TABLE IF NOT EXISTS public.contingencia_config (
+  id boolean PRIMARY KEY DEFAULT true CHECK (id),
+  timeout_supabase_ms int NOT NULL DEFAULT 8000,
+  falhas_para_planilha int NOT NULL DEFAULT 3,
+  timeout_planilha_ms int NOT NULL DEFAULT 12000,
+  falhas_para_contingencia int NOT NULL DEFAULT 3,
+  reconciliacao_lote int NOT NULL DEFAULT 50,
+  atualizado_em timestamptz NOT NULL DEFAULT now());
+INSERT INTO public.contingencia_config (id) VALUES (true) ON CONFLICT DO NOTHING;
+ALTER TABLE public.contingencia_config ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS contingencia_config_admin ON public.contingencia_config;
+CREATE POLICY contingencia_config_admin ON public.contingencia_config FOR ALL TO authenticated
+  USING (tem_nivel('Admin')) WITH CHECK (tem_nivel('Admin'));
+GRANT ALL ON public.contingencia_config TO authenticated, service_role;
+
+-- ═════ ETAPA 6 — TEMPO REAL (vendas e mesas) ═════
+DO $$
+DECLARE t text;
+BEGIN
+  FOREACH t IN ARRAY ARRAY['vendas','mesas'] LOOP
+    IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname='supabase_realtime' AND schemaname='public' AND tablename=t) THEN
+      EXECUTE format('ALTER PUBLICATION supabase_realtime ADD TABLE public.%I', t);
+    END IF;
+  END LOOP;
+END $$;
+
+-- ═════ ETAPA 7 — BACKUP + ARQUIVAMENTO ═════
+-- (tabela backups já existe: leitura só Admin; escrita é feita pela Edge Function com a chave de serviço.
+--  Liga/desliga e hora do backup automático continuam nas chaves BACKUP_AUTO_ATIVO / BACKUP_HORA da tabela sistema.)
+CREATE TABLE IF NOT EXISTS public.backup_config (
+  id boolean PRIMARY KEY DEFAULT true CHECK (id),
+  auto_retencao_dias int NOT NULL DEFAULT 7,
+  arquivar_ativo boolean NOT NULL DEFAULT true,
+  arquivar_dias int NOT NULL DEFAULT 90 CHECK (arquivar_dias >= 30),
+  atualizado_em timestamptz NOT NULL DEFAULT now());
+INSERT INTO public.backup_config (id) VALUES (true) ON CONFLICT DO NOTHING;
+ALTER TABLE public.backup_config ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS backup_config_admin ON public.backup_config;
+CREATE POLICY backup_config_admin ON public.backup_config FOR ALL TO authenticated
+  USING (tem_nivel('Admin')) WITH CHECK (tem_nivel('Admin'));
+GRANT ALL ON public.backup_config TO authenticated, service_role;
+
+CREATE TABLE IF NOT EXISTS public.arquivo_historico (
+  id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  tabela text NOT NULL,
+  registro_id uuid NOT NULL,
+  arquivado_em timestamptz NOT NULL DEFAULT now(),
+  data_referencia date NOT NULL,
+  UNIQUE (tabela, registro_id));
+ALTER TABLE public.arquivo_historico ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS arquivo_historico_admin ON public.arquivo_historico;
+CREATE POLICY arquivo_historico_admin ON public.arquivo_historico FOR SELECT TO authenticated USING (tem_nivel('Admin'));
+GRANT SELECT ON public.arquivo_historico TO authenticated; GRANT ALL ON public.arquivo_historico TO service_role;
+
+-- Só arquiva venda ENCERRADA (cancelada, ou paga e já entregue/retirada/servida) e sem vínculo que impeça apagar
+-- (ajustes_pos_venda e entregas_fechadas têm ON DELETE RESTRICT: essas vendas ficam no Supabase).
+CREATE OR REPLACE FUNCTION public.api_arquivar_lote_vendas(p_dias int, p_limite int DEFAULT 200)
+RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public' AS $$
+DECLARE v_corte timestamptz := now() - (greatest(p_dias,30)||' days')::interval; v_ids uuid[];
+BEGIN
+  SELECT array_agg(id) INTO v_ids FROM (
+    SELECT v.id FROM vendas v
+    WHERE v.data_hora < v_corte
+      AND (v.status = 'Cancelada' OR (v.status_pagamento = 'Pago' AND coalesce(v.status_pedido::text,'Entregue') IN ('Entregue','Retirada','Servida')))
+      AND NOT EXISTS (SELECT 1 FROM ajustes_pos_venda a WHERE a.venda_id = v.id)
+      AND NOT EXISTS (SELECT 1 FROM entregas_fechadas e WHERE e.venda_id = v.id)
+    ORDER BY v.data_hora LIMIT p_limite) x;
+  RETURN jsonb_build_object('ok',true,
+    'ids', coalesce(to_jsonb(v_ids),'[]'::jsonb),
+    'vendas', (SELECT coalesce(jsonb_agg(to_jsonb(v)),'[]'::jsonb) FROM vendas v WHERE v.id = ANY(coalesce(v_ids,'{}'))),
+    'itens', (SELECT coalesce(jsonb_agg(to_jsonb(i)),'[]'::jsonb) FROM itens_venda i WHERE i.venda_id = ANY(coalesce(v_ids,'{}'))),
+    'pagamentos', (SELECT coalesce(jsonb_agg(to_jsonb(p)),'[]'::jsonb) FROM pagamentos_venda p WHERE p.venda_id = ANY(coalesce(v_ids,'{}'))));
+END $$;
+
+CREATE OR REPLACE FUNCTION public.api_arquivar_confirmar_vendas(p_ids uuid[])
+RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public' AS $$
+DECLARE v_n int;
+BEGIN
+  PERFORM set_config('txb.sem_fila','on',true);   -- vale só nesta transação
+  INSERT INTO arquivo_historico (tabela, registro_id, data_referencia)
+    SELECT 'vendas', unnest(p_ids), CURRENT_DATE ON CONFLICT DO NOTHING;
+  DELETE FROM itens_venda WHERE venda_id = ANY(p_ids);
+  DELETE FROM pagamentos_venda WHERE venda_id = ANY(p_ids);
+  WITH d AS (DELETE FROM vendas WHERE id = ANY(p_ids) RETURNING id) SELECT count(*) INTO v_n FROM d;
+  RETURN jsonb_build_object('ok',true,'removidos',v_n);
+EXCEPTION WHEN foreign_key_violation THEN
+  RETURN _falha('Venda ainda referenciada por outra tabela: '||SQLERRM);
+END $$;
+
+CREATE OR REPLACE FUNCTION public.api_arquivar_lote_caixa(p_dias int, p_limite int DEFAULT 100)
+RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public' AS $$
+DECLARE v_corte timestamptz := now() - (greatest(p_dias,30)||' days')::interval; v_ids uuid[];
+BEGIN
+  SELECT array_agg(id) INTO v_ids FROM (
+    SELECT c.id FROM caixa_sessoes c
+    WHERE c.status = 'Fechado' AND c.fechamento < v_corte
+      AND NOT EXISTS (SELECT 1 FROM vendas v WHERE v.caixa_id = c.id)   -- só depois das vendas dele
+    ORDER BY c.fechamento LIMIT p_limite) x;
+  RETURN jsonb_build_object('ok',true,
+    'ids', coalesce(to_jsonb(v_ids),'[]'::jsonb),
+    'caixas', (SELECT coalesce(jsonb_agg(to_jsonb(c)),'[]'::jsonb) FROM caixa_sessoes c WHERE c.id = ANY(coalesce(v_ids,'{}'))),
+    'sangrias', (SELECT coalesce(jsonb_agg(to_jsonb(s)),'[]'::jsonb) FROM sangrias s WHERE s.caixa_id = ANY(coalesce(v_ids,'{}'))));
+END $$;
+
+CREATE OR REPLACE FUNCTION public.api_arquivar_confirmar_caixa(p_ids uuid[])
+RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public' AS $$
+DECLARE v_n int;
+BEGIN
+  PERFORM set_config('txb.sem_fila','on',true);
+  INSERT INTO arquivo_historico (tabela, registro_id, data_referencia)
+    SELECT 'caixa_sessoes', unnest(p_ids), CURRENT_DATE ON CONFLICT DO NOTHING;
+  DELETE FROM sangrias WHERE caixa_id = ANY(p_ids);
+  WITH d AS (DELETE FROM caixa_sessoes WHERE id = ANY(p_ids) RETURNING id) SELECT count(*) INTO v_n FROM d;
+  RETURN jsonb_build_object('ok',true,'removidos',v_n);
+EXCEPTION WHEN foreign_key_violation THEN
+  RETURN _falha('Caixa ainda referenciado por outra tabela: '||SQLERRM);
+END $$;
+
+REVOKE ALL ON FUNCTION public.api_arquivar_lote_vendas(int,int), public.api_arquivar_confirmar_vendas(uuid[]),
+  public.api_arquivar_lote_caixa(int,int), public.api_arquivar_confirmar_caixa(uuid[]) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.api_arquivar_lote_vendas(int,int), public.api_arquivar_confirmar_vendas(uuid[]),
+  public.api_arquivar_lote_caixa(int,int), public.api_arquivar_confirmar_caixa(uuid[]) TO service_role;
+
+CREATE OR REPLACE FUNCTION public.api_espaco_uso()
+RETURNS jsonb LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path TO 'public' AS $$
+DECLARE v_db bigint;
+BEGIN
+  IF NOT tem_nivel('Admin') THEN RETURN _negado(); END IF;
+  SELECT pg_database_size(current_database()) INTO v_db;
+  RETURN jsonb_build_object('ok',true,'db_bytes',v_db,'db_mb',round(v_db/1024.0/1024.0,2),
+    'limite_mb',500,'percentual',round(v_db/1024.0/1024.0/500*100,1),
+    'vendas_total',(SELECT count(*) FROM vendas),
+    'vendas_arquivadas',(SELECT count(*) FROM arquivo_historico WHERE tabela='vendas'),
+    'backups_total',(SELECT count(*) FROM backups),
+    'backups_bytes',(SELECT coalesce(sum(tamanho_bytes),0) FROM backups));
+END $$;
+REVOKE ALL ON FUNCTION public.api_espaco_uso() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.api_espaco_uso() TO authenticated, service_role;
+
+-- ═════ ETAPA 8 — FOTOS (SÓ DRIVE) ═════
+ALTER TABLE public.configuracoes_fotos ADD COLUMN IF NOT EXISTS historico_fotos_ativo boolean NOT NULL DEFAULT true;
+-- a linha existente estava com tudo vazio; preenche só o que está vazio
+UPDATE public.configuracoes_fotos SET
+  onde_guardar          = coalesce(onde_guardar, 'drive_apenas'),
+  destino_padrao_upload = coalesce(destino_padrao_upload, 'principal'),
+  drive_preferido       = coalesce(drive_preferido, 'auto'::foto_preferida),
+  sincronizacao_drives  = coalesce(sincronizacao_drives, 'manual'),
+  replicar_antigas      = coalesce(replicar_antigas, 'ativas')
+WHERE id = true;
+
+CREATE TABLE IF NOT EXISTS public.fotos_historico (
+  id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY, produto_id uuid, combo_id uuid,
+  acao text NOT NULL CHECK (acao IN ('upload','substituir','mover','remover','replicar')),
+  drive_origem text, drive_destino text, foto_id_antigo text, foto_id_novo text,
+  usuario_id uuid REFERENCES public.usuarios(id) ON DELETE SET NULL,
+  criado_em timestamptz NOT NULL DEFAULT now());
+ALTER TABLE public.fotos_historico ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS fotos_historico_ler ON public.fotos_historico;
+CREATE POLICY fotos_historico_ler ON public.fotos_historico FOR SELECT TO authenticated USING (tem_nivel('Admin','Operador'));
+GRANT SELECT ON public.fotos_historico TO authenticated; GRANT ALL ON public.fotos_historico TO service_role;
+
+-- ═════ ETAPA 9 — INTEGRIDADE ═════
+CREATE TABLE IF NOT EXISTS public.integridade_checks (
+  id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY, criado_em timestamptz NOT NULL DEFAULT now(),
+  supabase_vendas int, planilha_vendas int, diferenca_vendas int,
+  status text NOT NULL DEFAULT 'ok' CHECK (status IN ('ok','divergencia','erro')), detalhe jsonb);
+ALTER TABLE public.integridade_checks ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS integridade_checks_ler ON public.integridade_checks;
+CREATE POLICY integridade_checks_ler ON public.integridade_checks FOR SELECT TO authenticated USING (tem_nivel('Admin'));
+GRANT SELECT ON public.integridade_checks TO authenticated; GRANT ALL ON public.integridade_checks TO service_role;
+
+-- ═════ CRONS (horários em UTC; chave lida do Vault) ═════
+SELECT cron.unschedule(jobname) FROM cron.job WHERE jobname IN
+  ('sync-fila-2min','sync-limpar-diario','sync-alerta-30min','backup-diario','backup-horario','arquivar-diario','integridade-semanal');
+
+CREATE OR REPLACE FUNCTION public.chamar_edge(p_funcao text, p_body jsonb DEFAULT '{}'::jsonb)
+RETURNS bigint LANGUAGE sql SECURITY DEFINER SET search_path TO 'public','extensions' AS $$
+  SELECT net.http_post(
+    url := 'https://awryywtgqfaxppayzpca.supabase.co/functions/v1/'||p_funcao,
+    headers := jsonb_build_object('Content-Type','application/json',
+      'Authorization','Bearer '||(SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name='service_key')),
+    body := p_body) $$;
+REVOKE ALL ON FUNCTION public.chamar_edge(text,jsonb) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.chamar_edge(text,jsonb) TO service_role;
+
+SELECT cron.schedule('sync-fila-2min','*/2 * * * *', $$ SELECT public.chamar_edge('sync-fila'); $$);
+SELECT cron.schedule('sync-limpar-diario','0 6 * * *', $$ SELECT public.api_sync_limpar(); $$);
+SELECT cron.schedule('sync-alerta-30min','*/30 * * * *', $$ SELECT public.api_sync_verificar_alerta(); $$);
+-- roda de hora em hora; a função só faz o backup na hora configurada (BACKUP_HORA, horário de Brasília) e se BACKUP_AUTO_ATIVO=true
+SELECT cron.schedule('backup-horario','0 * * * *', $$ SELECT public.chamar_edge('criar-backup','{"tipo":"Automático","cron":true}'); $$);
+SELECT cron.schedule('arquivar-diario','0 8 * * *', $$ SELECT public.chamar_edge('arquivar-antigos'); $$);                     -- 5h
+SELECT cron.schedule('integridade-semanal','0 9 * * 0', $$ SELECT public.chamar_edge('conferir-integridade'); $$);               -- dom 6h
 -- FIM
