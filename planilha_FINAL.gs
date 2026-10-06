@@ -5760,7 +5760,7 @@ function reconciliarContingencia() {
 /* Chave que a Edge Function envia. Já vem preenchida aqui; se existir a propriedade de script SB_CHAVE_SERVIDOR, ela tem prioridade. */
 const SB_CHAVE_SERVIDOR_PADRAO_ = 'txbsb-dPcBNH9tYyZ1K_cKKzBoWGKgrQ0QKch-EBe0TFc6bis';
 const ACOES_SERVIDOR_SB_ = ['syncLote', 'arquivar', 'replicarFotos', 'contarVendasHoje', 'uploadFotoSb', 'excluirFotoSb',
-  'sbSincronizarContingencia', 'sbArmazenamento', 'sbArmazenamentoContingencia', 'sbChaveContingencia', 'sbListarPendentesContingencia', 'sbMarcarSincronizadoContingencia'];
+  'sbSincronizarContingencia', 'sbLerArquivo', 'sbArmazenamento', 'sbArmazenamentoContingencia', 'sbChaveContingencia', 'sbListarPendentesContingencia', 'sbMarcarSincronizadoContingencia'];
 const SB_FUSO_ = 'America/Sao_Paulo';
 const SB_LIMITE_CELULA_ = 40000;
 
@@ -5778,6 +5778,7 @@ function acaoServidorSb_(action, body) {
     if (action === 'contarVendasHoje') return sbContarVendasHoje_(body.data);
     if (action === 'sbSincronizarContingencia') return sbSincronizarContingencia_();
     if (action === 'sbArmazenamento') return sbObterArmazenamento_();
+    if (action === 'sbLerArquivo') return sbLerArquivo_(body.mes);
     if (action === 'sbArmazenamentoContingencia') return obterArmazenamentoContingencia();
     if (action === 'sbChaveContingencia') return sbChaveContingencia_();
     if (action === 'sbListarPendentesContingencia') return sbListarPendentesContingencia_();
@@ -6091,4 +6092,25 @@ function sbObterArmazenamento_() {
         arquivos.push({ nome: ssf.getName() + ' (planilha principal)', categoria: 'Arquivos do sistema', tamanho: cats['Arquivos do sistema'].bytes, criadoEm: ssf.getDateCreated().toISOString() }); } catch (e) {}
   arquivos.sort(function (a, b) { return b.tamanho - a.tamanho; });
   return { ok: true, drive: arm, categorias: cats, arquivos: arquivos.slice(0, 30), totalArquivos: arquivos.length };
+}
+
+
+/* ============================================================================
+   ETAPA 5 (CORREÇÕES) — MESES ARQUIVADOS NOS RELATÓRIOS
+   Devolve as vendas (com itens e pagamentos) de um mês que já saiu do Supabase e está nas abas Arquivo_*.
+   Chamado pela Edge Function "planilha-admin" (acao arquivoVendas). Só leitura.
+   ============================================================================ */
+function sbMs_(v) { return (v instanceof Date) ? v.getTime() : Date.parse(String(v)); }
+function sbLerArquivo_(mes) {
+  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(String(mes || ''))) return { ok: false, message: 'Mês inválido.' };
+  const a = String(mes).split('-'), ini = new Date(Number(a[0]), Number(a[1]) - 1, 1).getTime(), fim = new Date(Number(a[0]), Number(a[1]), 1).getTime();
+  const pick = function (o, cols) { const r = {}; cols.forEach(function (c) { r[c] = (o[c] instanceof Date) ? o[c].toISOString() : o[c]; }); return r; };
+  const colsV = ['id','numero_pedido','data_hora','cliente_nome','telefone_cliente','forma_pagamento','valor_total','custo_total','status','motivo_cancelamento','tipo','status_pedido','endereco','complemento','referencia','observacoes_entrega','pronta_em','concluida_em','status_pagamento','recebido_em','valor_original','valor_desconto','desconto_detalhe','entregador_id','saiu_em','origem','mesa_id','taxa_entrega','fechamento_entrega_id','registrado_por','inicio_preparo_em'];
+  const vendas = sbLerAba_('Arquivo_Vendas').filter(function (v) { const t = sbMs_(v.data_hora); return t >= ini && t < fim; });
+  const ids = {}; vendas.forEach(function (v) { ids[String(v.id)] = true; });
+  const itens = sbLerAba_('Arquivo_Itens').filter(function (i) { return ids[String(i.venda_id)]; })
+    .map(function (i) { return pick(i, ['id','venda_id','produto_id','combo_id','descricao','quantidade','valor_unitario','custo_unitario','valor_total_item','adicionais_ids']); });
+  const pagamentos = sbLerAba_('Arquivo_Pagamentos').filter(function (x) { return ids[String(x.venda_id)]; })
+    .map(function (x) { return pick(x, ['id','venda_id','forma_pagamento','valor','taxa_aplicada']); });
+  return { ok: true, mes: mes, vendas: vendas.map(function (v) { return pick(v, colsV); }), itens: itens, pagamentos: pagamentos };
 }

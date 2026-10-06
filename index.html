@@ -1765,6 +1765,8 @@ body.perfil-garcom #btnFecharContaItens{display:none !important;}
       <h2>Relatórios</h2>
       <label for="relPeriodo">Período</label>
       <select id="relPeriodo" onchange="renderRelatorio()"></select>
+      <div id="relMesArqBox" style="display:none;margin-top:6px;"><label for="relMesArq">Mês</label><input type="month" id="relMesArq" onchange="renderRelatorio()">
+        <div class="obs-line">Vendas com mais de 90 dias ficam arquivadas na planilha; este relatório as busca de lá.</div></div>
       <label for="relTipo">Relatório</label>
       <select id="relTipo" onchange="renderRelatorio()"></select>
       <div id="relResultado"></div>
@@ -9800,11 +9802,55 @@ function montarSelectRelatorios(){
   const sel = document.getElementById('relTipo'); if(!sel || sel.options.length) return;
   const grupos = {}; Object.keys(REL).forEach(k=>{ (grupos[REL[k].g] = grupos[REL[k].g] || []).push(k); });
   sel.innerHTML = Object.keys(grupos).map(g=>`<optgroup label="${g}">${grupos[g].map(k=>`<option value="${k}">${REL[k].t}</option>`).join('')}</optgroup>`).join('');
-  document.getElementById('relPeriodo').innerHTML = PERIODOS_REL; document.getElementById('relPeriodo').value = '30';
+  document.getElementById('relPeriodo').innerHTML = PERIODOS_REL + '<option value="arq">Outro mês (arquivo)…</option>'; document.getElementById('relPeriodo').value = '30';
 }
 function renderRelatorio(){
   const box = document.getElementById('relResultado'); if(!box) return; montarSelectRelatorios();
-  const p = relIntervalo(document.getElementById('relPeriodo').value), def = REL[document.getElementById('relTipo').value]; if(!def) return;
+  const cod = document.getElementById('relPeriodo').value, bx = document.getElementById('relMesArqBox'); if(bx) bx.style.display = cod === 'arq' ? '' : 'none';
+  if(cod === 'arq') return relCarregarArquivo_();
+  return renderRelatorioP_(relIntervalo(cod));
+}
+/* Mês arquivado: busca as vendas na planilha (abas Arquivo_*), junta às que ainda estão no app (sem repetir) só durante o desenho do relatório. */
+const _relArqCache_ = {};
+function relMapArq_(c){
+  const lg = c.logins || {}, t = x => x ? (Date.parse(x) || null) : null;
+  return {
+    vendas: (c.vendas||[]).map(v=>({ id:v.id, data:sbDataBr_(v.data_hora), timestamp:Date.parse(v.data_hora)||0, clienteNome:v.cliente_nome||'', clienteTelefone:v.telefone_cliente||'', formaPagamento:v.forma_pagamento||'',
+      valorTotal:Number(v.valor_total)||0, custoTotal:Number(v.custo_total)||0, status:v.status, motivoCancelamento:v.motivo_cancelamento||'', tipoEntrega:v.tipo||'Retirada', statusPedido:v.status_pedido||'',
+      endereco:v.endereco||'', complemento:v.complemento||'', referencia:v.referencia||'', observacoesEntrega:v.observacoes_entrega||'', timestampPronta:t(v.pronta_em), timestampConcluida:t(v.concluida_em),
+      statusPagamento:v.status_pagamento||'Pago', timestampRecebimento:t(v.recebido_em), valorOriginal:Number(v.valor_original)||Number(v.valor_total)||0, valorDesconto:Number(v.valor_desconto)||0,
+      descontoDetalhe:v.desconto_detalhe||'', entregador:lg[v.entregador_id]||'', timestampSaiu:t(v.saiu_em), origem:v.origem||'Balcão', mesaId:v.mesa_id||'', taxaEntrega:Number(v.taxa_entrega)||0,
+      fechamentoEntregaId:v.fechamento_entrega_id||'', registradoPor:lg[v.registrado_por]||'', numero:Number(v.numero_pedido)||0, timestampInicioPreparo:t(v.inicio_preparo_em) })),
+    itens: (c.itens||[]).map(i=>({ id:i.id, vendaId:i.venda_id, produtoId:i.produto_id||'', comboId:i.combo_id||'', descricao:i.descricao||'', quantidade:Number(i.quantidade), valorUnitario:Number(i.valor_unitario),
+      custoUnitario:Number(i.custo_unitario)||0, valorTotalItem:Number(i.valor_total_item), adicionaisIds:Array.isArray(i.adicionais_ids) ? i.adicionais_ids : [] })),
+    pagamentos: (c.pagamentos||[]).map(x=>({ id:x.id, vendaId:x.venda_id, forma:x.forma_pagamento, valor:Number(x.valor), taxa:Number(x.taxa_aplicada)||0 }))
+  };
+}
+async function relCarregarArquivo_(){
+  const box = document.getElementById('relResultado'); if(!box) return;
+  const ym = (document.getElementById('relMesArq') || {}).value;
+  if(!ym){ box.innerHTML = '<div class="notif-empty">Escolha o mês para ver o relatório.</div>'; return; }
+  let c = _relArqCache_[ym];
+  if(!c){
+    box.innerHTML = '<div class="notif-empty">Buscando o mês no arquivo da planilha…</div>';
+    try{
+      const j = await sb410Edge_('planilha-admin', { acao:'arquivoVendas', mes: ym }, 120000);
+      if(!j || !j.ok){ box.innerHTML = '<div class="notif-empty">' + escR((j && j.message) || 'Não foi possível ler o arquivo agora.') + '</div>'; return; }
+      c = _relArqCache_[ym] = relMapArq_(j);
+    }catch(e){ box.innerHTML = '<div class="notif-empty">Sem conexão para buscar o arquivo. Tente de novo.</div>'; return; }
+  }
+  if(document.getElementById('relPeriodo').value !== 'arq' || (document.getElementById('relMesArq') || {}).value !== ym) return;   // mudou de ideia durante a busca
+  const a = ym.split('-').map(Number), ini = new Date(a[0], a[1]-1, 1), fim = new Date(a[0], a[1], 1);
+  const p = { ini: ini.getTime(), fim: fim.getTime(), rot: 'Mês ' + String(a[1]).padStart(2,'0') + '/' + a[0] + ' (inclui o arquivo)', dias: Math.round((fim - ini) / 86400000) };
+  const bk = [vendas, itensVenda, pagamentosVenda], vi = new Set(vendas.map(x=>x.id)), ii = new Set(itensVenda.map(x=>x.id)), pi = new Set(pagamentosVenda.map(x=>x.id));
+  try{
+    vendas = vendas.concat(c.vendas.filter(x=>!vi.has(x.id))); itensVenda = itensVenda.concat(c.itens.filter(x=>!ii.has(x.id))); pagamentosVenda = pagamentosVenda.concat(c.pagamentos.filter(x=>!pi.has(x.id)));
+    renderRelatorioP_(p);
+  } finally { vendas = bk[0]; itensVenda = bk[1]; pagamentosVenda = bk[2]; }
+}
+function renderRelatorioP_(p){
+  const box = document.getElementById('relResultado'); if(!box) return;
+  const def = REL[document.getElementById('relTipo').value]; if(!def) return;
   const res = def.f(p, resumoPeriodo(p)); ultimoRel = { def, p, res }; const aviso = '<div class="notif-empty">Nada para mostrar neste período.</div>';
   const td = (c,i) => `<td${i? ' style="text-align:right;"':''}>${escR(c)}</td>`;
   box.innerHTML = `<h3 style="margin:14px 0 2px;">${def.t}</h3><div class="obs-line" style="margin-bottom:8px;">${p.rot}</div>` +
