@@ -820,10 +820,17 @@ body.perfil-garcom #btnFecharContaItens{display:none !important;}
     </div>
   </div>
 
+  <div id="chatPublicoFab" class="chat-publico-fab" style="display:none">
+    <button type="button" onclick="abrirChatPublico_()" aria-label="Atendimento Texas Burger">💬<span>Atendimento</span></button>
+  </div>
+
   <div class="cd-rodape cd-rodape-links">
     <div class="cd-rl-linha">
       <button onclick="abrirAcompanhamentoPedido()">📦 Acompanhe seu pedido</button>
       <button onclick="abrirFeedbackPublico()">💬 Deixar um feedback</button>
+    </div>
+    <div class="cd-rl-linha">
+      <button id="cdBtnAtendimento" type="button" onclick="abrirChatPublico_()" aria-label="Atendimento" style="display:none">💬 Atendimento</button>
     </div>
     <div class="cd-rl-linha">
       <button id="cdBtnInstalarRodape" onclick="instalarApp()">📲 Instalar app</button>
@@ -956,6 +963,38 @@ body.perfil-garcom #btnFecharContaItens{display:none !important;}
     <div class="modal-header"><h2>📦 Acompanhe seu pedido</h2><button class="close-btn" onclick="voltarParaCardapio()" aria-label="Fechar">✕</button></div>
     <div id="acompanhamentoConteudo"><p class="sub">Carregando...</p></div>
     <button class="primary" onclick="voltarParaCardapio()">Fechar</button>
+  </div>
+</div>
+
+<style id="chatPublicoCss">
+.chat-publico-fab{position:fixed;right:14px;bottom:16px;z-index:40;}
+body:has(.cd-fab-carrinho.show) .chat-publico-fab{bottom:84px;}
+.chat-publico-fab button{display:flex;align-items:center;gap:6px;background:var(--gold);color:#241a10;border:2px solid #000;border-radius:999px;padding:10px 14px;font-weight:700;font-size:13px;box-shadow:0 4px 14px rgba(0,0,0,.55);cursor:pointer;}
+#chatPublicoModal{z-index:60;}
+.chat-publico-box{max-width:480px;}
+.chat-op{display:block;width:100%;text-align:left;margin:0 0 8px;background:var(--panel-2);border:1px solid var(--line);color:var(--cream);border-radius:12px;padding:12px;font-size:14px;font-weight:600;min-height:44px;cursor:pointer;}
+.chat-tipos{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.chat-tipos .chat-op{margin:0;text-align:center;}
+.chat-cont{font-size:11px;color:var(--muted);text-align:right;margin:2px 0 8px;}
+.chat-faq{background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin:0 0 8px;}
+.chat-faq summary{cursor:pointer;font-weight:600;font-size:14px;}
+.chat-faq p{margin:8px 0 2px;font-size:13px;color:var(--cream);white-space:pre-wrap;}
+.chat-prod{background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin:0 0 8px;font-size:14px;}
+.chat-msgs{max-height:50vh;overflow-y:auto;display:flex;flex-direction:column;gap:6px;padding:4px 0 8px;}
+.chat-balao{max-width:85%;padding:8px 10px;border-radius:12px;font-size:13px;line-height:1.35;white-space:pre-wrap;word-break:break-word;background:var(--panel-2);border:1px solid var(--line);}
+.chat-balao small{display:block;font-size:10px;opacity:.7;margin-bottom:2px;}
+.chat-balao.eu{align-self:flex-end;background:rgba(217,162,27,.18);border-color:var(--gold-dim);}
+.chat-balao.eq,.chat-balao.ia{align-self:flex-start;}
+.chat-balao.sis{align-self:center;max-width:95%;text-align:center;font-size:12px;color:var(--muted);}
+.chat-envio{display:flex;gap:8px;align-items:center;}
+.chat-envio input{flex:1;margin:0;}
+.chat-envio button{width:auto;margin:0;padding:10px 14px;}
+</style>
+<!-- MODAL: balão público de atendimento (Fase 3) — FAQ e busca sem IA; IA só recepciona; depois, chat com a equipe -->
+<div class="modal-overlay" id="chatPublicoModal" onclick="if(event.target===this)fecharChatPublico_()">
+  <div class="modal-box chat-publico-box">
+    <div class="modal-header"><h2>💬 Atendimento</h2><button class="close-btn" type="button" onclick="fecharChatPublico_()" aria-label="Fechar">✕</button></div>
+    <div id="chatPublicoConteudo"></div>
   </div>
 </div>
 
@@ -10031,6 +10070,7 @@ async function carregarStatusPedido(codigo){
       <p class="sub">Total: <b style="color:var(--gold);">${formatarMoeda(r.valorTotal)}</b></p>
       <div style="margin-top:14px;">${linhasEtapas}</div>
       ${aReceber}
+      ${window.chatPublicoLigado_===true ? `<div style="margin-top:14px;"><button type="button" class="ghost" onclick="abrirAjudaPedidoDoAcompanhamento_('${codigo}','${String(r.numero||'').replace(/\D/g,'')}')">🆘 Preciso de ajuda</button></div>` : ''}
       ${r.podeCancelar ? `<div style="margin-top:14px;"><button type="button" class="ghost" id="acCancelarBtn" onclick="cancelarPedidoPeloCliente('${codigo}')">✖ Cancelar pedido (<span id="acCancelarSeg">${r.segundosParaCancelar}</span>s)</button><p class="sub" style="margin-top:6px;">Você pode cancelar nos primeiros 3 minutos, enquanto o restaurante ainda não aceitou.</p><div id="acCancelarMsg" class="msg"></div></div>` : ''}`;
     iniciarContagemCancelar_(r.podeCancelar ? r.segundosParaCancelar : 0);
   } catch(e){ box.innerHTML = voltar + '<p class="sub">Não foi possível atualizar agora. Tentando de novo em instantes...</p>'; }
@@ -11898,6 +11938,294 @@ function sb6Parar(){ _sb6Parado_ = true; clearTimeout(_sb6Retry_); clearInterval
   }
   registrarNoAdmin();
 })();
+
+/* =====================================================================
+   FASE 3 — Balão público de atendimento (cardápio)
+   Aditivo: reaproveita sbRpcPublico_, sbJson_, escH, cdDados e as funções chat_* do Supabase.
+   FAQ e busca de produto NÃO usam IA. A IA só recepciona (máx. 3 chamadas) e nunca depois da transferência.
+   ===================================================================== */
+(function(){
+  'use strict';
+  const KEY = 'txb_chat_publico_v1';
+  const TIPOS = [['atraso','⏱️ Atraso'],['item_errado','🍔 Item errado'],['item_faltando','❌ Item faltando'],['cobranca','💳 Cobrança'],['qualidade','⭐ Qualidade'],['outro','💬 Outro']];
+  const S = { conversaId:null, token:null, estado:null, tipo:null, chamadasIa:0, depois:0, tela:'menu', desc:'', resp:'', pergunta:'', resumo:'', ligado:false, aberto:false, ocupado:false, timer:null, codigo:'', numero:'', faq:null, buscaT:null };
+  const $ = id => document.getElementById(id);
+  const corpo = () => $('chatPublicoConteudo');
+
+  /* ---------- sessão (só conversa + token; nunca telefone, endereço ou dados do pedido) ---------- */
+  function salvar_(){ try{ localStorage.setItem(KEY, JSON.stringify({ conversaId:S.conversaId, token:S.token })); }catch(e){} }
+  function lerSalva_(){ try{ const j = JSON.parse(localStorage.getItem(KEY) || 'null'); if(j && j.conversaId && j.token) return j; }catch(e){} return null; }
+  function limparSessao_(){ S.conversaId = null; S.token = null; S.estado = null; S.depois = 0; S.chamadasIa = 0; try{ localStorage.removeItem(KEY); }catch(e){} }
+
+  /* ---------- botões só aparecem se o atendimento estiver ligado no banco ---------- */
+  async function atualizarStatus_(){
+    try{ const r = await sbRpcPublico_('chat_status', {}); S.ligado = !!(r && r.ok && r.ligado === true); }catch(e){ S.ligado = false; }
+    window.chatPublicoLigado_ = S.ligado;
+    const fab = $('chatPublicoFab'), bt = $('cdBtnAtendimento');
+    if(fab) fab.style.display = S.ligado ? '' : 'none';
+    if(bt) bt.style.display = S.ligado ? '' : 'none';
+    return S.ligado;
+  }
+
+  /* ---------- utilidades de tela ---------- */
+  function voltarBtn_(a){ return '<button type="button" class="link-btn" data-a="' + (a || 'menu') + '">← Voltar</button>'; }
+  function msg_(t){ const el = $('chatPublicoMsg'); if(!el) return; el.textContent = t || ''; el.className = t ? 'msg warn' : 'msg'; }
+  function ocupado_(v){ S.ocupado = v; corpo().querySelectorAll('button').forEach(b=>{ b.disabled = v; }); }
+  function pintar_(html, foco){ corpo().innerHTML = html + '<div class="msg" id="chatPublicoMsg"></div>'; if(foco){ const el = corpo().querySelector(foco); if(el) setTimeout(()=>{ try{ el.focus(); }catch(e){} }, 50); } }
+
+  /* ---------- telas ---------- */
+  function render_(){
+    parar_();
+    const t = S.tela;
+    if(t === 'off') return pintar_('<p class="sub">O atendimento por chat está indisponível no momento. Ligue para o restaurante.</p><button type="button" class="primary" data-a="fechar">Fechar</button>');
+    if(t === 'menu') return pintar_('<p class="sub">Como podemos ajudar?</p>' +
+      '<button type="button" class="chat-op" data-a="faq">❓ Dúvidas frequentes</button>' +
+      '<button type="button" class="chat-op" data-a="busca">🔎 Buscar um produto</button>' +
+      '<button type="button" class="chat-op" data-a="pedido">🆘 Ajuda com meu pedido</button>');
+    if(t === 'faq') return renderFaq_();
+    if(t === 'busca') return pintar_(voltarBtn_() + '<input type="search" id="chatBusca" placeholder="Ex.: bacon, combo, batata" maxlength="40" autocomplete="off"><div id="chatBuscaRes"></div>', '#chatBusca');
+    if(t === 'pedido'){
+      const comCodigo = !!S.codigo;
+      return pintar_(voltarBtn_() + '<p class="sub">' + (comCodigo ? 'Confirme os 4 últimos dígitos do telefone usado no pedido' + (S.numero ? ' nº ' + escH(S.numero) : '') + '.' : 'Informe o número do pedido e os 4 últimos dígitos do telefone usado nele.') + '</p>' +
+        (comCodigo ? '' : '<input type="text" id="chatPedidoNumero" inputmode="numeric" placeholder="Número do pedido" maxlength="9" autocomplete="off">') +
+        '<input type="text" id="chatTelefone4" inputmode="numeric" placeholder="4 últimos dígitos do telefone" maxlength="4" autocomplete="off">' +
+        '<button type="button" class="primary" data-a="abrir">Continuar</button>', comCodigo ? '#chatTelefone4' : '#chatPedidoNumero');
+    }
+    if(t === 'tipo') return pintar_('<p class="sub">O que aconteceu com o seu pedido?</p><div class="chat-tipos">' +
+      TIPOS.map(x=>'<button type="button" class="chat-op" data-a="tipo" data-v="' + x[0] + '">' + x[1] + '</button>').join('') + '</div>');
+    if(t === 'desc') return pintar_(voltarBtn_('tipo') + '<p class="sub">Conte rapidamente o que aconteceu.</p><textarea id="chatDescricao" rows="4" maxlength="300" placeholder="Descreva em poucas palavras"></textarea><div class="chat-cont" id="chatCont">0/300</div><button type="button" class="primary" data-a="enviarDesc">Enviar</button>', '#chatDescricao');
+    if(t === 'pergunta') return pintar_('<p class="sub">Só uma pergunta para ajudar a equipe:</p><div class="chat-balao ia" id="chatPergunta"></div><textarea id="chatResposta" rows="3" maxlength="300" placeholder="Sua resposta"></textarea><button type="button" class="primary" data-a="enviarResp">Enviar resposta</button><button type="button" class="link-btn" data-a="pularPergunta">Pular e falar com a equipe</button>', '#chatResposta');
+    if(t === 'resumo') return pintar_('<p class="sub">Vamos enviar este resumo para a equipe:</p><div class="chat-balao ia" id="chatResumo"></div><button type="button" class="primary" data-a="transferir">➡️ Falar com a equipe</button><button type="button" class="link-btn" data-a="tipo">Corrigir</button>');
+    if(t === 'fallback') return pintar_('<p class="sub">Não consegui organizar sua mensagem automaticamente.<br>Você pode continuar mesmo assim e falar com a equipe.</p><button type="button" class="primary" data-a="transferir">➡️ Falar com a equipe</button><button type="button" class="link-btn" data-a="tipo">Voltar</button>');
+    if(t === 'encerrada') return pintar_('<p class="sub">✅ Este atendimento foi encerrado.</p><button type="button" class="primary" data-a="novo">Precisa de outra ajuda?</button><button type="button" class="link-btn" data-a="fechar">Fechar</button>');
+    if(t === 'chat') return renderChat_();
+  }
+  function renderFaq_(){
+    pintar_(voltarBtn_() + '<input type="search" id="chatFaqBusca" placeholder="Filtrar dúvidas" maxlength="40" autocomplete="off"><div id="chatFaqLista"><p class="sub">Carregando...</p></div>');
+    (async ()=>{
+      if(!S.faq){
+        try{
+          const r = await sbJson_(SUPABASE_URL_ + '/rest/v1/faq_publico?ativo=eq.true&select=pergunta,palavras_chave,resposta&order=ordem.asc', { method:'GET', headers:{ apikey:SUPABASE_CHAVE_, Authorization:'Bearer ' + SUPABASE_CHAVE_ } }, 10000);
+          S.faq = r.ok ? await r.json().catch(()=>[]) : [];
+        }catch(e){ S.faq = []; }
+      }
+      pintarFaq_('');
+    })();
+  }
+  function pintarFaq_(f){
+    const el = $('chatFaqLista'); if(!el) return;
+    const q = String(f || '').trim().toLocaleLowerCase('pt-BR');
+    const lista = (S.faq || []).filter(x=>!q || [x.pergunta, x.palavras_chave, x.resposta].join(' ').toLocaleLowerCase('pt-BR').includes(q));
+    el.textContent = '';
+    if(!lista.length){
+      const p = document.createElement('p'); p.className = 'sub';
+      p.textContent = (S.faq && S.faq.length) ? 'Nenhuma dúvida encontrada.' : 'Ainda não há dúvidas cadastradas.';
+      el.appendChild(p); return;
+    }
+    lista.forEach(x=>{
+      const d = document.createElement('details'); d.className = 'chat-faq';
+      const s = document.createElement('summary'); s.textContent = x.pergunta;
+      const p = document.createElement('p'); p.textContent = x.resposta;
+      d.appendChild(s); d.appendChild(p); el.appendChild(d);
+    });
+  }
+  /* busca de produto: usa os mesmos dados do cardápio já carregado (cdDados); não cria outro cadastro */
+  function catalogo_(){
+    const d = (typeof cdDados !== 'undefined') ? cdDados : null; if(!d) return [];
+    const nomesAd = {}; (d.adicionais || []).forEach(a=>{ nomesAd[a.id] = a.nome; });
+    const porProd = {}; (d.produtoAdicionais || []).forEach(x=>{ (porProd[x.produtoId] = porProd[x.produtoId] || []).push(nomesAd[x.adicionalId]); });
+    const prods = (d.produtos || []).map(p=>({ nome:p.nome, descricao:p.descricao || '', adicionais:(porProd[p.id] || []).filter(Boolean), combo:false }));
+    const combos = (d.combos || []).map(c=>({ nome:c.nome, descricao:'', adicionais:[], combo:true }));
+    return prods.concat(combos);
+  }
+  function buscar_(termo){
+    termo = String(termo || '').trim().toLocaleLowerCase('pt-BR');
+    const el = $('chatBuscaRes'); if(!el) return;
+    el.textContent = '';
+    if(termo.length < 2) return;
+    const cat = catalogo_();
+    if(!cat.length){ const p = document.createElement('p'); p.className = 'sub'; p.textContent = 'O cardápio ainda está carregando. Tente de novo em instantes.'; el.appendChild(p); return; }
+    const achados = cat.filter(p=>[p.nome, p.descricao].concat(p.adicionais).filter(Boolean).join(' ').toLocaleLowerCase('pt-BR').includes(termo)).slice(0, 8);
+    if(!achados.length){ const p = document.createElement('p'); p.className = 'sub'; p.textContent = 'Não encontrei esse produto no cardápio.'; el.appendChild(p); return; }
+    achados.forEach(p=>{
+      const d = document.createElement('div'); d.className = 'chat-prod';
+      const n = document.createElement('b'); n.textContent = (p.combo ? '🎁 ' : '🍔 ') + p.nome; d.appendChild(n);
+      if(p.descricao){ const s = document.createElement('div'); s.className = 'sub'; s.textContent = p.descricao; d.appendChild(s); }
+      if(p.adicionais.length){ const s = document.createElement('div'); s.className = 'sub'; s.textContent = 'Adicionais: ' + p.adicionais.join(', '); d.appendChild(s); }
+      el.appendChild(d);
+    });
+    const dica = document.createElement('p'); dica.className = 'sub'; dica.textContent = 'Os preços e o pedido ficam no cardápio.'; el.appendChild(dica);
+  }
+
+  /* ---------- conversa com a equipe ---------- */
+  function renderChat_(){
+    pintar_('<div class="chat-msgs" id="chatMsgs"></div>' +
+      '<div class="chat-envio" id="chatEnvio"><input type="text" id="chatTexto" maxlength="300" placeholder="Escreva sua mensagem" autocomplete="off"><button type="button" class="primary" data-a="enviarChat">Enviar</button></div>');
+    S.depois = 0; lerChat_(true);
+  }
+  function addMsg_(m){
+    const box = $('chatMsgs'); if(!box) return;
+    const d = document.createElement('div');
+    const a = m.autor === 'cliente' ? 'eu' : (m.autor === 'sistema' ? 'sis' : (m.autor === 'ia' ? 'ia' : 'eq'));
+    d.className = 'chat-balao ' + a;
+    const rot = m.autor === 'cliente' ? 'Você' : (m.autor === 'atendente' ? 'Equipe' : (m.autor === 'ia' ? 'Recepção' : ''));
+    if(rot){ const r = document.createElement('small'); r.textContent = rot; d.appendChild(r); }
+    const t = document.createElement('span'); t.textContent = m.texto; d.appendChild(t);
+    box.appendChild(d); box.scrollTop = box.scrollHeight;
+  }
+  async function lerChat_(primeira){
+    if(!S.aberto || S.tela !== 'chat' || !S.conversaId) return;
+    let atraso = 6000;
+    try{
+      const r = await sbRpcPublico_('chat_ler', { conversaId:S.conversaId, token:S.token, depois:S.depois });
+      if(r && r.ok){
+        (r.mensagens || []).forEach(m=>{ if(m.id > S.depois) S.depois = m.id; addMsg_(m); });
+        S.estado = r.estado;
+        if(r.estado === 'encerrada'){ limparSessao_(); S.tela = 'encerrada'; render_(); return; }
+      }else if(r && r.limite){ atraso = 15000; }
+      else if(r && !r.ok && !r.desligado && primeira){ limparSessao_(); S.tela = 'menu'; render_(); return; }
+      else if(r && r.desligado){ S.tela = 'off'; render_(); return; }
+    }catch(e){ atraso = 12000; }
+    if(S.aberto && S.tela === 'chat'){ clearTimeout(S.timer); S.timer = setTimeout(()=>{ if(!document.hidden) lerChat_(false); else S.timer = setTimeout(()=>lerChat_(false), 6000); }, atraso); }
+  }
+  function parar_(){ clearTimeout(S.timer); S.timer = null; }
+  async function enviarChat_(){
+    const el = $('chatTexto'); const texto = String(el && el.value || '').trim().slice(0, 300);
+    if(!texto || S.ocupado) return;
+    ocupado_(true);
+    const r = await sbRpcPublico_('chat_enviar', { conversaId:S.conversaId, token:S.token, texto });
+    ocupado_(false);
+    if(r && r.ok){ if(el){ el.value = ''; el.focus(); } clearTimeout(S.timer); lerChat_(false); }
+    else msg_((r && r.message) || 'Não foi possível enviar agora.');
+  }
+
+  /* ---------- abrir conversa (o banco valida pedido, 4 dígitos, janela, limites e token) ---------- */
+  async function abrirConversa_(){
+    const numero = S.codigo ? S.numero : String(($('chatPedidoNumero') || {}).value || '').replace(/\D/g, '').slice(0, 9);
+    const telefone4 = String(($('chatTelefone4') || {}).value || '').replace(/\D/g, '').slice(-4);
+    if((!S.codigo && !numero) || telefone4.length !== 4){ msg_('Informe o número do pedido e os 4 últimos dígitos do telefone.'); return; }
+    ocupado_(true);
+    const r = await sbRpcPublico_('chat_abrir', { codigo: S.codigo || numero, numero: numero || '', telefone4 });
+    ocupado_(false);
+    if(!r || !r.ok){ if(r && r.desligado){ S.tela = 'off'; render_(); return; } msg_((r && r.message) || 'Não foi possível localizar o pedido.'); return; }
+    S.conversaId = r.conversaId; S.token = r.token; S.estado = r.estado; S.tipo = null; S.chamadasIa = 0; S.depois = 0;
+    salvar_();
+    S.tela = (r.estado === 'recepcao') ? 'tipo' : 'chat'; render_();
+  }
+
+  /* ---------- IA de recepção (máx. 3; nunca depois da transferência; fallback sem erro técnico) ---------- */
+  function podeIa_(){ return S.estado === 'recepcao' && Number(S.chamadasIa || 0) < 3; }
+  async function iaRecepcao_(tipo, texto, anterior){
+    if(!S.conversaId || !S.token || !podeIa_()) return { ok:false, fallback:true };
+    try{
+      const r = await sbJson_(SUPABASE_URL_ + '/functions/v1/ai-publico-recepcao', { method:'POST', headers:{ apikey:SUPABASE_CHAVE_, Authorization:'Bearer ' + SUPABASE_CHAVE_, 'Content-Type':'application/json' },
+        body: JSON.stringify({ conversaId:S.conversaId, tipo, texto, anterior: anterior || '' }) }, 20000);
+      const j = await r.json().catch(()=>null);
+      if(!j || !j.ok) return Object.assign({ ok:false, fallback:true }, j || {});
+      S.chamadasIa = Number(j.ia_chamadas || (S.chamadasIa + 1));
+      return j;
+    }catch(e){ return { ok:false, fallback:true }; }
+  }
+  async function enviarDesc_(){
+    const texto = String(($('chatDescricao') || {}).value || '').trim().slice(0, 300);
+    if(!S.tipo){ msg_('Escolha o tipo do problema.'); return; }
+    if(texto.length < 3){ msg_('Descreva rapidamente o que aconteceu.'); return; }
+    S.desc = texto; S.resp = ''; S.resumo = '';
+    ocupado_(true); const j = await iaRecepcao_(S.tipo, texto, ''); ocupado_(false);
+    if(j.ok && j.acao === 'perguntar'){ S.pergunta = j.pergunta; S.tela = 'pergunta'; render_(); const e = $('chatPergunta'); if(e) e.textContent = S.pergunta; return; }
+    if(j.ok && j.acao === 'resumir'){ S.resumo = j.resumo; S.tela = 'resumo'; render_(); const e = $('chatResumo'); if(e) e.textContent = S.resumo; return; }
+    S.tela = 'fallback'; render_();
+  }
+  async function enviarResp_(){
+    const texto = String(($('chatResposta') || {}).value || '').trim().slice(0, 300);
+    if(texto.length < 1){ msg_('Escreva sua resposta.'); return; }
+    S.resp = texto;
+    ocupado_(true); const j = await iaRecepcao_(S.tipo, texto, S.desc); ocupado_(false);
+    if(j.ok && j.acao === 'resumir'){ S.resumo = j.resumo; S.tela = 'resumo'; render_(); const e = $('chatResumo'); if(e) e.textContent = S.resumo; return; }
+    S.tela = 'fallback'; render_();
+  }
+  async function transferir_(){
+    if(!S.tipo){ msg_('Escolha o tipo do problema.'); return; }
+    const texto = (S.resp ? (S.desc + ' — ' + S.resp) : S.desc).slice(0, 300);
+    if(texto.length < 3){ msg_('Descreva rapidamente o que aconteceu.'); return; }
+    ocupado_(true);
+    const r = await sbRpcPublico_('chat_transferir', { conversaId:S.conversaId, token:S.token, tipo:S.tipo, texto, resumo:S.resumo || null });
+    ocupado_(false);
+    if(!r || !r.ok){ msg_((r && r.message) || 'Não foi possível transferir agora.'); return; }
+    S.estado = r.estado || 'aguardando'; S.tela = 'chat'; render_();
+  }
+
+  /* ---------- abrir / fechar / retomar ---------- */
+  async function abrir_(){
+    S.aberto = true; $('chatPublicoModal').classList.add('open');
+    corpo().innerHTML = '<p class="sub">Carregando...</p>';
+    const ligado = await atualizarStatus_();
+    if(!ligado){ S.tela = 'off'; render_(); return; }
+    const salva = lerSalva_();
+    if(salva && !S.conversaId){ S.conversaId = salva.conversaId; S.token = salva.token; }
+    if(S.conversaId){
+      const r = await sbRpcPublico_('chat_ler', { conversaId:S.conversaId, token:S.token, depois:0 });
+      if(r && r.ok){
+        S.estado = r.estado;
+        S.chamadasIa = (r.mensagens || []).filter(m=>m.autor === 'ia').length;
+        if(r.estado === 'encerrada'){ limparSessao_(); S.tela = 'menu'; }
+        else S.tela = (r.estado === 'recepcao') ? 'tipo' : 'chat';
+        render_(); return;
+      }
+      limparSessao_();
+    }
+    S.tela = S.codigo ? 'pedido' : 'menu'; render_();
+  }
+  function fechar_(){ S.aberto = false; parar_(); S.codigo = ''; S.numero = ''; $('chatPublicoModal').classList.remove('open'); }
+
+  /* ---------- eventos (um único listener; nada de innerHTML com texto do cliente) ---------- */
+  document.addEventListener('click', ev=>{
+    const el = ev.target && ev.target.closest && ev.target.closest('#chatPublicoConteudo [data-a]'); if(!el || S.ocupado) return;
+    const a = el.getAttribute('data-a');
+    if(a === 'menu'){ S.tela = 'menu'; render_(); }
+    else if(a === 'faq'){ S.tela = 'faq'; render_(); }
+    else if(a === 'busca'){ S.tela = 'busca'; render_(); }
+    else if(a === 'pedido'){ S.tela = S.conversaId && S.estado === 'recepcao' ? 'tipo' : (S.conversaId ? 'chat' : 'pedido'); render_(); }
+    else if(a === 'abrir') abrirConversa_();
+    else if(a === 'tipo'){ const v = el.getAttribute('data-v'); if(v){ S.tipo = v; S.tela = 'desc'; render_(); if(S.desc){ const d = $('chatDescricao'); if(d){ d.value = S.desc; } } } else { S.tela = 'tipo'; render_(); } }
+    else if(a === 'enviarDesc') enviarDesc_();
+    else if(a === 'enviarResp') enviarResp_();
+    else if(a === 'pularPergunta'){ S.tela = 'fallback'; S.resumo = ''; transferir_(); }
+    else if(a === 'transferir') transferir_();
+    else if(a === 'enviarChat') enviarChat_();
+    else if(a === 'novo'){ limparSessao_(); S.desc = ''; S.resp = ''; S.codigo = ''; S.numero = ''; S.tela = 'pedido'; render_(); }
+    else if(a === 'fechar') fechar_();
+  });
+  document.addEventListener('input', ev=>{
+    const t = ev.target; if(!t || !t.id) return;
+    if(t.id === 'chatBusca'){ clearTimeout(S.buscaT); S.buscaT = setTimeout(()=>buscar_(t.value), 150); }
+    else if(t.id === 'chatFaqBusca') pintarFaq_(t.value);
+    else if(t.id === 'chatDescricao'){ const c = $('chatCont'); if(c) c.textContent = t.value.length + '/300'; }
+  });
+  document.addEventListener('keydown', ev=>{
+    if(ev.key === 'Escape' && S.aberto){ fechar_(); return; }
+    if(ev.key === 'Enter' && ev.target && ev.target.id){
+      if(ev.target.id === 'chatTexto'){ ev.preventDefault(); enviarChat_(); }
+      else if(ev.target.id === 'chatTelefone4'){ ev.preventDefault(); abrirConversa_(); }
+    }
+  });
+  document.addEventListener('visibilitychange', ()=>{ if(!document.hidden && S.aberto && S.tela === 'chat'){ clearTimeout(S.timer); lerChat_(false); } });
+
+  /* ---------- API global (usada pelos botões do HTML) ---------- */
+  window.abrirChatPublico_ = abrir_;
+  window.fecharChatPublico_ = fechar_;
+  window.abrirAjudaPedidoDoAcompanhamento_ = function(codigo, numero){
+    S.codigo = String(codigo || '').replace(/[^0-9a-fA-F-]/g, '').slice(0, 36); S.numero = String(numero || '').replace(/\D/g, '').slice(0, 9);
+    S.aberto = true; $('chatPublicoModal').classList.add('open'); corpo().innerHTML = '<p class="sub">Carregando...</p>';
+    (async ()=>{
+      if(!(await atualizarStatus_())){ S.tela = 'off'; render_(); return; }
+      if(S.conversaId && S.estado){ S.tela = S.estado === 'recepcao' ? 'tipo' : 'chat'; render_(); return; }
+      S.tela = 'pedido'; render_();
+    })();
+  };
+  setTimeout(atualizarStatus_, 2500);
+})();
+
 </script>
 </body>
 </html>
