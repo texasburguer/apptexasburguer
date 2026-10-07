@@ -83,27 +83,6 @@ function conferirChavesContingencia() {
   return L.join('\n');
 }
 
-/* ITEM 16 — medição: mostra quanto tempo cada leitura leva (rode antes e depois das mudanças e compare). */
-function medirTemposLeitura() {
-  USUARIO_ATUAL = 'sistema'; NIVEL_ATUAL = 'Admin';
-  const t = (nome, fn) => {
-    const i = Date.now(); let n = '';
-    try { const r = fn(); n = Array.isArray(r) ? r.length + ' linhas' : ''; } catch (e) { n = 'ERRO ' + e.message; }
-    Logger.log(nome + ': ' + (Date.now() - i) + ' ms ' + n);
-  };
-  t('readProdutos', () => readProdutos());
-  t('readProdutoPrecos', () => readProdutoPrecos());
-  t('readClientes', () => readClientes());
-  t('readVendas', () => readVendas());
-  t('readItensVenda', () => readItensVenda());
-  t('readPagamentosVenda', () => readPagamentosVenda());
-  t('calcularMaisPedidos_', () => calcularMaisPedidos_());
-  t('getAllData (tudo)', () => getAllData());
-  invalidarCacheCardapio_(false);
-  t('getCardapioPublico (sem cache)', () => getCardapioPublico());
-  t('getCardapioPublico (com cache)', () => getCardapioPublico());
-  NIVEL_ATUAL = '';
-}
 
 /* Duração da sessão (ITEM 7). Cache do Apps Script tem teto de 6h por chave;
    por isso a sessão é renovada a cada chamada válida (sliding expiration) em
@@ -221,33 +200,6 @@ function criarFormasPagamento(ss) {
 
 /* Rode UMA vez na planilha atual (não apaga nada): acrescenta as colunas novas de Formas de Pagamento
    e a coluna "Taxa Aplicada" em PagamentosVenda. Pode rodar de novo sem duplicar. */
-function prepararFase8Formas() {
-  const ss = ss_();
-  const sh = ss.getSheetByName('Formas de Pagamento');
-  if (sh.getMaxColumns() < 9) sh.insertColumnsAfter(sh.getMaxColumns(), 9 - sh.getMaxColumns());
-  if (!String(sh.getRange(1, 5).getValue())) {
-    sh.getRange(1, 5, 1, 5).setValues([CABECALHO_FORMAS_PAGAMENTO.slice(4)]);
-    sh.getRange(1, 5, 1, 5).setBackground(COR_ESCURO).setFontColor(COR_DOURADO).setFontWeight('bold');
-    const last = sh.getLastRow();
-    for (let i = 2; i <= last; i++) {
-      const nome = String(sh.getRange(i, 2).getValue());
-      sh.getRange(i, 5, 1, 5).setValues([[0, 0, 0, nome === 'Dinheiro' ? 'Sim' : 'Não', i - 1]]);
-    }
-    const regraSimNao = SpreadsheetApp.newDataValidation().requireValueInList(['Sim', 'Não'], true).setAllowInvalid(false).build();
-    sh.getRange('H2:H200').setDataValidation(regraSimNao);
-    sh.getRange('E2:E200').setNumberFormat('0.00"%"');
-    sh.getRange('F2:F200').setNumberFormat('R$ #,##0.00');
-    [80,90,100,110,70].forEach((w,i)=>sh.setColumnWidth(i+5,w));
-  }
-  const sp = ss.getSheetByName('PagamentosVenda');
-  if (sp.getMaxColumns() < 5) sp.insertColumnsAfter(sp.getMaxColumns(), 5 - sp.getMaxColumns());
-  if (!String(sp.getRange(1, 5).getValue())) {
-    sp.getRange(1, 5).setValue('Taxa Aplicada').setBackground(COR_ESCURO).setFontColor(COR_DOURADO).setFontWeight('bold');
-    sp.getRange('E2:E20000').setNumberFormat('R$ #,##0.00');
-    sp.setColumnWidth(5, 110);
-  }
-  return { ok: true, message: 'Estrutura da Fase 8A pronta.' };
-}
 
 function criarProdutoPrecos(ss) {
   let sh = ss.getSheetByName('ProdutoPrecos') || ss.insertSheet('ProdutoPrecos');
@@ -1065,10 +1017,6 @@ function novaSenhaTemporaria_() { return Utilities.getUuid().replace(/-/g, '').s
 function marcarProducao() {
   PropertiesService.getScriptProperties().setProperty('PRODUCAO', 'Sim');
   Logger.log('Sistema marcado como PRODUÇÃO: dados de teste bloqueados.');
-}
-function desmarcarProducao() {
-  PropertiesService.getScriptProperties().deleteProperty('PRODUCAO');
-  Logger.log('Marca de PRODUÇÃO removida.');
 }
 /* Só roda pelo editor do Apps Script (quem tem acesso ao script já é dono do sistema). */
 function redefinirSenhaAdminEmergencia() {
@@ -3850,17 +3798,6 @@ function formasDinheiroNomes_() {
   const nomes = readFormasPagamento().filter(f => f.permiteTroco).map(f => f.nome);
   return nomes.length ? nomes : ['Dinheiro'];
 }
-function prepararFase8Caixa() {
-  const sh = ss_().getSheetByName('Caixa');
-  if (sh.getMaxColumns() < 12) sh.insertColumnsAfter(sh.getMaxColumns(), 12 - sh.getMaxColumns());
-  if (!String(sh.getRange(1, 11).getValue())) {
-    sh.getRange(1, 11, 1, 2).setValues([['Valor Contado', 'Diferença']]);
-    sh.getRange(1, 11, 1, 2).setBackground(COR_ESCURO).setFontColor(COR_DOURADO).setFontWeight('bold');
-    sh.getRange('K2:L2000').setNumberFormat('R$ #,##0.00');
-    sh.setColumnWidth(11, 120); sh.setColumnWidth(12, 110);
-  }
-  return { ok: true, message: 'Estrutura da Fase 8C pronta.' };
-}
 /* Roda as três preparações de uma vez (todas seguras para repetir). */
 function readSessoesCaixa() {
   const sh = ss_().getSheetByName('Caixa'); const last = sh.getLastRow();
@@ -4785,31 +4722,6 @@ function criarDespesasRecorrentes(ss) {
   sh.hideColumns(1, 1);
 }
 
-/* Rode UMA vez na planilha atual (não apaga nada, pode repetir sem duplicar). */
-function prepararFase8Despesas() {
-  const ss = ss_();
-  const sh = ss.getSheetByName('Despesas');
-  if (sh.getMaxColumns() < 14) sh.insertColumnsAfter(sh.getMaxColumns(), 14 - sh.getMaxColumns());
-  if (!String(sh.getRange(1, 8).getValue())) {
-    sh.getRange(1, 8, 1, 7).setValues([CABECALHO_DESPESAS_EXTRA]);
-    sh.getRange(1, 8, 1, 7).setBackground(COR_ESCURO).setFontColor(COR_DOURADO).setFontWeight('bold');
-    const last = sh.getLastRow();
-    if (last >= 2) {
-      const datas = sh.getRange(2, 2, last - 1, 1).getValues();
-      const preenchimento = datas.map(d => ['Outros', '', 'Paga', '', '', 'Sim', d[0]]);
-      sh.getRange(2, 8, last - 1, 7).setValues(preenchimento);
-    }
-    sh.getRange('I2:I8000').setNumberFormat('@');
-    sh.getRange('L2:L8000').setNumberFormat('@');
-    sh.getRange('N2:N8000').setNumberFormat('dd/MM/yyyy HH:mm');
-    sh.getRange('J2:J8000').setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(['Paga', 'A pagar'], true).setAllowInvalid(false).build());
-    sh.getRange('M2:M8000').setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(['Sim', 'Não'], true).setAllowInvalid(false).build());
-    [130,100,90,90,100,100,140].forEach((w,i)=>sh.setColumnWidth(i+8,w));
-    sh.hideColumns(11, 1);
-  }
-  if (!ss.getSheetByName('DespesasRecorrentes')) criarDespesasRecorrentes(ss);
-  return { ok: true, message: 'Estrutura da Fase 8B pronta.' };
-}
 
 function dataISOValida_(s) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(String(s || ''))) return false;
