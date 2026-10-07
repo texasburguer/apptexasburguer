@@ -2221,6 +2221,7 @@ body.perfil-garcom #btnFecharContaItens{display:none !important;}
     <div class="btnrow" style="flex-wrap:wrap;margin-top:12px;">
       <button class="primary" id="avisosAtivarBtn" onclick="ativarAvisos_()" style="flex:1 1 100%;min-height:48px;">🔔 Ativar avisos</button>
       <button class="ghost" onclick="testarSomAviso_()" style="flex:1 1 100%;min-height:48px;">🔊 Testar som</button>
+      <button class="ghost" onclick="testarVibracao_()" style="flex:1 1 100%;min-height:48px;">📳 Testar vibração</button>
     </div>
     <div class="msg" id="avisosMsg"></div>
   </div>
@@ -8300,8 +8301,8 @@ Entregador:{ nome:'Entregador', secoes:[
   _aj.entrar('Início, Minhas entregas e Meus ganhos'),
   { t:'Fazer uma entrega', passos:['Aba Minhas entregas: aparecem só as entregas atribuídas a você. Uma nova toca um aviso sonoro.','O cartão mostra itens, endereço, referência, telefone, total, taxa e “📍 Ver no Maps”.','Quando pegar o pedido (status “Pronta”), toque em “Marcar como “Saiu para entrega””.','Ao entregar, toque em “✅ Já entreguei”.','Se o cartão diz “A receber”, cobre o valor do cliente; quem registra o recebimento é o Caixa.'],
     comuns:['Não aparece nada: ainda não atribuíram nenhuma entrega a você. Avise o Caixa.','Pedido “aguardando aceite”: o botão só aparece depois que o Caixa aceitar.'] },
-  { t:'Aviso de entrega nova', itens:['Na primeira vez, toque em “🔔 Ativar avisos e som” (canto da tela) para liberar som e notificação.','Quando o Caixa atribuir uma entrega a você, o aparelho toca, vibra e a aba mostra “Nova entrega”. A checagem roda a cada poucos minutos com o app aberto, mesmo em segundo plano. Se o celular fechar o app ou bloquear a tela, o aviso não chega — abra a aba Entregas de vez em quando.'] },
-  { t:'Meu dia', itens:['Em Entregas, “💰 Meu dia” mostra suas entregas de hoje, as taxas e a ajuda diária.','O total previsto é taxas + ajuda diária (uma vez por dia). O acerto oficial é feito pelo Administrador.'] },
+  { t:'Aviso de entrega nova', itens:['Na primeira vez, toque em “🔔 Ativar avisos e som” (canto da tela) para liberar som e notificação.','Quando o Caixa atribuir uma entrega a você, o aparelho toca, vibra e a aba mostra “Nova entrega”. A checagem roda a cada poucos minutos com o app aberto, mesmo em segundo plano. Se o celular fechar o app ou bloquear a tela, o aviso não chega — abra a aba Minhas entregas de vez em quando.'] },
+  { t:'Meu dia', itens:['Em Minhas entregas, “💰 Meu dia” mostra suas entregas de hoje, as taxas e a ajuda diária.','O total previsto é taxas + ajuda diária (uma vez por dia). O acerto oficial é feito pelo Administrador.'] },
   _aj.ocorr('O Administrador é avisado. Use para cliente ausente, endereço errado ou problema na entrega.')
  ], erros:[
   { q:'A internet caiu', a:'O celular mostra o último estado salvo. Se o toque em “Saiu para entrega” ou “Já entreguei” falhar, confira o status no cartão e toque de novo quando voltar a conexão; o sistema não duplica. Se demorar, avise o Caixa, que também pode marcar pelo painel.' },
@@ -11120,19 +11121,47 @@ async function aplicarFotosCardapioInicial(){
   } finally { _impEmAndamento_ = false; }
 }
 
-/* Vibração curta em todo toque de botão (Android/Chrome). iPhone não suporta: aí não faz nada. */
+/* Vibração curta em todo toque de botão.
+   Android: navigator.vibrate. iPhone (Safari/app instalado, iOS 17.4+): um interruptor invisível, que dá o "tic" do sistema ao ser tocado.
+   Aparelho sem nenhum dos dois: não faz nada, sem erro. */
+var _vibSwitch_ = null;
+function _vibIosSwitch_(){
+  if(_vibSwitch_) return _vibSwitch_;
+  const l = document.createElement('label');
+  l.setAttribute('data-vib','1'); l.setAttribute('aria-hidden','true');
+  l.style.cssText = 'position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0;pointer-events:none;';
+  const c = document.createElement('input'); c.type = 'checkbox'; c.setAttribute('switch',''); c.tabIndex = -1;
+  l.appendChild(c); document.body.appendChild(l); _vibSwitch_ = l; return l;
+}
+function vibrarToque_(ms){
+  try{ if(typeof navigator.vibrate === 'function' && navigator.vibrate(ms || 30) === true) return 'android'; }catch(_){}
+  try{ _vibIosSwitch_().click(); return 'ios'; }catch(_){}
+  return '';
+}
 (function(){
-  if(!navigator.vibrate) return;
   const SEL = 'button, summary, [role="button"], [onclick], select, label, input[type="checkbox"], input[type="radio"], input[type="button"], input[type="submit"]';
   let ultimo = 0;
   document.addEventListener('click', function(e){
     const t = e.target; if(!t || !t.closest) return;
+    if(t.closest('[data-vib]')) return; // o clique do próprio interruptor invisível
     if(t.matches('input:not([type="checkbox"]):not([type="radio"]):not([type="button"]):not([type="submit"]), textarea')) return; // digitar não vibra
     const el = t.closest(SEL); if(!el || el.disabled || el.getAttribute('aria-disabled') === 'true') return;
     const agora = Date.now(); if(agora - ultimo < 60) return; ultimo = agora;
-    try{ navigator.vibrate(30); }catch(_){}
+    vibrarToque_(30);
   }, { passive:true });
 })();
+function testarVibracao_(){
+  const temAndroid = typeof navigator.vibrate === 'function';
+  let r = '';
+  if(temAndroid){ try{ r = navigator.vibrate([200,100,200]) === true ? 'android' : 'bloqueada'; }catch(e){ r = 'bloqueada'; } }
+  if(r === 'android'){
+    showMsg('avisosMsg','Mandei vibrar (2 pulsos). Se você não sentiu: Configurações → Sons e vibração → Intensidade da vibração, e confira se a vibração está ligada e o modo de economia de bateria desligado. Se sentiu, os toques nos botões também vibram.','ok');
+  } else {
+    const via = vibrarToque_();
+    if(via === 'ios') showMsg('avisosMsg','Este aparelho usa o toque do sistema (iPhone). Você deve sentir um leve "tic". Funciona no iOS 17.4 ou mais novo.','ok');
+    else showMsg('avisosMsg','Este navegador não permite vibração. Tente abrir no Chrome (Android) ou no Safari (iPhone com iOS 17.4 ou mais novo).','warn');
+  }
+}
 </script>
 <!-- ═══════════ TEXAS BURGER — ETAPAS 4, 7, 8 e 9 (frontend) ═══════════
      APLICADO no index.html.
