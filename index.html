@@ -5654,8 +5654,11 @@ function renderCozinha(){
   if(!souCozinha_() || !document.getElementById('czNovos')) return;
   const limite = Date.now() - 24*3600*1000;
   const ativos = vendas.filter(v=>v.status==='Confirmada' && v.timestamp>=limite && ['Recebido','Em preparo','Pronta'].indexOf(v.statusPedido)!==-1).sort((a,b)=>a.timestamp-b.timestamp);
-  const novos = ativos.filter(v=>v.statusPedido==='Recebido' || (v.statusPedido==='Em preparo' && !v.timestampInicioPreparo));
-  const preparo = ativos.filter(v=>v.statusPedido==='Em preparo' && v.timestampInicioPreparo);
+  /* Regra do restaurante: assim que QUALQUER perfil (Cozinha, Caixa, Admin, Dev, Garçom) aceita, o pedido já está EM PREPARO na cozinha.
+     "Novos" = só o que ainda aguarda aceite. "naoVistos" (aceito por outro, cozinha ainda não tocou) continua acendendo o alerta. */
+  const novos = ativos.filter(v=>v.statusPedido==='Recebido');
+  const preparo = ativos.filter(v=>v.statusPedido==='Em preparo');
+  const naoVistos = preparo.filter(v=>!v.timestampInicioPreparo);
   const prontos = ativos.filter(v=>v.statusPedido==='Pronta');
   const vazio = t => `<div class="notif-empty">${t}</div>`;
   document.getElementById('czNovos').innerHTML = novos.length ? novos.map(v=>cardCozinha_(v, `<button class="small-gold" onclick="cozinhaIniciar('${v.id}')">▶️ ${v.statusPedido==='Recebido'?'Aceitar e iniciar preparo':'Iniciar preparo'}</button>`)).join('') : vazio('Nenhum pedido novo.');
@@ -5664,7 +5667,7 @@ function renderCozinha(){
   document.getElementById('czNovosN').textContent = novos.length ? '('+novos.length+')' : '';
   document.getElementById('czPrepN').textContent = preparo.length ? '('+preparo.length+')' : '';
   document.getElementById('czProntosN').textContent = prontos.length ? '('+prontos.length+')' : '';
-  _alertaPed_.pedidos = novos.length>0; _atualizarAlertaPedidos_();
+  _alertaPed_.pedidos = (novos.length + naoVistos.length)>0; _atualizarAlertaPedidos_();
   const fm = document.getElementById('czComandaFmt'); if(fm) fm.value = lerFormato('comanda','80mm');
   const au = document.getElementById('czComandaAuto'); if(au) au.checked = comandaAuto_();
 }
