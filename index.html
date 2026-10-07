@@ -6110,6 +6110,7 @@ function renderEntregas(){
         ${(!souEntregador && !souGarcom_()) ? botoesSuspensao(v) : ''}
         ${(!souEntregador && !souGarcom_()) ? entregadorBox : ''}
         ${!souEntregador ? botaoEnviarEntregador_(v) : ''}
+        ${window.botaoVerLocalizacao_ ? botaoVerLocalizacao_(v) : ''}
         ${!souEntregador ? botaoImprimirEntrega_(v) : ''}
         ${(!aguardandoAceite && prox) ? `<button class="small-gold" style="margin-top:6px;" onclick="avancarPedido('${v.id}','${prox}')">${labelBotao}</button>` : ''}
       </div>`;
@@ -10164,9 +10165,11 @@ async function carregarStatusPedido(codigo){
       <p class="sub">Total: <b style="color:var(--gold);">${formatarMoeda(r.valorTotal)}</b></p>
       <div style="margin-top:14px;">${linhasEtapas}</div>
       ${aReceber}
+      <div id="acLocal"></div>
       ${window.chatPublicoLigado_===true ? `<div style="margin-top:14px;"><button type="button" class="ghost" onclick="abrirAjudaPedidoDoAcompanhamento_('${codigo}','${String(r.numero||'').replace(/\D/g,'')}')">🆘 Preciso de ajuda</button></div>` : ''}
       ${r.podeCancelar ? `<div style="margin-top:14px;"><button type="button" class="ghost" id="acCancelarBtn" onclick="cancelarPedidoPeloCliente('${codigo}')">✖ Cancelar pedido (<span id="acCancelarSeg">${r.segundosParaCancelar}</span>s)</button><p class="sub" style="margin-top:6px;">Você pode cancelar nos primeiros 3 minutos, enquanto o restaurante ainda não aceitou.</p><div id="acCancelarMsg" class="msg"></div></div>` : ''}`;
     iniciarContagemCancelar_(r.podeCancelar ? r.segundosParaCancelar : 0);
+    if(window.acLocalAtualizar_) acLocalAtualizar_(codigo, r);
   } catch(e){ box.innerHTML = voltar + '<p class="sub">Não foi possível atualizar agora. Tentando de novo em instantes...</p>'; }
 }
 /* ITEM 3.4 — cliente cancela o próprio pedido (cardápio comum). O servidor é quem decide (status, 3 min, limite por telefone). */
@@ -12621,6 +12624,132 @@ function sb6Parar(){ _sb6Parado_ = true; clearTimeout(_sb6Retry_); clearInterval
   }
   setInterval(() => { if(equipe_() && !document.hidden && navigator.onLine !== false) carregarFila_(); }, 30000);
   setTimeout(atualizarFab_, 3000);
+})();
+</script>
+
+<!-- =====================================================================
+   FASE 5 — Localização do entregador (plano V3 §49–§59). Aditivo.
+   Entregador: envia a posição a cada ~18 s SÓ enquanto houver entrega dele em "Saiu para entrega" (sem histórico; o banco apaga ao sair do status).
+   Cliente: vê só a distância aproximada (o banco calcula; latitude/longitude nunca chegam ao cliente) e pode compartilhar o destino (opcional).
+   Equipe (Admin/Operador): "📍 Ver localização" no cartão da entrega. Nada aqui bloqueia a conclusão da entrega.
+   ===================================================================== -->
+<script id="fase5Localizacao">
+(function(){
+  'use strict';
+  const $ = id => document.getElementById(id);
+  const INTERVALO_MS = 18000;
+  let timer = null, ids = [];
+
+  /* ---------- ENTREGADOR: envio de posição ---------- */
+  const souEntregadorReal_ = () => !!(typeof currentUser !== 'undefined' && currentUser && currentUser.nivel === 'Entregador' && !currentUser.verComo);
+  function enviar_(pos){
+    const lat = Number(pos.coords.latitude), lng = Number(pos.coords.longitude), pr = Number(pos.coords.accuracy);
+    if(!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+    ids.slice().forEach(id => {
+      sbRpc_('entrega_atualizar_posicao', { p:{ vendaId:id, lat:lat, lng:lng, precisaoM:Number.isFinite(pr) ? Math.min(pr, 5000) : null } }).catch(() => {});
+    });
+  }
+  function ler_(){
+    if(!ids.length || !navigator.geolocation || document.hidden || navigator.onLine === false) return;
+    try{ navigator.geolocation.getCurrentPosition(enviar_, () => {}, { enableHighAccuracy:true, timeout:10000, maximumAge:5000 }); }catch(e){}
+  }
+  function parar_(){ if(timer){ clearInterval(timer); timer = null; } ids = []; }
+  function sincronizar_(){
+    if(!souEntregadorReal_()){ if(timer) parar_(); return; }
+    const meu = loginVisao_();
+    const novos = (vendas || []).filter(v => v.status === 'Confirmada' && v.tipoEntrega === 'Entrega' && v.statusPedido === 'Saiu para entrega' && v.entregador === meu).map(v => v.id);
+    const mudou = novos.length !== ids.length || novos.some(i => ids.indexOf(i) === -1);
+    ids = novos;
+    if(!ids.length){ parar_(); return; }
+    if(!timer){ timer = setInterval(ler_, INTERVALO_MS); ler_(); }
+    else if(mudou) ler_();
+  }
+  window.entregaLocalizacaoSincronizar_ = sincronizar_;
+
+  /* ---------- EQUIPE: "Ver localização" ---------- */
+  let mapaId = null, mapaTimer = null;
+  window.botaoVerLocalizacao_ = function(v){
+    if(!v || v.statusPedido !== 'Saiu para entrega' || !v.entregador) return '';
+    if(!currentUser || (currentUser.nivel !== 'Admin' && currentUser.nivel !== 'Operador')) return '';
+    return '<button type="button" class="ghost" style="margin-top:6px;" onclick="abrirMapaEntrega_(\'' + escH(v.id) + '\')">📍 Ver localização</button>';
+  };
+  function modal_(){
+    let m = $('mapaEntregaModal');
+    if(!m){
+      m = document.createElement('div'); m.className = 'modal-overlay'; m.id = 'mapaEntregaModal';
+      m.innerHTML = '<div class="modal-box" style="max-width:420px;"><div class="modal-header"><h2>📍 Localização do entregador</h2><button class="close-btn" type="button" aria-label="Fechar" onclick="fecharMapaEntrega_()">✕</button></div><div id="mapaEntregaCorpo"></div></div>';
+      document.body.appendChild(m);
+    }
+    return m;
+  }
+  async function carregarMapa_(){
+    const corpo = $('mapaEntregaCorpo'); if(!corpo || !mapaId) return;
+    let r = null;
+    try{ r = await sbRpc_('entrega_ver_posicao', { p:{ vendaId:mapaId } }); }catch(e){ r = null; }
+    if(!$('mapaEntregaModal') || !$('mapaEntregaModal').classList.contains('open')) return;
+    if(!r || !r.ok){ corpo.innerHTML = '<p class="sub">Não foi possível ler a posição agora. Tentando de novo em instantes…</p>'; return; }
+    if(r.estado === 'aguardando'){ corpo.innerHTML = '<p class="sub">Aguardando o entregador iniciar a entrega.</p>'; return; }
+    if(r.estado === 'sem_posicao'){ corpo.innerHTML = '<p class="sub">Posição indisponível. O entregador ainda não enviou a localização (precisa permitir o GPS e manter o app aberto).</p>'; return; }
+    const seg = Number(r.atualizadoHaSeg) || 0;
+    const quando = seg < 90 ? 'há ' + seg + ' s' : 'há ' + Math.round(seg / 60) + ' min';
+    const link = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(r.lat + ',' + r.lng);
+    corpo.innerHTML = (r.estado === 'sem_sinal' ? '<p class="sub" style="color:#f0d78c;">Posição indisponível. Última atualização ' + escH(quando) + '.</p>' : '<p class="sub">Atualizado ' + escH(quando) + '</p>') +
+      (r.km != null ? '<p class="sub">A <b>' + escH(String(r.km).replace('.', ',')) + ' km</b> do destino</p>' : (r.destinoCompartilhado ? '' : '<p class="sub">O cliente não compartilhou o destino (a distância fica indisponível).</p>')) +
+      '<a class="small-gold" style="display:inline-block;margin-top:8px;padding:10px 14px;text-decoration:none;" href="' + link + '" target="_blank" rel="noopener">🗺️ Abrir no mapa</a>';
+  }
+  window.abrirMapaEntrega_ = function(vendaId){
+    mapaId = String(vendaId || ''); const m = modal_(); m.classList.add('open');
+    $('mapaEntregaCorpo').innerHTML = '<p class="sub">⏳ Buscando a posição…</p>';
+    carregarMapa_(); clearInterval(mapaTimer); mapaTimer = setInterval(() => { if(!document.hidden) carregarMapa_(); }, INTERVALO_MS);
+  };
+  window.fecharMapaEntrega_ = function(){
+    const m = $('mapaEntregaModal'); if(m) m.classList.remove('open');
+    clearInterval(mapaTimer); mapaTimer = null; mapaId = null;
+  };
+
+  /* ---------- CLIENTE: distância aproximada + compartilhar destino (opcional) ---------- */
+  const CHAVE_DEST = 'txb_destino_compartilhado_v1';
+  const jaCompartilhou_ = c => { try{ return (JSON.parse(localStorage.getItem(CHAVE_DEST) || '{}') || {})[c] === 1; }catch(e){ return false; } };
+  const marcarCompartilhou_ = c => { try{ const o = JSON.parse(localStorage.getItem(CHAVE_DEST) || '{}') || {}; o[c] = 1; const ks = Object.keys(o); if(ks.length > 30) delete o[ks[0]]; localStorage.setItem(CHAVE_DEST, JSON.stringify(o)); }catch(e){} };
+  window.acLocalAtualizar_ = async function(codigo, r){
+    const box = $('acLocal'); if(!box) return;
+    if(!r || r.tipoEntrega !== 'Entrega' || r.status === 'Cancelada' || ['Recebido','Em preparo','Pronta','Saiu para entrega'].indexOf(r.statusPedido) === -1){ box.innerHTML = ''; return; }
+    let html = '';
+    if(r.statusPedido === 'Saiu para entrega'){
+      let d = null; try{ d = await sbRpcPublico_('api_distancia_entrega_publico', { p:{ codigo:codigo } }); }catch(e){ d = null; }
+      if(d && d.ok && d.estado === 'ok') html += '<p class="sub" style="margin-top:8px;">🛵 O entregador está a cerca de <b>' + escH(String(d.km).replace('.', ',')) + ' km</b>.</p>';
+      else if(d && d.ok && d.estado === 'sem_sinal') html += '<p class="sub" style="margin-top:8px;">🛵 Posição do entregador indisponível no momento.</p>';
+    }
+    if(!jaCompartilhou_(codigo) && navigator.geolocation){
+      html += '<div style="margin-top:8px;"><button type="button" class="ghost" onclick="acCompartilharDestino_(\'' + escH(codigo) + '\')">📍 Compartilhar minha localização</button><p class="sub" style="margin-top:4px;font-size:11.5px;">Opcional. Ajuda o entregador a chegar e permite mostrar a distância aproximada. O restaurante não guarda a localização depois da entrega.</p><div class="msg" id="acLocalMsg"></div></div>';
+    } else if(jaCompartilhou_(codigo)){
+      html += '<p class="sub" style="margin-top:8px;font-size:11.5px;">✅ Localização compartilhada.</p>';
+    }
+    box.innerHTML = html;
+  };
+  window.acCompartilharDestino_ = function(codigo){
+    if(!navigator.geolocation){ showMsg('acLocalMsg', 'Seu aparelho não oferece localização.', 'warn'); return; }
+    navigator.geolocation.getCurrentPosition(async pos => {
+      const lat = Number(pos.coords.latitude), lng = Number(pos.coords.longitude);
+      if(!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+      let r = null; try{ r = await sbRpcPublico_('api_compartilhar_destino_pedido', { p:{ codigo:codigo, lat:lat, lng:lng } }); }catch(e){ r = null; }
+      if(r && r.ok){ marcarCompartilhou_(codigo); const b = $('acLocal'); if(b) b.innerHTML = '<p class="sub" style="margin-top:8px;font-size:11.5px;">✅ Localização compartilhada.</p>'; }
+      else showMsg('acLocalMsg', (r && r.message) || 'Não foi possível enviar agora. O acompanhamento continua normalmente.', 'warn');
+    }, () => { showMsg('acLocalMsg', 'Não foi possível obter sua localização. O acompanhamento continua normalmente.', 'warn'); }, { enableHighAccuracy:true, timeout:10000, maximumAge:30000 });
+  };
+
+  /* ---------- ganchos (envolvem funções existentes sem trocar o comportamento delas) ---------- */
+  function envolver(nome, depois){
+    const orig = window[nome]; if(typeof orig !== 'function' || orig.__f5) return;
+    const nova = function(){ const r = orig.apply(this, arguments); try{ depois.apply(this, arguments); }catch(e){} return r; };
+    nova.__f5 = true; window[nome] = nova;
+  }
+  envolver('renderEntregas', sincronizar_);
+  if(typeof window.sair === 'function' && !window.sair.__f5){
+    const so = window.sair;
+    window.sair = async function(){ parar_(); fecharMapaEntrega_(); return so.apply(this, arguments); };
+    window.sair.__f5 = true;
+  }
 })();
 </script>
 
