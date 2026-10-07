@@ -830,9 +830,6 @@ body.perfil-garcom #btnFecharContaItens{display:none !important;}
       <button onclick="abrirFeedbackPublico()">💬 Deixar um feedback</button>
     </div>
     <div class="cd-rl-linha">
-      <button id="cdBtnAtendimento" type="button" onclick="abrirChatPublico_()" aria-label="Atendimento" style="display:none">💬 Atendimento</button>
-    </div>
-    <div class="cd-rl-linha">
       <button id="cdBtnInstalarRodape" onclick="instalarApp()">📲 Instalar app</button>
       <button id="cdBtnQrApp" onclick="abrirQrApp()">🔳 QR Code do app</button>
     </div>
@@ -1626,6 +1623,12 @@ body:has(.cd-fab-carrinho.show) .chat-publico-fab{bottom:84px;}
         <thead><tr><th>Abertura</th><th>Fechamento</th><th>Saldo</th><th>Dif.</th><th>Quem</th></tr></thead>
         <tbody id="hcTable"></tbody>
       </table>
+      <div class="modal-section" style="margin-top:12px;">
+        <h3>Caixas arquivados (planilha)</h3>
+        <div class="obs-line">Sessões e sangrias antigas que já saíram do sistema continuam aqui, buscadas na planilha (pode demorar um pouco).</div>
+        <div style="display:flex;gap:8px;margin-top:6px;"><input type="month" id="hcMesArq" style="flex:1;"><button type="button" class="ghost" onclick="hcCarregarArquivo_()">Ver mês</button></div>
+        <div id="hcArqBox" style="margin-top:8px;"></div>
+      </div>
     </div>
 
   </section>
@@ -8742,6 +8745,24 @@ function atualizarResumoHoje(){
   document.getElementById('fHojeSaidas').textContent = formatarMoeda(totalD);
   document.getElementById('fHojeSaldo').textContent = formatarMoeda(totalV-totalD);
 }
+/* D17 — caixas fechados e sangrias arquivados: leitura sob demanda, um mês por vez, com cache na sessão. */
+const _hcArqCache_ = {};
+async function hcCarregarArquivo_(){
+  const box = document.getElementById('hcArqBox'), ym = (document.getElementById('hcMesArq')||{}).value; if(!box) return;
+  if(!ym){ box.innerHTML = '<div class="notif-empty">Escolha o mês.</div>'; return; }
+  let c = _hcArqCache_[ym];
+  if(!c){
+    box.innerHTML = '<div class="notif-empty">Buscando o mês na planilha…</div>';
+    try{ const j = await sb410Edge_('planilha-admin', { acao:'arquivoCaixa', mes: ym }, 120000); if(!j || !j.ok) throw new Error('arquivo'); c = _hcArqCache_[ym] = j; }
+    catch(e){ box.innerHTML = '<div class="notif-empty">Não foi possível ler este mês arquivado agora. Os dados continuam salvos na planilha.<br><button type="button" class="ghost" onclick="hcCarregarArquivo_()">Tentar de novo</button></div>'; return; }
+  }
+  const d = x => x ? sbDataBr_(x) : '', n = x => formatarMoeda(Number(x)||0);
+  const cx = c.caixas || [], sg = c.sangrias || [], totS = sg.reduce((s,x)=>s+(Number(x.valor)||0),0);
+  box.innerHTML = (cx.length ? '<div style="overflow-x:auto;"><table style="width:100%;font-size:12.5px;"><thead><tr><th>Abertura</th><th>Fechamento</th><th>Saldo</th><th>Dif.</th></tr></thead><tbody>' +
+    cx.map(h=>'<tr><td>'+escR(d(h.abertura))+'</td><td>'+escR(d(h.fechamento))+'</td><td>'+n(h.saldo_final)+'</td><td>'+(h.diferenca===''||h.diferenca==null?'—':n(h.diferenca))+'</td></tr>').join('') + '</tbody></table></div>'
+    : '<div class="notif-empty">Nenhuma sessão arquivada neste mês.</div>') +
+    '<div class="info-line">• Sangrias arquivadas no mês: ' + sg.length + ' · total ' + n(totS) + '</div>';
+}
 function renderHistoricoCaixa(){
   const tbody = document.getElementById('hcTable');
   if(!historicoCaixa.length){ tbody.innerHTML = '<tr class="empty-row"><td colspan="5">Nenhuma sessão registrada ainda.</td></tr>'; return; }
@@ -9860,7 +9881,7 @@ function renderRelatorio(){
   const box = document.getElementById('relResultado'); if(!box) return; montarSelectRelatorios();
   const cod = document.getElementById('relPeriodo').value, bx = document.getElementById('relMesArqBox'); if(bx) bx.style.display = cod === 'arq' ? '' : 'none';
   if(cod === 'arq') return relCarregarArquivo_();
-  return renderRelatorioP_(relIntervalo(cod));
+  return relRenderPeriodo_(relIntervalo(cod), cod);
 }
 /* Mês arquivado: busca as vendas na planilha (abas Arquivo_*), junta às que ainda estão no app (sem repetir) só durante o desenho do relatório. */
 const _relArqCache_ = {};
@@ -9877,6 +9898,45 @@ function relMapArq_(c){
       custoUnitario:Number(i.custo_unitario)||0, valorTotalItem:Number(i.valor_total_item), adicionaisIds:Array.isArray(i.adicionais_ids) ? i.adicionais_ids : [] })),
     pagamentos: (c.pagamentos||[]).map(x=>({ id:x.id, vendaId:x.venda_id, forma:x.forma_pagamento, valor:Number(x.valor), taxa:Number(x.taxa_aplicada)||0 }))
   };
+}
+/* D17 — período que começa antes do corte (30 dias = mínimo do arquivamento) busca os meses arquivados na planilha.
+   Nunca desenha total parcial: se a busca falhar, mostra aviso e botão "Tentar de novo". */
+function relMesesArq_(p){
+  const corte = Date.now() - 30*86400000, fimBusca = Math.min(p.fim, corte);
+  if(p.ini >= corte) return [];
+  const out = [], d = new Date(p.ini); d.setDate(1); d.setHours(0,0,0,0);
+  while(d.getTime() <= fimBusca){ out.push(d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0')); d.setMonth(d.getMonth()+1); }
+  return out;
+}
+async function relBuscarMes_(ym){
+  if(_relArqCache_[ym]) return _relArqCache_[ym];
+  const j = await sb410Edge_('planilha-admin', { acao:'arquivoVendas', mes: ym }, 120000);
+  if(!j || !j.ok) throw new Error('arquivo');
+  return (_relArqCache_[ym] = relMapArq_(j));
+}
+function relMesclarEDesenhar_(p, cs){
+  const bk = [vendas, itensVenda, pagamentosVenda], vi = new Set(vendas.map(x=>x.id)), ii = new Set(itensVenda.map(x=>x.id)), pi = new Set(pagamentosVenda.map(x=>x.id));
+  try{
+    cs.forEach(c=>{ vendas = vendas.concat(c.vendas.filter(x=>!vi.has(x.id) && vi.add(x.id))); itensVenda = itensVenda.concat(c.itens.filter(x=>!ii.has(x.id) && ii.add(x.id))); pagamentosVenda = pagamentosVenda.concat(c.pagamentos.filter(x=>!pi.has(x.id) && pi.add(x.id))); });
+    renderRelatorioP_(p);
+  } finally { vendas = bk[0]; itensVenda = bk[1]; pagamentosVenda = bk[2]; }
+}
+async function relRenderPeriodo_(p, cod){
+  const box = document.getElementById('relResultado'); if(!box) return;
+  const meses = relMesesArq_(p);
+  if(!meses.length) return renderRelatorioP_(p);
+  const cs = [];
+  try{
+    for(let i=0; i<meses.length; i+=2){
+      box.innerHTML = '<div class="notif-empty">Buscando dados antigos… ' + Math.min(i+2, meses.length) + ' de ' + meses.length + ' meses</div>';
+      cs.push(...await Promise.all(meses.slice(i, i+2).map(relBuscarMes_)));
+      if(document.getElementById('relPeriodo').value !== cod) return;   // mudou de ideia durante a busca
+    }
+  }catch(e){
+    box.innerHTML = '<div class="notif-empty">Parte deste período está arquivada e não foi carregada. Os totais podem estar incompletos.<br><button type="button" class="ghost" onclick="renderRelatorio()">Tentar de novo</button></div>';
+    return;
+  }
+  relMesclarEDesenhar_(p, cs);
 }
 async function relCarregarArquivo_(){
   const box = document.getElementById('relResultado'); if(!box) return;
@@ -11948,14 +12008,14 @@ function sb6Parar(){ _sb6Parado_ = true; clearTimeout(_sb6Retry_); clearInterval
   'use strict';
   const KEY = 'txb_chat_publico_v1';
   const TIPOS = [['atraso','⏱️ Atraso'],['item_errado','🍔 Item errado'],['item_faltando','❌ Item faltando'],['cobranca','💳 Cobrança'],['qualidade','⭐ Qualidade'],['outro','💬 Outro']];
-  const S = { conversaId:null, token:null, estado:null, tipo:null, chamadasIa:0, depois:0, tela:'menu', desc:'', resp:'', pergunta:'', resumo:'', ligado:false, aberto:false, ocupado:false, timer:null, codigo:'', numero:'', faq:null, buscaT:null };
+  const S = { conversaId:null, token:null, estado:null, tipo:null, intencao:null, temPedido:false, pendente:null, chamadasIa:0, depois:0, tela:'texto', desc:'', resp:'', pergunta:'', resumo:'', ligado:false, aberto:false, ocupado:false, timer:null, codigo:'', numero:'', faq:null, buscaT:null };
   const $ = id => document.getElementById(id);
   const corpo = () => $('chatPublicoConteudo');
 
   /* ---------- sessão (só conversa + token; nunca telefone, endereço ou dados do pedido) ---------- */
   function salvar_(){ try{ localStorage.setItem(KEY, JSON.stringify({ conversaId:S.conversaId, token:S.token })); }catch(e){} }
   function lerSalva_(){ try{ const j = JSON.parse(localStorage.getItem(KEY) || 'null'); if(j && j.conversaId && j.token) return j; }catch(e){} return null; }
-  function limparSessao_(){ S.conversaId = null; S.token = null; S.estado = null; S.depois = 0; S.chamadasIa = 0; try{ localStorage.removeItem(KEY); }catch(e){} }
+  function limparSessao_(){ S.intencao = null; S.temPedido = false; S.pendente = null; S.conversaId = null; S.token = null; S.estado = null; S.depois = 0; S.chamadasIa = 0; try{ localStorage.removeItem(KEY); }catch(e){} }
 
   /* ---------- botões só aparecem se o atendimento estiver ligado no banco ---------- */
   async function atualizarStatus_(){
@@ -11963,7 +12023,7 @@ function sb6Parar(){ _sb6Parado_ = true; clearTimeout(_sb6Retry_); clearInterval
     window.chatPublicoLigado_ = S.ligado;
     const fab = $('chatPublicoFab'), bt = $('cdBtnAtendimento');
     if(fab) fab.style.display = S.ligado ? '' : 'none';
-    if(bt) bt.style.display = S.ligado ? '' : 'none';
+    if(bt) bt.style.display = 'none';
     return S.ligado;
   }
 
@@ -11976,14 +12036,11 @@ function sb6Parar(){ _sb6Parado_ = true; clearTimeout(_sb6Retry_); clearInterval
   /* ---------- telas ---------- */
   function render_(){
     parar_();
-    const t = S.tela;
+    let t = S.tela;
     if(t === 'off') return pintar_('<p class="sub">O atendimento por chat está indisponível no momento. Ligue para o restaurante.</p><button type="button" class="primary" data-a="fechar">Fechar</button>');
-    if(t === 'menu') return pintar_('<p class="sub">Como podemos ajudar?</p>' +
-      '<button type="button" class="chat-op" data-a="faq">❓ Dúvidas frequentes</button>' +
-      '<button type="button" class="chat-op" data-a="busca">🔎 Buscar um produto</button>' +
-      '<button type="button" class="chat-op" data-a="pedido">🆘 Ajuda com meu pedido</button>');
-    if(t === 'faq') return renderFaq_();
-    if(t === 'busca') return pintar_(voltarBtn_() + '<input type="search" id="chatBusca" placeholder="Ex.: bacon, combo, batata" maxlength="40" autocomplete="off"><div id="chatBuscaRes"></div>', '#chatBusca');
+    if(t === 'menu' || t === 'tipo' || t === 'desc') t = 'texto';
+    if(t === 'texto') return pintar_('<p class="sub">Como podemos ajudar?</p><textarea id="chatDescricao" rows="4" maxlength="300" placeholder="Escreva em poucas palavras o que você precisa"></textarea><div class="chat-cont" id="chatCont">0/300</div><button type="button" class="primary" data-a="enviarDesc">Enviar</button>', '#chatDescricao');
+    if(t === 'dados') return pintar_('<p class="sub">Para a equipe localizar o seu pedido, informe seu nome e telefone.</p><input type="text" id="chatNome" maxlength="80" placeholder="Seu nome" autocomplete="name"><input type="tel" id="chatTel" inputmode="tel" maxlength="16" placeholder="Telefone com DDD" autocomplete="tel"><button type="button" class="primary" data-a="vincular">Continuar</button>', '#chatNome');
     if(t === 'pedido'){
       const comCodigo = !!S.codigo;
       return pintar_(voltarBtn_() + '<p class="sub">' + (comCodigo ? 'Confirme os 4 últimos dígitos do telefone usado no pedido' + (S.numero ? ' nº ' + escH(S.numero) : '') + '.' : 'Informe o número do pedido e os 4 últimos dígitos do telefone usado nele.') + '</p>' +
@@ -11991,72 +12048,12 @@ function sb6Parar(){ _sb6Parado_ = true; clearTimeout(_sb6Retry_); clearInterval
         '<input type="text" id="chatTelefone4" inputmode="numeric" placeholder="4 últimos dígitos do telefone" maxlength="4" autocomplete="off">' +
         '<button type="button" class="primary" data-a="abrir">Continuar</button>', comCodigo ? '#chatTelefone4' : '#chatPedidoNumero');
     }
-    if(t === 'tipo') return pintar_('<p class="sub">O que aconteceu com o seu pedido?</p><div class="chat-tipos">' +
-      TIPOS.map(x=>'<button type="button" class="chat-op" data-a="tipo" data-v="' + x[0] + '">' + x[1] + '</button>').join('') + '</div>');
-    if(t === 'desc') return pintar_(voltarBtn_('tipo') + '<p class="sub">Conte rapidamente o que aconteceu.</p><textarea id="chatDescricao" rows="4" maxlength="300" placeholder="Descreva em poucas palavras"></textarea><div class="chat-cont" id="chatCont">0/300</div><button type="button" class="primary" data-a="enviarDesc">Enviar</button>', '#chatDescricao');
     if(t === 'pergunta') return pintar_('<p class="sub">Só uma pergunta para ajudar a equipe:</p><div class="chat-balao ia" id="chatPergunta"></div><textarea id="chatResposta" rows="3" maxlength="300" placeholder="Sua resposta"></textarea><button type="button" class="primary" data-a="enviarResp">Enviar resposta</button><button type="button" class="link-btn" data-a="pularPergunta">Pular e falar com a equipe</button>', '#chatResposta');
     if(t === 'resumo') return pintar_('<p class="sub">Vamos enviar este resumo para a equipe:</p><div class="chat-balao ia" id="chatResumo"></div><button type="button" class="primary" data-a="transferir">➡️ Falar com a equipe</button><button type="button" class="link-btn" data-a="tipo">Corrigir</button>');
     if(t === 'fallback') return pintar_('<p class="sub">Não consegui organizar sua mensagem automaticamente.<br>Você pode continuar mesmo assim e falar com a equipe.</p><button type="button" class="primary" data-a="transferir">➡️ Falar com a equipe</button><button type="button" class="link-btn" data-a="tipo">Voltar</button>');
     if(t === 'encerrada') return pintar_('<p class="sub">✅ Este atendimento foi encerrado.</p><button type="button" class="primary" data-a="novo">Precisa de outra ajuda?</button><button type="button" class="link-btn" data-a="fechar">Fechar</button>');
     if(t === 'chat') return renderChat_();
   }
-  function renderFaq_(){
-    pintar_(voltarBtn_() + '<input type="search" id="chatFaqBusca" placeholder="Filtrar dúvidas" maxlength="40" autocomplete="off"><div id="chatFaqLista"><p class="sub">Carregando...</p></div>');
-    (async ()=>{
-      if(!S.faq){
-        try{
-          const r = await sbJson_(SUPABASE_URL_ + '/rest/v1/faq_publico?ativo=eq.true&select=pergunta,palavras_chave,resposta&order=ordem.asc', { method:'GET', headers:{ apikey:SUPABASE_CHAVE_, Authorization:'Bearer ' + SUPABASE_CHAVE_ } }, 10000);
-          S.faq = r.ok ? await r.json().catch(()=>[]) : [];
-        }catch(e){ S.faq = []; }
-      }
-      pintarFaq_('');
-    })();
-  }
-  function pintarFaq_(f){
-    const el = $('chatFaqLista'); if(!el) return;
-    const q = String(f || '').trim().toLocaleLowerCase('pt-BR');
-    const lista = (S.faq || []).filter(x=>!q || [x.pergunta, x.palavras_chave, x.resposta].join(' ').toLocaleLowerCase('pt-BR').includes(q));
-    el.textContent = '';
-    if(!lista.length){
-      const p = document.createElement('p'); p.className = 'sub';
-      p.textContent = (S.faq && S.faq.length) ? 'Nenhuma dúvida encontrada.' : 'Ainda não há dúvidas cadastradas.';
-      el.appendChild(p); return;
-    }
-    lista.forEach(x=>{
-      const d = document.createElement('details'); d.className = 'chat-faq';
-      const s = document.createElement('summary'); s.textContent = x.pergunta;
-      const p = document.createElement('p'); p.textContent = x.resposta;
-      d.appendChild(s); d.appendChild(p); el.appendChild(d);
-    });
-  }
-  /* busca de produto: usa os mesmos dados do cardápio já carregado (cdDados); não cria outro cadastro */
-  function catalogo_(){
-    const d = (typeof cdDados !== 'undefined') ? cdDados : null; if(!d) return [];
-    const nomesAd = {}; (d.adicionais || []).forEach(a=>{ nomesAd[a.id] = a.nome; });
-    const porProd = {}; (d.produtoAdicionais || []).forEach(x=>{ (porProd[x.produtoId] = porProd[x.produtoId] || []).push(nomesAd[x.adicionalId]); });
-    const prods = (d.produtos || []).map(p=>({ nome:p.nome, descricao:p.descricao || '', adicionais:(porProd[p.id] || []).filter(Boolean), combo:false }));
-    const combos = (d.combos || []).map(c=>({ nome:c.nome, descricao:'', adicionais:[], combo:true }));
-    return prods.concat(combos);
-  }
-  function buscar_(termo){
-    termo = String(termo || '').trim().toLocaleLowerCase('pt-BR');
-    const el = $('chatBuscaRes'); if(!el) return;
-    el.textContent = '';
-    if(termo.length < 2) return;
-    const cat = catalogo_();
-    if(!cat.length){ const p = document.createElement('p'); p.className = 'sub'; p.textContent = 'O cardápio ainda está carregando. Tente de novo em instantes.'; el.appendChild(p); return; }
-    const achados = cat.filter(p=>[p.nome, p.descricao].concat(p.adicionais).filter(Boolean).join(' ').toLocaleLowerCase('pt-BR').includes(termo)).slice(0, 8);
-    if(!achados.length){ const p = document.createElement('p'); p.className = 'sub'; p.textContent = 'Não encontrei esse produto no cardápio.'; el.appendChild(p); return; }
-    achados.forEach(p=>{
-      const d = document.createElement('div'); d.className = 'chat-prod';
-      const n = document.createElement('b'); n.textContent = (p.combo ? '🎁 ' : '🍔 ') + p.nome; d.appendChild(n);
-      if(p.descricao){ const s = document.createElement('div'); s.className = 'sub'; s.textContent = p.descricao; d.appendChild(s); }
-      if(p.adicionais.length){ const s = document.createElement('div'); s.className = 'sub'; s.textContent = 'Adicionais: ' + p.adicionais.join(', '); d.appendChild(s); }
-      el.appendChild(d);
-    });
-    const dica = document.createElement('p'); dica.className = 'sub'; dica.textContent = 'Os preços e o pedido ficam no cardápio.'; el.appendChild(dica);
-  }
-
   /* ---------- conversa com a equipe ---------- */
   function renderChat_(){
     pintar_('<div class="chat-msgs" id="chatMsgs"></div>' +
@@ -12083,7 +12080,7 @@ function sb6Parar(){ _sb6Parado_ = true; clearTimeout(_sb6Retry_); clearInterval
         S.estado = r.estado;
         if(r.estado === 'encerrada'){ limparSessao_(); S.tela = 'encerrada'; render_(); return; }
       }else if(r && r.limite){ atraso = 15000; }
-      else if(r && !r.ok && !r.desligado && primeira){ limparSessao_(); S.tela = 'menu'; render_(); return; }
+      else if(r && !r.ok && !r.desligado && primeira){ limparSessao_(); S.tela = 'texto'; render_(); return; }
       else if(r && r.desligado){ S.tela = 'off'; render_(); return; }
     }catch(e){ atraso = 12000; }
     if(S.aberto && S.tela === 'chat'){ clearTimeout(S.timer); S.timer = setTimeout(()=>{ if(!document.hidden) lerChat_(false); else S.timer = setTimeout(()=>lerChat_(false), 6000); }, atraso); }
@@ -12108,48 +12105,84 @@ function sb6Parar(){ _sb6Parado_ = true; clearTimeout(_sb6Retry_); clearInterval
     const r = await sbRpcPublico_('chat_abrir', { codigo: S.codigo || numero, numero: numero || '', telefone4 });
     ocupado_(false);
     if(!r || !r.ok){ if(r && r.desligado){ S.tela = 'off'; render_(); return; } msg_((r && r.message) || 'Não foi possível localizar o pedido.'); return; }
-    S.conversaId = r.conversaId; S.token = r.token; S.estado = r.estado; S.tipo = null; S.chamadasIa = 0; S.depois = 0;
+    S.conversaId = r.conversaId; S.token = r.token; S.estado = r.estado; S.tipo = null; S.chamadasIa = 0; S.depois = 0; S.temPedido = true; S.intencao = 'pedido_feito';
     salvar_();
-    S.tela = (r.estado === 'recepcao') ? 'tipo' : 'chat'; render_();
+    S.tela = (r.estado === 'recepcao') ? 'texto' : 'chat'; render_();
   }
 
   /* ---------- IA de recepção (máx. 3; nunca depois da transferência; fallback sem erro técnico) ---------- */
   function podeIa_(){ return S.estado === 'recepcao' && Number(S.chamadasIa || 0) < 3; }
-  async function iaRecepcao_(tipo, texto, anterior){
+  async function iaRecepcao_(texto, anterior){
     if(!S.conversaId || !S.token || !podeIa_()) return { ok:false, fallback:true };
     try{
       const r = await sbJson_(SUPABASE_URL_ + '/functions/v1/ai-publico-recepcao', { method:'POST', headers:{ apikey:SUPABASE_CHAVE_, Authorization:'Bearer ' + SUPABASE_CHAVE_, 'Content-Type':'application/json' },
-        body: JSON.stringify({ conversaId:S.conversaId, tipo, texto, anterior: anterior || '' }) }, 20000);
+        body: JSON.stringify({ conversaId:S.conversaId, token:S.token, texto, anterior: anterior || '' }) }, 20000);
       const j = await r.json().catch(()=>null);
-      if(!j || !j.ok) return Object.assign({ ok:false, fallback:true }, j || {});
+      if(!j || !j.ok){ if(j && j.codigo === 'conversa_invalida'){ limparSessao_(); } return Object.assign({ ok:false, fallback:true }, j || {}); }
       S.chamadasIa = Number(j.ia_chamadas || (S.chamadasIa + 1));
       return j;
     }catch(e){ return { ok:false, fallback:true }; }
   }
+  /* triagem sem pedido: o banco valida caixa aberto, limites por IP e devolve conversa + token */
+  async function triagemAbrir_(){
+    const r = await sbRpcPublico_('chat_triagem_abrir', {});
+    if(!r || !r.ok){ if(r && r.desligado){ S.tela = 'off'; render_(); } else msg_((r && r.message) || 'Não foi possível iniciar o atendimento agora.'); return false; }
+    S.conversaId = r.conversaId; S.token = r.token; S.estado = r.estado; S.tipo = null; S.intencao = null; S.temPedido = false; S.pendente = null; S.chamadasIa = 0; S.depois = 0;
+    salvar_(); return true;
+  }
+  /* a decisão vem do campo "intencao" (rótulo validado no servidor), nunca de texto escrito pela IA */
+  function rotear_(j){
+    if(!j || !j.ok){ S.tela = 'fallback'; render_(); return; }
+    if(j.tipo) S.tipo = j.tipo;
+    if(j.intencao && j.intencao !== 'indefinida') S.intencao = j.intencao;
+    if(S.intencao === 'pedido_feito' && !S.temPedido){ S.pendente = j; S.tela = 'dados'; render_(); return; }
+    mostrarSaidaIa_(j);
+  }
+  function mostrarSaidaIa_(j){
+    if(j.acao === 'perguntar'){ S.pergunta = j.pergunta; S.tela = 'pergunta'; render_(); const e = $('chatPergunta'); if(e) e.textContent = S.pergunta; return; }
+    if(j.acao === 'resumir'){ S.resumo = j.resumo; S.tela = 'resumo'; render_(); const e = $('chatResumo'); if(e) e.textContent = S.resumo; return; }
+    S.tela = 'fallback'; render_();
+  }
   async function enviarDesc_(){
     const texto = String(($('chatDescricao') || {}).value || '').trim().slice(0, 300);
-    if(!S.tipo){ msg_('Escolha o tipo do problema.'); return; }
-    if(texto.length < 3){ msg_('Descreva rapidamente o que aconteceu.'); return; }
+    if(texto.length < 3){ msg_('Descreva rapidamente o que você precisa.'); return; }
     S.desc = texto; S.resp = ''; S.resumo = '';
-    ocupado_(true); const j = await iaRecepcao_(S.tipo, texto, ''); ocupado_(false);
-    if(j.ok && j.acao === 'perguntar'){ S.pergunta = j.pergunta; S.tela = 'pergunta'; render_(); const e = $('chatPergunta'); if(e) e.textContent = S.pergunta; return; }
-    if(j.ok && j.acao === 'resumir'){ S.resumo = j.resumo; S.tela = 'resumo'; render_(); const e = $('chatResumo'); if(e) e.textContent = S.resumo; return; }
-    S.tela = 'fallback'; render_();
+    ocupado_(true);
+    if(!S.conversaId || S.estado !== 'recepcao'){ const ok = await triagemAbrir_(); if(!ok){ ocupado_(false); return; } }
+    const j = await iaRecepcao_(texto, ''); ocupado_(false);
+    rotear_(j);
+  }
+  /* nome + telefone: formulário do app, NUNCA passa pela IA; o telefone decide o vínculo e a resposta é sempre a mesma */
+  async function vincular_(){
+    const nome = String(($('chatNome') || {}).value || '').trim().slice(0, 80);
+    const telefone = String(($('chatTel') || {}).value || '').replace(/[^\d]/g, '').slice(0, 15);
+    if(nome.length < 2 || telefone.length < 10){ msg_('Informe seu nome e o telefone com DDD.'); return; }
+    ocupado_(true);
+    const r = await sbRpcPublico_('chat_vincular_pedido', { conversaId:S.conversaId, token:S.token, nome, telefone });
+    ocupado_(false);
+    if(!r || !r.ok){ if(r && r.desligado){ S.tela = 'off'; render_(); return; } msg_((r && r.message) || 'Não foi possível continuar agora.'); return; }
+    S.temPedido = true; S.intencao = 'pedido_feito';
+    const j = S.pendente; S.pendente = null;
+    if(j) mostrarSaidaIa_(j); else { S.tela = 'fallback'; render_(); }
   }
   async function enviarResp_(){
     const texto = String(($('chatResposta') || {}).value || '').trim().slice(0, 300);
     if(texto.length < 1){ msg_('Escreva sua resposta.'); return; }
     S.resp = texto;
-    ocupado_(true); const j = await iaRecepcao_(S.tipo, texto, S.desc); ocupado_(false);
-    if(j.ok && j.acao === 'resumir'){ S.resumo = j.resumo; S.tela = 'resumo'; render_(); const e = $('chatResumo'); if(e) e.textContent = S.resumo; return; }
+    ocupado_(true); const j = await iaRecepcao_(texto, S.desc); ocupado_(false);
+    if(j.ok && j.tipo) S.tipo = j.tipo;
+    if(j.ok && j.intencao && j.intencao !== 'indefinida') S.intencao = j.intencao;
+    if(j.ok && j.acao === 'resumir'){
+      if(S.intencao === 'pedido_feito' && !S.temPedido){ S.pendente = j; S.tela = 'dados'; render_(); return; }
+      mostrarSaidaIa_(j); return;
+    }
     S.tela = 'fallback'; render_();
   }
   async function transferir_(){
-    if(!S.tipo){ msg_('Escolha o tipo do problema.'); return; }
     const texto = (S.resp ? (S.desc + ' — ' + S.resp) : S.desc).slice(0, 300);
-    if(texto.length < 3){ msg_('Descreva rapidamente o que aconteceu.'); return; }
+    if(texto.length < 3){ msg_('Descreva rapidamente o que você precisa.'); return; }
     ocupado_(true);
-    const r = await sbRpcPublico_('chat_transferir', { conversaId:S.conversaId, token:S.token, tipo:S.tipo, texto, resumo:S.resumo || null });
+    const r = await sbRpcPublico_('chat_transferir', { conversaId:S.conversaId, token:S.token, tipo:S.tipo || 'outro', texto, resumo:S.resumo || null });
     ocupado_(false);
     if(!r || !r.ok){ msg_((r && r.message) || 'Não foi possível transferir agora.'); return; }
     S.estado = r.estado || 'aguardando'; S.tela = 'chat'; render_();
@@ -12168,13 +12201,14 @@ function sb6Parar(){ _sb6Parado_ = true; clearTimeout(_sb6Retry_); clearInterval
       if(r && r.ok){
         S.estado = r.estado;
         S.chamadasIa = (r.mensagens || []).filter(m=>m.autor === 'ia').length;
-        if(r.estado === 'encerrada'){ limparSessao_(); S.tela = 'menu'; }
-        else S.tela = (r.estado === 'recepcao') ? 'tipo' : 'chat';
+        if(r.estado === 'encerrada'){ limparSessao_(); S.tela = 'texto'; }
+        else if(r.estado === 'recepcao'){ limparSessao_(); S.tela = S.codigo ? 'pedido' : 'texto'; }   // triagem abandonada: recomeça
+        else S.tela = 'chat';
         render_(); return;
       }
       limparSessao_();
     }
-    S.tela = S.codigo ? 'pedido' : 'menu'; render_();
+    S.tela = S.codigo ? 'pedido' : 'texto'; render_();
   }
   function fechar_(){ S.aberto = false; parar_(); S.codigo = ''; S.numero = ''; $('chatPublicoModal').classList.remove('open'); }
 
@@ -12182,25 +12216,21 @@ function sb6Parar(){ _sb6Parado_ = true; clearTimeout(_sb6Retry_); clearInterval
   document.addEventListener('click', ev=>{
     const el = ev.target && ev.target.closest && ev.target.closest('#chatPublicoConteudo [data-a]'); if(!el || S.ocupado) return;
     const a = el.getAttribute('data-a');
-    if(a === 'menu'){ S.tela = 'menu'; render_(); }
-    else if(a === 'faq'){ S.tela = 'faq'; render_(); }
-    else if(a === 'busca'){ S.tela = 'busca'; render_(); }
-    else if(a === 'pedido'){ S.tela = S.conversaId && S.estado === 'recepcao' ? 'tipo' : (S.conversaId ? 'chat' : 'pedido'); render_(); }
+    if(a === 'menu'){ S.tela = 'texto'; render_(); }
+    else if(a === 'pedido'){ S.tela = S.conversaId && S.estado === 'recepcao' ? 'texto' : (S.conversaId ? 'chat' : 'pedido'); render_(); }
+    else if(a === 'vincular') vincular_();
     else if(a === 'abrir') abrirConversa_();
-    else if(a === 'tipo'){ const v = el.getAttribute('data-v'); if(v){ S.tipo = v; S.tela = 'desc'; render_(); if(S.desc){ const d = $('chatDescricao'); if(d){ d.value = S.desc; } } } else { S.tela = 'tipo'; render_(); } }
     else if(a === 'enviarDesc') enviarDesc_();
     else if(a === 'enviarResp') enviarResp_();
     else if(a === 'pularPergunta'){ S.tela = 'fallback'; S.resumo = ''; transferir_(); }
     else if(a === 'transferir') transferir_();
     else if(a === 'enviarChat') enviarChat_();
-    else if(a === 'novo'){ limparSessao_(); S.desc = ''; S.resp = ''; S.codigo = ''; S.numero = ''; S.tela = 'pedido'; render_(); }
+    else if(a === 'novo'){ limparSessao_(); S.desc = ''; S.resp = ''; S.codigo = ''; S.numero = ''; S.tela = 'texto'; render_(); }
     else if(a === 'fechar') fechar_();
   });
   document.addEventListener('input', ev=>{
     const t = ev.target; if(!t || !t.id) return;
-    if(t.id === 'chatBusca'){ clearTimeout(S.buscaT); S.buscaT = setTimeout(()=>buscar_(t.value), 150); }
-    else if(t.id === 'chatFaqBusca') pintarFaq_(t.value);
-    else if(t.id === 'chatDescricao'){ const c = $('chatCont'); if(c) c.textContent = t.value.length + '/300'; }
+    if(t.id === 'chatDescricao'){ const c = $('chatCont'); if(c) c.textContent = t.value.length + '/300'; }
   });
   document.addEventListener('keydown', ev=>{
     if(ev.key === 'Escape' && S.aberto){ fechar_(); return; }

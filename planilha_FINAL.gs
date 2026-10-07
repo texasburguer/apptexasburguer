@@ -24,6 +24,7 @@ const FUSO         = 'America/Sao_Paulo';
 
 let USUARIO_ATUAL = '';
 let NIVEL_ATUAL = '';
+let NIVEL_REAL_ATUAL = ''; // nível gravado no cadastro (Desenvolvedor continua sendo Desenvolvedor); NIVEL_ATUAL trata Desenvolvedor como Admin
 let APARELHO_ATUAL = ''; // BLOCO 4.2/4.5: "aparelho xxxxxxxx · Chrome · Android" da sessão (o Apps Script não expõe IP)
 let AUTORIZADOR_ATUAL = ''; // FASE 9: quem autorizou a operação sensível (Admin logado ou dono da senha digitada)
 
@@ -745,7 +746,7 @@ function doPost(e) {
   const action = body.action;
     if (ACOES_SERVIDOR_SB_.indexOf(action) !== -1) return responder(acaoServidorSb_(action, body));   // ETAPAS 4/7/8/9 — chamadas da Edge Function (antes da sanitização)
   body = sanitizarEntrada_(body, '', 0);
-  USUARIO_ATUAL = ''; NIVEL_ATUAL = ''; AUTORIZADOR_ATUAL = ''; APARELHO_ATUAL = '';
+  USUARIO_ATUAL = ''; NIVEL_ATUAL = ''; NIVEL_REAL_ATUAL = ''; AUTORIZADOR_ATUAL = ''; APARELHO_ATUAL = '';
   { // ITEM 2.8: em manutenção, todo mundo (inclusive o cardápio público) recebe aviso na hora; só Admin passa.
     const manut = manutencaoAtiva_();
     if (manut && !ehAdminPeloCache_(body.token)) return responder({ ok: false, manutencao: true, desde: manut.ts, message: 'Sistema em manutenção — aguarde alguns minutos. Nada foi perdido.' });
@@ -765,7 +766,7 @@ function doPost(e) {
     if (ACOES_PUBLICAS.indexOf(action) === -1) {
       const sessao = validarSessao_(body.token);
       if (!sessao) return responder({ ok: false, message: 'Sessão expirada. Faça login novamente.', sessaoExpirada: true });
-      USUARIO_ATUAL = sessao.login; NIVEL_ATUAL = sessao.nivel;
+      USUARIO_ATUAL = sessao.login; NIVEL_REAL_ATUAL = sessao.nivel; NIVEL_ATUAL = (sessao.nivel === 'Desenvolvedor' ? 'Admin' : sessao.nivel); // Desenvolvedor = Admin em tudo
       APARELHO_ATUAL = sessao.deviceId ? ('aparelho ' + String(sessao.deviceId).slice(0, 8) + (sessao.ua ? ' · ' + String(sessao.ua).slice(0, 60) : '')) : '';
       if (!checarPermissao_(action, NIVEL_ATUAL)) {
         registrarLog('Tentativa de acesso negado', USUARIO_ATUAL, 'Ação: ' + action + ' | Nível: ' + NIVEL_ATUAL + (APARELHO_ATUAL ? ' | ' + APARELHO_ATUAL : ''));
@@ -1413,7 +1414,7 @@ function verificarSenhaDoUsuarioAtual_(senha) {
 /* Dupla trava para operação sensível: OU a sessão validada já é de um Admin,
    OU foi digitada a senha de um Admin agora (fluxo do Operador pedindo autorização). */
 function exigeConfirmacaoAdmin(senhaAdminConfirmacao) {
-  if (NIVEL_ATUAL === 'Admin' || NIVEL_ATUAL === 'Desenvolvedor') { AUTORIZADOR_ATUAL = USUARIO_ATUAL; return true; }
+  if (NIVEL_ATUAL === 'Admin') { AUTORIZADOR_ATUAL = USUARIO_ATUAL; return true; }
   return verificarAdmin(senhaAdminConfirmacao);
 }
 
@@ -1542,9 +1543,9 @@ function editarUsuario(loginAlvo, novaSenha, novoNivel, novoAtivo, senhaAdminCon
       const nivelAtual = sh.getRange(i, 3).getValue();
       const ativoAtual = sh.getRange(i, 4).getValue();
       const ehDesenvolvedorAlvo = nivelAtual === 'Desenvolvedor';
-      if (ehDesenvolvedorAlvo && NIVEL_ATUAL !== 'Desenvolvedor') return { ok: false, message: 'A conta de Desenvolvedor só pode ser editada por um Desenvolvedor.' };
-      if (novoNivel === 'Desenvolvedor' && NIVEL_ATUAL !== 'Desenvolvedor') return { ok: false, message: 'Somente um Desenvolvedor pode promover um usuário para Desenvolvedor.' };
-      if (ehDesenvolvedorAlvo && NIVEL_ATUAL === 'Desenvolvedor' && novoAtivo === false && String(loginAlvo).toLowerCase() === String(USUARIO_ATUAL).toLowerCase()) return { ok: false, message: 'O Desenvolvedor não pode desativar a própria conta.' };
+      if (ehDesenvolvedorAlvo && NIVEL_REAL_ATUAL !== 'Desenvolvedor') return { ok: false, message: 'A conta de Desenvolvedor só pode ser editada por um Desenvolvedor.' };
+      if (novoNivel === 'Desenvolvedor' && NIVEL_REAL_ATUAL !== 'Desenvolvedor') return { ok: false, message: 'Somente um Desenvolvedor pode promover um usuário para Desenvolvedor.' };
+      if (ehDesenvolvedorAlvo && NIVEL_REAL_ATUAL === 'Desenvolvedor' && novoAtivo === false && String(loginAlvo).toLowerCase() === String(USUARIO_ATUAL).toLowerCase()) return { ok: false, message: 'O Desenvolvedor não pode desativar a própria conta.' };
       const seraAdmin = novoNivel !== undefined ? novoNivel === 'Admin' : nivelAtual === 'Admin';
       const seraAtivo = novoAtivo !== undefined ? (novoAtivo ? 'Sim' : 'Não') : ativoAtual;
       if (nivelAtual === 'Admin' && (!seraAdmin || seraAtivo === 'Não')) {
@@ -1569,7 +1570,7 @@ function excluirUsuario(loginAlvo, senhaAdminConfirmacao) {
   for (let i = 2; i <= last; i++) {
     if (String(sh.getRange(i, 1).getValue()).toLowerCase() === String(loginAlvo).toLowerCase()) {
       const nivelAlvo = sh.getRange(i, 3).getValue();
-      if (nivelAlvo === 'Desenvolvedor' && NIVEL_ATUAL !== 'Desenvolvedor') return { ok: false, message: 'A conta de Desenvolvedor só pode ser excluída por um Desenvolvedor.' };
+      if (nivelAlvo === 'Desenvolvedor' && NIVEL_REAL_ATUAL !== 'Desenvolvedor') return { ok: false, message: 'A conta de Desenvolvedor só pode ser excluída por um Desenvolvedor.' };
       if (nivelAlvo === 'Desenvolvedor') return { ok: false, message: 'A conta de Desenvolvedor não pode ser excluída.' };
       if (nivelAlvo === 'Admin') {
         const admins = readUsuarios().filter(u => u.nivel === 'Admin' && u.ativo && u.login.toLowerCase() !== loginAlvo.toLowerCase());
@@ -1771,9 +1772,6 @@ function maisPedidosEmCache_() {
   return m.lista;
 }
 function getAllData(grupo) {
-  const nivelOriginal = NIVEL_ATUAL;
-  const desenvolvedor = nivelOriginal === 'Desenvolvedor';
-  if (desenvolvedor) NIVEL_ATUAL = 'Admin';
   const vers = versoesAtuais_(); // lida ANTES dos dados: se algo mudar durante a leitura, a próxima conferência baixa de novo
   { const cacheEstr = CacheService.getScriptCache();
     if (!cacheEstr.get('estr_ok')) { criarEstruturasNovosRecursos(ss_()); cacheEstr.put('estr_ok', '1', 21600); } } // antes rodava a cada chamada
@@ -1821,7 +1819,6 @@ function getAllData(grupo) {
   if (NIVEL_ATUAL === 'Garçom') dados.feedbacks = []; // telefone e comentário dos clientes: só Admin/Operador
   if (NIVEL_ATUAL === 'Cozinha') ['clientes', 'fidelidade', 'indicacoes', 'promocoes', 'pagamentosVenda', 'feedbacks'].forEach(k => { dados[k] = []; });
   dados.versoes = vers; if (grupo) dados.grupo = grupo; // ITEM 19
-  NIVEL_ATUAL = nivelOriginal;
   return dados;
 }
 
@@ -5239,7 +5236,7 @@ function fazerBackupManual_() { return executarBackup_('Manual'); }
    qualquer dado, cria um backup de segurança; se ele falhar, a restauração é cancelada. */
 function restaurarBackup(backupId, senhaAdmin, confirmacao) {
   if (confirmacao !== 'RESTAURAR FECHADO') return { ok: false, message: 'Confirmação incorreta. Digite RESTAURAR FECHADO.' };
-  if (!verificarAdmin(senhaAdmin) && NIVEL_ATUAL !== 'Desenvolvedor') return { ok: false, message: 'Senha de administrador incorreta.' };
+  if (!verificarAdmin(senhaAdmin) && NIVEL_REAL_ATUAL !== 'Desenvolvedor') return { ok: false, message: 'Senha de administrador incorreta.' };
   if (readSessaoAberta()) return { ok: false, message: 'Não é possível restaurar enquanto houver um caixa aberto. Feche o caixa antes de restaurar.' };
   const pedidosAtivos = readVendas().filter(v =>
     v.status === 'Confirmada' &&
@@ -5489,7 +5486,7 @@ function reconciliarContingenciaAuto() {
   const lock = LockService.getScriptLock();
   if (!lock.tryLock(25000)) return;
   try {
-    USUARIO_ATUAL = 'sistema'; NIVEL_ATUAL = ''; AUTORIZADOR_ATUAL = '';
+    USUARIO_ATUAL = 'sistema'; NIVEL_ATUAL = ''; NIVEL_REAL_ATUAL = ''; AUTORIZADOR_ATUAL = '';
     const r = chamarContingencia_('listarPendentes');
     if (!r || !r.ok || !(r.pendentes || []).length) return;
     reconciliarContingencia();
@@ -5692,6 +5689,7 @@ function acaoServidorSb_(action, body) {
     if (action === 'sbChaveLeitura') return sbChaveLeitura_(body.renovar === true);
     if (action === 'sbArmazenamento') return sbObterArmazenamento_();
     if (action === 'sbLerArquivo') return sbLerArquivo_(body.mes);
+    if (action === 'sbLerArquivoCaixa') return sbLerArquivoCaixa_(body.mes);
     if (action === 'sbGuardarBackup') return sbGuardarBackup_(body);
     if (action === 'sbArmazenamentoContingencia') return obterArmazenamentoContingencia();
     if (action === 'sbChaveContingencia') return sbChaveContingencia_();
@@ -6045,6 +6043,18 @@ function sbLerArquivo_(mes) {
   const pagamentos = sbLerAba_('Arquivo_Pagamentos').filter(function (x) { return ids[String(x.venda_id)]; })
     .map(function (x) { return pick(x, ['id','venda_id','forma_pagamento','valor','taxa_aplicada']); });
   return { ok: true, mes: mes, vendas: vendas.map(function (v) { return pick(v, colsV); }), itens: itens, pagamentos: pagamentos };
+}
+
+
+/* D17 (Fase 8) — caixas fechados e sangrias de um mês arquivado (Arquivo_Caixa / Arquivo_Sangrias). Só leitura.
+   Chamado pela Edge Function "planilha-admin" (acao arquivoCaixa). */
+function sbLerArquivoCaixa_(mes) {
+  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(String(mes || ''))) return { ok: false, message: 'Mês inválido.' };
+  const a = String(mes).split('-'), ini = new Date(Number(a[0]), Number(a[1]) - 1, 1).getTime(), fim = new Date(Number(a[0]), Number(a[1]), 1).getTime();
+  const lim = function (o) { const r = {}; Object.keys(o).forEach(function (k) { r[k] = (o[k] instanceof Date) ? o[k].toISOString() : o[k]; }); return r; };
+  const caixas = sbLerAba_('Arquivo_Caixa').filter(function (c) { const t = sbMs_(c.abertura); return t >= ini && t < fim; }).map(lim);
+  const sangrias = sbLerAba_('Arquivo_Sangrias').filter(function (s) { const t = sbMs_(s.data_hora); return t >= ini && t < fim; }).map(lim);
+  return { ok: true, mes: mes, caixas: caixas, sangrias: sangrias };
 }
 
 
