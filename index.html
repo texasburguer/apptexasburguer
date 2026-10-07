@@ -10559,13 +10559,17 @@ async function enviarFeedbackPublico(){
 /* ---------- RESTAURAR SESSÃO SALVA ----------
    Não depende mais de parâmetro de URL — só verifica sessão de funcionário.
    O acompanhamento do pedido agora só abre pelo botão no rodapé. */
-(function tentarRestaurarSessao(){
+/* CORREÇÃO "desloga ao atualizar": entrarNoApp() usa funções declaradas nos scripts seguintes (ex.: garantirChaveLeitura_).
+   Rodar a restauração aqui, no meio da página, dava ReferenceError, o catch engolia o erro e o cardápio público aparecia como se a
+   sessão tivesse caído. Agora espera TODOS os scripts carregarem (DOMContentLoaded) e registra no console qualquer falha. */
+function tentarRestaurarSessao(){
   try{
     const raw = localStorage.getItem(SESSAO_KEY);
     if(raw){ currentUser = JSON.parse(raw); if(!currentUser.nivelReal) currentUser.nivelReal = currentUser.nivel; if(currentUser.nivelReal === 'Desenvolvedor'){ currentUser.nivel = 'Admin'; currentUser.verComo = ''; } entrarNoApp(); return; }
-  } catch(e){}
+  } catch(e){ console.error('Falha ao restaurar a sessão:', e); }
   carregarCardapioPublico();
-})();
+}
+if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', tentarRestaurarSessao); else tentarRestaurarSessao();
 
 /* ---------- OLHINHO DA SENHA ---------- */
 (function(){
