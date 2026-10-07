@@ -29,9 +29,10 @@ const FILA_MAX_PENDENTES = 300, FILA_MAX_CHARS = 30000;
 const FILA_MAX_PUBLICA = 100, FILA_MAX_PUBLICA_10MIN = 30;
 const PERMISSOES = {
   servidor: ['listarPendentes', 'marcarSincronizado', 'atualizarEspelho', 'getEspelho', 'getEspelhoPublico', 'getEspelhoInterno',
-             'guardarBackup', 'getArmazenamento', 'listarFotos', 'guardarFoto', 'removerFotosOrfas', 'syncLote'],
-  interna:  ['enfileirar', 'getEspelhoPublico', 'getEspelhoInterno'],
-  publica:  ['enfileirar', 'getEspelhoPublico']
+             'guardarBackup', 'getArmazenamento', 'listarFotos', 'guardarFoto', 'removerFotosOrfas', 'syncLote', 'gerarChaveLeitura'],
+  interna:  ['enfileirar', 'getEspelhoPublico', 'getEspelhoInterno', 'getEspelhoReserva', 'listarFilaInterna'],
+  publica:  ['enfileirar', 'getEspelhoPublico'],
+  leitura:  ['getEspelhoReserva', 'listarFilaInterna']   // RESERVA DE LEITURA: só consulta (Cozinha/Garçom/Entregador também usam); sem dados de contato nem de pagamento
 };
 
 function ss_() {
@@ -102,6 +103,7 @@ function perfilDaChave_(chave) {
   if (chave === p.getProperty('CHAVE_SERVIDOR')) return 'servidor';
   if (chave === p.getProperty('CHAVE_INTERNA')) return 'interna';
   if (chave === p.getProperty('CHAVE_PUBLICA')) return 'publica';
+  if (chave === p.getProperty('CHAVE_LEITURA')) return 'leitura';
   return '';
 }
 
@@ -144,7 +146,10 @@ function doPost(e) {
       case 'listarFotos': r = listarFotos_(); break;
       case 'guardarFoto': r = guardarFoto(body.idOrigem, body.base64); break;
       case 'removerFotosOrfas': r = removerFotosOrfas(body.ids); break;
-      case 'syncLote': r = ctSyncLote_(body.itens); break;   // ETAPA 4 — espelho das tabelas do Supabase (abas SB_<tabela>)
+      case 'syncLote': r = ctSyncLote_(body.itens); break;
+      case 'gerarChaveLeitura': r = gerarChaveLeitura_(); break;
+      case 'listarFilaInterna': r = { ok: true, fila: filaInternaResumo_() }; break;
+      case 'getEspelhoReserva': { const esp = lerEspelho_(); r = { ok: true, reserva: esp.reserva || null, atualizadoEm: esp._atualizadoEm }; break; }   // ETAPA 4 — espelho das tabelas do Supabase (abas SB_<tabela>)
       default: r = { ok: false, message: 'Ação desconhecida.' };
     }
     return responder(r);
@@ -451,4 +456,26 @@ function ctSyncLote_(itens) {
     total += r.gravadas + r.removidas;
   });
   return { ok: true, processados: total };
+}
+
+
+/* =====================================================================
+   RESERVA DE LEITURA (Etapa 6 das correções pós-migração)
+   Quando o Supabase cai, o app mostra os pedidos em andamento (espelho a cada ~10 min) e os pedidos que entraram aqui na fila.
+   Perfil "leitura": só lê. Nunca devolve telefone, endereço nem forma de pagamento.
+   ===================================================================== */
+function gerarChaveLeitura_() {   // só a planilha principal chama (chave do servidor); devolve sempre a mesma chave
+  const p = PropertiesService.getScriptProperties();
+  let k = p.getProperty('CHAVE_LEITURA');
+  if (!k) { k = 'txblei' + Utilities.getUuid().replace(/-/g, ''); p.setProperty('CHAVE_LEITURA', k); }
+  return { ok: true, chave: k };
+}
+function filaInternaResumo_() {
+  return readFilaPendente().filter(function (x) { return x.tipo === 'venda' && !x.corrompido; }).slice(-80).map(function (x) {
+    const d = x.dados || {};
+    const itens = (d.itens || []).map(function (i) { return { descricao: String(i.descricao || ''), quantidade: Number(i.quantidade) || 0 }; });
+    const total = (d.itens || []).reduce(function (t, i) { return t + (Number(i.valorUnitario) || 0) * (Number(i.quantidade) || 0); }, 0);
+    return { id: x.id, recebidoEm: x.recebidoEm, origem: d.origem || '', cliente: d.clienteNome || '', tipoEntrega: d.tipoEntrega || '', itens: itens,
+             total: Math.round(total * 100) / 100, obs: (d.dadosEntrega && d.dadosEntrega.observacoes) ? String(d.dadosEntrega.observacoes) : '' };
+  });
 }

@@ -3194,6 +3194,7 @@ declare
   v_total numeric; v_pendente numeric; v_qv int; v_desp numeric; v_qd int; v_sang numeric; v_qs int;
   v_forma jsonb; v_dinheiro numeric; v_saldo numeric; v_dif numeric; v_nomes_dinheiro text[];
   v_feitos jsonb := '[]'::jsonb; v_falhas jsonb := '[]'::jsonb; ed record; c record; fid uuid; v_req_auto text;
+  v_acertos numeric := 0;
 begin
   if not tem_nivel('Admin','Operador') then return _negado(); end if;
   select login into v_login from usuarios where id = auth.uid();
@@ -3273,6 +3274,7 @@ begin
         values (ed.dia, ed.entregador_id, c.qtd, c.total_taxas, c.ajuda, c.total, c.total, 0, auth.uid(), 'Fechamento automático ao fechar o caixa', v_req_auto)
         on conflict (requisicao_id) do nothing returning id into fid;
         if fid is not null then
+          v_acertos := v_acertos + c.total;
           insert into entregas_fechadas (fechamento_id, venda_id, data_ref, entregador_id, taxa)
           select fid, id, ed.dia, ed.entregador_id, taxa_entrega from vendas where id = any(c.ids);
           update vendas set fechamento_entrega_id = fid where id = any(c.ids);
@@ -3294,6 +3296,7 @@ begin
       'fechamento', to_char(v_fim at time zone 'America/Sao_Paulo', 'DD/MM/YYYY HH24:MI'),
       'fundoCaixa', s.fundo_caixa, 'totalVendas', v_total, 'totalVendasDinheiro', v_dinheiro, 'porForma', v_forma,
       'totalPendente', v_pendente, 'totalDespesas', v_desp, 'totalSangrias', v_sang, 'saldoFinal', v_saldo,
+      'acertoEntregadores', v_acertos, 'saldoAposAcertos', v_saldo - v_acertos,
       'valorContado', v_contado, 'diferenca', v_dif, 'quantidadeVendas', v_qv, 'quantidadeDespesas', v_qd, 'quantidadeSangrias', v_qs,
       'reconciliadasNaSessao', jsonb_build_object('quantidade', 0, 'valor', 0), 'pendentesContingencia', 0));
 end $function$;
@@ -4556,6 +4559,43 @@ begin
   return jsonb_build_object('ok', true, 'versoes', r);
 end $function$;
 
+CREATE OR REPLACE FUNCTION public.api_ler_tabelas(p jsonb DEFAULT '{}'::jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY INVOKER
+ SET search_path TO 'public'
+AS $function$
+declare
+  v_permitidas text[] := array['formas_pagamento','v_formas_operacional','categorias','produtos','produto_precos','produto_ingredientes','combos','combo_precos','combo_itens','adicionais','produto_adicionais','sistema','usuarios','promocoes','estoque','v_mesas','clientes','movimentacoes_estoque','sangrias','v_vendas','v_itens_venda','pagamentos_venda','v_fidelidade','v_sessao_aberta','caixa_sessoes','fechamentos_entrega','entregas_fechadas','despesas','despesas_recorrentes','ajustes_pos_venda','cupons','eventos','v_indicacoes','feedbacks','v_ocorrencias','v_cardapio_mais_pedidos'];
+  v_nome text; v_ord text; v_arr jsonb; v_dados jsonb := '{}'::jsonb;
+begin
+  if auth_nivel() is null then return _negado(); end if;
+  for v_nome in select jsonb_array_elements_text(coalesce(p->'tabelas', '[]'::jsonb)) loop
+    if not (v_nome = any(v_permitidas)) then continue; end if;
+    v_ord := case v_nome
+      when 'v_vendas' then 't.data_hora, t.id'
+      when 'v_fidelidade' then 't.cliente_id'
+      when 'sistema' then 't.chave'
+      when 'despesas' then 't.data_hora, t.id'
+      when 'despesas_recorrentes' then 't.criada_em, t.id'
+      when 'ajustes_pos_venda' then 't.data_hora, t.id'
+      when 'cupons' then 't.criado_em, t.id'
+      when 'eventos' then 't.data, t.id'
+      when 'v_indicacoes' then 't.data, t.id'
+      when 'feedbacks' then 't.data, t.id'
+      when 'v_ocorrencias' then 't.numero, t.id'
+      when 'v_cardapio_mais_pedidos' then 't.posicao'
+      when 'v_formas_operacional' then 't.ordem'
+      when 'caixa_sessoes' then 't.abertura desc, t.id'
+      when 'fechamentos_entrega' then 't.fechado_em, t.id'
+      else 't.id' end;
+    execute format('select coalesce(jsonb_agg(to_jsonb(t) order by %s), ''[]''::jsonb) from public.%I t', v_ord, v_nome) into v_arr;
+    v_dados := v_dados || jsonb_build_object(v_nome, v_arr);
+  end loop;
+  return jsonb_build_object('ok', true, 'dados', v_dados);
+end $function$;
+
+
 CREATE OR REPLACE FUNCTION public.api_vincular_adicionais_em_lote(p jsonb)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -5314,7 +5354,12 @@ CREATE POLICY mesas_admin_criar ON public.mesas AS PERMISSIVE FOR INSERT TO auth
 DROP POLICY IF EXISTS "mesas_admin_excluir" ON public.mesas;
 CREATE POLICY mesas_admin_excluir ON public.mesas AS PERMISSIVE FOR DELETE TO authenticated USING (tem_nivel(VARIADIC ARRAY['Admin'::nivel_acesso]));
 DROP POLICY IF EXISTS "mesas_ler" ON public.mesas;
-CREATE POLICY mesas_ler ON public.mesas AS PERMISSIVE FOR SELECT TO authenticated USING (tem_nivel(VARIADIC ARRAY['Admin'::nivel_acesso, 'Operador'::nivel_acesso, 'Garçom'::nivel_acesso]));
+CREATE POLICY mesas_ler ON public.mesas AS PERMISSIVE FOR SELECT TO authenticated
+USING (
+  tem_nivel(VARIADIC ARRAY['Admin'::nivel_acesso, 'Operador'::nivel_acesso])
+  OR (tem_nivel(VARIADIC ARRAY['Garçom'::nivel_acesso])
+      AND (garcom_responsavel_id IS NULL OR garcom_responsavel_id = auth.uid()))
+);
 DROP POLICY IF EXISTS "mesas_status" ON public.mesas;
 CREATE POLICY mesas_status ON public.mesas AS PERMISSIVE FOR UPDATE TO authenticated USING (tem_nivel(VARIADIC ARRAY['Admin'::nivel_acesso, 'Operador'::nivel_acesso, 'Garçom'::nivel_acesso])) WITH CHECK (tem_nivel(VARIADIC ARRAY['Admin'::nivel_acesso, 'Operador'::nivel_acesso, 'Garçom'::nivel_acesso]));
 DROP POLICY IF EXISTS "mov_estoque_ler" ON public.movimentacoes_estoque;
@@ -5370,7 +5415,16 @@ CREATE POLICY vendas_alterar ON public.vendas AS PERMISSIVE FOR UPDATE TO authen
 DROP POLICY IF EXISTS "vendas_criar" ON public.vendas;
 CREATE POLICY vendas_criar ON public.vendas AS PERMISSIVE FOR INSERT TO authenticated WITH CHECK ((tem_nivel(VARIADIC ARRAY['Admin'::nivel_acesso, 'Operador'::nivel_acesso]) OR (tem_nivel(VARIADIC ARRAY['Garçom'::nivel_acesso]) AND (registrado_por = auth.uid()))));
 DROP POLICY IF EXISTS "vendas_ler" ON public.vendas;
-CREATE POLICY vendas_ler ON public.vendas AS PERMISSIVE FOR SELECT TO authenticated USING ((tem_nivel(VARIADIC ARRAY['Admin'::nivel_acesso, 'Operador'::nivel_acesso]) OR (tem_nivel(VARIADIC ARRAY['Garçom'::nivel_acesso]) AND ((tipo = 'Mesa'::venda_tipo) OR (registrado_por = auth.uid()))) OR (tem_nivel(VARIADIC ARRAY['Cozinha'::nivel_acesso]) AND (status = 'Confirmada'::venda_status) AND (status_pedido = ANY (ARRAY['Recebido'::status_pedido, 'Em preparo'::status_pedido, 'Pronta'::status_pedido, 'Suspenso'::status_pedido]))) OR (tem_nivel(VARIADIC ARRAY['Entregador'::nivel_acesso]) AND (tipo = 'Entrega'::venda_tipo) AND (entregador_id = auth.uid()))));
+CREATE POLICY vendas_ler ON public.vendas AS PERMISSIVE FOR SELECT TO authenticated
+USING (
+  tem_nivel(VARIADIC ARRAY['Admin'::nivel_acesso, 'Operador'::nivel_acesso])
+  OR (tem_nivel(VARIADIC ARRAY['Garçom'::nivel_acesso])
+      AND ((tipo = 'Mesa'::venda_tipo
+            AND mesa_id IN (SELECT m.id FROM mesas m WHERE m.garcom_responsavel_id = auth.uid()))
+           OR registrado_por = auth.uid()))
+  OR (tem_nivel(VARIADIC ARRAY['Cozinha'::nivel_acesso]) AND (status = 'Confirmada'::venda_status) AND (status_pedido = ANY (ARRAY['Recebido'::status_pedido, 'Em preparo'::status_pedido, 'Pronta'::status_pedido, 'Suspenso'::status_pedido])))
+  OR (tem_nivel(VARIADIC ARRAY['Entregador'::nivel_acesso]) AND (tipo = 'Entrega'::venda_tipo) AND (entregador_id = auth.uid()))
+);
 
 -- 12. PERMISSÕES ------------------------------------------------------
 REVOKE ALL ON ALL TABLES IN SCHEMA public FROM anon;
@@ -5804,6 +5858,8 @@ REVOKE ALL ON FUNCTION public.api_versoes() FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.api_versoes() TO service_role, authenticated;
 REVOKE ALL ON FUNCTION public.api_versoes_registros(p jsonb) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.api_versoes_registros(p jsonb) TO service_role, authenticated;
+REVOKE ALL ON FUNCTION public.api_ler_tabelas(p jsonb) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.api_ler_tabelas(p jsonb) TO service_role, authenticated;
 REVOKE ALL ON FUNCTION public.api_vincular_adicionais_em_lote(p jsonb) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.api_vincular_adicionais_em_lote(p jsonb) TO service_role, authenticated;
 REVOKE ALL ON FUNCTION public.auth_nivel() FROM PUBLIC, anon, authenticated;
@@ -6197,5 +6253,18 @@ grant execute on function public.api_reconciliar_venda_contingencia(jsonb) to au
 -- Espelho da contingência todo dia às 3h (Brasília = 6h UTC)
 select cron.unschedule(jobname) from cron.job where jobname = 'contingencia-espelho-diario';
 select cron.schedule('contingencia-espelho-diario', '0 6 * * *', $$ select public.chamar_edge('planilha-admin', '{"acao":"sincronizarContingencia"}'::jsonb); $$);
+
+-- ============================================================================
+-- CORREÇÕES PÓS-MIGRAÇÃO · ETAPA 6 — CÓPIA DO BACKUP NO GOOGLE DRIVE
+-- ============================================================================
+alter table public.backups add column if not exists copia_drive_em timestamptz;
+alter table public.backups add column if not exists copia_drive_erro text;
+
+-- ============================================================================
+-- CORREÇÕES PÓS-MIGRAÇÃO · ETAPA 7 — RESERVA DE LEITURA (pedidos em andamento na contingência)
+-- ============================================================================
+-- Espelho "rápido" da contingência a cada 10 minutos (sem recopiar fotos). O completo segue 1x/dia às 3h (Brasília).
+select cron.unschedule(jobname) from cron.job where jobname = 'contingencia-espelho-10min';
+select cron.schedule('contingencia-espelho-10min', '*/10 * * * *', $$ select public.chamar_edge('planilha-admin', '{"acao":"sincronizarContingencia","rapido":true}'::jsonb); $$);
 
 -- FIM

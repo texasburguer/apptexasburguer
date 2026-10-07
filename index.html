@@ -127,7 +127,8 @@
   header.brand .userbar{flex-wrap:nowrap;gap:6px;}
   header.brand .userbar #userbarTexto{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   header.brand .userbar button{flex:0 0 auto;padding:4px 8px;}
-  @media (max-width:420px){ header.brand .userbar{gap:4px;} header.brand .userbar .rot{display:none;} header.brand .userbar button{padding:4px 9px;} }
+  header.brand .userbar .rot{display:none;}
+  @media (max-width:420px){ header.brand .userbar{gap:4px;} header.brand .userbar button{padding:4px 9px;} }
 
   /* Menus em colunas (sem rolagem lateral): todos os botões aparecem de uma vez, soltos e arredondados, sem cara de tabela */
   nav.tabs{display:grid;grid-template-columns:repeat(auto-fit,minmax(104px,1fr));gap:6px;background:transparent;border:none;padding:0;margin-bottom:18px;}
@@ -155,6 +156,8 @@
 
   .caixa-status-aberto{border-color:var(--ok);}
   .caixa-status-fechado{border-color:var(--red);}
+  .caixa-status-titulo{font-size:16px;font-weight:700;margin:0 0 12px;line-height:1.35;}
+  .caixa-status-titulo small{display:block;font-weight:400;font-size:12.5px;opacity:.8;margin-top:2px;}
 
   label{display:block;font-size:11.5px;color:var(--muted);margin:10px 0 4px;}
   input[type=text],input[type=tel],input[type=number],input[type=date],input[type=month],input[type=password],input:not([type]),select,textarea{
@@ -370,7 +373,7 @@
   .ped-subnav button.active{background:var(--gold);color:#241a10;border-color:var(--gold);}
   .ped-subnav button .dot{position:absolute;top:6px;right:8px;width:7px;height:7px;border-radius:50%;background:var(--red);display:none;}
   .ped-subnav button.has-alert .dot{display:block;}
-  body.perfil-cozinha #pedidosSubnav, body.perfil-entregador #pedidosSubnav, body.perfil-garcom #pedSubMesas,
+  body.perfil-cozinha #pedidosSubnav, body.perfil-entregador #pedidosSubnav,
   body.perfil-cozinha #pedidosPainelEntregas, body.perfil-entregador #pedidosPainelPedidos,
   body.perfil-cozinha #pedidosPainelMesas, body.perfil-garcom #pedidosPainelMesas, body.perfil-entregador #pedidosPainelMesas, body.perfil-entregador #entFmtBox,
   body.perfil-entregador .atalho-pedidos{display:none !important;}
@@ -379,7 +382,7 @@
   #garcomMesaAcoes, #btnEnviarCozinha{display:none;}
   body.perfil-garcom #garcomMesaAcoes{display:block;}
   body.perfil-garcom #btnEnviarCozinha{display:block;}
-  body.perfil-garcom #btnProximoPagamento, body.perfil-garcom #caixaStatusCard, body.perfil-garcom #caixaStatusBtn, body.perfil-garcom #painelFormaBtn,
+  body.perfil-garcom #btnProximoPagamento, body.perfil-garcom #caixaStatusCard, body.perfil-garcom #caixaStatusBtn, body.perfil-garcom #caixaLancBtn, body.perfil-garcom #lancamentosModal, body.perfil-garcom #painelFormaBtn,
   body.perfil-garcom #painelFinalizarBtn, body.perfil-garcom #painelForma, body.perfil-garcom #painelFinalizar,
   body.perfil-garcom #btnFecharContaAgora,
   body.perfil-garcom #btnRepetirVenda, body.perfil-garcom #mesaModoPagBox{display:none !important;}
@@ -541,6 +544,17 @@ header.brand h1{ text-shadow:none; }
 .admin-subnav button.active,
 .ped-subnav button.active,
 .cd-categorias button.active{ box-shadow:none; }
+
+/* Barra do Administrador: 6 colunas. Grupos ocupam 2 (3 por linha), subseções ocupam 3 (2 por linha). Sem rolagem lateral. */
+.admin-subnav{grid-template-columns:repeat(6,1fr);}
+.admin-subnav .admin-gbtn{grid-column:span 2;}
+.admin-subnav button:not(.admin-gbtn){grid-column:span 3;}
+.admin-subnav .admin-grupo{grid-column:1/-1;}
+
+/* Abas internas (Produtos, Cardápio Digital, Histórico): quebram de linha, não rolam */
+.seg-abas{display:grid;grid-template-columns:repeat(auto-fit,minmax(86px,1fr));gap:6px;margin:0 0 12px;}
+.seg-abas button{background:var(--panel-2);border:1.5px solid var(--line);color:var(--muted);padding:8px 6px;border-radius:10px;font-size:12px;font-weight:700;min-height:36px;line-height:1.15;cursor:pointer;}
+.seg-abas button.active{background:linear-gradient(180deg,var(--gold-hi),var(--gold) 55%,var(--gold-lo));color:#241a10;border-color:#000;}
 
 /* --- 5. Botão ADICIONAR do cardápio: vira contorno (preenche só ao tocar) --- */
 .cd-card button:not(:disabled){
@@ -782,7 +796,7 @@ body.perfil-garcom #btnFecharContaItens{display:none !important;}
 <div class="modal-overlay" id="cxConfirmarModal">
   <div class="modal-box">
     <div class="modal-header"><h2>Fechar o caixa</h2><button class="close-btn" onclick="fecharModalConfirmarCaixa_()">✕</button></div>
-    <p class="sub">Conte o dinheiro que está na gaveta e digite o valor. O sistema compara com o esperado e avisa se bateu, sobrou ou faltou.</p><span id="fcEsperado" style="display:none;"></span>
+    <p class="sub">Conte todo o dinheiro que está na gaveta, antes de pagar os entregadores, e digite o valor. O sistema compara com o esperado e avisa se bateu, sobrou ou faltou.</p><span id="fcEsperado" style="display:none;"></span>
     <div id="fcAcertosEntregadores" class="obs-line" style="display:none;margin:6px 0;"></div>
     <label for="fcContado">Dinheiro contado na gaveta (R$)</label>
     <input type="number" id="fcContado" inputmode="decimal" step="0.01" min="0" placeholder="0,00" oninput="atualizarResultadoGaveta_()">
@@ -931,7 +945,6 @@ body.perfil-garcom #btnFecharContaItens{display:none !important;}
     <button class="tab-btn active" data-tab="inicio" data-entregador-ok="1">Início</button>
     <button class="tab-btn" data-tab="caixa">Caixa<span class="dot"></span></button>
     <button class="tab-btn" data-tab="pedidos" data-entregador-ok="1">Pedidos<span class="dot" id="pedidosDot"></span></button>
-    <button class="tab-btn" data-tab="entregas" data-entregador-ok="1">Entregas<span class="dot" id="entregasDot"></span></button>
     <button class="tab-btn" data-tab="meusganhos">Meus ganhos</button>
     <button class="tab-btn" data-tab="clientes">Clientes</button>
     <button class="tab-btn" data-tab="notificacoes">Notificações<span class="dot" id="notifDot"></span></button>
@@ -979,7 +992,14 @@ body.perfil-garcom #btnFecharContaItens{display:none !important;}
   <section class="tab" id="tab-produtos">
         <div class="admin-subnav" data-admin-nav="1"></div>
 
-    <div class="card">
+    <div class="seg-abas">
+      <button type="button" data-aba="produtos" onclick="abaInterna_('tab-produtos','produtos')">Produtos</button>
+      <button type="button" data-aba="combos" onclick="abaInterna_('tab-produtos','combos')">Combos</button>
+      <button type="button" data-aba="categorias" onclick="abaInterna_('tab-produtos','categorias')">Categorias</button>
+      <button type="button" data-aba="adicionais" onclick="abaInterna_('tab-produtos','adicionais')">Adicionais</button>
+    </div>
+
+    <div class="card" data-painel="produtos">
       <div class="card-head"><h2>Produtos cadastrados</h2><button type="button" class="small-gold" onclick="abrirFormModal('produtoNovoModal')">+ Novo produto</button></div>
       <div class="msg" id="pMsgLista"></div>
       <input type="text" class="search" id="pSearch" placeholder="Buscar produto..." oninput="renderProdutos()">
@@ -989,7 +1009,7 @@ body.perfil-garcom #btnFecharContaItens{display:none !important;}
       </table>
     </div>
 
-    <div class="card">
+    <div class="card" data-painel="combos">
       <div class="card-head"><h2>Combos</h2><button type="button" class="small-gold" onclick="abrirFormModal('comboNovoModal')">+ Novo combo</button></div>
       <div class="msg" id="koMsgLista"></div>
       <table style="margin-top:14px;">
@@ -998,7 +1018,7 @@ body.perfil-garcom #btnFecharContaItens{display:none !important;}
       </table>
     </div>
 
-    <div class="card">
+    <div class="card" data-painel="categorias">
       <h2>Categorias</h2>
       <p class="sub">Cadastro apenas. Pra decidir quais aparecem pro cliente e em que ordem, vá em Cardápio Digital.</p>
       <div class="row2">
@@ -1012,7 +1032,7 @@ body.perfil-garcom #btnFecharContaItens{display:none !important;}
       </table>
     </div>
 
-    <div class="card">
+    <div class="card" data-painel="adicionais">
       <h2>Adicionais</h2>
       <p class="sub">Cadastro apenas — nome, preço e (se quiser) o ingrediente que baixa do estoque. Pra decidir se aparece no cardápio, vá em Cardápio Digital.</p>
       <div class="row2">
@@ -1033,7 +1053,7 @@ body.perfil-garcom #btnFecharContaItens{display:none !important;}
       </table>
     </div>
 
-    <div class="card">
+    <div class="card" data-painel="adicionais">
       <h2>Liberar adicionais nos produtos</h2>
       <p class="sub">O adicional só aparece no cardápio para os produtos aos quais ele está ligado. Escolha as categorias e todos os adicionais ativos passam a valer para os produtos delas. Os combos usam os adicionais dos lanches que levam.</p>
       <div id="adVincCategorias"></div>
@@ -1254,6 +1274,12 @@ body.perfil-garcom #btnFecharContaItens{display:none !important;}
 
   <!-- =========================== PEDIDOS (RETIRADA) =========================== -->
   <section class="tab" id="tab-pedidos">
+    <div class="card" id="reservaPedidosCard" style="display:none;border-top:3px solid #f5902e;">
+      <h2>🟠 Pedidos na reserva (somente consulta)</h2>
+      <div class="obs-line" id="reservaPedidosInfo"></div>
+      <div id="reservaPedidosBox"></div>
+      <button class="ghost" style="width:100%;padding:10px;margin-top:8px;" onclick="sb5PainelReservaAtualizar_()">↻ Atualizar agora</button>
+    </div>
     <div class="ped-subnav" id="pedidosSubnav">
       <button type="button" id="pedSubPedidos" class="active" onclick="pedidosPainel_('pedidos')">📋 Retiradas<span class="dot"></span></button>
       <button type="button" id="pedSubEntregas" onclick="pedidosPainel_('entregas')">🛵 Entregas<span class="dot" id="entregasDot"></span></button>
@@ -1362,6 +1388,20 @@ body.perfil-garcom #btnFecharContaItens{display:none !important;}
       <table style="margin-top:12px;"><tbody id="contasPagarLista"></tbody></table>
     </div>
 
+    <div class="card">
+      <h2>Despesas mensais</h2>
+      <p class="sub">Geram a conta do mês automaticamente. Mudar valor ou data vale só para meses ainda não gerados.</p>
+      <button class="primary" onclick="abrirModalRecorrente(null)">+ Despesa mensal</button>
+      <button class="ghost" style="width:100%;margin-top:8px;" onclick="gerarContasDoMes()">Gerar contas deste mês agora</button>
+      <div class="msg" id="recListaMsg"></div>
+      <table style="margin-top:12px;"><tbody id="recTable"></tbody></table>
+    </div>
+
+  </section>
+
+  <section class="tab" id="tab-ajustes">
+        <div class="admin-subnav" data-admin-nav="1"></div>
+
     <div class="card" id="cardAjustesPosVenda">
       <h2>Ajustes pós-venda</h2>
       <p class="sub">Cliente reclamou depois de receber? Registre aqui em vez de cancelar a venda: a venda original continua como está e o ajuste aparece no DRE como uma linha separada. Só vale para pedido já entregue.</p>
@@ -1390,14 +1430,10 @@ body.perfil-garcom #btnFecharContaItens{display:none !important;}
       <table><tbody id="ajLista"></tbody></table>
     </div>
 
-    <div class="card">
-      <h2>Despesas mensais</h2>
-      <p class="sub">Geram a conta do mês automaticamente. Mudar valor ou data vale só para meses ainda não gerados.</p>
-      <button class="primary" onclick="abrirModalRecorrente(null)">+ Despesa mensal</button>
-      <button class="ghost" style="width:100%;margin-top:8px;" onclick="gerarContasDoMes()">Gerar contas deste mês agora</button>
-      <div class="msg" id="recListaMsg"></div>
-      <table style="margin-top:12px;"><tbody id="recTable"></tbody></table>
-    </div>
+  </section>
+
+  <section class="tab" id="tab-analise">
+        <div class="admin-subnav" data-admin-nav="1"></div>
 
     <div class="card">
       <h2>Previsto × pago</h2>
@@ -1457,7 +1493,13 @@ body.perfil-garcom #btnFecharContaItens{display:none !important;}
       </div>
     </div>
 
-    <div class="card">
+    <div class="seg-abas">
+      <button type="button" data-aba="vendas" onclick="abaInterna_('tab-historico','vendas')">Vendas</button>
+      <button type="button" data-aba="despesas" onclick="abaInterna_('tab-historico','despesas')">Despesas</button>
+      <button type="button" data-aba="sessoes" onclick="abaInterna_('tab-historico','sessoes')">Sessões de caixa</button>
+    </div>
+
+    <div class="card" data-painel="vendas">
       <h2>Histórico de vendas</h2>
       <label for="vHistData">Ver vendas de:</label>
       <input type="date" id="vHistData" onchange="renderVendas()">
@@ -1468,7 +1510,7 @@ body.perfil-garcom #btnFecharContaItens{display:none !important;}
       </table>
     </div>
 
-    <div class="card">
+    <div class="card" data-painel="despesas">
       <h2>Histórico de despesas</h2>
       <label for="despHistData">Ver despesas de:</label>
       <input type="date" id="despHistData" onchange="renderDespesas()">
@@ -1479,7 +1521,7 @@ body.perfil-garcom #btnFecharContaItens{display:none !important;}
       </table>
     </div>
 
-    <div class="card">
+    <div class="card" data-painel="sessoes">
       <h2>Histórico de sessões de caixa</h2>
       <table>
         <thead><tr><th>Abertura</th><th>Fechamento</th><th>Saldo</th><th>Dif.</th><th>Quem</th></tr></thead>
@@ -1593,10 +1635,18 @@ body.perfil-garcom #btnFecharContaItens{display:none !important;}
       <input type="text" id="cfgTempoMesa" placeholder="Ex: 20-30 min">
       <button class="primary" onclick="salvarConfigCardapioUI()">Salvar</button>
       <div class="msg" id="cfgCardapioMsg"></div>
-      <p class="sub" style="margin-top:14px;">O cadastro de produtos, combos, categorias e adicionais fica em <b>Produtos</b>. Aqui é só decidir o que aparece pro cliente, em que ordem, e os destaques — tudo com um toque.</p>
+      <p class="sub" style="margin-top:14px;">O cadastro de produtos, combos, categorias e adicionais fica em <b>Produtos</b>. Aqui é só decidir o que aparece pro cliente, em que ordem, e os destaques — tudo com um toque. "⭐ Mais Pedidos" é automático (vendas dos últimos 30 dias).</p>
     </div>
 
-    <div class="card">
+    <div class="seg-abas">
+      <button type="button" data-aba="categorias" onclick="abaInterna_('tab-cardapiodigital','categorias')">Categorias</button>
+      <button type="button" data-aba="produtos" onclick="abaInterna_('tab-cardapiodigital','produtos')">Produtos</button>
+      <button type="button" data-aba="combos" onclick="abaInterna_('tab-cardapiodigital','combos')">Combos</button>
+      <button type="button" data-aba="adicionais" onclick="abaInterna_('tab-cardapiodigital','adicionais')">Adicionais</button>
+      <button type="button" data-aba="pagamentos" onclick="abaInterna_('tab-cardapiodigital','pagamentos')">Pagamentos</button>
+    </div>
+
+    <div class="card" data-painel="categorias">
       <h2>Categorias no cardápio</h2>
       <p class="sub">Marque quais aparecem pro cliente e a ordem de exibição na navegação horizontal.</p>
       <table>
@@ -1605,17 +1655,16 @@ body.perfil-garcom #btnFecharContaItens{display:none !important;}
       </table>
     </div>
 
-    <div class="card">
+    <div class="card" data-painel="pagamentos">
       <h2>Formas de pagamento no cardápio</h2>
-      <p class="sub" style="margin:4px 0 8px;">O cadastro das formas (taxa, prazo, troco) fica em Administrador → Operação → Pagamentos.</p>
-      <p class="sub">Marque quais formas o cliente pode escolher ao fazer o pedido pelo cardápio (o cadastro delas fica em Financeiro).</p>
+      <p class="sub">Marque quais formas o cliente pode escolher ao pedir pelo cardápio. O cadastro (taxa, prazo, troco) fica em Administrador → Operação → Pagamentos.</p>
       <table>
         <thead><tr><th>Forma</th><th>Aparece</th></tr></thead>
         <tbody id="formaCuradoriaTable"></tbody>
       </table>
     </div>
 
-    <div class="card">
+    <div class="card" data-painel="produtos">
       <h2>Produtos no cardápio</h2>
       <p class="sub">Aparece decide se o cliente vê o produto. Destaque coloca em "📌 Destaques". Ordem é a posição dentro da categoria.</p>
       <table>
@@ -1624,7 +1673,7 @@ body.perfil-garcom #btnFecharContaItens{display:none !important;}
       </table>
     </div>
 
-    <div class="card">
+    <div class="card" data-painel="combos">
       <h2>Combos no cardápio</h2>
       <table>
         <thead><tr><th>Combo</th><th>Aparece</th><th>Destaque</th><th>Ordem</th></tr></thead>
@@ -1632,7 +1681,7 @@ body.perfil-garcom #btnFecharContaItens{display:none !important;}
       </table>
     </div>
 
-    <div class="card">
+    <div class="card" data-painel="adicionais">
       <h2>Adicionais no cardápio</h2>
       <table>
         <thead><tr><th>Adicional</th><th>Aparece</th></tr></thead>
@@ -1640,10 +1689,6 @@ body.perfil-garcom #btnFecharContaItens{display:none !important;}
       </table>
     </div>
 
-    <div class="card">
-      <h2>⭐ Mais Pedidos</h2>
-      <p class="sub">Calculado automaticamente pelas vendas dos últimos 30 dias — nada pra configurar aqui.</p>
-    </div>
   </section>
 
   <section class="tab" id="tab-visaogeral">
@@ -1837,12 +1882,30 @@ body.perfil-garcom #btnFecharContaItens{display:none !important;}
       <div id="backupHistorico" style="overflow-x:auto;font-size:12.5px;">Carregando...</div>
       <div class="msg" id="restMsg"></div>
     </div>
+    <div class="card" id="importarCardapioCard">
+      <h2>Importar cardápio inicial</h2>
+      <p class="sub">Cadastra de uma vez as categorias, produtos, combos e bebidas do Texas Burger, já com preço da loja, preço do iFood e foto. Pode rodar com segurança mais de uma vez — se algo já existir pelo nome, não duplica, e a foto só é enviada para quem ainda está sem foto. Leva alguns minutos por causa das fotos: não feche a página.</p>
+      <button class="small-gold" style="width:100%;padding:10px;" onclick="importarCardapioInicial()">📥 Importar cardápio do Texas Burger</button>
+      <button class="ghost" style="width:100%;padding:10px;margin-top:8px;" onclick="aplicarFotosCardapioInicial()">📷 Só aplicar as fotos do cardápio inicial</button>
+      <div class="msg" id="importarCardapioMsg"></div>
+    </div>
+
+  </section>
+
+  <section class="tab" id="tab-drive">
+        <div class="admin-subnav" data-admin-nav="1"></div>
+
     <div class="card">
       <h2>Google Drive</h2>
       <div id="driveResumo" style="font-size:13px;">Carregando...</div>
       <div id="driveArquivos" style="overflow-x:auto;font-size:12.5px;margin-top:10px;"></div>
       <button class="ghost" style="width:100%;padding:10px;margin-top:8px;" onclick="carregarArmazenamento()">Atualizar</button>
     </div>
+
+  </section>
+
+  <section class="tab" id="tab-integridade">
+        <div class="admin-subnav" data-admin-nav="1"></div>
 
     <div class="card">
       <h2>Conferência de integridade</h2>
@@ -1859,14 +1922,6 @@ body.perfil-garcom #btnFecharContaItens{display:none !important;}
       <div class="obs-line" style="margin-top:8px;">🕒 Sincronização automática ativa: o espelho é atualizado todo dia às 3h.</div>
       <button class="ghost" style="width:100%;padding:10px;margin-top:8px;" onclick="reconciliarContingenciaUI()">⬇️ Trazer vendas pendentes da contingência</button>
       <div class="msg" id="contingenciaMsg"></div>
-    </div>
-
-    <div class="card" id="importarCardapioCard">
-      <h2>Importar cardápio inicial</h2>
-      <p class="sub">Cadastra de uma vez as categorias, produtos, combos e bebidas do Texas Burger, já com preço da loja, preço do iFood e foto. Pode rodar com segurança mais de uma vez — se algo já existir pelo nome, não duplica, e a foto só é enviada para quem ainda está sem foto. Leva alguns minutos por causa das fotos: não feche a página.</p>
-      <button class="small-gold" style="width:100%;padding:10px;" onclick="importarCardapioInicial()">📥 Importar cardápio do Texas Burger</button>
-      <button class="ghost" style="width:100%;padding:10px;margin-top:8px;" onclick="aplicarFotosCardapioInicial()">📷 Só aplicar as fotos do cardápio inicial</button>
-      <div class="msg" id="importarCardapioMsg"></div>
     </div>
 
   </section>
@@ -2796,7 +2851,7 @@ const VERSAO_FRONT_ = { editarProduto:()=>produtos, editarCombo:()=>combos, edit
    conta da mesa, pagamento...) também travam a tela por trás, para evitar toque duplo. Atualizações em segundo plano ficam de fora. */
 /* ITEM 19 — estado da sincronização por versão (var: precisa existir antes de qualquer chamada) */
 var _dadosBrutos = null, _versoesLocais = null, _ultimoFullMs = 0;
-const API_SILENCIOSAS_ = new Set(['getVersoes','getDadosGrupo','getAll','detectarNovosPedidos','obterStatusBackup','getCardapio','getStatusPedidoPublico','autenticar','verificarSenhaAdmin','getMesaPublica']);
+const API_SILENCIOSAS_ = new Set(['getVersoes','getDadosGrupo','getAll','detectarNovosPedidos','obterStatusBackup','getCardapio','getStatusPedidoPublico','autenticar','verificarSenhaAdmin','getMesaPublica','obterArmazenamentoContingencia','obterChaveContingencia','listarSessoes']);
 const API_ROTULOS_ = {
   iniciarVenda:'Registrando a venda…', criarPedidoCardapio:'Enviando seu pedido…', fecharCaixa:'Fechando o caixa…', abrirCaixa:'Abrindo o caixa…',
   fecharContaMesa:'Fechando a conta da mesa…', cancelarVenda:'Cancelando a venda…', editarVenda:'Salvando a venda…', pagarDespesa:'Registrando o pagamento…',
@@ -2995,7 +3050,10 @@ async function sbMontarDados_(nivel, chaves){
     cupons:['cupons'], eventos:['eventos'], indicacoes:['v_indicacoes'], feedbacks:['feedbacks'], ocorrencias:['v_ocorrencias'], maisPedidos:['v_cardapio_mais_pedidos'] };
   const quer = chaves ? new Set([].concat.apply([], chaves.map(k=>DEPS[k]||[]))) : null;
   const ORDEM = { v_vendas:'order=data_hora,id', v_fidelidade:'order=cliente_id', sistema:'order=chave', movimentacoes_estoque:'order=id', sangrias:'order=id', despesas:'order=data_hora,id', despesas_recorrentes:'order=criada_em,id', ajustes_pos_venda:'order=data_hora,id', cupons:'order=criado_em,id', eventos:'order=data,id', v_indicacoes:'order=data,id', feedbacks:'order=data,id', v_ocorrencias:'order=numero,id', v_cardapio_mais_pedidos:'order=posicao' };
-  const L = (t, q)=> (!quer || quer.has(t) || t === 'usuarios') ? sbSelecionar_(t, q || ORDEM[t] || 'order=id', true) : Promise.resolve([]);
+  let _lote = null; // resposta única do banco (api_ler_tabelas); se faltar ou falhar, cai na leitura antiga, tabela por tabela
+  const L = (t, q)=> (!quer || quer.has(t) || t === 'usuarios')
+    ? ((_lote && _lote[t] !== undefined) ? Promise.resolve(_lote[t]) : sbSelecionar_(t, q || ORDEM[t] || 'order=id', true))
+    : Promise.resolve([]);
   // versões dos registros lidas ANTES dos dados: se algo mudar no meio, a versão fica mais antiga que o dado e o pior caso é um aviso de conflito (nunca uma edição perdida)
   let verReg = {};
   if(nivel === 'Admin' || nivel === 'Operador' || nivel === 'Garçom'){
@@ -3003,6 +3061,12 @@ async function sbMontarDados_(nivel, chaves){
     if(pedir.length){ try{ const rv = await sbRpc_('api_versoes_registros', { p:{ chaves: pedir } }); if(rv && rv.ok === true && rv.versoes) verReg = rv.versoes; }catch(e){ if(e instanceof SbSessaoExpirada_) throw e; } }
   }
   const gestor = (nivel === 'Admin' || nivel === 'Operador'), admin = nivel === 'Admin', operacional = (nivel === 'Garçom' || nivel === 'Cozinha' || nivel === 'Entregador');
+  try{ // UMA chamada traz todas as tabelas que este perfil precisa (antes: ~36 requisições)
+    const _todas = ['formas_pagamento','v_formas_operacional','categorias','produtos','produto_precos','produto_ingredientes','combos','combo_precos','combo_itens','adicionais','produto_adicionais','sistema','usuarios','promocoes','estoque','v_mesas','clientes','movimentacoes_estoque','sangrias','v_vendas','v_itens_venda','pagamentos_venda','v_fidelidade','v_sessao_aberta','caixa_sessoes','fechamentos_entrega','entregas_fechadas','despesas','despesas_recorrentes','ajustes_pos_venda','cupons','eventos','v_indicacoes','feedbacks','v_ocorrencias','v_cardapio_mais_pedidos'];
+    const _lista = _todas.filter(t => (!quer || quer.has(t) || t === 'usuarios') && !(t === 'formas_pagamento' && !gestor) && !(t === 'v_formas_operacional' && gestor));
+    const rl = await sbRpc_('api_ler_tabelas', { p:{ tabelas:_lista } });
+    if(rl && rl.ok === true && rl.dados) _lote = rl.dados;
+  }catch(e){ if(e instanceof SbSessaoExpirada_) throw e; }
   const [formas, formasOp, cats, prods, pprec, ping, combos, cprec, citens, adic, padic, sistema, usuarios, promos, estoque, mesas, clientes, movs, sangrias, vendasDb, itensDb, pagDb, fidDb, sessAb, caixaDb, fechDb, entFechDb, despDb, recDb, ajDb, cupDb, evDb, indDb, fbDb, ocDb, maisEqDb] = await Promise.all([
     (gestor ? L('formas_pagamento') : Promise.resolve([])), (gestor ? Promise.resolve([]) : L('v_formas_operacional','order=ordem')), L('categorias'), L('produtos'), L('produto_precos'), L('produto_ingredientes'), L('combos'), L('combo_precos'),
     L('combo_itens'), L('adicionais'), L('produto_adicionais'), L('sistema'), L('usuarios'), L('promocoes'), L('estoque'), L('v_mesas'), L('clientes'), L('movimentacoes_estoque'), L('sangrias'),
@@ -3223,8 +3287,12 @@ async function sbRotear_(action, payload){
     if(action === 'getVersoes') return Object.assign({ ok:true }, (await sbVersoes_()) || sbVersoesDesconhecidas_());
     if(action === 'getAll' || action === 'getDadosGrupo'){
       const nivel = currentUser ? currentUser.nivel : '';
-      if(nivel === 'Admin' || nivel === 'Operador'){ try{ await sbGarantirDespesasMes_(); }catch(e){ if(e instanceof SbSessaoExpirada_) throw e; } }
-      const verAntes = (await sbVersoes_()) || sbVersoesDesconhecidas_(); // carimbo lido ANTES dos dados: se algo mudar no meio, a próxima checagem baixa de novo
+      { const s0 = sbSessaoLer_(); if(s0 && Date.now() > s0.expira){ await sbRenovar_(); } } // renova antes, para as duas chamadas abaixo não renovarem ao mesmo tempo
+      const [, verAntesBruto] = await Promise.all([
+        (nivel === 'Admin' || nivel === 'Operador') ? sbGarantirDespesasMes_().catch(e=>{ if(e instanceof SbSessaoExpirada_) throw e; }) : Promise.resolve(),
+        sbVersoes_()
+      ]);
+      const verAntes = verAntesBruto || sbVersoesDesconhecidas_(); // carimbo lido ANTES dos dados: se algo mudar no meio, a próxima checagem baixa de novo
       const { cad, din } = await sbMontarDados_(nivel);
       const gestor = (nivel === 'Admin' || nivel === 'Operador');
       const grupo = (gestor && action === 'getDadosGrupo') ? (payload.grupo === 'cad' ? 'cad' : 'din') : '';
@@ -3564,6 +3632,7 @@ async function tentarLogin(){
 }
 function entrarNoApp(){
   garantirChaveContingencia_();
+  garantirChaveLeitura_();
   document.getElementById('lockScreen').classList.add('hidden');
   document.getElementById('cardapioPublico').classList.add('hidden');
   document.getElementById('cdFabCarrinho').classList.remove('show');
@@ -3582,7 +3651,7 @@ function entrarNoApp(){
   setTimeout(oferecerRecuperarCarrinho_, 800);  // ITEM 2.7
 }
 /* ETAPA 4: abas visíveis por perfil (a barra continua sendo a mesma de 7 abas; o backend valida cada ação de qualquer forma) */
-const NAV_POR_PERFIL_ = { 'Cozinha':['inicio','pedidos','notificacoes'], 'Garçom':['inicio','caixa','pedidos','entregas','clientes'], 'Entregador':['inicio','pedidos','meusganhos'] };
+const NAV_POR_PERFIL_ = { 'Cozinha':['inicio','pedidos','notificacoes'], 'Garçom':['inicio','caixa','pedidos','clientes'], 'Entregador':['inicio','pedidos','meusganhos'] };
 function aplicarPermissoesNivel(){
   const ehDesenvolvedor = !!(currentUser && currentUser.nivelReal === 'Desenvolvedor');
   const admin = currentUser && currentUser.nivel === 'Admin';
@@ -3758,16 +3827,17 @@ async function confirmarSenhaAdminGenerica(){
    Produtos e Estoque, Financeiro e Usuários e Permissões, que continuam sendo
    as mesmas seções de sempre (nenhum cadastro foi duplicado). */
 const ADMIN_GRUPOS = [
-  { nome:'📊 Painel',    subs:['visaogeral', 'relatorios'] },
-  { nome:'💰 Financeiro', subs:['financeiro', 'historico', 'eventos'] },
-  { nome:'🍔 Catálogo',  subs:['produtos', 'estoque', 'custosprecificacao', 'cardapiodigital', 'promocoes'] },
-  { nome:'🏪 Operação',  subs:['restaurante', 'pagamentos', 'taxasentregas', 'ocorrencias', 'feedbacks'] },
-  { nome:'⚙️ Sistema',   subs:['usuarios', 'notifadmin', 'auditoria', 'armazenamento'] }
+  { nome:'📊 Painel',     subs:['visaogeral', 'ocorrencias', 'feedbacks', 'relatorios'] },
+  { nome:'💰 Financeiro', subs:['financeiro', 'analise', 'ajustes', 'historico'] },
+  { nome:'🍔 Catálogo',   subs:['produtos', 'estoque', 'custosprecificacao', 'cardapiodigital'] },
+  { nome:'🎟️ Campanhas',  subs:['promocoes', 'eventos'] },
+  { nome:'🏪 Operação',   subs:['restaurante', 'pagamentos', 'taxasentregas', 'notifadmin'] },
+  { nome:'⚙️ Sistema',    subs:['usuarios', 'auditoria', 'armazenamento', 'drive', 'integridade'] }
 ];
 const ADMIN_SUBABAS = ADMIN_GRUPOS.reduce((a,g)=>a.concat(g.subs), []);
 /* ETAPA 6: a barra do Administrador existia copiada em 13 telas. Agora há UMA definição, desenhada em todas. */
-const ADMIN_SUBABAS_ROTULOS = { visaogeral:'Visão Geral', relatorios:'Relatórios', financeiro:'Financeiro', historico:'Histórico', eventos:'Eventos', produtos:'Produtos', estoque:'Estoque', custosprecificacao:'Custos e Precificação', cardapiodigital:'Cardápio Digital', promocoes:'Promoções', restaurante:'Mesas e QR Codes', pagamentos:'Pagamentos', taxasentregas:'Entregadores e taxas', ocorrencias:'Ocorrências', feedbacks:'Feedbacks', usuarios:'Usuários e Permissões', notifadmin:'Configurar notificações', auditoria:'Auditoria', armazenamento:'Backup e dados' };
-const ADMIN_GRUPOS_OPERADOR_ = [ { nome:'🏪 Operação', subs:['ocorrencias', 'feedbacks'] } ];
+const ADMIN_SUBABAS_ROTULOS = { visaogeral:'Visão Geral', ocorrencias:'Ocorrências', feedbacks:'Feedbacks', relatorios:'Relatórios', financeiro:'Contas e despesas', analise:'Análise', ajustes:'Ajustes pós-venda', historico:'Histórico', produtos:'Produtos', estoque:'Estoque', custosprecificacao:'Custos e Precificação', cardapiodigital:'Cardápio Digital', promocoes:'Promoções', eventos:'Eventos', restaurante:'Mesas e QR Codes', pagamentos:'Pagamentos', taxasentregas:'Entregadores e taxas', notifadmin:'Configurar notificações', usuarios:'Usuários e Permissões', auditoria:'Auditoria', armazenamento:'Backup', drive:'Espaço e fotos', integridade:'Sincronização e contingência' };
+const ADMIN_GRUPOS_OPERADOR_ = [ { nome:'💬 Atendimento', subs:['ocorrencias', 'feedbacks'] } ];
 function gruposAdmin_(){ return (currentUser && currentUser.nivel==='Operador') ? ADMIN_GRUPOS_OPERADOR_ : ADMIN_GRUPOS; }
 function montarBarrasAdmin_(alvo){
   const grupos = gruposAdmin_();
@@ -3791,6 +3861,15 @@ function ativarApenasSecao_(id){
   /* MELHORIA 4.4 — telas pesadas só são desenhadas a cada sincronização quando estão na tela; ao entrar nelas, desenham na hora. */
   try{ if(id==='tab-notificacoes') renderNotificacoes(); else if(id==='tab-relatorios') gerarRelatorio(); }catch(e){}
 }
+/* Abas internas: mostra só os cards marcados com data-painel="nome" (um card pode ter mais de um nome, separados por espaço).
+   Cards sem data-painel ficam sempre visíveis. Lembra a última aba escolhida em cada tela. */
+const _abaInterna_ = { 'tab-produtos':'produtos', 'tab-cardapiodigital':'categorias', 'tab-historico':'vendas' };
+function abaInterna_(tabId, q){
+  const sec = document.getElementById(tabId); if(!sec) return;
+  _abaInterna_[tabId] = q;
+  sec.querySelectorAll('[data-painel]').forEach(p=>{ p.style.display = (p.dataset.painel.split(' ').indexOf(q) !== -1) ? '' : 'none'; });
+  sec.querySelectorAll('.seg-abas button').forEach(b=>b.classList.toggle('active', b.dataset.aba === q));
+}
 function abrirAdministrador(sub){
   const permitidos = gruposAdmin_().reduce((a,g)=>a.concat(g.subs), []);
   const alvo = (ADMIN_SUBABAS.includes(sub) && permitidos.includes(sub)) ? sub : permitidos[0];
@@ -3798,7 +3877,9 @@ function abrirAdministrador(sub){
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
   document.querySelector('[data-tab="administrador"]').classList.add('active');
   ativarApenasSecao_('tab-'+alvo);
-  if(alvo==='armazenamento' && apiConfigurada()){ carregarStatusBackup(); carregarArmazenamento(); }
+  if(alvo==='armazenamento' && apiConfigurada()){ carregarStatusBackup(); }
+  if(alvo==='drive' && apiConfigurada()){ carregarArmazenamento(); }
+  if(_abaInterna_['tab-'+alvo]) abaInterna_('tab-'+alvo, _abaInterna_['tab-'+alvo]);
   if((alvo==='visaogeral' || alvo==='relatorios') && apiConfigurada()) sincronizarEmSegundoPlano(); // ITEM 92: atualiza ao entrar, sem refresh periódico
   if(alvo==='taxasentregas'){ renderEntregasFinanceiro(); if(apiConfigurada()) atualizarAoEntrar_(); }
   if(alvo==='promocoes'){ renderCuponsUI(); }
@@ -3813,7 +3894,6 @@ document.querySelectorAll('.tab-btn').forEach(btn=>{
   btn.addEventListener('click', ()=>{
     if(btn.classList.contains('hidden-tab')) return;
     if(btn.dataset.tab==='administrador'){ abrirAdministrador('visaogeral'); return; }
-    if(btn.dataset.tab==='entregas'){ abrirPedidosPainel_('entregas'); return; } /* Pedidos e Entregas são uma aba só: esta não tem seção própria */
     document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
     btn.classList.add('active');
     ativarApenasSecao_('tab-'+btn.dataset.tab);
@@ -5365,7 +5445,7 @@ function botaoEnviarEntregador_(v){
   if(!podeEnviarEntregador_() || v.tipoEntrega!=='Entrega' || v.statusPedido==='Recebido') return '';
   if(!v.entregador) return '<div class="obs-line" style="margin-top:6px;">📲 Escolha um entregador acima para poder enviar a entrega pelo WhatsApp.</div>';
   const ent = entregadorDe_(v);
-  if(!ent || !telefoneWhatsApp_(ent.telefone)) return '<div class="obs-line" style="margin-top:6px;color:#ffb3ab;">⚠ O entregador '+escH(pdEntregadorNome_(v.entregador))+' está sem telefone válido. Cadastre em Administrador → Usuários e Permissões → editar.</div>';
+  if(!ent || !telefoneWhatsApp_(ent.telefone)) return '<div class="obs-line" style="margin-top:6px;color:#ffb3ab;">⚠ O entregador '+escH(pdEntregadorNome_(v.entregador))+' está sem telefone válido. Cadastre em Administrador → Sistema → Usuários e Permissões → editar.</div>';
   const feito = lerAvisosEntregador_()[v.id+'|'+v.entregador];
   const hora = feito ? new Date(feito).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) : '';
   return '<div class="btnrow" style="margin-top:6px;align-items:center;"><button type="button" class="ghost" onclick="enviarEntregaWhatsApp(\''+v.id+'\')">📲 '+(feito?'Enviar de novo ao entregador':'Enviar ao entregador')+'</button>'+(feito?'<span class="obs-line" style="margin:0;">✔ enviado às '+hora+'</span>':'')+'</div>';
@@ -5632,21 +5712,28 @@ function desbloquearAudio_(){
   }catch(e){}
 }
 ['pointerdown','touchend','click','keydown'].forEach(ev=>document.addEventListener(ev, ()=>{ if(!_audioCtx || _audioCtx.state!=='running') desbloquearAudio_(); }, { passive:true }));
+let _ultimaNotifEm_ = 0;
+function somDoSistemaAtivo_(){ try{ return avisosSuportado_() && Notification.permission === 'granted'; }catch(e){ return false; } }
 function somAlerta_(){
-  try{
-    const ctx = audioCtx_();
-    if(ctx){
-      if(ctx.state==='suspended') ctx.resume();
-      [0,0.35,0.7,1.05].forEach((t,i)=>{
-        const osc = ctx.createOscillator(), gain = ctx.createGain();
-        osc.type = 'square'; osc.frequency.value = i%2 ? 740 : 988;
-        osc.connect(gain); gain.connect(ctx.destination);
-        const ini = ctx.currentTime + t;
-        gain.gain.setValueAtTime(0.0001, ini); gain.gain.exponentialRampToValueAtTime(0.5, ini+0.02); gain.gain.exponentialRampToValueAtTime(0.0001, ini+0.27);
-        osc.start(ini); osc.stop(ini+0.3);
-      });
-    }
-  }catch(e){}
+  if(somDoSistemaAtivo_()){
+    /* Som padrão de notificação do celular: quem toca é a notificação. Se quem chamou não mostrou nenhuma, mostra uma simples. */
+    setTimeout(()=>{ if(Date.now() - _ultimaNotifEm_ > 1500) mostrarNotificacao_('🔔 Texas Burger', 'Há uma atualização nos pedidos.'); }, 400);
+  } else {
+    try{
+      const ctx = audioCtx_();
+      if(ctx){
+        if(ctx.state==='suspended') ctx.resume();
+        [0,0.35,0.7,1.05].forEach((t,i)=>{
+          const osc = ctx.createOscillator(), gain = ctx.createGain();
+          osc.type = 'square'; osc.frequency.value = i%2 ? 740 : 988;
+          osc.connect(gain); gain.connect(ctx.destination);
+          const ini = ctx.currentTime + t;
+          gain.gain.setValueAtTime(0.0001, ini); gain.gain.exponentialRampToValueAtTime(0.5, ini+0.02); gain.gain.exponentialRampToValueAtTime(0.0001, ini+0.27);
+          osc.start(ini); osc.stop(ini+0.3);
+        });
+      }
+    }catch(e){}
+  }
   try{ if(navigator.vibrate) navigator.vibrate([300,150,300,150,300]); }catch(e){}
 }
 function souDetector_(){ return !!(currentUser && ['Cozinha','Admin','Operador','Garçom','Entregador'].indexOf(currentUser.nivel)!==-1); }
@@ -5655,6 +5742,7 @@ function souDetectorLeve_(){ return !!(currentUser && (currentUser.nivel==='Gar�
 function avisosSuportado_(){ return 'Notification' in window; }
 function mostrarNotificacao_(titulo, corpo){
   try{
+    _ultimaNotifEm_ = Date.now();
     if(!avisosSuportado_() || Notification.permission!=='granted') return;
     const opts = { body: corpo, tag: 'texas-novo-pedido', renotify: true, vibrate: [300,150,300], requireInteraction: true };
     const direto = ()=>{ try{ const n = new Notification(titulo, opts); n.onclick = ()=>{ try{ window.focus(); n.close(); }catch(e){} }; }catch(e){} };
@@ -5717,7 +5805,7 @@ async function ativarAvisos_(){
 }
 function testarSomAviso_(){
   desbloquearAudio_(); somAlerta_();
-  showMsg('avisosMsg','Se não ouviu nada: aumente o volume de mídia do celular, tire o modo silencioso e confira se o som do navegador não está desligado.','ok');
+  showMsg('avisosMsg','Você deve ouvir o som de notificação do celular. Se não ouvir: aumente o volume de notificações, tire o modo silencioso e confira se as notificações do navegador/app estão ligadas.','ok');
   mostrarNotificacao_('🔔 Teste de aviso','É assim que você será avisado de um pedido novo.');
 }
 function abrirModalAvisos_(){ atualizarCardAvisos_(); const m = document.getElementById('avisosModal'); if(m) m.classList.add('open'); }
@@ -5980,7 +6068,7 @@ function alertasDeEntregas(){
     const dias = {};
     abertas.forEach(v=>{ const d = dataLocalISO(new Date(v.timestampConcluida)); if(d<hoje) dias[v.entregador+'|'+d] = 1; });
     const n = Object.keys(dias).length;
-    if(n) out.push(`<b>${n}</b> fechamento(s) de entregador de dias anteriores pendente(s) (aba Entregas).`);
+    if(n) out.push(`<b>${n}</b> fechamento(s) de entregador de dias anteriores pendente(s) (Administrador → Operação → Entregadores e taxas).`);
   }
   return out;
 }
@@ -6115,7 +6203,10 @@ function renderDesempenhoEntregas(){
 
 function abrirCaixaStatus_(){ document.getElementById('caixaStatusModal').classList.add('open'); }
 function fecharCaixaStatus_(){ document.getElementById('caixaStatusModal').classList.remove('open'); }
-function abrirLancamentos_(){ document.getElementById('lancamentosModal').classList.add('open'); }
+function abrirLancamentos_(){
+  if(currentUser && currentUser.nivel === 'Garçom') return;
+  document.getElementById('lancamentosModal').classList.add('open');
+}
 function fecharLancamentos_(){ document.getElementById('lancamentosModal').classList.remove('open'); }
 function _rotuloBotaoCaixa_(){
   const b = document.getElementById('caixaStatusBtn'); if(!b) return;
@@ -6204,7 +6295,7 @@ function renderStatusCaixa(){
   const box = document.getElementById('caixaStatusConteudo');
   if(!sessaoCaixa){
     card.className = 'card caixa-status-fechado';
-    box.innerHTML = `<h2 style="margin-top:0;">🔒 Caixa fechado</h2><p class="sub">Abra o caixa informando o fundo (dinheiro para troco) antes de registrar vendas ou despesas.</p><button class="primary" onclick="abrirModalAbrirCaixa()">Abrir caixa</button>`;
+    box.innerHTML = `<div class="caixa-status-titulo">🔒 Caixa fechado</div><p class="sub">Abra o caixa informando o fundo (dinheiro para troco) antes de registrar vendas ou despesas.</p><button class="primary" onclick="abrirModalAbrirCaixa()">Abrir caixa</button>`;
     document.getElementById('lancamentosSessao').innerHTML = '<div class="notif-empty">Caixa fechado.</div>';
     return;
   }
@@ -6218,12 +6309,14 @@ function renderStatusCaixa(){
   const totalDespesas = despesasSessao.reduce((s,d)=>s+Number(d.valor),0);
   const totalSangrias = sangriasSessao.reduce((s,sg)=>s+Number(sg.valor),0);
   const saldoEsperado = sessaoCaixa.fundoCaixa + totalDinheiro - totalDespesas - totalSangrias;
+  const totalAcertosPrev = arred2(acertosAutoEntregadores_().reduce((a,x)=>a+x.total, 0));
 
   const boxesFormas = Object.keys(porForma).sort((a,b)=> formaPermiteTroco(a)?-1:(formaPermiteTroco(b)?1:0)).map(forma=>
     `<div class="stat-box entrada"><b>${formatarMoeda(porForma[forma])}</b><span>${forma.toUpperCase()}</span></div>`
   ).join('');
 
-  box.innerHTML = `<h2 style="margin-top:0;">🟢 Caixa aberto desde ${sessaoCaixa.abertura}${escH(sessaoCaixa.usuarioAbertura?(' · por '+sessaoCaixa.usuarioAbertura):'')}</h2>
+  box.innerHTML = `<div class="caixa-status-titulo">🟢 Caixa aberto<small>desde ${sessaoCaixa.abertura}${escH(sessaoCaixa.usuarioAbertura?(' · por '+sessaoCaixa.usuarioAbertura):'')}</small></div>
+    ${(Date.now() - sessaoCaixa.aberturaTimestamp > 24*3600*1000) ? '<div class="obs-line" style="color:#e0b53a;margin:-4px 0 10px;">⚠️ Este caixa está aberto há mais de 24 horas. Confira e feche o caixa do dia anterior.</div>' : ''}
     <div class="stat-row">
       <div class="stat-box"><b style="color:var(--gold);">${formatarMoeda(sessaoCaixa.fundoCaixa)}</b><span>FUNDO</span></div>
       ${boxesFormas || '<div class="stat-box entrada"><b>R$ 0,00</b><span>VENDAS</span></div>'}
@@ -6231,7 +6324,8 @@ function renderStatusCaixa(){
       <div class="stat-box saida"><b>${formatarMoeda(totalSangrias)}</b><span>SANGRIAS</span></div>
     </div>
     <div style="font-size:14px;margin-bottom:10px;">Saldo esperado em caixa (dinheiro): <b style="color:var(--gold);font-size:17px;">${formatarMoeda(saldoEsperado)}</b></div>
-    <button class="primary" style="background:var(--panel-2);border:1px solid var(--red);" onclick="fecharCaixaAgora()">Fechar caixa</button>`;
+    ${totalAcertosPrev>0 ? `<div style="font-size:13px;margin:-4px 0 10px;opacity:.9;">🛵 A pagar aos entregadores ao fechar: <b>${formatarMoeda(totalAcertosPrev)}</b> · ficam na gaveta ${formatarMoeda(arred2(saldoEsperado-totalAcertosPrev))}</div>` : ''}
+    <button class="primary" onclick="fecharCaixaAgora()">Fechar caixa</button>`;
 
   const lista = [
     ...vendasSessao.map(v=>({tipo:'venda', ts:v.timestamp, label:(v.clienteNome||'Sem cadastro'), valor:v.valorTotal, extra:v.formaPagamento, id:v.id, aReceber:v.statusPagamento==='A Receber'})),
@@ -6287,6 +6381,7 @@ function pendenciasCaixaLocal_(){
   return t.length ? t.join('\n') : '';
 }
 let _fcEsperado_ = 0;
+let _fcAcertoTotal_ = 0;
 /* Entregas concluídas e ainda sem acerto: o fechamento do caixa as acerta em dinheiro, da gaveta (igual ao servidor). */
 function acertosAutoEntregadores_(){
   if(!sessaoCaixa) return [];
@@ -6313,7 +6408,10 @@ function atualizarResultadoGaveta_(){
   const d = diferencaGaveta_();
   if(d === null){ el.textContent = ''; el.style.color = ''; return; }
   const esp = ' (esperado ' + formatarMoeda(_fcEsperado_) + ')';
-  if(Math.abs(d) < 0.01){ el.textContent = '✅ Caixa batido' + esp; el.style.color = '#4caf50'; }
+  if(Math.abs(d) < 0.01){
+    el.textContent = '✅ Caixa batido' + esp + (_fcAcertoTotal_ > 0 ? ' — agora pague ' + formatarMoeda(_fcAcertoTotal_) + ' aos entregadores; ficam ' + formatarMoeda(arred2(_fcEsperado_ - _fcAcertoTotal_)) + ' na gaveta.' : '');
+    el.style.color = '#4caf50';
+  }
   else if(d > 0){ el.textContent = '⬆️ Sobra de ' + formatarMoeda(d) + esp; el.style.color = '#e0b53a'; }
   else { el.textContent = '⬇️ Falta de ' + formatarMoeda(-d) + esp; el.style.color = '#ff6b5b'; }
 }
@@ -6322,12 +6420,13 @@ function fecharCaixaAgora(){
   const pend = pendenciasCaixaLocal_();
   if(pend){ alert('Não é possível fechar o caixa enquanto houver pendências:\n\n'+pend+'\n\nFinalize, receba ou cancele e tente de novo.'); return; }
   const acertos = acertosAutoEntregadores_();
-  const totalAcertos = acertos.reduce((a,x)=>a+x.total, 0);
-  const esperado = arred2(saldoEsperadoGaveta() - totalAcertos);
+  const totalAcertos = arred2(acertos.reduce((a,x)=>a+x.total, 0));
+  const esperado = saldoEsperadoGaveta(); // NÃO subtrai o acerto: igual à tela do Caixa e ao servidor
+  _fcAcertoTotal_ = totalAcertos;
   const boxAc = document.getElementById('fcAcertosEntregadores');
   if(boxAc){
     boxAc.style.display = acertos.length ? 'block' : 'none';
-    boxAc.innerHTML = acertos.length ? '🛵 <b>Acerto dos entregadores (em dinheiro, sai da gaveta ao fechar):</b><br>' + acertos.map(x=>escH(x.entregador)+' ('+x.dia.split('-').reverse().join('/')+'): '+formatarMoeda(x.total)).join('<br>') + '<br><span style="opacity:.8;">Se algum foi pago no Pix, feche o acerto dele antes em Administrador → Entregadores e taxas.</span>' : '';
+    boxAc.innerHTML = acertos.length ? '🛵 <b>Depois de conferir a gaveta, pague os entregadores (em dinheiro):</b><br>' + acertos.map(x=>escH(x.entregador)+' ('+x.dia.split('-').reverse().join('/')+'): '+formatarMoeda(x.total)).join('<br>') + '<br><b>Total a pagar: ' + formatarMoeda(totalAcertos) + '</b> · ficam na gaveta ' + formatarMoeda(arred2(esperado - totalAcertos)) + '<br><span style="opacity:.8;">Conte a gaveta ANTES de pagar. Se algum foi pago no Pix, feche o acerto dele antes em Administrador → Entregadores e taxas.</span>' : '';
   }
   document.getElementById('fcEsperado').textContent = formatarMoeda(esperado);
   document.getElementById('fcContado').value = ''; _fcEsperado_ = esperado; atualizarResultadoGaveta_();
@@ -6385,6 +6484,7 @@ Diferença: ${formatarMoeda(Math.abs(diferenca))} (${sinal})`;
   let blocoCont = '';
   if(r.reconciliadasNaSessao && r.reconciliadasNaSessao.quantidade>0) blocoCont += `\n\n🟠 VENDAS VINDAS DA CONTINGÊNCIA (já incluídas)\n${r.reconciliadasNaSessao.quantidade} venda(s) — ${formatarMoeda(r.reconciliadasNaSessao.valor)}, registradas com a hora original da venda.`;
   if(r.pendentesContingencia>0) blocoCont += `\n\n⚠️ VENDAS AINDA NA FILA DA CONTINGÊNCIA\n${r.pendentesContingencia} venda(s) não entraram neste fechamento. Quando forem reconciliadas, entram nesta sessão como "reconciliadas após o fechamento" e o saldo e a diferença são ajustados.`;
+  const acertoTxt = (r.acertoEntregadores > 0) ? `\n\n🛵 Acerto dos entregadores (pago em dinheiro, depois da conferência): ${formatarMoeda(r.acertoEntregadores)}\n💵 Fica na gaveta após o acerto: ${formatarMoeda(r.saldoAposAcertos)}` : '';
   const texto = `🧾 FECHAMENTO DE CAIXA — TEXAS BURGER
 Abertura: ${r.abertura}
 Fechamento: ${r.fechamento}
@@ -6398,7 +6498,7 @@ Total de vendas: ${formatarMoeda(r.totalVendas)} (${r.quantidadeVendas} venda(s)
 ${r.totalPendente>0 ? 'A receber (ainda não pago): '+formatarMoeda(r.totalPendente)+'\n' : ''}Despesas: ${formatarMoeda(r.totalDespesas)} (${r.quantidadeDespesas} despesa(s))
 Sangrias: ${formatarMoeda(r.totalSangrias)} (${r.quantidadeSangrias} sangria(s))
 
-💰 Saldo final em caixa: ${formatarMoeda(r.saldoFinal)}${reconciliacao}${blocoCont}${entregasAuto && entregasAuto.feitos && entregasAuto.feitos.length ? '\n\n🛵 ENTREGAS FECHADAS AUTOMATICAMENTE\n'+entregasAuto.feitos.join('\n') : ''}${entregasAuto && entregasAuto.falhas && entregasAuto.falhas.length ? '\n\n⚠ Não foi possível fechar: '+entregasAuto.falhas.join(' | ')+' (feche manualmente em Entregas)' : ''}`;
+💰 Saldo final em caixa: ${formatarMoeda(r.saldoFinal)}${reconciliacao}${acertoTxt}${blocoCont}${entregasAuto && entregasAuto.feitos && entregasAuto.feitos.length ? '\n\n🛵 ENTREGAS FECHADAS AUTOMATICAMENTE\n'+entregasAuto.feitos.join('\n') : ''}${entregasAuto && entregasAuto.falhas && entregasAuto.falhas.length ? '\n\n⚠ Não foi possível fechar: '+entregasAuto.falhas.join(' | ')+' (feche manualmente em Entregas)' : ''}`;
   ultimoRelatorioTexto = texto;
   document.getElementById('relatorioTexto').textContent = texto;
   document.getElementById('fecharCaixaModal').classList.add('open');
@@ -6610,7 +6710,7 @@ function fecharContaMesaUI(mesaIdParam, msgIdParam){
   const vendasDaMesa = vendas.filter(v=>v.mesaId===mesaId && v.status==='Confirmada' && v.statusPagamento==='A Receber');
   if(!vendasDaMesa.length){ if(confirm('Essa mesa não tem conta pendente. Liberar a mesa mesmo assim?')){ liberarMesaSemConta_(mesaId, msgId); } return; }
   if(!sessaoCaixa){ showMsg(msgId, souGarcom_() ? 'O caixa está fechado — peça ao caixa para abrir.' : 'Abra o caixa antes de fechar a conta da mesa.','warn'); return; }
-  if(!formasPagamento.some(f=>f.ativa)){ showMsg(msgId,'Não há forma de pagamento ativa. Cadastre uma em Administrador → Financeiro.','warn'); return; }
+  if(!formasPagamento.some(f=>f.ativa)){ showMsg(msgId,'Não há forma de pagamento ativa. Cadastre uma em Administrador → Operação → Pagamentos.','warn'); return; }
   fcmMesaId = mesaId;
   fcmTotal = Math.round(vendasDaMesa.reduce((s,v)=>s+v.valorTotal,0)*100)/100;
   document.getElementById('fcmTitulo').textContent = 'Fechar conta — Mesa '+(mesa?mesa.numero:'');
@@ -8125,28 +8225,28 @@ const _aj = {
 };
 const MANUAL_AJUDA_ = {
 Admin:{ nome:'Administrador', secoes:[
-  _aj.entrar('Início, Caixa, Pedidos, Entregas, Clientes, Notificações e Administrador'),
-  { t:'Onde fica cada coisa', itens:['A aba Administrador tem uma barra dividida em 5 grupos: Painel (Visão Geral, Relatórios); Financeiro (Financeiro, Histórico, Eventos); Catálogo (Produtos, Estoque, Custos e Precificação, Cardápio Digital, Promoções); Operação (Mesas, Entregas, Ocorrências, Feedbacks); Sistema (Usuários e Permissões, Avisos, Auditoria, Backup).','Caixa, Pedidos, Entregas e Clientes funcionam como nos outros perfis, e você pode tudo.'] },
-  { t:'Criar usuário e trocar senha', passos:['Administrador → Usuários e Permissões.','Em “Criar acesso”, preencha Login e Senha e escolha o perfil (Operador de caixa, Garçom, Cozinha, Entregador, Admin ou Desenvolvedor).','Digite “Sua senha de administrador” e toque em “Criar acesso”.','Perfil Desenvolvedor: você cria como qualquer outro, mas depois de criado fica travado — só o próprio Desenvolvedor edita ou troca a senha. Nem você, nem ele, excluem esse acesso.','Para mudar nome, telefone, perfil, situação ou redefinir a senha de alguém, toque em “editar” na lista “Usuários cadastrados” e use o formulário. Tudo fica na Auditoria. No seu próprio acesso o perfil fica travado e a senha se troca em “🔑 Senha”.'],
+  _aj.entrar('Início, Caixa, Pedidos (com Retiradas, Entregas e Mesas), Clientes, Notificações e Administrador'),
+  { t:'Onde fica cada coisa', itens:['A aba Administrador tem uma barra dividida em 6 grupos: Painel (Visão Geral, Ocorrências, Feedbacks, Relatórios); Financeiro (Contas e despesas, Análise, Ajustes pós-venda, Histórico); Catálogo (Produtos, Estoque, Custos e Precificação, Cardápio Digital); Campanhas (Promoções, Eventos); Operação (Mesas e QR Codes, Pagamentos, Entregadores e taxas, Configurar notificações); Sistema (Usuários e Permissões, Auditoria, Backup, Espaço e fotos, Sincronização e contingência).','Caixa, Pedidos, Entregas e Clientes funcionam como nos outros perfis, e você pode tudo.'] },
+  { t:'Criar usuário e trocar senha', passos:['Administrador → Sistema → Usuários e Permissões.','Em “Criar acesso”, preencha Login e Senha e escolha o perfil (Operador de caixa, Garçom, Cozinha, Entregador, Admin ou Desenvolvedor).','Digite “Sua senha de administrador” e toque em “Criar acesso”.','Perfil Desenvolvedor: você cria como qualquer outro, mas depois de criado fica travado — só o próprio Desenvolvedor edita ou troca a senha. Nem você, nem ele, excluem esse acesso.','Para mudar nome, telefone, perfil, situação ou redefinir a senha de alguém, toque em “editar” na lista “Usuários cadastrados” e use o formulário. Tudo fica na Auditoria. No seu próprio acesso o perfil fica travado e a senha se troca em “🔑 Senha”.'],
     comuns:['Entregador não aparece na escolha de entregas: o usuário está inativo ou não tem o perfil Entregador.','Funcionário esqueceu a senha: só você troca, não existe “esqueci minha senha”.','Você esqueceu a sua: rode redefinirSenhaAdminEmergencia no editor do Apps Script; ele gera uma senha temporária.'] },
   { t:'Cadastrar produtos e estoque', passos:['Administrador → Catálogo → Produtos → “Cadastrar produto”.','Informe nome, categoria, preço e custo (a margem aparece sozinha). O preço vale para todas as formas de pagamento.','Só abra “⚙️ Opções avançadas” para preço diferente numa forma (ex.: iFood) ou para a ficha técnica (ingredientes).','Se o item tem estoque próprio (bebida, por exemplo), marque a opção e informe quantidade e mínimo.'],
     comuns:['“Importar cardápio inicial” só precisa rodar uma vez; o que já existe pelo nome não é duplicado.','Cada venda baixa o estoque pela ficha técnica. Ingrediente no mínimo gera aviso em Notificações, sem bloquear a venda.'] },
-  { t:'QR Code das mesas', passos:['Administrador → Mesas → “📲 QR Codes das mesas”.','Escolha a mesa e toque em “🖨️ Imprimir esta mesa” (ou “Imprimir todas”). Também dá para “⬇️ Baixar PNG”.','Plastifique e deixe na mesa. O cliente pede pelo celular e você aceita o pedido em Pedidos.','Se alguém espalhar o QR, use “🔄 Gerar novo código” e imprima o QR novo daquela mesa.'], comuns:['O endereço do site está fixo nos QR: https://texasburguer.github.io/apptexasburguer/ — se mudar de endereço, é preciso imprimir de novo.'] },
+  { t:'QR Code das mesas', passos:['Administrador → Operação → Mesas e QR Codes → “📲 QR Codes das mesas”.','Escolha a mesa e toque em “🖨️ Imprimir esta mesa” (ou “Imprimir todas”). Também dá para “⬇️ Baixar PNG”.','Plastifique e deixe na mesa. O cliente pede pelo celular e você aceita o pedido em Pedidos.','Se alguém espalhar o QR, use “🔄 Gerar novo código” e imprima o QR novo daquela mesa.'], comuns:['O endereço do site está fixo nos QR: https://texasburguer.github.io/apptexasburguer/ — se mudar de endereço, é preciso imprimir de novo.'] },
   { t:'Cardápio Digital, promoções e eventos', itens:['Cardápio Digital: escolha o que aparece para o cliente, destaques, ordem e frase de abertura. “Mais Pedidos” é automático. As categorias aparecem numa faixa fixa no topo do cardápio do cliente (no celular, deslize para o lado; no computador elas ficam em linhas, sem rolagem).','Se o cliente pedir mais de 1 lanche com adicionais, os adicionais valem para todos; o cardápio avisa isso. Para lanches diferentes, ele adiciona separado.','O cliente pode escrever uma observação em cada item (ex.: “sem cebola”); ela aparece na comanda da cozinha e no pedido.','Item “Esgotado”: se “bloquear venda sem estoque” estiver ligado (Catálogo → Estoque), o cardápio mostra “Esgotado” no que o estoque não cobre mais.','O cardápio abre rápido porque guarda uma cópia: mudanças suas aparecem para o cliente em instantes (no máximo ~10 min se você editar direto na planilha).','O cardápio só recebe pedidos com o caixa aberto; fechado, o cliente vê “Estamos fechados no momento”.','Promoções: cupons. Eventos: custos e recebimentos de cada evento. Custos e Precificação: simulador para achar o preço certo.'] },
   { t:'Caixa: abrir, vender e fechar', passos:['Aba Caixa → “Abrir caixa” e informe o fundo de troco.','Em “Iniciar venda”: 1. Cliente (cadastrado ou “Venda sem cadastro”; Retirada, Entrega ou Mesa) → 2. Itens → 3. Pagamento → 4. Finalizar.','Depois escolha 58mm, 80mm ou A4 e toque em Imprimir, Copiar ou WhatsApp.','Para encerrar, feche o caixa, informe o dinheiro contado e confira a diferença.','Mesas: o botão “🍽️ Mesas” mostra todas as mesas, quem pediu a conta e permite fechar a conta e cobrar.','Pedido de mesa no Caixa: “Pagar ao sair” deixa o pedido na conta da mesa; “Pagar agora” cobra na hora (use as etapas de pagamento normais).'],
     comuns:['“Abra o caixa antes de registrar uma venda”: abra o caixa primeiro.','“A soma dos pagamentos precisa bater com o total”: ajuste os valores ao dividir o pagamento.','O desconto nunca pode zerar a venda. Você lança desconto sem digitar senha; o Caixa precisa da sua.'] },
   { t:'Cliente cancelou o pedido (Cardápio)', itens:['Nos primeiros 3 minutos, e só enquanto o pedido está “aguardando aceite”, o cliente pode cancelar sozinho pelo acompanhamento do pedido. O estoque volta e o motivo fica como “Cancelado pelo cliente (cardápio, até 3 min)”.','Depois de aceito, ou passados os 3 minutos, o cliente precisa ligar. Cancelar ou editar passa a ser com o Caixa/Administrador.'] },
   { t:'Pedidos e entregas', passos:['Pedido do Cardápio chega como “novo — aguardando aceite”: toque em “✅ Aceitar” ou “❌ Rejeitar”.','Quando o pedido ficar “Pronta” (retirada ou entrega) ou “Saiu para entrega”, e o cliente tiver telefone, toque em “📲 Avisar cliente”: abre o WhatsApp com a mensagem pronta e você só envia. Depois aparece “✔ avisado às…”.','Avance com “Marcar como…”: Em preparo → Pronta → Retirada (Servida, se for mesa).','Em Entregas, escolha o entregador no campo “Entregador” do pedido; ele avança até “Entregue”.','“⏸ Suspender” pausa o pedido (pede motivo) e “▶️ Retomar pedido” volta.','Venda “A Receber” só entra no caixa quando você toca em “marcar como recebido”.'],
     comuns:['Só dá para editar os itens com o pedido “Em preparo”.','Entregador esqueceu de marcar: marque você mesmo pelo botão do pedido.','Sem aviso de pedido novo: no Início, toque em “🔔 Ativar avisos” e “🔊 Testar som”. O aviso só chega com o app aberto e a tela ligada.'] },
-  { t:'Entregas: taxas e fechamento de entregadores', passos:['Administrador → Entregas.','Defina a taxa padrão e a ajuda diária e salve.','No fechamento, escolha entregador e data, confira o total (taxas + ajuda diária) e informe o valor pago.','Confirme. A diferença fica registrada e o período fechado não muda mais, mesmo que a taxa mude depois.'],
+  { t:'Entregas: taxas e fechamento de entregadores', passos:['Administrador → Operação → Entregadores e taxas.','Defina a taxa padrão e a ajuda diária e salve.','No fechamento, escolha entregador e data, confira o total (taxas + ajuda diária) e informe o valor pago.','Confirme. A diferença fica registrada e o período fechado não muda mais, mesmo que a taxa mude depois.'],
     comuns:['A ajuda diária conta uma vez por dia e só se houve entrega.','Se a conexão cair ao fechar, confira o histórico antes de tentar de novo, para não fechar duas vezes.'] },
-  { t:'Ocorrências e notificações', itens:['Ocorrências: Administrador → Ocorrências → “Tratar” para acompanhar e resolver. As abertas também aparecem no mural Notificações, onde o Caixa e o Administrador também têm o botão “Tratar”.','Administrador → Avisos (config): ligue ou desligue cada aviso e escolha quais perfis o recebem (Administrador, Operador ou Cozinha).'] },
+  { t:'Ocorrências e notificações', itens:['Ocorrências: Administrador → Painel → Ocorrências → “Tratar” para acompanhar e resolver. As abertas também aparecem no mural Notificações, onde o Caixa e o Administrador também têm o botão “Tratar”.','Administrador → Avisos (config): ligue ou desligue cada aviso e escolha quais perfis o recebem (Administrador, Operador ou Cozinha).'] },
   { t:'Financeiro, relatórios e auditoria', itens:['Financeiro: contas a pagar, despesas mensais, previsto × pago, fluxo de 30 dias, metas. As formas de pagamento ficam em Operação → Pagamentos. Histórico: resumo de hoje, vendas, despesas e sessões de caixa. O DRE fica em Relatórios (com a linha “Ajustes pós-venda”). Só despesa paga entra no lucro.','Relatórios imprimem em A4, 80mm ou 58mm. Visão Geral e Relatórios atualizam ao abrir.','Auditoria: descontos, cancelamentos, preços, estoque, usuários, restaurações e acessos negados.'] },
-  { t:'Ajustes pós-venda (reembolso, crédito, cortesia)', passos:['Administrador → Financeiro → cartão “Ajustes pós-venda”.','Busque a venda (nº do pedido, nome ou telefone) — só aparecem pedidos já entregues.','Escolha o tipo (Reembolso em dinheiro, Crédito para próxima compra, Cortesia ou Desconto retroativo), o valor e o motivo. Se o motivo for “Outro”, descreva.','Em reembolso e desconto retroativo, escolha se o dinheiro sai do caixa (o caixa precisa estar aberto) ou fora dele (Pix, estorno no cartão).','Toque em “Registrar ajuste”. Para desfazer, use “cancelar” na lista, com o motivo.'],
+  { t:'Ajustes pós-venda (reembolso, crédito, cortesia)', passos:['Administrador → Financeiro → Ajustes pós-venda.','Busque a venda (nº do pedido, nome ou telefone) — só aparecem pedidos já entregues.','Escolha o tipo (Reembolso em dinheiro, Crédito para próxima compra, Cortesia ou Desconto retroativo), o valor e o motivo. Se o motivo for “Outro”, descreva.','Em reembolso e desconto retroativo, escolha se o dinheiro sai do caixa (o caixa precisa estar aberto) ou fora dele (Pix, estorno no cartão).','Toque em “Registrar ajuste”. Para desfazer, use “cancelar” na lista, com o motivo.'],
     comuns:['A venda original NÃO muda e continua como Confirmada. No DRE o ajuste aparece na linha “Ajustes pós-venda”, separado das despesas.','Crédito não reduz o resultado na hora: quando o cliente usar, aplique como desconto no Caixa. Ele aparece como aviso abaixo do DRE.','Reembolso e desconto retroativo não passam do valor da venda (somando os ajustes já feitos nela).','Devolução que saiu do caixa de um turno já fechado não pode ser cancelada pelo sistema.'] },
-  { t:'Backup e armazenamento', passos:['Administrador → Backup → “Fazer backup agora”.','Ative o backup automático e escolha a frequência.','Para restaurar, escolha o backup no histórico e confirme com sua senha de administrador.','Confira o uso do Drive: até 70% normal, 70–90% atenção, acima de 90% crítico.'],
+  { t:'Backup e armazenamento', passos:['Administrador → Sistema → Backup → “Fazer backup agora”.','Ative o backup automático e escolha a frequência.','Para restaurar, escolha o backup no histórico e confirme com sua senha de administrador.','Confira o uso do Drive: até 70% normal, 70–90% atenção, acima de 90% crítico.'],
     comuns:['Drive cheio: backups e fotos podem falhar. Libere espaço.','A conferência de integridade aponta duplicidades, estoque negativo, caixa esquecido aberto e vendas paradas na contingência.'] },
-  { t:'Contingência (plano B)', passos:['Administrador → Backup → cartão “Contingência”. 🟢 = acessível (mostra quando o espelho foi atualizado e quantas vendas estão pendentes); 🔴 = não respondeu.','Toque em “🔄 Sincronizar espelho agora” para copiar produtos, preços e clientes para a contingência.','Toque uma vez em “Ativar sincronização automática diária (3h)”. Com ela ligada, o espelho se atualiza todo dia de madrugada e o sistema confere a cada 30 minutos se há vendas pendentes para trazer.','Se a planilha principal ficou fora do ar e houve vendas na contingência, toque em “⬇️ Trazer vendas pendentes da contingência” e confirme.','Backups: cada backup (manual ou automático) também é copiado para o Drive da conta da contingência. No histórico de backups, a coluna “Cópia” mostra ✅ quando deu certo e ⚠️ quando falhou (o backup local continua valendo).','Fotos: ao sincronizar o espelho, as fotos do cardápio também ganham cópia na conta da contingência. Se a mensagem disser “faltam N”, toque em sincronizar de novo ou aguarde a sincronização das 3h.','Espaço: o cartão mostra quanto da conta da contingência está usado. Acima de 90% aparece um alerta em Notificações → Sistema; libere espaço nessa conta.'],
+  { t:'Contingência (plano B)', passos:['Administrador → Sistema → Sincronização e contingência → cartão “Contingência”. 🟢 = acessível (mostra quando o espelho foi atualizado e quantas vendas estão pendentes); 🔴 = não respondeu.','Toque em “🔄 Sincronizar espelho agora” para copiar produtos, preços e clientes para a contingência.','Toque uma vez em “Ativar sincronização automática diária (3h)”. Com ela ligada, o espelho se atualiza todo dia de madrugada e o sistema confere a cada 30 minutos se há vendas pendentes para trazer.','Se a planilha principal ficou fora do ar e houve vendas na contingência, toque em “⬇️ Trazer vendas pendentes da contingência” e confirme.','Backups: cada backup (manual ou automático) também é copiado para o Drive da conta da contingência. No histórico de backups, a coluna “Cópia” mostra ✅ quando deu certo e ⚠️ quando falhou (o backup local continua valendo).','Fotos: ao sincronizar o espelho, as fotos do cardápio também ganham cópia na conta da contingência. Se a mensagem disser “faltam N”, toque em sincronizar de novo ou aguarde a sincronização das 3h.','Espaço: o cartão mostra quanto da conta da contingência está usado. Acima de 90% aparece um alerta em Notificações → Sistema; libere espaço nessa conta.'],
     comuns:['Depois de trocar as chaves da contingência, peça a todos para sair e entrar de novo: a chave interna é buscada no login.','Troque as chaves só com a fila vazia (sem vendas pendentes), senão elas podem ficar presas.','Garçom, Cozinha e Entregador não usam a fila da contingência.'] }
  ], erros:[
   { q:'A internet caiu', a:'Venda no Caixa: se você já entrou neste aparelho, o sistema oferece guardar a venda na CONTINGÊNCIA (só retirada ou entrega, sem desconto, sem mesa). Ela entra na planilha sozinha quando voltar; estoque e total do caixa só atualizam depois. Não confirme se a venda já apareceu. Caixa, cancelamento, pagamentos e estoque exigem conexão e nunca ficam guardados: espere o 🟢 e refaça. Clientes, feedbacks e ocorrências ficam salvos no aparelho e são reenviados sozinhos.' },
@@ -8155,7 +8255,7 @@ Admin:{ nome:'Administrador', secoes:[
   { q:'“Alguém alterou este registro”', a:'Outra pessoa editou o mesmo cadastro antes de você. O sistema recarrega os dados reais; confira e refaça a edição.' }
  ]},
 Operador:{ nome:'Caixa', secoes:[
-  _aj.entrar('Início, Caixa, Pedidos, Entregas, Clientes e Notificações'),
+  _aj.entrar('Início, Caixa, Pedidos (com Retiradas, Entregas e Mesas), Clientes e Notificações'),
   { t:'Abrir o caixa', passos:['Aba Caixa → “Abrir caixa”.','Informe o fundo de troco e confirme.'], comuns:['Sem caixa aberto não há venda, despesa nem sangria, e o Cardápio Digital não recebe pedidos.','“Já existe um caixa aberto”: feche o anterior antes.'] },
   { t:'Fazer uma venda', passos:['1. Cliente: busque por nome ou telefone, ou toque em “Venda sem cadastro”. Escolha Retirada, Entrega (endereço, complemento, referência) ou Mesa.','2. Itens: toque nos produtos; os adicionais abrem numa janela. Confira a contagem em “2. Itens”.','3. Pagamento: escolha a forma. Em dinheiro, informe o valor recebido e veja o troco. Para dividir, marque “Dividir pagamento”. “A Receber” deixa a venda pendente.','4. Finalizar: confira o total e finalize. Escolha 58mm, 80mm ou A4 e toque em Imprimir, Copiar ou WhatsApp.','“↺ Repetir última venda” recarrega o carrinho anterior.'],
     comuns:['“Abra o caixa antes de registrar uma venda.”','“A soma dos pagamentos precisa bater com o total”: ajuste os valores.','Desconto (% ou R$) pede a senha do administrador e nunca pode zerar a venda.'] },
@@ -8175,7 +8275,7 @@ Operador:{ nome:'Caixa', secoes:[
   { q:'Errei o valor ou um item', a:'Use “editar” em “Lançamentos desde a abertura”. Itens de pedido só mudam enquanto ele está “Em preparo”.' }
  ]},
 'Garçom':{ nome:'Garçom', secoes:[
-  _aj.entrar('Início, Caixa, Pedidos e Clientes'),
+  _aj.entrar('Início, Atendimento, Pedidos (com Retiradas, Entregas e Mesas) e Clientes'),
   { t:'Lançar pedido de uma mesa', passos:['Aba Caixa → etapa “1. Cliente” → escolha a mesa. Se estiver Livre, toque em “Abrir mesa”.','Vá em “2. Itens”, toque nos itens e escolha os adicionais.','Toque em “Enviar para a cozinha”. Repita quantas vezes o cliente pedir mais.'],
     comuns:['“A mesa N está … — não aceita novos itens”: ela já está aguardando fechamento.','“Esta mesa está sob responsabilidade de outro garçom”: a mesa é de quem a abriu; peça ao Caixa.','Você só lança pedido de mesa, sem desconto e sem receber pagamento.'] },
   { t:'Pedir a conta', passos:['Caixa → escolha a mesa (ou toque em “🍽️ Mesas”, veja as suas e use “Pedir fechamento”).','Toque em “Pedir fechamento” e confirme.','A mesa passa para “Aguardando fechamento”. O Caixa recebe — ou você mesmo, com “💳 Receber conta”, se o caixa estiver aberto.'], comuns:['Só dá para pedir fechamento de mesa “Ocupada”.'] },
@@ -8202,8 +8302,8 @@ Cozinha:{ nome:'Cozinha', secoes:[
   { q:'Pedido duplicado', a:'Se aparecerem dois pedidos iguais, faça só um e avise o Caixa, que cancela o repetido. Você também pode registrar uma Ocorrência no pedido. Tocar duas vezes em “Iniciar preparo” não gera problema.' }
  ]},
 Entregador:{ nome:'Entregador', secoes:[
-  _aj.entrar('Início e Entregas'),
-  { t:'Fazer uma entrega', passos:['Aba Entregas: aparecem só as entregas atribuídas a você. Uma nova toca um aviso sonoro.','O cartão mostra itens, endereço, referência, telefone, total, taxa e “📍 Ver no Maps”.','Quando pegar o pedido (status “Pronta”), toque em “Marcar como “Saiu para entrega””.','Ao entregar, toque em “✅ Já entreguei”.','Se o cartão diz “A receber”, cobre o valor do cliente; quem registra o recebimento é o Caixa.'],
+  _aj.entrar('Início, Minhas entregas e Meus ganhos'),
+  { t:'Fazer uma entrega', passos:['Aba Minhas entregas: aparecem só as entregas atribuídas a você. Uma nova toca um aviso sonoro.','O cartão mostra itens, endereço, referência, telefone, total, taxa e “📍 Ver no Maps”.','Quando pegar o pedido (status “Pronta”), toque em “Marcar como “Saiu para entrega””.','Ao entregar, toque em “✅ Já entreguei”.','Se o cartão diz “A receber”, cobre o valor do cliente; quem registra o recebimento é o Caixa.'],
     comuns:['Não aparece nada: ainda não atribuíram nenhuma entrega a você. Avise o Caixa.','Pedido “aguardando aceite”: o botão só aparece depois que o Caixa aceitar.'] },
   { t:'Aviso de entrega nova', itens:['Na primeira vez, toque em “🔔 Ativar avisos e som” (canto da tela) para liberar som e notificação.','Quando o Caixa atribuir uma entrega a você, o aparelho toca, vibra e a aba mostra “Nova entrega”. A checagem roda a cada poucos minutos com o app aberto, mesmo em segundo plano. Se o celular fechar o app ou bloquear a tela, o aviso não chega — abra a aba Entregas de vez em quando.'] },
   { t:'Meu dia', itens:['Em Entregas, “💰 Meu dia” mostra suas entregas de hoje, as taxas e a ajuda diária.','O total previsto é taxas + ajuda diária (uma vez por dia). O acerto oficial é feito pelo Administrador.'] },
@@ -8294,7 +8394,7 @@ async function carregarStatusBackup(){
     const alerta = document.getElementById('backupAlerta');
     const falhaRecente = r.ultimaFalha;
     alerta.innerHTML = falhaRecente ? `<div class="obs-line" style="background:#3a1512;border:1px solid #b3241c;padding:8px;border-radius:8px;margin-bottom:8px;">⚠️ <b>Último backup falhou</b> em ${fmt(falhaRecente.quando)}: ${escBk_(falhaRecente.erro)}</div>` : '';
-    sistemaAlertas_.backup = falhaRecente ? ('Último backup falhou em '+fmt(falhaRecente.quando)+'. Veja em Administrador → Backup.') : '';
+    sistemaAlertas_.backup = falhaRecente ? ('Último backup falhou em '+fmt(falhaRecente.quando)+'. Veja em Administrador → Sistema → Backup.') : '';
     sistemaAlertas_.copiaBackup = r.ultimaFalhaCopia ? ('A cópia do último backup na contingência falhou em '+fmt(r.ultimaFalhaCopia.quando)+': '+r.ultimaFalhaCopia.erro) : '';
     marcarAlertaAdmin_(!!falhaRecente || !!r.ultimaFalhaCopia); renderNotificacoes();
     document.getElementById('bkAutoAtivo').checked = !!r.automaticoAtivo;
@@ -8369,7 +8469,7 @@ async function carregarArmazenamento(){
     res.innerHTML = `<div style="height:12px;background:#3a2c1c;border-radius:6px;overflow:hidden;"><div style="width:${pct}%;height:100%;background:${cor};"></div></div>
       <div style="margin-top:6px;">Usado: <b>${formatarBytes_(d.usado)}</b> · Livre: <b>${d.livre===null?'—':formatarBytes_(d.livre)}</b> · <b style="color:${cor};">${d.percentual===null?'—':d.percentual+'%'} (${escBk_(d.nivel)})</b></div>
       ${d.nivel==='Crítico'?'<div class="obs-line" style="color:#ffb3ab;margin-top:4px;">⚠️ Drive quase cheio: novos backups e fotos podem falhar. Libere espaço.</div>':d.nivel==='Atenção'?'<div class="obs-line" style="margin-top:4px;">Atenção: acima de 70% do espaço.</div>':''}`;
-    sistemaAlertas_.drive = d.nivel==='Crítico' ? ('Google Drive quase cheio ('+d.percentual+'% usado). Libere espaço em Administrador → Backup.') : '';
+    sistemaAlertas_.drive = d.nivel==='Crítico' ? ('Google Drive quase cheio ('+d.percentual+'% usado). Libere espaço em Administrador → Sistema → Espaço e fotos.') : '';
     marcarAlertaAdmin_(d.nivel==='Crítico'); renderNotificacoes();
     const cats = Object.entries(r.categorias).map(([n,v])=>`<tr><td>${escBk_(n)}</td><td align="right">${v.qtd}</td><td align="right">${formatarBytes_(v.bytes)}</td></tr>`).join('');
     const arqs = (r.arquivos||[]).slice(0,10).map(a=>`<tr><td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;">${escBk_(a.nome)}</td><td>${escBk_(a.categoria)}</td><td align="right">${formatarBytes_(a.tamanho)}</td></tr>`).join('');
@@ -9495,7 +9595,8 @@ async function init(){
   renderizarTudo();
   configurarSincronizacaoAutomatica();
   if(apiConfigurada() && currentUser && currentUser.nivel==='Admin') carregarStatusBackup();
-  carregarStatusContingencia();
+  /* A contingência (Apps Script) demora para acordar e só interessa a Admin/Operador: consulta depois da abertura, sem atrapalhar. */
+  if(currentUser && (currentUser.nivel==='Admin' || currentUser.nivel==='Operador')) setTimeout(carregarStatusContingencia, 8000);
 }
 
 /* ---------- SINCRONIZAÇÃO AUTOMÁTICA EM SEGUNDO PLANO ----------
@@ -9601,6 +9702,7 @@ function configurarSincronizacaoAutomatica(){
 /* Pedidos e Entregas agora são uma aba só: dois painéis dentro de Pedidos (Entregador vê só Entregas; Cozinha e Garçom só Pedidos). */
 let _painelPedidosAtual = 'pedidos';
 function pedidosPainel_(qual){
+  if(qual==='mesas' && souGarcom_()){ abrirMesasPopup_(); return; }
   _painelPedidosAtual = qual;
   const ped = document.getElementById('pedidosPainelPedidos'), ent = document.getElementById('pedidosPainelEntregas'), mes = document.getElementById('pedidosPainelMesas');
   if(ped) ped.style.display = qual==='pedidos' ? '' : 'none';
@@ -11034,6 +11136,20 @@ async function aplicarFotosCardapioInicial(){
     impMsg_('Não foi possível enviar as fotos agora. Tente de novo em instantes.', 'warn');
   } finally { _impEmAndamento_ = false; }
 }
+
+/* Vibração curta em todo toque de botão (Android/Chrome). iPhone não suporta: aí não faz nada. */
+(function(){
+  if(!navigator.vibrate) return;
+  const SEL = 'button, summary, [role="button"], [onclick], select, label, input[type="checkbox"], input[type="radio"], input[type="button"], input[type="submit"]';
+  let ultimo = 0;
+  document.addEventListener('click', function(e){
+    const t = e.target; if(!t || !t.closest) return;
+    if(t.matches('input:not([type="checkbox"]):not([type="radio"]):not([type="button"]):not([type="submit"]), textarea')) return; // digitar não vibra
+    const el = t.closest(SEL); if(!el || el.disabled || el.getAttribute('aria-disabled') === 'true') return;
+    const agora = Date.now(); if(agora - ultimo < 60) return; ultimo = agora;
+    try{ navigator.vibrate(12); }catch(_){}
+  }, { passive:true });
+})();
 </script>
 <!-- ═══════════ TEXAS BURGER — ETAPAS 4, 7, 8 e 9 (frontend) ═══════════
      APLICADO no index.html.
@@ -11106,12 +11222,18 @@ function sb410Montar_(){
   <div class="card" id="sb410Integ"><h2>Conferência de integridade</h2>
     <p class="sub">Compara as vendas de hoje no Supabase com a planilha.</p>
     <button class="ghost" style="width:100%;padding:10px;" onclick="sb410Integ()">Conferir agora</button><div class="msg" id="sb410IntegMsg"></div></div>`);
+  const mover = (id, destino) => { const c = document.getElementById(id), d = document.getElementById('tab-'+destino); if(c && d && c.parentNode !== d) d.appendChild(c); };
+  mover('sb410Sync','integridade'); mover('sb410Integ','integridade');
+  mover('sb410Esp','drive'); mover('sb410Fotos','drive');   // 'sb410Bk' fica em Backup
+  // "Importar cardápio inicial" sempre por último em Backup (os cards do Supabase são acrescentados depois dele)
+  const imp = document.getElementById('importarCardapioCard'), ta = document.getElementById('tab-armazenamento');
+  if(imp && ta) ta.appendChild(imp);
 }
 function sb410Carregar_(){
   sb410Montar_();
   try{ // no servidor novo os cartões antigos (planilha) não têm dados: ficam escondidos, os sb410* fazem o papel deles
     const velhos = ['Backup','Histórico e restauração','Conferência de integridade'];
-    document.querySelectorAll('#tab-armazenamento > .card').forEach(c=>{
+    document.querySelectorAll('#tab-armazenamento > .card, #tab-integridade > .card').forEach(c=>{
       if(c.id && c.id.indexOf('sb410') === 0) return;
       const h = c.querySelector('h2'); if(h && velhos.indexOf(h.textContent.trim()) !== -1) c.style.display = 'none';
     });
@@ -11152,7 +11274,7 @@ async function sb410BkLista(){
   try{
     const l = await sbSelecionar_('backups','order=data_hora.desc&limit=10',true);
     box.innerHTML = l.length ? l.map(b=>`<div style="margin:6px 0;"><b>${sb410Fmt_(b.data_hora)}</b> · ${escH(b.tipo)} · <span class="badge ${b.status==='Sucesso'?'done':(b.status==='Erro'?'baixo':'pend')}">${escH(b.status)}</span>
-      ${b.tamanho_bytes?`<span class="obs-line">${Math.round(b.tamanho_bytes/1024)} KB${b.erro?' · '+escH(b.erro):''}</span>`:(b.erro?`<span class="obs-line">${escH(b.erro)}</span>`:'')}
+      ${b.tamanho_bytes?`<span class="obs-line">${Math.round(b.tamanho_bytes/1024)} KB${b.erro?' · '+escH(b.erro):''}${b.status==='Sucesso'?(b.copia_drive_em?' · ☁️ cópia no Drive':(b.copia_drive_erro?' · ⚠️ sem cópia no Drive: '+escH(b.copia_drive_erro):' · sem cópia no Drive')):''}</span>`:(b.erro?`<span class="obs-line">${escH(b.erro)}</span>`:'')}
       ${b.status==='Sucesso'?`<button class="ghost" style="margin-top:4px;padding:4px 10px;font-size:11px;" onclick="sb410BkRestaurar('${escH(b.id)}')">Restaurar</button>`:''}</div>`).join('')
       : '<span class="obs-line">Nenhum backup ainda.</span>';
   }catch(e){ box.textContent = 'Não foi possível carregar.'; }
@@ -11190,7 +11312,7 @@ async function sb410BkCfgSalvar(){
 async function sb410BkAgora(){
   if(!confirm('Fazer backup agora? Pode levar alguns segundos.')) return;
   try{ const j = await sb410Edge_('criar-backup', { tipo:'Manual' }, 120000);
-    alert(j.ok ? 'Backup feito ('+Math.round((j.tamanho||0)/1024)+' KB).' : 'Erro: '+(j.message||'falha')); }catch(e){ alert('Sem conexão.'); }
+    alert(j.ok ? 'Backup feito ('+Math.round((j.tamanho||0)/1024)+' KB).' + (j.drive ? ' Cópia no Drive: ok.' : ' ATENÇÃO: a cópia no Drive não foi feita' + (j.driveErro ? ' ('+j.driveErro+')' : '') + '.') : 'Erro: '+(j.message||'falha')); }catch(e){ alert('Sem conexão.'); }
   sb410BkLista();
 }
 async function sb410BkRestaurar(id){
@@ -11296,7 +11418,7 @@ async function sb410Integ(){
   if(typeof orig !== 'function') return;
   window.abrirAdministrador = function(sub){
     const r = orig.apply(this, arguments);
-    try{ const ativa = document.querySelector('#tab-armazenamento'); if(ativa && ativa.classList.contains('active')) sb410Carregar_(); }catch(e){}
+    try{ if(['armazenamento','drive','integridade'].some(id=>{ const s = document.getElementById('tab-'+id); return s && s.classList.contains('active'); })) sb410Carregar_(); }catch(e){}
     return r;
   };
 })();
@@ -11328,7 +11450,7 @@ function sb5Atualizar_(){
   const d = sb5Faixa_();
   if(!_sb5Queda_){ d.style.display = 'none'; return; }
   const n = (typeof _fila !== 'undefined') ? _fila.filter(i => i.estado !== 'erro').length : 0;
-  d.textContent = '🟠 Modo reserva — sem conexão com o Supabase. Vendas do Caixa vão para a contingência e entram sozinhas na volta; os dados atualizam a cada 3 minutos. O que for lançado fica salvo neste aparelho' + (n ? ' (' + n + ' na fila)' : '') + '.';
+  d.textContent = '🟠 Modo reserva — sem conexão com o Supabase. Vendas do Caixa vão para a contingência e entram sozinhas na volta; os dados atualizam a cada 3 minutos; veja a fila na aba Pedidos. O que for lançado fica salvo neste aparelho' + (n ? ' (' + n + ' na fila)' : '') + '.';
   d.style.display = 'block';
 }
 /* MODO RESERVA: com o Supabase fora (3 falhas seguidas) o app (a) para o tempo real e volta às atualizações de 3 e 15 minutos,
@@ -11341,8 +11463,52 @@ function sb5Sondar_(){
       .then(r=>{ clearTimeout(t); res(r.status < 500); }).catch(()=>{ clearTimeout(t); res(false); });
   });
 }
+const LEITURA_CHAVE_KEY_ = 'txb_cont_leitura';
+function garantirChaveLeitura_(renovar){
+  try{
+    if(!currentUser || currentUser.emergencia) return;
+    if(!renovar && localStorage.getItem(LEITURA_CHAVE_KEY_)) return;
+    sb410Edge_('planilha-admin', { acao:'chaveLeitura', renovar: !!renovar }, 30000).then(r=>{ if(r && r.ok && r.chave) localStorage.setItem(LEITURA_CHAVE_KEY_, r.chave); }).catch(()=>{});
+  }catch(e){}
+}
+/* RESERVA DE LEITURA: com o Supabase fora, mostra os pedidos que estavam em andamento (espelho de até ~10 min) e os que entraram na fila da contingência.
+   Só consulta: o status do pedido NÃO muda por aqui. Nunca mostra telefone, endereço nem pagamento. */
+let _sb5PainelTimer_ = null;
+function sb5PainelReservaLigar_(on){
+  const c = document.getElementById('reservaPedidosCard'); if(!c) return;
+  c.style.display = on ? '' : 'none';
+  clearInterval(_sb5PainelTimer_); _sb5PainelTimer_ = null;
+  if(on){ sb5PainelReservaAtualizar_(); _sb5PainelTimer_ = setInterval(sb5PainelReservaAtualizar_, 180000); }   // a cada 3 minutos
+}
+async function sb5PainelReservaAtualizar_(){
+  const box = document.getElementById('reservaPedidosBox'), info = document.getElementById('reservaPedidosInfo'); if(!box) return;
+  const chave = localStorage.getItem(LEITURA_CHAVE_KEY_) || localStorage.getItem(CONTINGENCIA_CHAVE_KEY);
+  if(!chave){ box.innerHTML = '<div class="notif-empty">Este aparelho ainda não tem acesso à reserva. Entre no app com o Supabase no ar para liberar.</div>'; return; }
+  if(!box.innerHTML) box.innerHTML = '<div class="notif-empty">Buscando…</div>';
+  const post = acao => fetchContingencia_({ method:'post', body: JSON.stringify({ action: acao, chave }) }, TIMEOUT_CONT_LEITURA_MS_, 1);
+  try{
+    const [esp, fila] = await Promise.all([post('getEspelhoReserva'), post('listarFilaInterna')]);
+    if((esp && /chave/i.test(esp.message||'')) || (fila && /chave/i.test(fila.message||''))){ localStorage.removeItem(LEITURA_CHAVE_KEY_); box.innerHTML = '<div class="notif-empty">A chave deste aparelho foi trocada. Entre de novo com o Supabase no ar.</div>'; return; }
+    const hora = iso => { const t = Date.parse(iso); return t ? new Date(t).toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' }) : ''; };
+    const itensTxt = its => (its||[]).map(i=>escH(String(i.quantidade) + '× ' + i.descricao)).join(' · ');
+    const novos = (fila && fila.ok ? fila.fila : []) || [];
+    const r = esp && esp.ok ? esp.reserva : null, ativos = (r && r.pedidos) || [];
+    const cartao = (tit, corpo) => '<div style="border:1px solid #3a2c1c;border-radius:10px;padding:8px;margin:6px 0;"><b>' + tit + '</b><div style="margin-top:3px;">' + corpo + '</div></div>';
+    let html = '<h3 style="margin:8px 0 2px;">🆕 Entraram na contingência (' + novos.length + ')</h3>';
+    html += novos.length ? novos.slice().reverse().map(n=>cartao((n.origem === 'Cardápio' ? '🌐 Cardápio' : '🧾 Caixa') + ' · ' + hora(n.recebidoEm) + (n.cliente ? ' · ' + escH(n.cliente) : ''),
+      itensTxt(n.itens) + '<div class="obs-line">' + escH(n.tipoEntrega || '') + (n.total ? ' · R$ ' + Number(n.total).toFixed(2).replace('.', ',') : '') + (n.obs ? ' · ' + escH(n.obs) : '') + '</div>')).join('')
+      : '<div class="obs-line">Nenhum pedido novo na fila.</div>';
+    html += '<h3 style="margin:12px 0 2px;">👨‍🍳 Já estavam em andamento (' + ativos.length + ')</h3>';
+    html += ativos.length ? ativos.map(a=>cartao('#' + a.numero + ' · ' + escH(a.statusPedido || '') + ' · ' + hora(a.em) + (a.cliente ? ' · ' + escH(a.cliente) : ''),
+      itensTxt(a.itens) + '<div class="obs-line">' + escH(a.tipo || '') + (a.obs ? ' · ' + escH(a.obs) : '') + '</div>')).join('')
+      : '<div class="obs-line">Nenhum pedido em andamento no último espelho.</div>';
+    box.innerHTML = html;
+    if(info) info.textContent = 'Fila da contingência atualizada às ' + new Date().toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' }) + (r ? ' · pedidos em andamento conforme o espelho das ' + hora(r.geradoEm) + ' (o status pode ter mudado depois).' : ' · sem espelho de pedidos ainda.');
+  }catch(e){ box.innerHTML = '<div class="notif-empty">Não foi possível falar com a contingência agora. Tente de novo.</div>'; }
+}
 function sb5EntrarReserva_(){
   if(_sb5Reserva_) return; _sb5Reserva_ = true;
+  try{ sb5PainelReservaLigar_(true); }catch(e){}
   try{ sb6Parar(); }catch(e){}
   try{ rtParar_(); }catch(e){}
   try{ setConexaoStatus('offline', 'Supabase fora do ar — modo reserva'); }catch(e){}
@@ -11357,6 +11523,7 @@ function sb5Aviso_(texto, cor){
 async function sb5SairReserva_(){
   if(!_sb5Reserva_ && !_sb5Queda_) return;
   _sb5Reserva_ = false; _sb5Queda_ = false; _sb5Falhas_ = 0; clearInterval(_sb5Sonda_); _sb5Sonda_ = null;
+  try{ sb5PainelReservaLigar_(false); }catch(e){}
   try{ sbNivelMarcar_(true); }catch(e){}
   sb5Atualizar_();
   try{ setConexaoStatus('syncing'); }catch(e){}

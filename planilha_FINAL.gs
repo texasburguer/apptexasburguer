@@ -5760,7 +5760,7 @@ function reconciliarContingencia() {
 /* Chave que a Edge Function envia. Já vem preenchida aqui; se existir a propriedade de script SB_CHAVE_SERVIDOR, ela tem prioridade. */
 const SB_CHAVE_SERVIDOR_PADRAO_ = 'txbsb-dPcBNH9tYyZ1K_cKKzBoWGKgrQ0QKch-EBe0TFc6bis';
 const ACOES_SERVIDOR_SB_ = ['syncLote', 'arquivar', 'replicarFotos', 'contarVendasHoje', 'uploadFotoSb', 'excluirFotoSb',
-  'sbSincronizarContingencia', 'sbLerArquivo', 'sbArmazenamento', 'sbArmazenamentoContingencia', 'sbChaveContingencia', 'sbListarPendentesContingencia', 'sbMarcarSincronizadoContingencia'];
+  'sbSincronizarContingencia', 'sbLerArquivo', 'sbGuardarBackup', 'sbChaveLeitura', 'sbArmazenamento', 'sbArmazenamentoContingencia', 'sbChaveContingencia', 'sbListarPendentesContingencia', 'sbMarcarSincronizadoContingencia'];
 const SB_FUSO_ = 'America/Sao_Paulo';
 const SB_LIMITE_CELULA_ = 40000;
 
@@ -5776,9 +5776,11 @@ function acaoServidorSb_(action, body) {
     if (action === 'uploadFotoSb') return sbUploadFotoSb_(body);
     if (action === 'excluirFotoSb') return sbExcluirFotoSb_(body.ids);
     if (action === 'contarVendasHoje') return sbContarVendasHoje_(body.data);
-    if (action === 'sbSincronizarContingencia') return sbSincronizarContingencia_();
+    if (action === 'sbSincronizarContingencia') return sbSincronizarContingencia_(body.rapido === true);
+    if (action === 'sbChaveLeitura') return sbChaveLeitura_(body.renovar === true);
     if (action === 'sbArmazenamento') return sbObterArmazenamento_();
     if (action === 'sbLerArquivo') return sbLerArquivo_(body.mes);
+    if (action === 'sbGuardarBackup') return sbGuardarBackup_(body);
     if (action === 'sbArmazenamentoContingencia') return obterArmazenamentoContingencia();
     if (action === 'sbChaveContingencia') return sbChaveContingencia_();
     if (action === 'sbListarPendentesContingencia') return sbListarPendentesContingencia_();
@@ -5997,11 +5999,14 @@ function sbSincronizarFotosContingencia_(prods, combos, limiteMs) {
 }
 
 /* Monta o mesmo "espelho" que a contingência sempre recebeu (formato idêntico ao antigo), agora lendo as abas SB_. */
-function sbSincronizarContingencia_() {
+function sbSincronizarContingencia_(rapido) {
   const cat = sbLerAba_('SB_categorias'), prods = sbLerAba_('SB_produtos'), combos = sbLerAba_('SB_combos');
   if (!prods.length && !combos.length) return { ok: false, message: 'As abas SB_produtos/SB_combos estão vazias: a sincronização com o Supabase ainda não chegou aqui. Rode "Sincronizar agora" e tente de novo.' };
   let fotos = { mapa: {}, enviadas: 0, faltam: 0, falhas: [], totalFotos: 0 };
-  try { fotos = sbSincronizarFotosContingencia_(prods, combos, 20000); } catch (eF) { registrarLog('Falha ao copiar fotos para a contingência', '', eF.message); }
+  try {
+    if (rapido) { const lf = chamarContingencia_('listarFotos'); if (lf && lf.ok) fotos.mapa = lf.fotos || {}; }   // espelho rápido (a cada ~10 min): só reaproveita as fotos que a contingência já tem
+    else fotos = sbSincronizarFotosContingencia_(prods, combos, 20000);
+  } catch (eF) { registrarLog('Falha ao copiar fotos para a contingência', '', eF.message); }
   const reserva = function (id) { return (id && fotos.mapa[id]) || ''; };
   const cfg = {}; sbLerAba_('SB_sistema').forEach(function (r) { cfg[String(r.chave)] = r.valor; });
   const txt = function (k, pad) { const v = cfg[k]; return (v === undefined || v === null || v === '') ? pad : String(v); };
@@ -6029,10 +6034,25 @@ function sbSincronizarContingencia_() {
       formasPagamentoCompleto: formas
     }
   };
+  // Reserva de leitura: pedidos em andamento (sem telefone, endereço nem pagamento)
+  try {
+    const ATIVOS = { 'Recebido': 1, 'Em preparo': 1, 'Pronta': 1, 'Saiu para entrega': 1 };
+    const vs = sbLerAbaUltimas_('SB_vendas', 500).filter(function (v) { return v.status === 'Confirmada' && ATIVOS[v.status_pedido]; });
+    const idv = {}; vs.forEach(function (v) { idv[String(v.id)] = true; });
+    const porVenda = {};
+    sbLerAbaUltimas_('SB_itens_venda', 4000).forEach(function (i) { if (idv[String(i.venda_id)]) (porVenda[String(i.venda_id)] = porVenda[String(i.venda_id)] || []).push({ descricao: String(i.descricao || ''), quantidade: sbNum_(i.quantidade) }); });
+    dados.reserva = { geradoEm: new Date().toISOString(), pedidos: vs.map(function (v) {
+      return { numero: sbNum_(v.numero_pedido), em: (v.data_hora instanceof Date) ? v.data_hora.toISOString() : String(v.data_hora || ''), cliente: String(v.cliente_nome || ''), tipo: String(v.tipo || ''),
+               statusPedido: String(v.status_pedido || ''), obs: String(v.observacoes_entrega || ''), itens: porVenda[String(v.id)] || [], total: sbNum_(v.valor_total) };
+    }).sort(function (a, b) { return a.numero - b.numero; }).slice(-60) };
+  } catch (eR) { registrarLog('Falha ao montar a reserva de leitura', '', eR.message); }
+  // Cada chave do espelho vive numa célula (limite de 50 mil caracteres): se a lista de clientes crescer demais, corta para não travar o espelho.
+  let cortouClientes = false;
+  while (JSON.stringify(dados.interno).length > 45000 && dados.interno.clientes.length > 50) { dados.interno.clientes = dados.interno.clientes.slice(0, Math.floor(dados.interno.clientes.length * 0.9)); cortouClientes = true; }
   try {
     const r = chamarContingencia_('atualizarEspelho', { dados: dados });
     const nota = ' Fotos: ' + fotos.enviadas + ' copiada(s) agora' + (fotos.faltam ? ', faltam ' + fotos.faltam + ' (sincronize de novo)' : '') + (fotos.falhas.length ? ', ' + fotos.falhas.length + ' com falha (veja o Log)' : '') + '.';
-    if (r) r.message = ((r.message || '') + nota).trim();
+    if (r) r.message = ((r.message || '') + nota + (cortouClientes ? ' Atenção: a lista de clientes do espelho foi reduzida por tamanho.' : '')).trim();
     if (fotos.falhas.length) registrarLog('Fotos que não foram para a contingência', '', fotos.falhas.slice(0, 5).join(' | '));
     registrarLog('Contingência sincronizada (a partir do Supabase)', '', (r && r.message) || '');
     return r;
@@ -6113,4 +6133,57 @@ function sbLerArquivo_(mes) {
   const pagamentos = sbLerAba_('Arquivo_Pagamentos').filter(function (x) { return ids[String(x.venda_id)]; })
     .map(function (x) { return pick(x, ['id','venda_id','forma_pagamento','valor','taxa_aplicada']); });
   return { ok: true, mes: mes, vendas: vendas.map(function (v) { return pick(v, colsV); }), itens: itens, pagamentos: pagamentos };
+}
+
+
+/* ============================================================================
+   ETAPA 6 (CORREÇÕES) — CÓPIA DO BACKUP DO SUPABASE NO GOOGLE DRIVE
+   A Edge Function "criar-backup" envia cada backup (.json.gz) para cá logo depois de guardá-lo no Storage do Supabase.
+   Pasta própria (não mistura com as cópias da planilha). Limpa só os AUTOMÁTICOS antigos; manuais e de segurança ficam.
+   ============================================================================ */
+function sbPastaBackupsSupabase_() {
+  const nome = 'Texas Burger - Backups do Supabase';
+  const it = DriveApp.getFoldersByName(nome);
+  return it.hasNext() ? it.next() : DriveApp.createFolder(nome);
+}
+function sbGuardarBackup_(b) {
+  const nome = String(b.nome || '');
+  if (!/^backup-[0-9A-Za-z\-]+\.json\.gz$/.test(nome)) return { ok: false, message: 'Nome de arquivo inválido.' };
+  if (!b.base64 || String(b.base64).length > 25 * 1024 * 1024) return { ok: false, message: 'Arquivo ausente ou grande demais.' };
+  const pasta = sbPastaBackupsSupabase_();
+  const ja = pasta.getFilesByName(nome);
+  if (ja.hasNext()) return { ok: true, repetido: true };                 // reenvio não duplica
+  const blob = Utilities.newBlob(Utilities.base64Decode(String(b.base64)), 'application/gzip', nome);
+  const f = pasta.createFile(blob);
+  let removidos = 0;
+  const dias = Math.max(7, Number(b.retencaoDias) || 7), corte = Date.now() - dias * 86400000;
+  const it = pasta.getFiles();
+  while (it.hasNext()) {
+    const x = it.next();
+    if (/-auto\.json\.gz$/.test(x.getName()) && x.getDateCreated().getTime() < corte) { x.setTrashed(true); removidos++; }
+  }
+  return { ok: true, id: f.getId(), tamanho: f.getSize(), removidos: removidos };
+}
+
+
+/* Reserva de leitura: chave só de consulta para os aparelhos (todos os perfis). Gerada pela própria contingência. */
+function sbChaveLeitura_(renovar) {
+  const props = PropertiesService.getScriptProperties();
+  let k = props.getProperty('CONTINGENCIA_CHAVE_LEITURA');
+  if (!k || renovar) {
+    const r = chamarContingencia_('gerarChaveLeitura');
+    if (!r || !r.ok || !r.chave) return { ok: false, message: (r && r.message) || 'A contingência não gerou a chave de leitura (atualize e republique o script da contingência).' };
+    k = r.chave; props.setProperty('CONTINGENCIA_CHAVE_LEITURA', k);
+  }
+  return { ok: true, chave: k };
+}
+/* Lê só as últimas N linhas de uma aba SB_ (as vendas recentes ficam no fim). */
+function sbLerAbaUltimas_(nome, n) {
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(nome);
+  if (!sh || sh.getLastRow() < 2 || sh.getLastColumn() < 2) return [];
+  const cab = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(String);
+  const ini = Math.max(2, sh.getLastRow() - n + 1);
+  return sh.getRange(ini, 1, sh.getLastRow() - ini + 1, cab.length).getValues().map(function (r) {
+    const o = {}; for (let i = 1; i < cab.length; i++) if (cab[i]) o[cab[i]] = r[i]; return o;
+  }).filter(function (o) { return o.id !== undefined && String(o.id) !== ''; });
 }
