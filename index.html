@@ -3614,6 +3614,7 @@ function entrarNoApp(){
   }
   sbFaixa_();
   init();
+  try{ if(typeof sb410IniciarAlertaBackup_==='function') sb410IniciarAlertaBackup_(); }catch(e){}
   setTimeout(oferecerRecuperarCarrinho_, 800);  // ITEM 2.7
 }
 /* ETAPA 4: abas visíveis por perfil (a barra continua sendo a mesma de 7 abas; o backend valida cada ação de qualquer forma) */
@@ -11120,7 +11121,7 @@ function sb410Carregar_(){
   sb410SyncStatus();
   const adm = sb410Admin_();
   ['sb410Bk','sb410Esp','sb410Fotos','sb410Integ'].forEach(id=>{ const e=document.getElementById(id); if(e) e.style.display = adm ? '' : 'none'; });
-  if(adm){ sb410BkLista(); sb410BkCfgCarregar(); sb410Espaco(); sb410FotoCarregarPadrao(); }
+  if(adm){ sb410VerificarAlertaBackup_(); sb410BkLista(); sb410BkCfgCarregar(); sb410Espaco(); sb410FotoCarregarPadrao(); }
 }
 
 /* ---------- Etapa 4: sincronização ---------- */
@@ -11157,6 +11158,32 @@ async function sb410BkLista(){
       : '<span class="obs-line">Nenhum backup ainda.</span>';
   }catch(e){ box.textContent = 'Não foi possível carregar.'; }
 }
+/* ALERTA DE BACKUP (só Admin). Substitui o alerta antigo, que dependia do módulo removido.
+   Avisa em Notificações → Sistema quando: o último backup deu erro; ou não há backup com sucesso dentro do prazo
+   (30 h com o automático ligado — ele é diário —, 72 h com ele desligado). Também marca a aba Administrador. */
+let _bkAlertaTimer_ = null;
+async function sb410VerificarAlertaBackup_(){
+  try{
+    if(!currentUser || currentUser.nivel !== 'Admin' || currentUser.emergencia) return;
+    const l = await sbSelecionar_('backups','select=data_hora,tipo,status,erro&order=data_hora.desc&limit=10',true);
+    let auto = true;
+    try{ const c = await sbSelecionar_('sistema','chave=eq.BACKUP_AUTO_ATIVO',true); auto = !c.length || c[0].valor === true; }catch(e){}
+    const ok = l.find(b=>b.status==='Sucesso'), ult = l[0];
+    const limiteH = auto ? 30 : 72;
+    let msg = '';
+    if(!ok) msg = 'Nenhum backup com sucesso foi encontrado. Faça um em Administrador → Armazenamento → Backup do Supabase.';
+    else if(ult && ult.status === 'Erro') msg = 'O último backup falhou em ' + sb410Fmt_(ult.data_hora) + (ult.erro ? ' (' + String(ult.erro).slice(0,120) + ')' : '') + '. Último com sucesso: ' + sb410Fmt_(ok.data_hora) + '.';
+    else if(Date.now() - Date.parse(ok.data_hora) > limiteH*3600*1000) msg = 'Faz mais de ' + limiteH + ' horas sem backup com sucesso (último: ' + sb410Fmt_(ok.data_hora) + '). Confira em Administrador → Armazenamento.';
+    sistemaAlertas_.backup = msg;
+    if(msg) marcarAlertaAdmin_(true);
+    renderNotificacoes();
+  }catch(e){ /* sem conexão: não alarma, tenta de novo na próxima */ }
+}
+function sb410IniciarAlertaBackup_(){
+  if(_bkAlertaTimer_) return;
+  setTimeout(sb410VerificarAlertaBackup_, 6000);
+  _bkAlertaTimer_ = setInterval(sb410VerificarAlertaBackup_, 30*60*1000);
+}
 async function sb410BkCfgCarregar(){
   const h = document.getElementById('sb410BkHora');
   if(h && !h.options.length) for(let i=0;i<24;i++) h.insertAdjacentHTML('beforeend','<option value="'+i+'">'+String(i).padStart(2,'0')+':00</option>');
@@ -11191,7 +11218,7 @@ async function sb410BkAgora(){
   if(!confirm('Fazer backup agora? Pode levar alguns segundos.')) return;
   try{ const j = await sb410Edge_('criar-backup', { tipo:'Manual' }, 120000);
     alert(j.ok ? 'Backup feito ('+Math.round((j.tamanho||0)/1024)+' KB).' + (j.drive ? ' Cópia no Drive: ok.' : ' ATENÇÃO: a cópia no Drive não foi feita' + (j.driveErro ? ' ('+j.driveErro+')' : '') + '.') : 'Erro: '+(j.message||'falha')); }catch(e){ alert('Sem conexão.'); }
-  sb410BkLista();
+  sb410BkLista(); setTimeout(sb410VerificarAlertaBackup_, 1500);
 }
 async function sb410BkRestaurar(id){
   if(!confirm('Restaurar este backup? Os dados atuais serão substituídos (usuários, auditoria e backups são preservados). Um backup de segurança é feito antes.')) return;
