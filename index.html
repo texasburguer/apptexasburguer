@@ -820,8 +820,8 @@ body.perfil-garcom #btnFecharContaItens{display:none !important;}
     </div>
   </div>
 
-  <div id="chatPublicoFab" class="chat-publico-fab" style="display:none">
-    <button type="button" onclick="abrirChatPublico_()" aria-label="Atendimento Texas Burger">💬<span>Atendimento</span></button>
+  <div id="balaoIa" class="balao-ia" style="display:none">
+    <button type="button" onclick="balaoIaAbrir_()" aria-label="Balão de atendimento e assistente Texas Burger"><span id="balaoIaIcone">💬</span><span id="balaoIaRot">Atendimento</span><span class="balao-ia-cont" id="balaoIaContador" hidden>0</span></button>
   </div>
 
   <div class="cd-rodape cd-rodape-links">
@@ -964,11 +964,17 @@ body.perfil-garcom #btnFecharContaItens{display:none !important;}
 </div>
 
 <style id="chatPublicoCss">
-.chat-publico-fab{position:fixed;right:14px;bottom:16px;z-index:40;}
-body:has(.cd-fab-carrinho.show) .chat-publico-fab{bottom:84px;}
-.chat-publico-fab button{display:flex;align-items:center;gap:6px;background:var(--gold);color:#241a10;border:2px solid #000;border-radius:999px;padding:10px 14px;font-weight:700;font-size:13px;box-shadow:0 4px 14px rgba(0,0,0,.55);cursor:pointer;}
-#chatPublicoModal{z-index:60;}
-.chat-publico-box{max-width:480px;}
+.balao-ia{position:fixed;right:14px;bottom:16px;z-index:40;}
+body:has(.cd-fab-carrinho.show) .balao-ia{bottom:84px;}
+.balao-ia button{position:relative;display:flex;align-items:center;gap:6px;background:var(--gold);color:#241a10;border:2px solid #000;border-radius:999px;padding:10px 14px;font-weight:700;font-size:13px;box-shadow:0 4px 14px rgba(0,0,0,.55);cursor:pointer;}
+.balao-ia-cont{position:absolute;top:-8px;right:-4px;min-width:20px;height:20px;border-radius:10px;background:#e0443a;color:#fff;font-size:11px;display:flex;align-items:center;justify-content:center;padding:0 5px;border:2px solid #000;}
+.balao-ia-cont[hidden]{display:none;}
+/* D13: painel = folha inferior de 80% da altura da tela */
+#chatPublicoModal{z-index:60;align-items:flex-end;padding:0;overflow:hidden;}
+#chatPublicoModal .chat-publico-box{max-width:560px;width:100%;height:80vh;height:80dvh;margin:0;border-radius:18px 18px 0 0;display:flex;flex-direction:column;padding:12px 14px;box-sizing:border-box;}
+#chatPublicoModal .modal-header{flex:0 0 auto;display:flex;align-items:center;}
+#chatPublicoConteudo{flex:1 1 auto;min-height:0;overflow-y:auto;display:flex;flex-direction:column;}
+#chatPublicoConteudo .chat-msgs{flex:1 1 auto;max-height:none;}
 .chat-op{display:block;width:100%;text-align:left;margin:0 0 8px;background:var(--panel-2);border:1px solid var(--line);color:var(--cream);border-radius:12px;padding:12px;font-size:14px;font-weight:600;min-height:44px;cursor:pointer;}
 .chat-tipos{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
 .chat-tipos .chat-op{margin:0;text-align:center;}
@@ -990,7 +996,7 @@ body:has(.cd-fab-carrinho.show) .chat-publico-fab{bottom:84px;}
 <!-- MODAL: balão público de atendimento (Fase 3) — FAQ e busca sem IA; IA só recepciona; depois, chat com a equipe -->
 <div class="modal-overlay" id="chatPublicoModal" onclick="if(event.target===this)fecharChatPublico_()">
   <div class="modal-box chat-publico-box">
-    <div class="modal-header"><h2>💬 Atendimento</h2><button class="close-btn" type="button" onclick="fecharChatPublico_()" aria-label="Fechar">✕</button></div>
+    <div class="modal-header"><h2 id="balaoIaTitulo">💬 Atendimento</h2><span id="balaoIaHdrExtra"></span><button class="close-btn" type="button" onclick="fecharChatPublico_()" aria-label="Fechar">✕</button></div>
     <div id="chatPublicoConteudo"></div>
   </div>
 </div>
@@ -4108,6 +4114,7 @@ function renderHistoricoCliente(telefone){
     <div style="font-size:12.5px;color:var(--muted);margin-bottom:10px;">
       ${pedidos.length} pedido(s) · Total gasto: <b style="color:var(--gold);">${formatarMoeda(totalGasto)}</b> · Ticket médio: <b style="color:var(--gold);">${formatarMoeda(ticketMedio)}</b>
     </div>
+    <div class="obs-line" style="margin-bottom:8px;">Mostra só os pedidos que ainda estão no sistema. Pedidos mais antigos ficam arquivados na planilha e não entram nesta soma (veja em Relatórios, "Outro mês").</div>
     <div style="max-height:220px;overflow-y:auto;">`;
   html += pedidos.map(v=>{
     const tipoIcone = v.tipoEntrega==='Entrega' ? '🛵 Entrega' : '🥡 Retirada';
@@ -9973,7 +9980,34 @@ function renderRelatorioP_(p){
 function copiarRel(){ copiarTextoComFallback(ultimoRelTexto, 'relMsg'); }
 function whatsappRel(){ window.open('https://wa.me/?text=' + encodeURIComponent(ultimoRelTexto), '_blank'); }
 
-function renderVisaoGeral(){
+/* D17 — Visão geral com período antigo: busca os meses arquivados (mesmo mecanismo dos Relatórios) antes de desenhar. */
+async function renderVisaoGeral(){
+  const sel0 = document.getElementById('vgPeriodo'), box0 = document.getElementById('vgConteudo');
+  if(sel0 && box0 && sel0.options.length){
+    const meses = relMesesArq_(relIntervalo(sel0.value));
+    if(meses.length){
+      const cod = sel0.value, cs = [];
+      try{
+        for(let i=0; i<meses.length; i+=2){
+          box0.innerHTML = '<div class="notif-empty">Buscando dados antigos… ' + Math.min(i+2, meses.length) + ' de ' + meses.length + ' meses</div>';
+          cs.push(...await Promise.all(meses.slice(i, i+2).map(relBuscarMes_)));
+          if(sel0.value !== cod) return;
+        }
+      }catch(e){
+        box0.innerHTML = '<div class="notif-empty">Parte deste período está arquivada e não foi carregada. Os totais podem estar incompletos.<br><button type="button" class="ghost" onclick="renderVisaoGeral()">Tentar de novo</button></div>';
+        return;
+      }
+      const bk = [vendas, itensVenda, pagamentosVenda], vi = new Set(vendas.map(x=>x.id)), ii = new Set(itensVenda.map(x=>x.id)), pi = new Set(pagamentosVenda.map(x=>x.id));
+      try{
+        cs.forEach(c=>{ vendas = vendas.concat(c.vendas.filter(x=>!vi.has(x.id) && vi.add(x.id))); itensVenda = itensVenda.concat(c.itens.filter(x=>!ii.has(x.id) && ii.add(x.id))); pagamentosVenda = pagamentosVenda.concat(c.pagamentos.filter(x=>!pi.has(x.id) && pi.add(x.id))); });
+        renderVisaoGeralBase_();
+      } finally { vendas = bk[0]; itensVenda = bk[1]; pagamentosVenda = bk[2]; }
+      return;
+    }
+  }
+  return renderVisaoGeralBase_();
+}
+function renderVisaoGeralBase_(){
   const box = document.getElementById('vgConteudo'); if(!box) return;
   const sel = document.getElementById('vgPeriodo'); if(!sel.options.length){ sel.innerHTML = PERIODOS_REL; sel.value = 'mes'; }
   const p = relIntervalo(sel.value), r = resumoPeriodo(p), S = (rot, val, cls) => `<div class="stat-box ${cls||''}"><b>${val}</b><span>${rot}</span></div>`;
@@ -11399,14 +11433,28 @@ async function sb410Espaco(){
     box.innerHTML = `<div style="height:12px;background:#3a2c1c;border-radius:6px;overflow:hidden;"><div style="width:${Math.min(100,j.percentual)}%;height:100%;background:${cor};"></div></div>
       <div class="stat-row" style="margin-top:10px;"><div class="stat-box"><b>${j.db_mb} MB</b>Usado</div><div class="stat-box"><b>${j.percentual}%</b>De 500 MB</div>
       <div class="stat-box"><b>${j.vendas_total}</b>Vendas ativas</div><div class="stat-box"><b>${j.vendas_arquivadas}</b>Arquivadas</div></div>
-      <span class="obs-line">Vendas com mais de 90 dias vão para a planilha (abas Arquivo_*) e saem do Supabase, todo dia de madrugada.</span>
+      <span class="obs-line" id="sb410ArqTexto">Vendas com mais de 90 dias vão para a planilha (abas Arquivo_*) e saem do Supabase, todo dia de madrugada.</span>
       <div style="margin-top:10px;border-top:1px solid #3a2c1c;padding-top:10px;">
-        <label for="sb410ArqDias">Liberar espaço agora: mandar para a planilha o que tem mais de</label>
-        <select id="sb410ArqDias" style="width:100%;margin:6px 0;"><option value="90">90 dias</option><option value="60">60 dias</option><option value="30">30 dias (mínimo permitido)</option></select>
+        <label for="sb410ArqDias">Regra de arquivamento (vale para o envio automático e para o botão abaixo): mandar para a planilha o que tem mais de</label>
+        <select id="sb410ArqDias" onchange="sb410ArqSalvarRegra(this.value)" style="width:100%;margin:6px 0;"><option value="90">90 dias</option><option value="60">60 dias</option><option value="30">30 dias (mínimo permitido)</option></select>
         <button class="small-gold" style="width:100%;padding:10px;" onclick="sb410ArquivarAgora()">Mandar para a planilha agora</button>
         <div class="msg" id="sb410ArqMsg"></div>
       </div>`;
+    sb410ArqCarregarRegra_();
   }catch(e){ box.textContent = '—'; }
+}
+function sb410ArqTexto_(d){ const t = document.getElementById('sb410ArqTexto'); if(t) t.textContent = 'Vendas com mais de ' + d + ' dias vão para a planilha (abas Arquivo_*) e saem do Supabase, todo dia de madrugada. Os relatórios buscam o que foi arquivado.'; }
+async function sb410ArqCarregarRegra_(){
+  try{ const c = await sbSelecionar_('backup_config','id=eq.true',true); const d = c && c[0] && Number(c[0].arquivar_dias);
+    const sel = document.getElementById('sb410ArqDias'); if(d && sel){ if(![30,60,90].includes(d)){ const o = document.createElement('option'); o.value = d; o.textContent = d + ' dias'; sel.appendChild(o); } sel.value = String(d); sb410ArqTexto_(d); } }catch(e){}
+}
+async function sb410ArqSalvarRegra(v){
+  const dias = Math.max(30, Number(v) || 90), m = document.getElementById('sb410ArqMsg');
+  try{ const t = await sb410Token_();
+    const r = await sbJson_(SUPABASE_URL_+'/rest/v1/backup_config?id=eq.true', { method:'PATCH', headers:{ apikey:SUPABASE_CHAVE_, Authorization:'Bearer '+t, 'Content-Type':'application/json', Prefer:'return=minimal' }, body: JSON.stringify({ arquivar_dias:dias, atualizado_em:new Date().toISOString() }) }, 15000);
+    if(!r.ok) throw new Error('falha');
+    sb410ArqTexto_(dias); if(m) m.textContent = 'Regra salva: arquivar o que tem mais de ' + dias + ' dias (a partir da próxima madrugada).';
+  }catch(e){ if(m) m.textContent = 'Não foi possível salvar a regra agora.'; }
 }
 
 async function sb410ArquivarAgora(){
@@ -11841,7 +11889,7 @@ function sb6Parar(){ _sb6Parado_ = true; clearTimeout(_sb6Retry_); clearInterval
   /* ---------- IA-05: "Como foi o dia?" no Início (sob demanda; fora do renderInicio) ---------- */
   function montarInicio(){
     const base = $('inicioResumo'); let c = $('iaInicioCard');
-    if(!base || !podeUsar()){ if(c) c.remove(); return; }
+    if(c) c.remove(); return;   /* D2: a IA só é acessada pelo balão único; este card foi removido */
     if(c) return;
     c = document.createElement('div'); c.id = 'iaInicioCard'; c.className = 'card ia-card';
     c.innerHTML = '<h2>✨ Como foi o dia?</h2><div class="ia-linha"><select id="iaInicioPeriodo"><option value="hoje">Hoje</option><option value="ontem">Ontem</option><option value="7d">Últimos 7 dias</option></select>' +
@@ -11857,10 +11905,9 @@ function sb6Parar(){ _sb6Parado_ = true; clearTimeout(_sb6Retry_); clearInterval
     if(c) return;
     c = document.createElement('div'); c.id = 'iaAlertasCard'; c.className = 'card ia-card';
     c.innerHTML = '<h2>🔎 Alertas inteligentes</h2><p class="sub">Verificações automáticas do dia (pedidos parados, estoque, caixa, contas, cancelamentos…).</p><div id="iaAlertasSaida"></div>' +
-      '<div class="ia-linha"><button class="ghost ia-btn" id="iaAlertasAtualizar" type="button">Atualizar</button><button class="ghost ia-btn" id="iaAlertasExplicar" type="button">✨ Explicar com IA</button></div><div id="iaAlertasIA"></div>';
+      '<div class="ia-linha"><button class="ghost ia-btn" id="iaAlertasAtualizar" type="button">Atualizar</button></div><div id="iaAlertasIA"></div>';
     sec.insertBefore(c, sec.firstChild);
     $('iaAlertasAtualizar').addEventListener('click', () => IA.carregarAlertas(true));
-    $('iaAlertasExplicar').addEventListener('click', () => executar($('iaAlertasExplicar'), $('iaAlertasIA'), 'anomalias', { periodo:'hoje' }, () => ''));
   }
   IA.carregarAlertas = async function(forcar){
     if(!podeUsar()) return; montarAlertasCard();
@@ -11937,7 +11984,7 @@ function sb6Parar(){ _sb6Parado_ = true; clearTimeout(_sb6Retry_); clearInterval
   /* ---------- IA-02: bolinha de status + pop-up (liga/desliga só para Admin) ---------- */
   function montarBolinha(){
     let b = $('iaDot');
-    if(!b){
+    if(!b){ return;   /* o status da IA fica no cabeçalho do balão */
       const ref = $('avisosBtnTopo') || $('connDot'); if(!ref) return;
       b = document.createElement('button'); b.id = 'iaDot'; b.type = 'button'; b.className = 'ia-dot desligada'; b.title = 'Status da IA'; b.setAttribute('aria-label','Status da IA');
       b.innerHTML = '<span>✨</span><i></i>'; b.addEventListener('click', IA.abrirStatus); ref.insertAdjacentElement('beforebegin', b);
@@ -11968,7 +12015,8 @@ function sb6Parar(){ _sb6Parado_ = true; clearTimeout(_sb6Retry_); clearInterval
     corpo.innerHTML = '<p>Estado: <b>' + esc(r.ia_ligada ? (ROT_CIRC[r.circuito] || r.circuito) : ROT_CIRC.desligada) + '</b></p>' +
       (c.ok ? '<p class="ia-sub">Consultas de IA restantes hoje: ' + esc(c.restante_usuario) + ' (suas) · ' + esc(c.restante_global) + ' (restaurante)</p>' : '<p class="ia-aviso">Cota diária de IA atingida.</p>') +
       '<p class="ia-sub">O restaurante opera normalmente com a IA desligada ou fora do ar.</p>' +
-      (ehAdmin() ? '<div class="ia-linha"><button class="primary ia-btn" type="button" id="iaToggle">' + (r.ia_ligada ? 'Desligar IA' : 'Ligar IA') + '</button></div><div id="iaToggleMsg"></div>' : '');
+      (ehAdmin() ? '<div class="ia-linha"><button class="primary ia-btn" type="button" id="iaToggle">' + (r.ia_ligada ? 'Desligar IA' : 'Ligar IA') + '</button></div><div id="iaToggleMsg"></div><div id="iaPainelSaida"></div>' : '');
+    if(ehAdmin()) IA.carregarPainel();
     const t = $('iaToggle'); if(t) t.addEventListener('click', async () => {
       t.disabled = true;
       try{
@@ -11996,7 +12044,9 @@ function sb6Parar(){ _sb6Parado_ = true; clearTimeout(_sb6Retry_); clearInterval
     const so = window.sair; window.sair = async function(){ cache.clear(); ultimoStatus = null; const b = $('iaDot'); if(b) b.classList.remove('visivel'); const c = $('iaInicioCard'); if(c) c.remove(); return so.apply(this, arguments); };
     window.sair.__ia = true;
   }
-  registrarNoAdmin();
+  /* registrarNoAdmin() desativado (D2): sem sub-aba "Pergunte à IA"; a IA só é acessada pelo balão único */
+  IA.html = { resposta:htmlResposta, resumo:htmlResumo, diag:htmlDiag, alertas:htmlAlertas, compras:htmlCompras };
+  IA.msgErro = msgErro; IA.podeUsar = podeUsar; IA.ehAdmin = ehAdmin;
 })();
 
 /* =====================================================================
@@ -12021,9 +12071,7 @@ function sb6Parar(){ _sb6Parado_ = true; clearTimeout(_sb6Retry_); clearInterval
   async function atualizarStatus_(){
     try{ const r = await sbRpcPublico_('chat_status', {}); S.ligado = !!(r && r.ok && r.ligado === true); }catch(e){ S.ligado = false; }
     window.chatPublicoLigado_ = S.ligado;
-    const fab = $('chatPublicoFab'), bt = $('cdBtnAtendimento');
-    if(fab) fab.style.display = S.ligado ? '' : 'none';
-    if(bt) bt.style.display = 'none';
+    if(window.balaoIaAtualizar_) window.balaoIaAtualizar_();
     return S.ligado;
   }
 
@@ -12249,7 +12297,16 @@ function sb6Parar(){ _sb6Parado_ = true; clearTimeout(_sb6Retry_); clearInterval
     S.aberto = true; $('chatPublicoModal').classList.add('open'); corpo().innerHTML = '<p class="sub">Carregando...</p>';
     (async ()=>{
       if(!(await atualizarStatus_())){ S.tela = 'off'; render_(); return; }
-      if(S.conversaId && S.estado){ S.tela = S.estado === 'recepcao' ? 'tipo' : 'chat'; render_(); return; }
+      if(S.conversaId && S.estado){ S.tela = S.estado === 'recepcao' ? 'texto' : 'chat'; render_(); return; }
+      /* quem toca em "Preciso de ajuda" já está dentro do pedido: o código do acompanhamento vincula, sem pedir nada */
+      if(S.codigo.length >= 32){
+        const r = await sbRpcPublico_('chat_abrir', { codigo:S.codigo, numero:'', telefone4:'', acompanhamento:true });
+        if(r && r.ok){
+          S.conversaId = r.conversaId; S.token = r.token; S.estado = r.estado; S.tipo = null; S.chamadasIa = 0; S.depois = 0; S.temPedido = true; S.intencao = 'pedido_feito';
+          salvar_(); S.tela = (r.estado === 'recepcao') ? 'texto' : 'chat'; render_(); return;
+        }
+        if(r && r.desligado){ S.tela = 'off'; render_(); return; }
+      }
       S.tela = 'pedido'; render_();
     })();
   };
@@ -12257,5 +12314,315 @@ function sb6Parar(){ _sb6Parado_ = true; clearTimeout(_sb6Retry_); clearInterval
 })();
 
 </script>
+<style id="balaoInternoCss">
+.bi-aviso{background:rgba(224,68,58,.15);border:1px solid #e0443a;border-radius:10px;padding:8px 10px;font-size:13px;margin:0 0 8px;cursor:pointer;flex:0 0 auto;}
+.bi-aviso[hidden],.bi-ctrl[hidden]{display:none;}
+.bi-ctrl{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 8px;flex:0 0 auto;}
+.bi-ctrl button{width:auto;margin:0;padding:8px 12px;font-size:13px;}
+.bi-item{background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin:6px 0;font-size:13px;cursor:pointer;}
+.bi-sub{font-size:11.5px;opacity:.75;}
+.chat-balao.rico{white-space:normal;max-width:96%;width:96%;}
+#chatPublicoModal .chat-envio{flex:0 0 auto;padding-top:6px;}
+#iaStatusModal{z-index:70;}
+#balaoIaHdrExtra{margin-left:auto;margin-right:8px;display:inline-flex;}
+</style>
+<!-- =====================================================================
+   BALÃO ÚNICO — parte da EQUIPE (Fase 3/4): só texto. O roteador do ai-gateway escolhe o robô; a fila de clientes aparece como aviso.
+   Reaproveita IA.chamar, sbRpc_, sbSessaoLer_, sbJson_. Nenhum botão de função: tudo é texto (exceto Assumir/Encerrar/Sair da conversa).
+   ===================================================================== -->
+<script id="balaoInterno">
+(function(){
+  'use strict';
+  const $ = id => document.getElementById(id);
+  const esc = s => escH(s);
+  const logado = () => !!(typeof currentUser !== 'undefined' && currentUser && currentUser.login);
+  const equipe_ = () => logado() && (currentUser.nivel === 'Admin' || currentUser.nivel === 'Operador');
+  const verComo_ = () => (logado() && currentUser.nivelReal === 'Desenvolvedor' && currentUser.verComo) ? currentUser.nivel : '';
+  const IN = { aberto:false, conv:null, depois:0, timer:null, fila:[], aguard:0, ocupado:false, pedindoSol:false, ultAguard:0, ultNL:0 };
+
+  /* ---------- acesso ao banco com a sessão do usuário ---------- */
+  async function tokenSb_(){
+    let s = sbSessaoLer_(); if(!s) throw new Error('sem_sessao');
+    if(Date.now() > s.expira){ if(!(await sbRenovar_())) throw new Error('sem_sessao'); s = sbSessaoLer_(); }
+    return s.access_token;
+  }
+  async function lerMsgs_(id, depois){
+    const t = await tokenSb_();
+    const r = await sbJson_(SUPABASE_URL_ + '/rest/v1/chat_mensagens?conversa_id=eq.' + encodeURIComponent(id) + '&id=gt.' + Number(depois || 0) + '&order=id.asc&select=id,autor,texto,criado_em&limit=200',
+      { method:'GET', headers:{ apikey:SUPABASE_CHAVE_, Authorization:'Bearer ' + t } }, 15000);
+    const j = await r.json().catch(() => null);
+    return Array.isArray(j) ? j : null;
+  }
+
+  /* ---------- bolhas (texto puro; só HTML já escapado entra como "rico") ---------- */
+  function bolha_(cls, rot, conteudo, rico){
+    const box = $('biMsgs'); if(!box) return null;
+    const d = document.createElement('div'); d.className = 'chat-balao ' + cls + (rico ? ' rico' : '');
+    if(rot){ const r = document.createElement('small'); r.textContent = rot; d.appendChild(r); }
+    const s = document.createElement('span'); if(rico) s.innerHTML = conteudo; else s.textContent = conteudo; d.appendChild(s);
+    box.appendChild(d); box.scrollTop = box.scrollHeight; return d;
+  }
+  const rm_ = el => { try{ if(el) el.remove(); }catch(e){} };
+
+  /* ---------- contador, aviso, som e vibração ---------- */
+  function aviso_(){
+    const n = IN.aguard, el = $('biAviso');
+    if(el){
+      if(IN.conv || !equipe_() || !n) el.hidden = true;
+      else { el.hidden = false; el.textContent = n + (n === 1 ? ' cliente aguardando' : ' clientes aguardando') + ' — toque para ver'; }
+    }
+    const ct = $('balaoIaContador'); if(ct){ ct.hidden = !(n && equipe_()); ct.textContent = String(n); }
+  }
+  function avisar_(){
+    try{ if(navigator.vibrate) navigator.vibrate([120, 60, 120]); }catch(e){}
+    try{
+      const A = window.AudioContext || window.webkitAudioContext; if(!A) return;
+      const ctx = new A(), o = ctx.createOscillator(), g = ctx.createGain();
+      o.connect(g); g.connect(ctx.destination); o.frequency.value = 880; g.gain.value = 0.08; o.start();
+      setTimeout(() => { try{ o.stop(); ctx.close(); }catch(e){} }, 220);
+    }catch(e){}
+  }
+  async function carregarFila_(){
+    if(!equipe_()){ IN.aguard = 0; aviso_(); return null; }
+    try{
+      const r = await sbRpc_('chat_ler_fila', {});
+      if(r && r.ok){
+        IN.fila = r.conversas || [];
+        const ag = IN.fila.filter(x => x.estado === 'aguardando').length;
+        const nl = IN.fila.reduce((a, x) => a + (Number(x.naoLidas) || 0), 0);
+        if((ag > IN.ultAguard || nl > IN.ultNL) && !(IN.aberto && IN.conv)) avisar_();
+        IN.ultAguard = ag; IN.ultNL = nl; IN.aguard = ag; aviso_();
+        return IN.fila;
+      }
+    }catch(e){}
+    return null;
+  }
+  function mostrarFila_(){
+    const f = IN.fila;
+    if(!f.length){ bolha_('ia', 'Clientes', 'Nenhum cliente aguardando ou em atendimento agora.'); return; }
+    const h = f.map(x => {
+      const ped = x.pedidoNaoLocalizado ? 'Pedido não localizado' : (x.antesDePedir ? 'Antes de pedir' : (x.vendaId ? 'Pedido vinculado' : '—'));
+      return '<div class="bi-item" data-bi="abrir" data-id="' + esc(x.id) + '"><b>' + esc(x.nome || 'Cliente') + '</b>' + (x.telefone ? ' · ' + esc(x.telefone) : '') +
+        '<br><span class="bi-sub">' + esc(x.estado === 'aguardando' ? '⏳ Aguardando' : '💬 Em atendimento') + ' · ' + esc(ped) + (Number(x.outrosPedidos) > 0 ? ' · há ' + esc(x.outrosPedidos) + ' outros pedidos recentes' : '') + '</span>' +
+        (x.resumo ? '<br>' + esc(x.resumo) : '') + '</div>';
+    }).join('');
+    bolha_('ia', 'Clientes', h, true);
+  }
+
+  /* ---------- conversa com cliente ---------- */
+  function ph_(){ const t = $('biTexto'); if(t) t.placeholder = IN.conv ? (IN.pedindoSol ? 'Escreva a solução para encerrar…' : 'Mensagem para o cliente…') : 'Escreva o que precisa…'; }
+  function ctrl_(){
+    const c = $('biCtrl'); if(!c) return;
+    if(!IN.conv){ c.hidden = true; c.innerHTML = ''; ph_(); return; }
+    c.hidden = false;
+    c.innerHTML = (IN.conv.estado === 'aguardando' ? '<button type="button" class="primary" data-bi="assumir">Assumir</button>' : '') +
+      (IN.conv.estado === 'em_atendimento' ? '<button type="button" class="ghost" data-bi="encerrar">Encerrar</button>' : '') +
+      '<button type="button" class="ghost" data-bi="sair">← Sair da conversa</button>';
+    ph_();
+  }
+  async function atualizarMsgs_(){
+    if(!IN.conv) return;
+    let ms = null; try{ ms = await lerMsgs_(IN.conv.id, IN.depois); }catch(e){}
+    if(!ms || !IN.conv) return;
+    ms.forEach(m => {
+      if(m.id > IN.depois) IN.depois = m.id;
+      const cls = m.autor === 'cliente' ? 'eq' : (m.autor === 'atendente' ? 'eu' : (m.autor === 'sistema' ? 'sis' : 'ia'));
+      const rot = m.autor === 'cliente' ? (IN.conv.nome || 'Cliente') : (m.autor === 'atendente' ? 'Equipe' : (m.autor === 'ia' ? 'Recepção IA' : ''));
+      bolha_(cls, rot, m.texto);
+    });
+  }
+  function agendar_(){
+    clearTimeout(IN.timer); if(!IN.aberto || !IN.conv) return;
+    IN.timer = setTimeout(async () => { if(!document.hidden) await atualizarMsgs_(); agendar_(); }, 5000);
+  }
+  async function abrirConv_(id){
+    const x = IN.fila.find(y => String(y.id) === String(id)); if(!x) return;
+    IN.conv = x; IN.depois = 0; IN.pedindoSol = false;
+    const box = $('biMsgs'); if(box) box.innerHTML = '';
+    ctrl_(); aviso_();
+    bolha_('sis', '', 'Cliente: ' + (x.nome || '—') + (x.telefone ? ' · ' + x.telefone : '') + ' · ' + (x.pedidoNaoLocalizado ? 'Pedido não localizado' : (x.antesDePedir ? 'Antes de pedir' : 'Pedido vinculado')));
+    if(x.resumo) bolha_('ia', 'Resumo da IA', x.resumo);
+    await atualizarMsgs_(); agendar_();
+  }
+  async function assumir_(){
+    if(!IN.conv || IN.ocupado) return; IN.ocupado = true;
+    try{
+      const r = await sbRpc_('chat_assumir', { p:{ conversaId:IN.conv.id } });
+      if(r && r.ok){ IN.conv.estado = 'em_atendimento'; ctrl_(); await atualizarMsgs_(); }
+      else bolha_('sis', '', (r && r.message) || 'Não foi possível assumir.');
+    }catch(e){ bolha_('sis', '', 'Sem conexão. Tente de novo.'); }
+    finally{ IN.ocupado = false; }
+  }
+  function pedirSolucao_(){
+    if(!IN.conv) return;
+    if(IN.conv.estado !== 'em_atendimento'){ bolha_('sis', '', 'Assuma o atendimento antes de encerrar.'); return; }
+    IN.pedindoSol = true; ph_(); bolha_('sis', '', 'Escreva a solução do atendimento e envie para encerrar.');
+    const t = $('biTexto'); if(t) t.focus();
+  }
+  function sairConv_(){
+    IN.conv = null; IN.pedindoSol = false; clearTimeout(IN.timer);
+    const box = $('biMsgs'); if(box) box.innerHTML = '';
+    ctrl_(); bolha_('ia', 'Assistente', 'Voltei para o assistente. O cliente continua na fila.');
+    carregarFila_();
+  }
+  async function enviarConv_(t){
+    IN.ocupado = true;
+    try{
+      if(IN.pedindoSol){
+        const r = await sbRpc_('chat_encerrar', { p:{ conversaId:IN.conv.id, solucao:t } });
+        if(r && r.ok){
+          IN.conv = null; IN.pedindoSol = false; clearTimeout(IN.timer);
+          const box = $('biMsgs'); if(box) box.innerHTML = '';
+          ctrl_(); bolha_('ia', 'Assistente', 'Atendimento encerrado e registrado. Pode me pedir outra coisa.'); carregarFila_();
+        }else{ bolha_('sis', '', (r && r.message) || 'Não foi possível encerrar.'); }
+        return;
+      }
+      const r = await sbRpc_('chat_responder', { p:{ conversaId:IN.conv.id, texto:t } });
+      if(r && r.ok){ await atualizarMsgs_(); }
+      else{ bolha_('sis', '', (r && r.message) || 'Não foi possível enviar.'); const el = $('biTexto'); if(el) el.value = t; }
+    }catch(e){ bolha_('sis', '', 'Sem conexão. Tente de novo.'); const el = $('biTexto'); if(el) el.value = t; }
+    finally{ IN.ocupado = false; }
+  }
+
+  /* ---------- IA por texto: o servidor roteia (regras) e só devolve o que o perfil pode ver ---------- */
+  function periodo_(t){
+    const s = t.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+    if(/ontem/.test(s)) return 'ontem'; if(/(7|sete) dias|semana/.test(s)) return '7d'; if(/(30|trinta) dias/.test(s)) return '30d'; if(/\bmes\b/.test(s)) return 'mes'; return 'hoje';
+  }
+  /* pergunta sobre mês/ano que não é o atual (ou "mês passado"): o Analista só enxerga o Supabase, então não responde total parcial */
+  function periodoArquivado_(t){
+    const s = t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    if(/\b(mes passado|mes anterior|ano passado|semana passada|20\d\d)\b/.test(s)) return true;
+    const meses = ['janeiro','fevereiro','marco','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'], atual = new Date().getMonth();
+    for(let i = 0; i < 12; i++){ if(new RegExp('\\b' + meses[i] + '\\b').test(s)) return i !== atual; }
+    return false;
+  }
+  function extra_(acao, t, vc){
+    const e = { verComo:vc };
+    if(acao === 'ajuda' || acao === 'pergunte' || acao === 'operacional_estoque' || acao === 'operacional_entregas') e.pergunta = t;
+    if(acao === 'pergunte' || acao === 'resumo_dia' || acao === 'anomalias' || acao === 'alertas') e.periodo = periodo_(t);
+    return e;
+  }
+  function htmlIa_(acao, r){
+    const H = IA.html; if(!r || !r.ok) return H.resposta(r);
+    let h = '';
+    if(acao === 'resumo_dia' || acao === 'pergunte') h += H.resumo(r.dados);
+    else if(acao === 'alertas' || acao === 'anomalias') h += H.alertas(r.dados);
+    else if(acao === 'compras') h += H.compras(r.dados);
+    else if(acao === 'diagnostico') h += H.diag(r.dados);
+    return h + H.resposta(r);
+  }
+  async function perguntarIa_(t){
+    IN.ocupado = true; bolha_('eu', 'Você', t);
+    let esp = bolha_('ia', 'Assistente', '⏳ …');
+    try{
+      const vc = verComo_();
+      const ro = await IA.chamar('rotear', { texto:t, verComo:vc }, { forcar:true, ttl:1 });
+      rm_(esp); esp = null;
+      if(!ro || !ro.ok){ bolha_('ia', 'Assistente', IA.msgErro(ro)); return; }
+      if(ro.fixa){ bolha_('ia', 'Assistente', ro.fixa); return; }
+      if((ro.acao === 'pergunte' || ro.acao === 'resumo_dia' || ro.acao === 'anomalias') && periodoArquivado_(t)){
+        bolha_('ia', 'Assistente', 'Esses dados estão arquivados. Veja em Relatórios, no mês desejado.'); return;
+      }
+      if(ro.robo === 'clientes'){
+        if(!equipe_()){ bolha_('ia', 'Assistente', 'Isso não está disponível para o seu perfil.'); return; }
+        await carregarFila_(); mostrarFila_(); return;
+      }
+      esp = bolha_('ia', 'Assistente', '⏳ Consultando…');
+      const r = await IA.chamar(ro.acao, extra_(ro.acao, t, vc), ro.acao === 'diagnostico' ? { ttl:60000 } : {});
+      rm_(esp); esp = null;
+      bolha_('ia', 'Assistente', htmlIa_(ro.acao, r), true);
+    }catch(e){ rm_(esp); bolha_('ia', 'Assistente', 'Não consegui concluir agora. O restante do sistema funciona normal.'); }
+    finally{ IN.ocupado = false; }
+  }
+  function enviar_(){
+    const el = $('biTexto'); const t = String((el && el.value) || '').trim().slice(0, IN.conv ? 600 : 300);
+    if(!t || IN.ocupado) return;
+    el.value = '';
+    return IN.conv ? enviarConv_(t) : perguntarIa_(t);
+  }
+
+  /* ---------- abrir / fechar ---------- */
+  function montar_(){
+    const c = $('chatPublicoConteudo');
+    c.innerHTML = '<div class="bi-aviso" id="biAviso" data-bi="fila" hidden></div><div class="bi-ctrl" id="biCtrl" hidden></div><div class="chat-msgs bi-msgs" id="biMsgs"></div>' +
+      '<div class="chat-envio"><input type="text" id="biTexto" maxlength="600" autocomplete="off" placeholder="Escreva o que precisa…"><button type="button" class="primary" data-bi="enviar">Enviar</button></div>';
+    const tt = $('balaoIaTitulo'); if(tt) tt.textContent = '✨ Assistente';
+    const ex = $('balaoIaHdrExtra');
+    if(ex){
+      ex.innerHTML = '';
+      if(window.IA && IA.podeUsar && IA.podeUsar()){
+        const b = document.createElement('button'); b.id = 'iaDot'; b.type = 'button'; b.className = 'ia-dot visivel desligada'; b.title = 'Status da IA'; b.setAttribute('aria-label', 'Status da IA');
+        b.innerHTML = '<span>✨</span><i></i>'; b.addEventListener('click', () => IA.abrirStatus()); ex.appendChild(b);
+      }
+    }
+  }
+  function abrir_(){
+    IN.aberto = true; IN.conv = null; IN.pedindoSol = false;
+    $('chatPublicoModal').classList.add('open'); montar_();
+    bolha_('ia', 'Assistente', 'Escreva o que precisa. Exemplos: "como faço uma venda?"' + (equipe_() ? ', "quanto tem de pão no estoque?", "tem cliente aguardando?"' : '') + '.');
+    carregarFila_(); if(window.IA && IA.atualizarStatus) IA.atualizarStatus();
+    setTimeout(() => { const t = $('biTexto'); if(t) t.focus(); }, 60);
+  }
+  function fechar_(){
+    IN.aberto = false; IN.conv = null; IN.pedindoSol = false; clearTimeout(IN.timer);
+    $('chatPublicoModal').classList.remove('open');
+    const tt = $('balaoIaTitulo'); if(tt) tt.textContent = '💬 Atendimento';
+    const ex = $('balaoIaHdrExtra'); if(ex) ex.innerHTML = '';
+  }
+  function atualizarFab_(){
+    const fab = $('balaoIa'); if(!fab) return;
+    const interno = logado(), ligado = window.chatPublicoLigado_ === true;
+    fab.style.display = (interno || ligado) ? '' : 'none';
+    const rot = $('balaoIaRot'); if(rot) rot.textContent = interno ? 'Assistente' : 'Atendimento';
+    const ic = $('balaoIaIcone'); if(ic) ic.textContent = interno ? '✨' : '💬';
+    aviso_();
+  }
+  window.balaoIaAtualizar_ = atualizarFab_;
+  window.balaoIaAbrir_ = function(){
+    if(logado()) return abrir_();
+    const ex = $('balaoIaHdrExtra'); if(ex) ex.innerHTML = '';
+    const tt = $('balaoIaTitulo'); if(tt) tt.textContent = '💬 Atendimento';
+    if(window.abrirChatPublico_) window.abrirChatPublico_();
+  };
+  const fecharPublico = window.fecharChatPublico_;
+  window.fecharChatPublico_ = function(){ if(IN.aberto) fechar_(); else if(fecharPublico) fecharPublico(); };
+
+  /* ---------- eventos ---------- */
+  document.addEventListener('click', ev => {
+    const el = ev.target && ev.target.closest && ev.target.closest('#chatPublicoConteudo [data-bi]'); if(!el || !IN.aberto) return;
+    const a = el.getAttribute('data-bi');
+    if(a === 'enviar') enviar_();
+    else if(a === 'fila'){ carregarFila_().then(mostrarFila_); }
+    else if(a === 'abrir') abrirConv_(el.getAttribute('data-id'));
+    else if(a === 'assumir') assumir_();
+    else if(a === 'encerrar') pedirSolucao_();
+    else if(a === 'sair') sairConv_();
+  });
+  document.addEventListener('keydown', ev => {
+    if(!IN.aberto) return;
+    if(ev.key === 'Escape'){ fechar_(); return; }
+    if(ev.key === 'Enter' && ev.target && ev.target.id === 'biTexto'){ ev.preventDefault(); enviar_(); }
+  });
+  document.addEventListener('visibilitychange', () => { if(!document.hidden && IN.aberto && IN.conv) atualizarMsgs_(); });
+
+  /* ---------- ganchos (envolvem funções existentes sem trocar o comportamento delas) ---------- */
+  function envolver(nome, depois){
+    const orig = window[nome]; if(typeof orig !== 'function' || orig.__bi) return;
+    const nova = function(){ const r = orig.apply(this, arguments); try{ depois.apply(this, arguments); }catch(e){} return r; };
+    nova.__bi = true; window[nome] = nova;
+  }
+  envolver('entrarNoApp', () => { setTimeout(() => { atualizarFab_(); carregarFila_(); }, 1500); });
+  envolver('aplicarPermissoesNivel', () => { atualizarFab_(); });
+  if(typeof window.sair === 'function' && !window.sair.__bi){
+    const so = window.sair;
+    window.sair = async function(){ fechar_(); IN.aguard = 0; IN.fila = []; IN.ultAguard = 0; IN.ultNL = 0; const r = await so.apply(this, arguments); setTimeout(atualizarFab_, 300); return r; };
+    window.sair.__bi = true;
+  }
+  setInterval(() => { if(equipe_() && !document.hidden && navigator.onLine !== false) carregarFila_(); }, 30000);
+  setTimeout(atualizarFab_, 3000);
+})();
+</script>
+
 </body>
 </html>
