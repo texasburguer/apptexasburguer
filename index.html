@@ -1854,30 +1854,6 @@ body.perfil-garcom #btnFecharContaItens{display:none !important;}
 
   <section class="tab" id="tab-armazenamento">
     <div class="admin-subnav" data-admin-nav="1"></div>
-    <div class="card">
-      <h2>Backup</h2>
-      <p class="sub">Cópia da planilha inteira no Google Drive. Guarda os últimos 7 dias.</p>
-      <div id="backupAlerta"></div>
-      <div id="backupStatus" style="font-size:13px;margin-bottom:10px;">Carregando status...</div>
-      <button class="small-gold" style="width:100%;padding:10px;" onclick="fazerBackupAgora()">Fazer backup agora</button>
-      <div class="msg" id="backupMsg"></div>
-      <div style="border-top:1px solid var(--line);margin-top:16px;padding-top:14px;">
-      <h3 style="margin:0 0 10px;font-size:15px;color:var(--cream);">Agendamento automático</h3>
-      <label style="display:flex;gap:8px;align-items:center;font-size:14px;margin-bottom:8px;"><input type="checkbox" id="bkAutoAtivo" style="width:auto;"> Ativar backup automático</label>
-      <label for="bkAutoFreq">Frequência</label>
-      <select id="bkAutoFreq" style="width:100%;margin-bottom:8px;"><option value="12h">A cada 12 horas</option><option value="diaria">Diário</option><option value="semanal">Semanal (segunda-feira)</option></select>
-      <label for="bkAutoHora">Horário</label>
-      <select id="bkAutoHora" style="width:100%;margin-bottom:8px;"></select>
-      <button class="small-gold" style="width:100%;padding:10px;" onclick="salvarBackupAutomatico()">Salvar configuração</button>
-      <div class="msg" id="bkAutoMsg"></div>
-      </div>
-    </div>
-    <div class="card">
-      <h2>Histórico e restauração</h2>
-      <p class="sub">Restaurar substitui os dados atuais pelos do backup. Usuários, Auditoria e este histórico são preservados. Um backup de segurança é criado antes.</p>
-      <div id="backupHistorico" style="overflow-x:auto;font-size:12.5px;">Carregando...</div>
-      <div class="msg" id="restMsg"></div>
-    </div>
     <div class="card" id="importarCardapioCard">
       <h2>Importar cardápio inicial</h2>
       <p class="sub">Cadastra de uma vez as categorias, produtos, combos e bebidas do Texas Burger, já com preço da loja, preço do iFood e foto. Pode rodar com segurança mais de uma vez — se algo já existir pelo nome, não duplica, e a foto só é enviada para quem ainda está sem foto. Leva alguns minutos por causa das fotos: não feche a página.</p>
@@ -1903,12 +1879,6 @@ body.perfil-garcom #btnFecharContaItens{display:none !important;}
   <section class="tab" id="tab-integridade">
         <div class="admin-subnav" data-admin-nav="1"></div>
 
-    <div class="card">
-      <h2>Conferência de integridade</h2>
-      <p class="sub">Compara vendas × itens × pagamentos, procura duplicidades, estoque negativo, caixa esquecido aberto e vendas paradas na contingência. Só aponta — não altera nada.</p>
-      <button class="small-gold" style="width:100%;padding:10px;" onclick="conferirIntegridadeUI()">Conferir agora</button>
-      <div id="integridadeResultado" style="margin-top:8px;font-size:13px;"></div>
-    </div>
     <div class="card">
       <h2>Contingência</h2>
       <p class="sub">Uma segunda planilha, numa conta Google separada, que mantém o Cardápio Digital funcionando (cliente continua pedindo) se esta aqui ficar fora do ar. Ela guarda uma cópia dos produtos/preços/clientes e enfileira as vendas feitas nesse meio tempo.</p>
@@ -3873,7 +3843,6 @@ function abrirAdministrador(sub){
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
   document.querySelector('[data-tab="administrador"]').classList.add('active');
   ativarApenasSecao_('tab-'+alvo);
-  if(alvo==='armazenamento' && apiConfigurada()){ carregarStatusBackup(); }
   if(alvo==='drive' && apiConfigurada()){ carregarArmazenamento(); }
   if(_abaInterna_['tab-'+alvo]) abaInterna_('tab-'+alvo, _abaInterna_['tab-'+alvo]);
   if((alvo==='visaogeral' || alvo==='relatorios') && apiConfigurada()) sincronizarEmSegundoPlano(); // ITEM 92: atualiza ao entrar, sem refresh periódico
@@ -8362,101 +8331,9 @@ function Utilities_formatarDataBR(d){
   return pad(d.getDate())+'/'+pad(d.getMonth()+1)+'/'+d.getFullYear()+' '+pad(d.getHours())+':'+pad(d.getMinutes());
 }
 /* ---------- FASE 10 — ARMAZENAMENTO, BACKUP E RECUPERAÇÃO ---------- */
-let bkHistorico = [];
 function escBk_(s){ return escH(s); }
 function formatarBytes_(b){ b=Number(b)||0; if(b<=0) return '—'; const u=['B','KB','MB','GB','TB']; let i=0; while(b>=1024&&i<u.length-1){ b/=1024; i++; } return b.toFixed(i?1:0)+' '+u[i]; }
-const BK_FREQ_ROTULO = { '12h':'a cada 12 horas', 'diaria':'diário', 'semanal':'semanal (segunda)' };
-function prepararSeletorHoraBackup_(){
-  const sel=document.getElementById('bkAutoHora');
-  if(!sel) return;
-  if(!sel.options.length){
-    for(let h=0;h<24;h++) sel.add(new Option('Por volta das '+String(h).padStart(2,'0')+'h', h));
-  }
-  if(sel.value==='') sel.value='4';
-}
 function marcarAlertaAdmin_(ativo){ if(!ativo) return; const b=document.querySelector('[data-tab="administrador"]'); if(b) b.classList.add('has-alert'); }
-prepararSeletorHoraBackup_();
-async function carregarStatusBackup(){
-  const box = document.getElementById('backupStatus');
-  if(!box) return;
-  try{
-    const r = await apiCall('obterStatusBackup', {});
-    if(!r || r.ok===false){ box.innerHTML = '<span style="color:var(--muted);">'+escBk_(r&&r.message||'Sem permissão para ver o backup.')+'</span>'; return; }
-    prepararSeletorHoraBackup_();
-    const fmt = iso => iso ? formatarDataHoraISO(iso) : null;
-    const freq = BK_FREQ_ROTULO[r.frequencia] ? r.frequencia : 'diaria';
-    const hora = Number.isFinite(Number(r.hora)) && Number(r.hora)>=0 && Number(r.hora)<=23 ? Number(r.hora) : 4;
-    const horaTexto = freq==='12h' ? '' : ' · ~'+String(hora).padStart(2,'0')+'h';
-    const proximoTexto = r.proximoBackup ? fmt(r.proximoBackup) : (r.automaticoAtivo ? 'calculando…' : '—');
-    box.innerHTML = `${r.ultimoBackup ? `Último backup: <b style="color:var(--gold);">${fmt(r.ultimoBackup)}</b>` : '<span style="color:var(--muted);">Nenhum backup feito ainda.</span>'}<br>
-      Backup automático: ${r.automaticoAtivo ? `<b style="color:#bfe0ae;">ativo ✅</b> (${BK_FREQ_ROTULO[freq]}${horaTexto})<br>Próximo backup: <b>${proximoTexto}</b>` : '<b style="color:#ffb3ab;">desligado</b>'}`;
-    const alerta = document.getElementById('backupAlerta');
-    const falhaRecente = r.ultimaFalha;
-    alerta.innerHTML = falhaRecente ? `<div class="obs-line" style="background:#3a1512;border:1px solid #b3241c;padding:8px;border-radius:8px;margin-bottom:8px;">⚠️ <b>Último backup falhou</b> em ${fmt(falhaRecente.quando)}: ${escBk_(falhaRecente.erro)}</div>` : '';
-    sistemaAlertas_.backup = falhaRecente ? ('Último backup falhou em '+fmt(falhaRecente.quando)+'. Veja em Administrador → Sistema → Backup.') : '';
-    sistemaAlertas_.copiaBackup = r.ultimaFalhaCopia ? ('A cópia do último backup na contingência falhou em '+fmt(r.ultimaFalhaCopia.quando)+': '+r.ultimaFalhaCopia.erro) : '';
-    marcarAlertaAdmin_(!!falhaRecente || !!r.ultimaFalhaCopia); renderNotificacoes();
-    document.getElementById('bkAutoAtivo').checked = !!r.automaticoAtivo;
-    document.getElementById('bkAutoFreq').value = freq;
-    prepararSeletorHoraBackup_();
-    const sel = document.getElementById('bkAutoHora');
-    sel.value = String(hora);
-    bkHistorico = r.historico || [];
-    const linhas = bkHistorico.map(b=>`<tr>
-      <td>${fmt(b.quando)}</td><td>${escBk_(b.tipo)}</td>
-      <td style="color:${b.status==='Sucesso'?'#bfe0ae':'#ffb3ab'};">${escBk_(b.status)}${b.tentativas>1?' ('+b.tentativas+'x)':''}</td>
-      <td>${formatarBytes_(b.tamanho)}</td>
-      <td>${b.status!=='Sucesso' ? '' : (b.copia==='Sim' ? '<span style="color:#bfe0ae;">✅ contingência</span>' : (b.copia ? `<span style="color:#ffb3ab;" title="${escBk_(b.copia)}">⚠️ falhou</span>` : '<span style="color:var(--muted);">—</span>'))}</td>
-      <td>${b.status==='Sucesso' ? `<button class="ghost" style="padding:4px 8px;" onclick="restaurarBackupUI('${escBk_(b.id)}')">Restaurar</button>` : `<span style="color:var(--muted);">${escBk_(b.erro)}</span>`}</td></tr>`).join('');
-    document.getElementById('backupHistorico').innerHTML = bkHistorico.length
-      ? `<table style="width:100%;border-collapse:collapse;white-space:nowrap;"><thead><tr><th align="left">Quando</th><th align="left">Tipo</th><th align="left">Status</th><th align="left">Tamanho*</th><th align="left">Cópia</th><th></th></tr></thead><tbody>${linhas}</tbody></table><div class="obs-line" style="margin-top:6px;">*Tamanho aproximado (exportação xlsx).</div>`
-      : '<span style="color:var(--muted);">Nenhum backup registrado ainda.</span>';
-  } catch(e){ box.innerHTML = '<span style="color:var(--muted);">Não foi possível carregar o status do backup.</span>'; }
-}
-async function fazerBackupAgora(){
-  const executar = async (senha)=>{
-    if(!iniciarOperacaoUnica('backup')) return;
-    showMsg('backupMsg','Fazendo backup... (pode levar alguns segundos)','ok');
-    try{
-      const r = await apiCall('fazerBackupAgora', { senhaAdminConfirmacao: senha||'' });
-      showMsg('backupMsg', r.message, r.ok ? 'ok' : 'warn');
-      carregarStatusBackup(); carregarArmazenamento(); carregarArmazenamentoContingencia();
-    } catch(e){ showMsg('backupMsg','Não foi possível fazer o backup agora.','warn'); }
-    finally { finalizarOperacaoUnica('backup'); }
-  };
-  if(precisaConfirmarAdmin()) abrirModalSenhaAdmin(executar); else executar('');
-}
-async function salvarBackupAutomatico(){
-  if(!iniciarOperacaoUnica('bkAuto')) return;
-  try{
-    const r = await apiCall('configurarBackupAutomatico', {
-      ativo: document.getElementById('bkAutoAtivo').checked,
-      frequencia: document.getElementById('bkAutoFreq').value,
-      hora: Number(document.getElementById('bkAutoHora').value) });
-    showMsg('bkAutoMsg', r.message || 'Salvo.', r.ok===false ? 'warn' : 'ok');
-    carregarStatusBackup();
-  } catch(e){ showMsg('bkAutoMsg','Não foi possível salvar agora.','warn'); }
-  finally { finalizarOperacaoUnica('bkAuto'); }
-}
-function restaurarBackupUI(id){
-  const b = bkHistorico.find(x=>x.id===id); if(!b) return;
-  if(!confirm('Restaurar o backup de '+formatarDataHoraISO(b.quando)+'?\n\nOs dados atuais (clientes, vendas, estoque etc.) serão SUBSTITUÍDOS pelos do backup. Um backup de segurança será criado antes.')) return;
-  if(sessaoCaixa){ showMsg('restMsg','Feche o caixa antes de restaurar.','warn'); return; }
-  const ativos = vendas.filter(v=>v.status==='Confirmada' && ['Recebido','Em preparo','Pronta','Saiu para entrega'].indexOf(v.statusPedido)!==-1);
-  if(ativos.length){ showMsg('restMsg','Há '+ativos.length+' pedido(s) em andamento. Finalize tudo antes de restaurar.','warn'); return; }
-  const palavra = prompt('Isso vai substituir TODOS os dados atuais e o cardápio público fica indisponível durante o processo.\n\nPara confirmar, digite: RESTAURAR FECHADO');
-  if(palavra!=='RESTAURAR FECHADO'){ showMsg('restMsg','Restauração cancelada.','warn'); return; }
-  abrirModalSenhaAdmin(async (senha)=>{
-    if(!iniciarOperacaoUnica('restaurar')) return;
-    showMsg('restMsg','Restaurando... não feche o app.','ok');
-    try{
-      const r = await apiCall('restaurarBackup', { backupId:id, senhaAdmin:senha, confirmacao:palavra });
-      showMsg('restMsg', r.message, r.ok ? 'ok' : 'warn');
-      carregarStatusBackup(); carregarArmazenamento();
-    } catch(e){ showMsg('restMsg','Falha de conexão. Confira o histórico antes de tentar de novo.','warn'); }
-    finally { finalizarOperacaoUnica('restaurar'); }
-  });
-}
 async function carregarArmazenamento(){
   const res = document.getElementById('driveResumo'), lista = document.getElementById('driveArquivos');
   if(!res) return;
@@ -8574,23 +8451,6 @@ function filaDescartar_(id){
 }
 document.addEventListener('DOMContentLoaded', filaAtualizarBadge_);
 setTimeout(filaAtualizarBadge_, 500);
-
-/* ---------- CONFERÊNCIA DE INTEGRIDADE (ITEM 82) ---------- */
-async function conferirIntegridadeUI(){
-  const box = document.getElementById('integridadeResultado');
-  box.innerHTML = 'Conferindo vendas, pagamentos, estoque e caixa...';
-  if(!iniciarOperacaoUnica('integridade')) return;
-  try{
-    const r = await apiCall('conferirIntegridade', {});
-    if(!r || r.ok === false){ box.innerHTML = '<span style="color:#ffb3ab;">'+escBk_(r&&r.message||'Não foi possível conferir.')+'</span>'; return; }
-    const cor = { Alta:'#ffb3ab', 'Média':'#e0b53a', Baixa:'#bdb5a6' };
-    box.innerHTML = r.total
-      ? `<div style="margin-bottom:6px;"><b>${r.total}</b> divergência(s) em ${r.vendasConferidas} venda(s) conferida(s):</div>` +
-        r.problemas.map(p=>`<div class="notif-card"><b style="color:${cor[p.gravidade]};">${escBk_(p.gravidade)}</b> · ${escBk_(p.tipo)}<div class="obs-line">${escBk_(p.ref)} — ${escBk_(p.detalhe)}</div></div>`).join('')
-      : `<div style="color:#bfe0ae;">✅ Nenhuma divergência em ${r.vendasConferidas} venda(s) conferida(s).</div>`;
-  }catch(e){ box.innerHTML = '<span style="color:#ffb3ab;">Sem conexão para conferir agora.</span>'; }
-  finally{ finalizarOperacaoUnica('integridade'); }
-}
 
 /* ---------- CONTINGÊNCIA (ADMIN) — Item 81 ---------- */
 async function carregarStatusContingencia(){
@@ -9581,7 +9441,6 @@ async function init(){
   }
   renderizarTudo();
   configurarSincronizacaoAutomatica();
-  if(apiConfigurada() && currentUser && currentUser.nivel==='Admin') carregarStatusBackup();
   /* A contingência (Apps Script) demora para acordar e só interessa a Admin/Operador: consulta depois da abertura, sem atrapalhar. */
   if(currentUser && (currentUser.nivel==='Admin' || currentUser.nivel==='Operador')) setTimeout(carregarStatusContingencia, 8000);
 }
