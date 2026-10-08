@@ -12515,10 +12515,165 @@ function sb6Parar(){ _sb6Parado_ = true; clearTimeout(_sb6Retry_); clearInterval
     else if(acao === 'diagnostico') h += H.diag(r.dados);
     return h + H.resposta(r);
   }
+  /* ---------- DESENVOLVEDOR (Fase 4B): comandos de texto no balão. Só leitura/análise; o banco e a Edge Function conferem o Desenvolvedor real de novo ---------- */
+  const ehDevReal_ = () => logado() && currentUser.nivelReal === 'Desenvolvedor' && !currentUser.verComo;
+  const semAcento_ = t => String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const ARQ_DEV_ = { index:'index.html', planilha:'texas-burger-planilha.gs', contingencia:'texas-burger-contingencia.gs' };
+  const setTxt_ = (el, txt) => { try{ if(el && el.lastChild) el.lastChild.textContent = txt; }catch(e){} };
+  const versaoDev_ = () => new Date().toISOString().slice(0, 16).replace(/[-:T]/g, '');
+  function arquivoDoTexto_(s){ if(/contingenc/.test(s)) return ARQ_DEV_.contingencia; if(/planilha|apps? ?script|\.gs\b/.test(s)) return ARQ_DEV_.planilha; return ARQ_DEV_.index; }
+  async function sha256Hex_(texto){
+    const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(texto));
+    return Array.from(new Uint8Array(b)).map(x => x.toString(16).padStart(2, '0')).join('');
+  }
+  /* Divide em blocos de 14–40 mil caracteres, de preferência em limites estáveis (início de script/estilo/seção/função), para que
+     inserir uma linha no começo não mude o hash de todos os blocos seguintes. Linhas gigantes (imagem base64) são fatiadas. */
+  function dividir_(texto){
+    const MIN = 14000, MAX = 40000;
+    const FRONT = new RegExp('^\\s*(<\\/?script\\b|<\\/?style\\b|\\x3c!--\\s*(=|[A-Z]{3,})|\\/\\*\\s*={3,}|\\/\\/\\s*={3,}|(async\\s+)?function\\s+[\\w$]+\\s*\\()');
+    const linhas = []; 
+    texto.split('\n').forEach((l, i, arr) => {
+      let s = i < arr.length - 1 ? l + '\n' : l;
+      while(s.length > MAX){ let corte = MAX; const c = s.charCodeAt(corte - 1); if(c >= 0xD800 && c <= 0xDBFF) corte--; linhas.push(s.slice(0, corte)); s = s.slice(corte); }
+      if(s) linhas.push(s);
+    });
+    const blocos = []; let atual = [], tam = 0;
+    const fechar = () => { if(atual.length){ blocos.push(atual.join('')); atual = []; tam = 0; } };
+    for(const l of linhas){
+      if(tam >= MIN && FRONT.test(l)) fechar();
+      else if(tam + l.length > MAX) fechar();
+      atual.push(l); tam += l.length;
+    }
+    fechar(); return blocos;
+  }
+  async function chamarDev_(corpo){
+    const t = await tokenSb_();
+    const r = await sbJson_(SUPABASE_URL_ + '/functions/v1/ai-dev-analise', { method:'POST', headers:{ Authorization:'Bearer ' + t, apikey:SUPABASE_CHAVE_, 'Content-Type':'application/json' }, body: JSON.stringify(corpo) }, 150000);
+    const j = await r.json().catch(() => null);
+    return j || { ok:false, codigo:'resposta_invalida' };
+  }
+  function msgDev_(j){
+    const c = j && j.codigo;
+    if(c === 'sem_permissao') return 'Só o Desenvolvedor real pode usar isto.';
+    if(c === 'sem_codigo') return 'Ainda não há código deste arquivo no servidor. Escreva "atualizar código" (index.html) ou "enviar apps script" primeiro.';
+    if(c === 'sessao_invalida' || c === 'sem_login') return 'Sua sessão expirou. Entre de novo.';
+    if(c === 'bloco_ausente') return (j.message || 'Faltam blocos no servidor.') + ' Envie o código de novo.';
+    return (j && j.message) || 'Não consegui concluir agora. Nada foi alterado.';
+  }
+  async function devEnviar_(arquivo, texto, el){
+    const partes = dividir_(texto), versao = versaoDev_();
+    const blocos = [];
+    for(let i = 0; i < partes.length; i++) blocos.push({ bloco:i + 1, hash:await sha256Hex_(partes[i]), conteudo:partes[i] });
+    setTxt_(el, '⏳ ' + arquivo + ': ' + blocos.length + ' blocos. Conferindo o que já está no servidor…');
+    const fal = await sbRpc_('ia_codigo_faltantes', { p_arquivo:arquivo, p_hashes:blocos.map(b => b.hash) });
+    if(!fal || !fal.ok) throw new Error((fal && fal.message) || 'Falha ao conferir os blocos.');
+    const falt = new Set(fal.faltantes || []), novos = blocos.filter(b => falt.has(b.hash));
+    let enviados = 0;
+    for(let i = 0; i < novos.length; ){
+      const lote = []; let chars = 0;
+      while(i < novos.length && lote.length < 8 && (chars + novos[i].conteudo.length <= 160000 || !lote.length)){ lote.push(novos[i]); chars += novos[i].conteudo.length; i++; }
+      const g = await sbRpc_('ia_codigo_gravar', { p_arquivo:arquivo, p_versao:versao, p_blocos:lote });
+      if(!g || !g.ok) throw new Error((g && g.message) || 'Falha ao enviar um bloco.');
+      enviados += lote.length; setTxt_(el, '⏳ ' + arquivo + ': enviados ' + enviados + ' de ' + novos.length + ' blocos novos…');
+    }
+    const v = await sbRpc_('ia_codigo_registrar_versao', { p_arquivo:arquivo, p_versao:versao, p_blocos:blocos.map(b => ({ bloco:b.bloco, hash:b.hash, tamanho:b.conteudo.length })) });
+    if(!v || !v.ok) throw new Error((v && v.message) || 'Falha ao registrar a versão.');
+    return { total:blocos.length, novos:novos.length, igual:!!v.igual };
+  }
+  async function devAtualizarIndex_(){
+    const e = bolha_('ia', 'Desenvolvedor', '⏳ Lendo o index.html da página…');
+    try{
+      let u = location.href.split('#')[0].split('?')[0]; if(/\/$/.test(u)) u += 'index.html';
+      const r = await fetch(u + '?dev=' + Date.now(), { cache:'no-store' });
+      if(!r.ok) throw new Error('Não consegui ler o index.html (erro ' + r.status + ').');
+      const res = await devEnviar_(ARQ_DEV_.index, await r.text(), e);
+      let txt = res.igual ? '✅ index.html: nada mudou desde o último envio (' + res.total + ' blocos).' : '✅ index.html enviado: ' + res.total + ' blocos, ' + res.novos + ' novos.';
+      const m = await chamarDev_({ acao:'mudancas', arquivo:ARQ_DEV_.index });
+      if(m && m.ok && m.primeira === false && !res.igual) txt += ' Desde a versão anterior, ' + m.alterados.length + ' blocos mudaram; só esses serão reanalisados.';
+      txt += ' Para analisar, escreva "analise o index.html".';
+      rm_(e); bolha_('ia', 'Desenvolvedor', txt);
+    }catch(err){ rm_(e); bolha_('ia', 'Desenvolvedor', 'Não consegui atualizar: ' + ((err && err.message) || 'erro') + ' Nada foi alterado no sistema.'); }
+  }
+  function devPedirArquivos_(){
+    bolha_('ia', 'Desenvolvedor', 'Escolha os arquivos do Apps Script (planilha e/ou contingência, .gs). Só os blocos novos são enviados.<br><button type="button" class="primary" data-bi="devArq" style="margin-top:6px;">📎 Escolher arquivo(s)</button>', true);
+  }
+  function devEscolherArquivos_(){
+    const inp = document.createElement('input'); inp.type = 'file'; inp.multiple = true;
+    inp.onchange = async () => {
+      const fs = Array.from(inp.files || []); if(!fs.length || IN.ocupado) return;
+      IN.ocupado = true;
+      try{
+        for(const f of fs){
+          const nome = semAcento_(f.name), arq = /contingenc/.test(nome) ? ARQ_DEV_.contingencia : (/planilha/.test(nome) ? ARQ_DEV_.planilha : '');
+          if(!arq){ bolha_('ia', 'Desenvolvedor', 'Não reconheci "' + f.name + '". O nome precisa conter "planilha" ou "contingencia".'); continue; }
+          const e = bolha_('ia', 'Desenvolvedor', '⏳ Lendo ' + f.name + '…');
+          try{
+            const res = await devEnviar_(arq, await f.text(), e); rm_(e);
+            bolha_('ia', 'Desenvolvedor', res.igual ? '✅ ' + arq + ': nada mudou desde o último envio.' : '✅ ' + arq + ' enviado: ' + res.total + ' blocos, ' + res.novos + ' novos. Para analisar: "analise o apps script" ou "analise a contingência".');
+          }catch(err){ rm_(e); bolha_('ia', 'Desenvolvedor', 'Não consegui enviar ' + f.name + ': ' + ((err && err.message) || 'erro') + ' Nada foi alterado.'); }
+        }
+      } finally { IN.ocupado = false; }
+    };
+    inp.click();
+  }
+  async function devMudancas_(arquivo){
+    const m = await chamarDev_({ acao:'mudancas', arquivo });
+    if(!m.ok){ bolha_('ia', 'Desenvolvedor', msgDev_(m)); return; }
+    if(m.primeira){ bolha_('ia', 'Desenvolvedor', arquivo + ': só existe uma versão enviada (' + m.versao + '), então não há o que comparar ainda.'); return; }
+    let t = arquivo + ': desde a versão ' + m.versao_anterior + ', ' + m.alterados.length + ' de ' + m.total + ' blocos mudaram (' + m.iguais + ' iguais, ' + m.removidos + ' removidos).';
+    if(m.achados) t += ' Achados: ' + m.achados.novos + ' novos e ' + m.achados.resolvidos + ' resolvidos em relação à análise anterior.';
+    bolha_('ia', 'Desenvolvedor', t);
+  }
+  function htmlRelatorio_(arq, resp){
+    const r = resp.relatorio || {}, li = a => '<li><b>' + esc(a.local) + '</b>: ' + esc(a.problema) + (a.sugestao ? ' <i>→ ' + esc(a.sugestao) + '</i>' : '') + '</li>';
+    const c = r.criticos || [], at = r.atencao || [], me = r.melhorias || [];
+    let h = '<p><b>' + esc(arq) + '</b> · versão ' + esc(resp.versao) + '</p><p>🔴 ' + c.length + ' críticos · 🟠 ' + at.length + ' atenção · 🟡 ' + me.length + ' melhorias</p>';
+    if(c.length) h += '<p><b>Críticos</b></p><ul>' + c.slice(0, 6).map(li).join('') + '</ul>';
+    if(at.length) h += '<p><b>Atenção</b></p><ul>' + at.slice(0, 4).map(li).join('') + '</ul>';
+    if(!c.length && !at.length) h += '<p>Nada crítico nem de atenção encontrado.</p>';
+    if(c.length > 6 || at.length > 4) h += '<p class="sub">Mostrando os mais graves; o relatório completo fica guardado no servidor.</p>';
+    if(r.parcial) h += '<p class="sub">⚠️ ' + r.parcial + ' blocos ficaram sem análise da IA (só verificações automáticas). Escreva "analise" de novo para continuar.</p>';
+    h += '<p class="ia-rodape">🔒 Somente leitura: a IA não altera nada. Para corrigir, peça no chat.</p>';
+    return h;
+  }
+  async function devAnalisar_(arquivo){
+    const e = bolha_('ia', 'Desenvolvedor', '⏳ Analisando ' + arquivo + '…');
+    try{
+      let j = null, aviso = '', reaprov = null;
+      for(let i = 0; i < 80; i++){
+        j = await chamarDev_({ acao:'analisar', arquivo });
+        if(!j.ok){ rm_(e); bolha_('ia', 'Desenvolvedor', msgDev_(j)); return; }
+        if(reaprov === null) reaprov = j.reaproveitados || 0;
+        setTxt_(e, '⏳ Analisando ' + arquivo + ': ' + (j.hashes - j.restantes) + ' de ' + j.hashes + ' blocos…');
+        if(j.ia === false && j.restantes > 0){ aviso = j.aviso || ''; break; }
+        if(!j.restantes) break;
+      }
+      setTxt_(e, '⏳ Consolidando o relatório…');
+      const c = await chamarDev_({ acao:'consolidar', arquivo });
+      rm_(e);
+      if(!c.ok){ bolha_('ia', 'Desenvolvedor', msgDev_(c)); return; }
+      let h = htmlRelatorio_(arquivo, c);
+      if(reaprov) h = '<p class="sub">' + reaprov + ' blocos já analisados foram reaproveitados (sem gastar IA).</p>' + h;
+      if(aviso) h = '<p class="sub">⚠️ ' + esc(aviso) + '</p>' + h;
+      bolha_('ia', 'Desenvolvedor', h, true);
+    }catch(err){ rm_(e); bolha_('ia', 'Desenvolvedor', 'Não consegui concluir a análise agora. O que já foi analisado fica guardado; escreva "analise" de novo para continuar.'); }
+  }
+  /* devolve true se o texto era um comando do Desenvolvedor (tratado aqui); false deixa o fluxo normal (roteador do servidor) seguir */
+  async function devComando_(t){
+    if(!ehDevReal_()) return false;
+    const s = semAcento_(t), arq = arquivoDoTexto_(s);
+    if(/o que mudou|mudancas|mudou desde|o que alterou/.test(s)){ await devMudancas_(arq); return true; }
+    if(/\banalis\w*\b.*(index|html|codigo|apps? ?script|planilha|contingenc|\.gs)/.test(s)){ await devAnalisar_(arq); return true; }
+    if(/\b(envi\w*|atualiz\w*|subir|sincroniz\w*)\b.*(apps? ?script|planilha|contingenc|\.gs)/.test(s)){ devPedirArquivos_(); return true; }
+    if(/\b(atualiz\w*|envi\w*|subir|sincroniz\w*)\b.*\b(codigo|index|html|pagina)\b/.test(s)){ await devAtualizarIndex_(); return true; }
+    return false;
+  }
+
   async function perguntarIa_(t){
     IN.ocupado = true; bolha_('eu', 'Você', t);
     let esp = bolha_('ia', 'Assistente', '⏳ …');
     try{
+      if(await devComando_(t)){ rm_(esp); esp = null; return; }
       const vc = verComo_();
       const ro = await IA.chamar('rotear', { texto:t, verComo:vc }, { forcar:true, ttl:1 });
       rm_(esp); esp = null;
@@ -12563,7 +12718,7 @@ function sb6Parar(){ _sb6Parado_ = true; clearTimeout(_sb6Retry_); clearInterval
   function abrir_(){
     IN.aberto = true; IN.conv = null; IN.pedindoSol = false;
     $('chatPublicoModal').classList.add('open'); montar_();
-    bolha_('ia', 'Assistente', 'Escreva o que precisa. Exemplos: "como faço uma venda?"' + (equipe_() ? ', "quanto tem de pão no estoque?", "tem cliente aguardando?"' : '') + '.');
+    bolha_('ia', 'Assistente', 'Escreva o que precisa. Exemplos: "como faço uma venda?"' + (equipe_() ? ', "quanto tem de pão no estoque?", "tem cliente aguardando?"' : '') + '.' + (ehDevReal_() ? ' Desenvolvedor: "atualizar código", "enviar apps script", "analise o index.html", "o que mudou".' : ''));
     carregarFila_(); if(window.IA && IA.atualizarStatus) IA.atualizarStatus();
     setTimeout(() => { const t = $('biTexto'); if(t) t.focus(); }, 60);
   }
@@ -12601,6 +12756,7 @@ function sb6Parar(){ _sb6Parado_ = true; clearTimeout(_sb6Retry_); clearInterval
     else if(a === 'assumir') assumir_();
     else if(a === 'encerrar') pedirSolucao_();
     else if(a === 'sair') sairConv_();
+    else if(a === 'devArq') devEscolherArquivos_();
   });
   document.addEventListener('keydown', ev => {
     if(!IN.aberto) return;
