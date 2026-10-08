@@ -844,7 +844,6 @@ body.perfil-garcom #btnFecharContaItens{display:none !important;}
     </div>
     <div class="cd-rl-linha">
       <button onclick="abrirAjudaCliente()">❓ Como pedir / Ajuda</button>
-      <button onclick="abrirChatPublico_()">💬 Falar com o restaurante</button>
     </div>
     <button class="cd-rl-func" onclick="abrirAreaFuncionarios()">Área de Funcionários</button>
   </div>
@@ -13056,13 +13055,34 @@ function sb6Parar(){ _sb6Parado_ = true; clearTimeout(_sb6Retry_); clearInterval
     }
     const ct = $('balaoIaContador'); if(ct){ ct.hidden = !(n && equipe_()); ct.textContent = String(n); }
   }
-  function avisar_(){
-    try{ if(navigator.vibrate) navigator.vibrate([120, 60, 120]); }catch(e){}
+  function avisar_(){ notificarChat_('💬 Atendimento', 'Há uma novidade no atendimento.'); }
+  /* som alto (usa o áudio já liberado pelo app) — dois tons repetidos */
+  function tomChat_(){
     try{
-      const A = window.AudioContext || window.webkitAudioContext; if(!A) return;
-      const ctx = new A(), o = ctx.createOscillator(), g = ctx.createGain();
-      o.connect(g); g.connect(ctx.destination); o.frequency.value = 880; g.gain.value = 0.08; o.start();
-      setTimeout(() => { try{ o.stop(); ctx.close(); }catch(e){} }, 220);
+      const ctx = (typeof audioCtx_ === 'function') ? audioCtx_() : null; if(!ctx) return false;
+      if(ctx.state === 'suspended') ctx.resume();
+      [[0, 988], [0.3, 1318], [0.6, 988], [0.9, 1318]].forEach(([t, f]) => {
+        const o = ctx.createOscillator(), g = ctx.createGain(); o.type = 'square'; o.frequency.value = f; o.connect(g); g.connect(ctx.destination);
+        const ini = ctx.currentTime + t;
+        g.gain.setValueAtTime(0.0001, ini); g.gain.exponentialRampToValueAtTime(0.4, ini + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, ini + 0.26);
+        o.start(ini); o.stop(ini + 0.3);
+      });
+      return true;
+    }catch(e){ return false; }
+  }
+  /* aviso do chat: vibra, toca som com o app aberto e mostra notificação do celular (tag própria, não mistura com pedidos) */
+  function notificarChat_(titulo, corpo){
+    const agora = Date.now(); if(agora - (IN.ultNotif || 0) < 8000) return; IN.ultNotif = agora;
+    try{ if(navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 200]); }catch(e){}
+    let permitido = false; try{ permitido = ('Notification' in window) && Notification.permission === 'granted'; }catch(e){}
+    if(!document.hidden || !permitido) tomChat_();
+    if(!permitido) return;
+    try{
+      const opts = { body: corpo, tag: 'texas-chat', renotify: true, vibrate: [200, 100, 200, 100, 200], requireInteraction: true };
+      const direto = () => { try{ const n = new Notification(titulo, opts); n.onclick = () => { try{ window.focus(); n.close(); if(window.balaoIaAbrir_) window.balaoIaAbrir_(); }catch(e){} }; }catch(e){} };
+      if(navigator.serviceWorker && navigator.serviceWorker.getRegistration){
+        navigator.serviceWorker.getRegistration().then(reg => { if(reg && reg.showNotification) reg.showNotification(titulo, opts); else direto(); }).catch(direto);
+      } else direto();
     }catch(e){}
   }
   async function carregarFila_(){
@@ -13073,7 +13093,22 @@ function sb6Parar(){ _sb6Parado_ = true; clearTimeout(_sb6Retry_); clearInterval
         IN.fila = r.conversas || [];
         const ag = IN.fila.filter(x => x.estado === 'aguardando').length;
         const nl = IN.fila.reduce((a, x) => a + (Number(x.naoLidas) || 0), 0);
-        if((ag > IN.ultAguard || nl > IN.ultNL) && !(IN.aberto && IN.conv)) avisar_();
+        const vistos = IN.vistos || (IN.vistos = {}), nlMap = IN.nlMap || (IN.nlMap = {}), ids = {};
+        let novoCliente = null, novaMsg = null;
+        IN.fila.forEach(x => {
+          const id = String(x.id); ids[id] = 1;
+          const nomeX = x.nome || 'Cliente';
+          const primeiraVez = x.estado === 'aguardando' && !vistos[id];
+          if(x.estado === 'aguardando') vistos[id] = 1;
+          const antes = nlMap[id] || 0, agora = Number(x.naoLidas) || 0; nlMap[id] = agora;
+          const olhando = IN.aberto && IN.conv && String(IN.conv.id) === id && !document.hidden;
+          if(primeiraVez) novoCliente = novoCliente || nomeX;
+          else if(agora > antes && !olhando) novaMsg = novaMsg || nomeX;
+        });
+        Object.keys(vistos).forEach(k => { if(!ids[k]) delete vistos[k]; });
+        Object.keys(nlMap).forEach(k => { if(!ids[k]) delete nlMap[k]; });
+        if(novoCliente) notificarChat_('💬 Cliente aguardando', novoCliente + ' chamou no atendimento.');
+        else if(novaMsg) notificarChat_('💬 Nova mensagem', 'Mensagem de ' + novaMsg + ' no atendimento.');
         IN.ultAguard = ag; IN.ultNL = nl; IN.aguard = ag; aviso_();
         return IN.fila;
       }
@@ -13410,14 +13445,29 @@ function sb6Parar(){ _sb6Parado_ = true; clearTimeout(_sb6Retry_); clearInterval
     }
   }
   function abrir_(){
-    IN.aberto = true; IN.conv = null; IN.pedindoSol = false;
+    IN.aberto = true;
+    /* conversa em andamento continua ao reabrir o pop-up (só "Sair da conversa" ou "Encerrar" limpam) */
+    if(IN.conv){
+      const conv = IN.conv; IN.depois = 0;
+      $('chatPublicoModal').classList.add('open'); montar_();
+      ctrl_(); aviso_();
+      bolha_('sis', '', 'Cliente: ' + (conv.nome || '—') + (conv.telefone ? ' · ' + conv.telefone : '') + ' · conversa retomada');
+      if(conv.resumo) bolha_('ia', 'Resumo da IA', conv.resumo);
+      atualizarMsgs_().then(agendar_);
+      carregarFila_().then(f => { if(IN.conv && f && !f.some(y => String(y.id) === String(IN.conv.id))) bolha_('sis', '', 'Esta conversa não está mais na fila (foi encerrada ou assumida por outra pessoa).'); });
+      if(window.IA && IA.atualizarStatus) IA.atualizarStatus();
+      setTimeout(() => { const t = $('biTexto'); if(t) t.focus(); }, 60);
+      return;
+    }
+    IN.conv = null; IN.pedindoSol = false;
     $('chatPublicoModal').classList.add('open'); montar_();
     bolha_('ia', 'Assistente', 'Escreva o que precisa. Exemplos: "como faço uma venda?"' + (equipe_() ? ', "quanto tem de pão no estoque?", "tem cliente aguardando?"' : '') + '.' + (ehDevReal_() ? ' Desenvolvedor: "atualizar código", "enviar apps script", "analise o index.html", "o que mudou".' : ''));
     carregarFila_(); if(window.IA && IA.atualizarStatus) IA.atualizarStatus();
     setTimeout(() => { const t = $('biTexto'); if(t) t.focus(); }, 60);
   }
   function fechar_(){
-    IN.aberto = false; IN.conv = null; IN.pedindoSol = false; clearTimeout(IN.timer);
+    /* fechar o pop-up NÃO encerra nem abandona a conversa: IN.conv e IN.pedindoSol são mantidos */
+    IN.aberto = false; clearTimeout(IN.timer); IN.notifId = IN.depois;
     $('chatPublicoModal').classList.remove('open');
     const tt = $('balaoIaTitulo'); if(tt) tt.textContent = '💬 Atendimento';
     const ex = $('balaoIaHdrExtra'); if(ex) ex.innerHTML = '';
@@ -13473,10 +13523,18 @@ function sb6Parar(){ _sb6Parado_ = true; clearTimeout(_sb6Retry_); clearInterval
   envolver('aplicarPermissoesNivel', () => { atualizarFab_(); });
   if(typeof window.sair === 'function' && !window.sair.__bi){
     const so = window.sair;
-    window.sair = async function(){ fechar_(); IN.aguard = 0; IN.fila = []; IN.ultAguard = 0; IN.ultNL = 0; const r = await so.apply(this, arguments); setTimeout(atualizarFab_, 300); return r; };
+    window.sair = async function(){ fechar_(); IN.conv = null; IN.pedindoSol = false; IN.aguard = 0; IN.fila = []; IN.ultAguard = 0; IN.ultNL = 0; IN.vistos = {}; IN.nlMap = {}; IN.notifId = 0; const r = await so.apply(this, arguments); setTimeout(atualizarFab_, 300); return r; };
     window.sair.__bi = true;
   }
-  setInterval(() => { if(equipe_() && !document.hidden && navigator.onLine !== false) carregarFila_(); }, 30000);
+  /* fila a cada 10 s (antes 30 s) e, com o pop-up fechado, vigia a conversa em andamento para avisar mensagem nova do cliente */
+  async function vigiarConvFechada_(){
+    if(IN.aberto || !IN.conv || !equipe_() || navigator.onLine === false) return;
+    let ms = null; try{ ms = await lerMsgs_(IN.conv.id, IN.depois); }catch(e){}
+    if(!ms || !IN.conv || IN.aberto) return;
+    const novas = ms.filter(m => m.autor === 'cliente' && m.id > (IN.notifId || 0));
+    if(novas.length){ IN.notifId = Math.max.apply(null, novas.map(m => m.id)); notificarChat_('💬 Nova mensagem', 'Mensagem de ' + (IN.conv.nome || 'cliente') + ' na conversa em andamento.'); }
+  }
+  setInterval(() => { if(equipe_() && navigator.onLine !== false){ carregarFila_(); vigiarConvFechada_(); } }, 10000);
   setTimeout(atualizarFab_, 3000);
 })();
 </script>
