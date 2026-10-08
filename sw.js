@@ -6,8 +6,8 @@
    - BACKEND: NADA de Apps Script (script.google.com) nem de Supabase (*.supabase.co) é guardado aqui.
      Dados, pedidos, login e RPCs nunca passam pelo cache do service worker — sempre vão direto para a rede.
    - O único cache de dados é o de fotos (FOTOS) e o da casca/ícones (SHELL/ASSETS). Não adicionar outros. */
-const SHELL = 'texas-shell-v8';
-const ASSETS = 'texas-assets-v3';   // trocou ícone/logo/manifest? suba para v4
+const SHELL = 'texas-shell-v10';
+const ASSETS = 'texas-assets-v5';   // trocou ícone/logo/manifest/leaflet? suba para v5
 const FOTOS = 'texas-fotos-v1';
 const FOTOS_MAX = 150;
 const PRE = ['manifest.webmanifest', 'icon-192.png', 'apple-touch-icon.png', 'logo-texas-burger.webp'];
@@ -84,7 +84,7 @@ self.addEventListener('fetch', e => {
     return;
   }
   if (url.origin === self.location.origin) {
-    if (PRE.some(p => url.pathname.endsWith('/' + p)) || /\.(png|webp|jpe?g|svg|woff2?)$/i.test(url.pathname)) e.respondWith(cacheDepoisRede_(r, ASSETS));
+    if (PRE.some(p => url.pathname.endsWith('/' + p)) || /\.(png|webp|jpe?g|svg|woff2?)$/i.test(url.pathname) || url.pathname.indexOf('/vendor/leaflet/') !== -1) e.respondWith(cacheDepoisRede_(r, ASSETS));
     return;
   }
   /* foto do Drive: só intercepta quando o app pediu em modo "cors" (com crossorigin="anonymous"); no modo normal o navegador cuida */
