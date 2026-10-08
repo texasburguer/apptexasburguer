@@ -792,6 +792,12 @@ body.perfil-garcom #btnFecharContaItens{display:none !important;}
   @media (max-width:380px){
     .cd-rodape-links .cd-rl-linha button{ flex:1 1 100%; }
   }
+  /* Simetria do cardápio público (celular/tablet, grade de 2 colunas):
+     - produto sozinho na última linha fica centralizado em vez de colado à esquerda;
+     - botões do rodapé: dois lado a lado com a mesma largura; se sobrar um sozinho na linha (ou o "Instalar app" estiver escondido), ele ocupa a linha toda. */
+  @media (max-width:899px){ .cd-grid > :last-child:nth-child(odd){ grid-column:1 / -1; justify-self:center; width:calc(50% - 5px); } }
+  .cd-rodape-links .cd-rl-linha button{ flex:1 1 calc(50% - 4px); }
+  .cd-rodape-links .cd-rl-linha{ align-items:stretch; }
 </style>
 </head>
 <body>
@@ -2009,7 +2015,11 @@ body:has(.cd-fab-carrinho.show) .balao-ia{bottom:84px;}
       <div id="contingenciaStatus" style="font-size:13px;margin-bottom:10px;">Carregando status...</div>
       <div id="contingenciaArmazenamento" style="font-size:13px;margin-bottom:10px;"></div>
       <button class="small-gold" style="width:100%;padding:10px;" onclick="sincronizarContingenciaUI()">🔄 Sincronizar espelho agora</button>
-      <div class="obs-line" style="margin-top:8px;">🕒 Sincronização automática ativa: o espelho é atualizado todo dia às 3h.</div>
+      <div class="obs-line" style="margin-top:8px;display:flex;align-items:center;gap:8px;">
+        <input type="checkbox" id="contSincAuto" onchange="contSincAutoSalvar(this.checked)" style="width:auto;margin:0;">
+        <label for="contSincAuto" id="contSincAutoTxt" style="margin:0;">Sincronização automática do espelho (todo dia às 3h)</label>
+      </div>
+      <div class="obs-line" id="contSincAutoMsg" style="margin-top:2px;"></div>
       <button class="ghost" style="width:100%;padding:10px;margin-top:8px;" onclick="reconciliarContingenciaUI()">⬇️ Trazer vendas pendentes da contingência</button>
       <div class="msg" id="contingenciaMsg"></div>
     </div>
@@ -3507,6 +3517,8 @@ async function sbRotear_(action, payload){
     // Contingência e Drive: Edge Function planilha-admin (Admin/Operador logado) → Apps Script da planilha principal
     if(action === 'obterArmazenamento') return await sb410Edge_('planilha-admin', { acao:'armazenamento' }, 90000);
     if(action === 'obterArmazenamentoContingencia') return await sb410Edge_('planilha-admin', { acao:'armazenamentoContingencia' }, 90000);
+    if(action === 'sincAutoStatus') return await sb410Edge_('planilha-admin', { acao:'sincAutoStatus' }, 60000);
+    if(action === 'sincAutoDefinir') return await sb410Edge_('planilha-admin', { acao:'sincAutoDefinir', ativar: !!(payload && payload.ativar) }, 60000);
     if(action === 'sincronizarContingenciaAgora') return await sb410Edge_('planilha-admin', { acao:'sincronizarContingencia' }, 150000);
     if(action === 'reconciliarContingenciaAgora') return await sb410Edge_('planilha-admin', { acao:'reconciliarContingencia' }, 150000);
     if(action === 'obterChaveContingencia') return await sb410Edge_('planilha-admin', { acao:'chaveContingencia' }, 30000);
@@ -5736,9 +5748,9 @@ function cardCozinha_(v, acao){
   }).join('');
   const destino = v.tipoEntrega==='Mesa' ? '🍽️ Mesa '+escOc_(nomeMesa(v.mesaId)) : (v.tipoEntrega==='Entrega' ? '🛵 Entrega' : '🥡 Retirada'+(v.clienteNome?' · '+escOc_(v.clienteNome):''));
   const min = Math.floor((Date.now()-v.timestamp)/60000);
-  const atrasado = v.statusPedido!=='Pronta' && min>=20;
+  const atrasado = (v.statusPedido==='Recebido' || v.statusPedido==='Em preparo') && min>=20;
   const obs = v.observacoesEntrega ? `<div class="cz-obs">📝 ${escOc_(v.observacoesEntrega)}</div>` : '';
-  const alterado = comandaFotoTirar_(v); // ITEM 2.4
+  const alterado = (['Retirada','Entregue','Servida'].indexOf(v.statusPedido)===-1) && comandaFotoTirar_(v); // ITEM 2.4 (concluído não alerta)
   let faixaAlterado = '';
   if(alterado){
     faixaAlterado = `<div style="background:#c0392b;color:#fff;font-weight:700;border-radius:6px;padding:6px 8px;margin:4px 0;font-size:13px;">⚠️ PEDIDO ALTERADO depois de visto/impresso — confira os itens
@@ -5870,10 +5882,23 @@ function renderCozinha(){
   const preparo = ativos.filter(v=>v.statusPedido==='Em preparo');
   const naoVistos = preparo.filter(v=>!v.timestampInicioPreparo);
   const prontos = ativos.filter(v=>v.statusPedido==='Pronta');
+  /* Concluídos do turno: o banco só entrega à Cozinha os do caixa aberto. Ao fechar o caixa, somem na próxima atualização. */
+  const concluidosTodos = vendas.filter(v=>v.status==='Confirmada' && ['Retirada','Entregue','Servida'].indexOf(v.statusPedido)!==-1)
+    .sort((a,b)=>(b.timestampConcluida||b.timestamp)-(a.timestampConcluida||a.timestamp));
+  const concluidos = concluidosTodos.slice(0,30);
+  const rotConc_ = { 'Retirada':'Retirado', 'Entregue':'Entregue', 'Servida':'Servido' };
   const vazio = t => `<div class="notif-empty">${t}</div>`;
   document.getElementById('czNovos').innerHTML = novos.length ? novos.map(v=>cardCozinha_(v, `<button class="small-gold" onclick="cozinhaIniciar('${v.id}')">▶️ ${v.statusPedido==='Recebido'?'Aceitar e iniciar preparo':'Iniciar preparo'}</button>`)).join('') : vazio('Nenhum pedido novo.');
   document.getElementById('czPreparo').innerHTML = preparo.length ? preparo.map(v=>cardCozinha_(v, `<button class="small-gold" onclick="avancarPedido('${v.id}','Pronta')">✅ Pronto</button>`)).join('') : vazio('Nada em preparo.');
-  document.getElementById('czProntos').innerHTML = prontos.length ? prontos.map(v=>cardCozinha_(v, `<div class="obs-line">Aguardando ${v.tipoEntrega==='Mesa'?'o garçom':(v.tipoEntrega==='Entrega'?'o entregador':'a retirada')}.</div>`)).join('') : vazio('Nenhum pedido pronto.');
+  const htmlProntos_ = prontos.length ? prontos.map(v=>cardCozinha_(v, `<div class="obs-line">Aguardando ${v.tipoEntrega==='Mesa'?'o garçom':(v.tipoEntrega==='Entrega'?'o entregador':'a retirada')}.</div>`)).join('') : vazio('Nenhum pedido pronto.');
+  const htmlConcluidos_ = concluidos.length
+    ? `<div class="obs-line" style="margin:12px 0 4px;font-weight:700;">📜 Concluídos neste turno (${concluidosTodos.length}${concluidosTodos.length>concluidos.length?' · mostrando os '+concluidos.length+' mais recentes':''})</div>`
+      + concluidos.map(v=>{
+          const hora = v.timestampConcluida ? ' às '+new Date(v.timestampConcluida).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) : '';
+          return `<div style="opacity:.6;">${cardCozinha_(v, `<div class="obs-line">✔️ ${rotConc_[v.statusPedido]}${hora}</div>`)}</div>`;
+        }).join('')
+    : '';
+  document.getElementById('czProntos').innerHTML = htmlProntos_ + htmlConcluidos_;
   document.getElementById('czNovosN').textContent = novos.length ? '('+novos.length+')' : '';
   document.getElementById('czPrepN').textContent = preparo.length ? '('+preparo.length+')' : '';
   document.getElementById('czProntosN').textContent = prontos.length ? '('+prontos.length+')' : '';
@@ -6243,7 +6268,8 @@ function renderEntregas(){
         ${!souEntregador ? botaoEnviarEntregador_(v) : ''}
         ${window.botaoVerLocalizacao_ ? botaoVerLocalizacao_(v) : ''}
         ${!souEntregador ? botaoImprimirEntrega_(v) : ''}
-        ${(!aguardandoAceite && prox) ? `<button class="small-gold" style="margin-top:6px;" onclick="avancarPedido('${v.id}','${prox}')">${labelBotao}</button>` : ''}
+        ${(!aguardandoAceite && prox && !(souEntregador && v.statusPedido==='Em preparo')) ? `<button class="small-gold" style="margin-top:6px;" onclick="avancarPedido('${v.id}','${prox}')">${labelBotao}</button>` : ''}
+${(souEntregador && v.statusPedido==='Em preparo') ? `<div class="obs-line" style="margin-top:6px;">👨‍🍳 Aguardando a cozinha deixar o pedido pronto.</div>` : ''}
       </div>`;
     }).join('') : `<div class="notif-empty">${souEntregador?'Nenhuma entrega atribuída a você agora.':'Nenhuma entrega em andamento.'}</div>`;
   }
@@ -9243,6 +9269,22 @@ document.addEventListener('DOMContentLoaded', filaAtualizarBadge_);
 setTimeout(filaAtualizarBadge_, 500);
 
 /* ---------- CONTINGÊNCIA (ADMIN) — Item 81 ---------- */
+/* Contingência: status, armazenamento e interruptor da sincronização automática carregam sempre que a tela abre
+   (antes só rodavam uma vez, 8 s depois do login, e o resultado podia nunca aparecer). */
+async function contSincAutoCarregar(){
+  const cb = document.getElementById('contSincAuto'), m = document.getElementById('contSincAutoMsg'); if(!cb) return;
+  try{ const r = await apiCall('sincAutoStatus', {}); if(r && r.ok){ cb.checked = !!r.ativo; cb.disabled = false; if(m) m.textContent = r.ativo ? 'Ligada: o espelho é atualizado todo dia às 3h.' : 'Desligada: o espelho só atualiza quando você toca em "Sincronizar espelho agora".'; }
+    else if(m) m.textContent = 'Não consegui consultar o estado agora.'; }catch(e){ if(m) m.textContent = 'Não consegui consultar o estado agora.'; }
+}
+async function contSincAutoSalvar(ativar){
+  const cb = document.getElementById('contSincAuto'), m = document.getElementById('contSincAutoMsg'); if(cb) cb.disabled = true; if(m) m.textContent = 'Salvando...';
+  try{ const r = await apiCall('sincAutoDefinir', { ativar: !!ativar });
+    if(r && r.ok){ if(cb) cb.checked = !!r.ativo; if(m) m.textContent = r.message || 'Salvo.'; }
+    else{ if(cb) cb.checked = !ativar; if(m) m.textContent = (r && r.message) || 'Não foi possível salvar.'; }
+  }catch(e){ if(cb) cb.checked = !ativar; if(m) m.textContent = 'Sem conexão. Tente de novo.'; }
+  if(cb) cb.disabled = false;
+}
+function contAbrirTela_(){ try{ carregarStatusContingencia(); contSincAutoCarregar(); }catch(e){} }
 async function carregarStatusContingencia(){
   const box = document.getElementById('contingenciaStatus');
   if(!box) return;
@@ -10378,6 +10420,7 @@ function _atualizarAlertaPedidos_(){
   if(bm) bm.classList.toggle('has-alert', _alertaPed_.mesas);
 }
 function seguroParaSincronizar(){
+  if(souCozinha_()) return !document.querySelector('.modal-overlay.open'); // Cozinha: sem formulário/carrinho, só espera se houver janela aberta
   if(usuarioNoMeioDeFormulario) return false;
   if(carrinhoAtual.length>0) return false; // venda em andamento no caixa
   if(document.querySelector('.modal-overlay.open')) return false; // algum cadastro/edição aberto
@@ -10921,6 +10964,7 @@ function cdPintar_(deCache){
   if(mesaQr && !_modoMesaIniciado){ _modoMesaIniciado = true; iniciarModoMesa_(); }
 }
 async function carregarCardapioPublico(){
+  try{ if(!mesaQr && window.cdCapturarLocalSilenciosa_) window.cdCapturarLocalSilenciosa_(); }catch(e){}
   const cache = cdLerCache_();
   if(cache){ cdDados = cache.dados; modoContingenciaAtivo = false; cdPintar_(true); }
   try{
@@ -11267,6 +11311,7 @@ async function finalizarPedidoPublico(){
       cdUltimaVendaId = r.id;
       mostrarBotaoWhatsappPedido(r);
       mostrarLinkAcompanhamento(r.id, nome, r.numero);
+      if(tipoEntrega==='Entrega' && window.cdEnviarLocalDoPedido_) window.cdEnviarLocalDoPedido_(r.id);
       cdPedidoConcluido = true;
       btn.disabled=true; btn.textContent='Pedido enviado';
     } else { showMsg('cdCheckoutMsg', r.message, 'warn'); btn.disabled=false; btn.textContent='Enviar pedido'; }
@@ -11986,6 +12031,7 @@ function sb410Montar_(){
 }
 function sb410Carregar_(){
   sb410Montar_();
+  try{ const s = document.getElementById('tab-integridade'); if(s && s.classList.contains('active')) contAbrirTela_(); }catch(e){}
   try{ // no servidor novo os cartões antigos (planilha) não têm dados: ficam escondidos, os sb410* fazem o papel deles
     const velhos = ['Backup','Histórico e restauração','Conferência de integridade'];
     document.querySelectorAll('#tab-armazenamento > .card, #tab-integridade > .card').forEach(c=>{
@@ -12135,14 +12181,33 @@ async function sb410Espaco(){
         <select id="sb410ArqDias" onchange="sb410ArqSalvarRegra(this.value)" style="width:100%;margin:6px 0;"><option value="90">90 dias</option><option value="60">60 dias</option><option value="30">30 dias (mínimo permitido)</option></select>
         <button class="small-gold" style="width:100%;padding:10px;" onclick="sb410ArquivarAgora()">Mandar para a planilha agora</button>
         <div class="msg" id="sb410ArqMsg"></div>
+      </div>
+      <div style="margin-top:10px;border-top:1px solid #3a2c1c;padding-top:10px;">
+        <label style="display:flex;align-items:center;gap:8px;margin:0;"><input type="checkbox" id="sb410EmergAtivo" onchange="sb410EmergSalvar()" style="width:auto;margin:0;"> Proteção de espaço: se o uso chegar a</label>
+        <select id="sb410EmergPct" onchange="sb410EmergSalvar()" style="width:100%;margin:6px 0;"><option value="90">90% do limite</option><option value="95">95% do limite</option><option value="98">98% do limite</option></select>
+        <span class="obs-line">Aí o sistema manda para a planilha as vendas e caixas já encerrados, do mais antigo para o mais novo (mesmo com menos de 30 dias; o que tem menos de 1 dia fica), e só apaga do Supabase o que a planilha confirmou. Pedido em andamento e caixa aberto nunca saem. Verifica de hora em hora.</span>
+        <div class="msg" id="sb410EmergMsg"></div>
       </div>`;
-    sb410ArqCarregarRegra_();
+    sb410ArqCarregarRegra_(); sb410EmergCarregar_();
   }catch(e){ box.textContent = '—'; }
 }
 function sb410ArqTexto_(d){ const t = document.getElementById('sb410ArqTexto'); if(t) t.textContent = 'Vendas com mais de ' + d + ' dias vão para a planilha (abas Arquivo_*) e saem do Supabase, todo dia de madrugada. Os relatórios buscam o que foi arquivado.'; }
 async function sb410ArqCarregarRegra_(){
   try{ const c = await sbSelecionar_('backup_config','id=eq.true',true); const d = c && c[0] && Number(c[0].arquivar_dias);
     const sel = document.getElementById('sb410ArqDias'); if(d && sel){ if(![30,60,90].includes(d)){ const o = document.createElement('option'); o.value = d; o.textContent = d + ' dias'; sel.appendChild(o); } sel.value = String(d); sb410ArqTexto_(d); } }catch(e){}
+}
+async function sb410EmergCarregar_(){
+  try{ const c = await sbSelecionar_('backup_config','id=eq.true',true); const r = c && c[0]; if(!r) return;
+    const a = document.getElementById('sb410EmergAtivo'), p = document.getElementById('sb410EmergPct');
+    if(a) a.checked = r.arquivar_emerg_ativo !== false; if(p && r.arquivar_emerg_pct) p.value = String(r.arquivar_emerg_pct); }catch(e){}
+}
+async function sb410EmergSalvar(){
+  const a = document.getElementById('sb410EmergAtivo'), p = document.getElementById('sb410EmergPct'), m = document.getElementById('sb410EmergMsg');
+  try{ const t = await sb410Token_();
+    const r = await sbJson_(SUPABASE_URL_+'/rest/v1/backup_config?id=eq.true', { method:'PATCH', headers:{ apikey:SUPABASE_CHAVE_, Authorization:'Bearer '+t, 'Content-Type':'application/json', Prefer:'return=minimal' }, body: JSON.stringify({ arquivar_emerg_ativo: !!(a&&a.checked), arquivar_emerg_pct: Number(p&&p.value)||95, atualizado_em:new Date().toISOString() }) }, 15000);
+    if(!r.ok) throw new Error('falha');
+    if(m) m.textContent = a && a.checked ? 'Salvo: proteção ligada aos ' + (p.value) + '%.' : 'Salvo: proteção desligada.';
+  }catch(e){ if(m) m.textContent = 'Não foi possível salvar agora.'; }
 }
 async function sb410ArqSalvarRegra(v){
   const dias = Math.max(30, Number(v) || 90), m = document.getElementById('sb410ArqMsg');
@@ -13536,6 +13601,34 @@ window.abrirMapaEntrega_ = function(vendaId){
       if(r && r.ok){ marcarCompartilhou_(codigo); delete autoLoc_[codigo]; const b = $('acLocal'); if(b) b.innerHTML = '<p class="sub" style="margin-top:8px;font-size:11.5px;">✅ Localização compartilhada.</p>'; }
       else { autoLoc_[codigo] = 'falhou'; showMsg('acLocalMsg', (r && r.message) || 'Não foi possível enviar agora. O acompanhamento continua normalmente.', 'warn'); }
     }, () => { autoLoc_[codigo] = 'falhou'; if(typeof window.acLocalAtualizar_ === 'function' && window.__acUltimo_ && window.__acUltimo_.codigo === codigo) window.acLocalAtualizar_(codigo, window.__acUltimo_.r); else showMsg('acLocalMsg', 'Não foi possível obter sua localização. O acompanhamento continua normalmente.', 'warn'); }, { enableHighAccuracy:true, timeout:15000, maximumAge:30000 });
+  };
+
+  /* ---------- CLIENTE: captura silenciosa ao entrar + envio junto da criação do pedido ---------- */
+  let posSilenciosa_ = null;   /* { lat, lng, t } só em memória, nunca vai para o localStorage */
+  let capturando_ = false;
+  window.cdCapturarLocalSilenciosa_ = function(){
+    if(capturando_ || !navigator.geolocation) return;
+    capturando_ = true;
+    const fim = () => { capturando_ = false; };
+    try{
+      navigator.geolocation.getCurrentPosition(pos => {
+        const lat = Number(pos.coords.latitude), lng = Number(pos.coords.longitude);
+        if(Number.isFinite(lat) && Number.isFinite(lng)) posSilenciosa_ = { lat:lat, lng:lng, t:Date.now() };
+        fim();
+      }, fim, { enableHighAccuracy:true, timeout:15000, maximumAge:60000 });
+    }catch(e){ fim(); }
+  };
+  window.cdEnviarLocalDoPedido_ = async function(vendaId){
+    try{
+      if(!vendaId) return;
+      const codigo = String(vendaId).slice(-8);
+      if(jaCompartilhou_(codigo)) return;
+      /* se ainda não capturou, tenta uma última vez sem travar nada */
+      if(!posSilenciosa_) window.cdCapturarLocalSilenciosa_();
+      if(!posSilenciosa_) return;   /* sem permissão/sinal: o acompanhamento oferece o botão como antes */
+      const r = await sbRpcPublico_('api_compartilhar_destino_pedido', { p:{ codigo:codigo, lat:posSilenciosa_.lat, lng:posSilenciosa_.lng } });
+      if(r && r.ok) marcarCompartilhou_(codigo);
+    }catch(e){ /* silencioso: nunca atrapalha o pedido */ }
   };
 
   /* ---------- ganchos (envolvem funções existentes sem trocar o comportamento delas) ---------- */

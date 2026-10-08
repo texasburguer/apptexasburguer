@@ -5668,7 +5668,7 @@ function reconciliarContingencia() {
    ============================================================================ */
 /* Chave que a Edge Function envia. Já vem preenchida aqui; se existir a propriedade de script SB_CHAVE_SERVIDOR, ela tem prioridade. */
 const SB_CHAVE_SERVIDOR_PADRAO_ = 'txbsb-dPcBNH9tYyZ1K_cKKzBoWGKgrQ0QKch-EBe0TFc6bis';
-const ACOES_SERVIDOR_SB_ = ['syncLote', 'arquivar', 'replicarFotos', 'contarVendasHoje', 'uploadFotoSb', 'excluirFotoSb',
+const ACOES_SERVIDOR_SB_ = ['sbSincAutoStatus', 'sbSincAutoDefinir', 'syncLote', 'arquivar', 'replicarFotos', 'contarVendasHoje', 'uploadFotoSb', 'excluirFotoSb',
   'sbSincronizarContingencia', 'sbLerArquivo', 'sbGuardarBackup', 'sbChaveLeitura', 'sbArmazenamento', 'sbArmazenamentoContingencia', 'sbChaveContingencia', 'sbListarPendentesContingencia', 'sbMarcarSincronizadoContingencia'];
 const SB_FUSO_ = 'America/Sao_Paulo';
 const SB_LIMITE_CELULA_ = 40000;
@@ -5676,9 +5676,15 @@ const SB_LIMITE_CELULA_ = 40000;
 function acaoServidorSb_(action, body) {
   const esperada = PropertiesService.getScriptProperties().getProperty('SB_CHAVE_SERVIDOR') || SB_CHAVE_SERVIDOR_PADRAO_;
   if (!esperada || !sbIgual_(String(body.chave || ''), esperada)) return { ok: false, message: 'Chave inválida.' };
+  /* Só leitura (não altera nada): não espera nem segura o lock, para um relatório de mês antigo não travar o envio de vendas e vice-versa. */
+  if (action === 'sbLerArquivo' || action === 'sbLerArquivoCaixa' || action === 'sbSincAutoStatus') {
+    try { return action === 'sbLerArquivo' ? sbLerArquivo_(body.mes) : action === 'sbLerArquivoCaixa' ? sbLerArquivoCaixa_(body.mes) : sbSincAutoStatus_(); }
+    catch (e) { return { ok: false, message: 'Erro: ' + String(e && e.message || e).slice(0, 300) }; }
+  }
   const lock = LockService.getScriptLock();
   try { lock.waitLock(25000); } catch (e) { return { ok: false, ocupado: true, message: 'Planilha ocupada.' }; }
   try {
+    if (action === 'sbSincAutoDefinir') return sbSincAutoDefinir_(body.ativar === true);
     if (action === 'syncLote') return sbSyncLote_(body.itens);
     if (action === 'arquivar') return sbArquivar_(body);
     if (action === 'replicarFotos') return sbReplicarFotos_(body.itens);
@@ -5971,6 +5977,18 @@ function sbSincronizarContingencia_(rapido) {
     return { ok: false, message: 'Não foi possível falar com a API de contingência: ' + e.message };
   }
 }
+/* Sincronização automática do espelho da contingência (todo dia às 3h): ligar/desligar pela tela Contingência.
+   Mantém UM gatilho só (apaga o antigo "sincronizarContingencia" para não sincronizar duas vezes). */
+function sbSincAutoStatus_() {
+  const gs = ScriptApp.getProjectTriggers().filter(function (t) { const f = t.getHandlerFunction(); return f === 'sbSincronizarContingenciaAuto' || f === 'sincronizarContingencia'; });
+  return { ok: true, ativo: gs.length > 0, hora: 3 };
+}
+function sbSincAutoDefinir_(ativar) {
+  ScriptApp.getProjectTriggers().forEach(function (t) { const f = t.getHandlerFunction(); if (f === 'sbSincronizarContingenciaAuto' || f === 'sincronizarContingencia') ScriptApp.deleteTrigger(t); });
+  if (ativar) ScriptApp.newTrigger('sbSincronizarContingenciaAuto').timeBased().everyDays(1).atHour(3).create();
+  return { ok: true, ativo: !!ativar, message: ativar ? 'Sincronização automática ligada: o espelho é atualizado todo dia às 3h.' : 'Sincronização automática desligada.' };
+}
+
 /* Gatilho opcional (diário, 3h): rode UMA vez no editor para ativar o espelho automático. */
 function sbGarantirTriggerContingencia() {
   const tem = ScriptApp.getProjectTriggers().some(function (t) { return t.getHandlerFunction() === 'sbSincronizarContingenciaAuto'; });
@@ -6030,17 +6048,48 @@ function sbObterArmazenamento_() {
    Devolve as vendas (com itens e pagamentos) de um mês que já saiu do Supabase e está nas abas Arquivo_*.
    Chamado pela Edge Function "planilha-admin" (acao arquivoVendas). Só leitura.
    ============================================================================ */
+/* Leitura enxuta das abas Arquivo_*: lê só UMA coluna para achar as linhas que interessam e depois só essas linhas
+   (em blocos). Antes lia a aba inteira, em todas as colunas, a cada mês pedido. O resultado é o mesmo de sbLerAba_ + filter. */
+function sbAbaCab_(nome) {
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(nome);
+  if (!sh || sh.getLastRow() < 2 || sh.getLastColumn() < 2) return null;
+  return { sh: sh, cab: sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(String), ultima: sh.getLastRow() };
+}
+function sbLinhasOnde_(a, col, pred) {
+  const ci = a.cab.indexOf(col); if (ci < 0) return [];
+  const vals = a.sh.getRange(2, ci + 1, a.ultima - 1, 1).getValues(), out = [];
+  for (let i = 0; i < vals.length; i++) if (pred(vals[i][0])) out.push(i + 2);
+  return out;
+}
+function sbLerLinhas_(a, linhas) {
+  if (!linhas.length) return [];
+  const blocos = []; let ini = linhas[0], fim = linhas[0];
+  for (let k = 1; k < linhas.length; k++) { if (linhas[k] - fim <= 25) fim = linhas[k]; else { blocos.push([ini, fim]); ini = fim = linhas[k]; } }
+  blocos.push([ini, fim]);
+  const quer = {}; linhas.forEach(function (l) { quer[l] = true; });
+  const out = [];
+  blocos.forEach(function (b) {
+    a.sh.getRange(b[0], 1, b[1] - b[0] + 1, a.cab.length).getValues().forEach(function (r, idx) {
+      if (!quer[b[0] + idx]) return;
+      const o = {}; for (let i = 1; i < a.cab.length; i++) if (a.cab[i]) o[a.cab[i]] = r[i];
+      if (o.id !== undefined && String(o.id) !== '') out.push(o);
+    });
+  });
+  return out;
+}
+function sbLerAbaOnde_(nome, col, pred) { const a = sbAbaCab_(nome); return a ? sbLerLinhas_(a, sbLinhasOnde_(a, col, pred)) : []; }
+
 function sbMs_(v) { return (v instanceof Date) ? v.getTime() : Date.parse(String(v)); }
 function sbLerArquivo_(mes) {
   if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(String(mes || ''))) return { ok: false, message: 'Mês inválido.' };
   const a = String(mes).split('-'), ini = new Date(Number(a[0]), Number(a[1]) - 1, 1).getTime(), fim = new Date(Number(a[0]), Number(a[1]), 1).getTime();
   const pick = function (o, cols) { const r = {}; cols.forEach(function (c) { r[c] = (o[c] instanceof Date) ? o[c].toISOString() : o[c]; }); return r; };
   const colsV = ['id','numero_pedido','data_hora','cliente_nome','telefone_cliente','forma_pagamento','valor_total','custo_total','status','motivo_cancelamento','tipo','status_pedido','endereco','complemento','referencia','observacoes_entrega','pronta_em','concluida_em','status_pagamento','recebido_em','valor_original','valor_desconto','desconto_detalhe','entregador_id','saiu_em','origem','mesa_id','taxa_entrega','fechamento_entrega_id','registrado_por','inicio_preparo_em'];
-  const vendas = sbLerAba_('Arquivo_Vendas').filter(function (v) { const t = sbMs_(v.data_hora); return t >= ini && t < fim; });
+  const vendas = sbLerAbaOnde_('Arquivo_Vendas', 'data_hora', function (x) { const t = sbMs_(x); return t >= ini && t < fim; });
   const ids = {}; vendas.forEach(function (v) { ids[String(v.id)] = true; });
-  const itens = sbLerAba_('Arquivo_Itens').filter(function (i) { return ids[String(i.venda_id)]; })
+  const itens = sbLerAbaOnde_('Arquivo_Itens', 'venda_id', function (x) { return ids[String(x)]; })
     .map(function (i) { return pick(i, ['id','venda_id','produto_id','combo_id','descricao','quantidade','valor_unitario','custo_unitario','valor_total_item','adicionais_ids']); });
-  const pagamentos = sbLerAba_('Arquivo_Pagamentos').filter(function (x) { return ids[String(x.venda_id)]; })
+  const pagamentos = sbLerAbaOnde_('Arquivo_Pagamentos', 'venda_id', function (x) { return ids[String(x)]; })
     .map(function (x) { return pick(x, ['id','venda_id','forma_pagamento','valor','taxa_aplicada']); });
   return { ok: true, mes: mes, vendas: vendas.map(function (v) { return pick(v, colsV); }), itens: itens, pagamentos: pagamentos };
 }
@@ -6052,8 +6101,8 @@ function sbLerArquivoCaixa_(mes) {
   if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(String(mes || ''))) return { ok: false, message: 'Mês inválido.' };
   const a = String(mes).split('-'), ini = new Date(Number(a[0]), Number(a[1]) - 1, 1).getTime(), fim = new Date(Number(a[0]), Number(a[1]), 1).getTime();
   const lim = function (o) { const r = {}; Object.keys(o).forEach(function (k) { r[k] = (o[k] instanceof Date) ? o[k].toISOString() : o[k]; }); return r; };
-  const caixas = sbLerAba_('Arquivo_Caixa').filter(function (c) { const t = sbMs_(c.abertura); return t >= ini && t < fim; }).map(lim);
-  const sangrias = sbLerAba_('Arquivo_Sangrias').filter(function (s) { const t = sbMs_(s.data_hora); return t >= ini && t < fim; }).map(lim);
+  const caixas = sbLerAbaOnde_('Arquivo_Caixa', 'abertura', function (x) { const t = sbMs_(x); return t >= ini && t < fim; }).map(lim);
+  const sangrias = sbLerAbaOnde_('Arquivo_Sangrias', 'data_hora', function (x) { const t = sbMs_(x); return t >= ini && t < fim; }).map(lim);
   return { ok: true, mes: mes, caixas: caixas, sangrias: sangrias };
 }
 
