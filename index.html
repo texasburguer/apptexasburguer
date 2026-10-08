@@ -278,6 +278,12 @@
   .punch{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:14px 0;}
   .punch .hole{aspect-ratio:1;border-radius:50%;border:2px dashed var(--line);display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--line);}
   .punch .hole.filled{border:2px solid var(--gold);background:var(--gold);color:#241a10;}
+  /* cartão fidelidade (moedas): vazia = bege com a logo desbotada; marcada = logo colorida */
+  .punch{gap:10px;padding:12px;border-radius:14px;background:#0b0705;border:1px solid var(--line);}
+  .punch .hole{position:relative;overflow:hidden;font-size:0;color:transparent;border:2px dashed #6b5a3f;background:radial-gradient(circle at 35% 30%,#f6ecd6,#e6d6b3 70%,#d9c7a0);box-shadow:inset 0 0 0 3px rgba(255,255,255,.35);}
+  .punch .hole::before{content:"";position:absolute;inset:12%;background:url("logo-impressao-cor.png") center/contain no-repeat;opacity:.22;filter:grayscale(1) sepia(.5);transition:opacity .25s,filter .25s,transform .25s;}
+  .punch .hole.filled{border:2px solid var(--gold);background:radial-gradient(circle at 35% 30%,#fff6df,#f2dfae 75%,#e6c777);box-shadow:0 0 0 2px rgba(224,181,58,.35),inset 0 0 0 3px rgba(255,255,255,.45);}
+  .punch .hole.filled::before{opacity:1;filter:none;inset:8%;transform:scale(1.02);}
 
   .btnrow{display:flex;gap:8px;margin-top:12px;}
   .btnrow button{flex:1;}
@@ -521,7 +527,7 @@ th{color:var(--gold-dim);text-transform:uppercase;letter-spacing:.06em;border-bo
 .stat-box.entrada{border-left-color:var(--lime);} .stat-box.saida{border-left-color:var(--red-hi);}
 .resumo-box.atencao{border-color:var(--red);border-left-color:var(--red-hi);}
 .progress-inner{background:linear-gradient(90deg,var(--gold-lo),var(--gold-hi));}
-.punch .hole.filled{background:linear-gradient(180deg,var(--gold-hi),var(--gold-lo));border-color:var(--gold);}
+.punch .hole.filled{border-color:var(--gold);}
 .notif-card{border-left:4px solid var(--gold);}
 
 /* ---- Cozinha: colunas com as cores do hambúrguer ---- */
@@ -3441,6 +3447,8 @@ async function sbEscrever_(action, payload){
 const SB_PUBLICAS_ = { criarPedidoCardapio:'api_criar_pedido_cardapio', getStatusPedidoPublico:'api_get_status_pedido_publico', cancelarPedidoCardapioPublico:'api_cancelar_pedido_cardapio_publico', validarCupomCardapio:'api_validar_cupom_cardapio',
   getMesaPublica:'api_get_mesa_publica', criarPedidoMesa:'api_criar_pedido_mesa', cancelarPedidoMesa:'api_cancelar_pedido_mesa', pedirContaMesa:'api_pedir_conta_mesa', chamarGarcomMesa:'api_chamar_garcom_mesa', addFeedback:'api_add_feedback' };
 async function sbRpcPublico_(fn, corpo){
+  /* as RPCs chat_* do banco recebem um único parâmetro jsonb chamado "p": sem esse envelope o PostgREST responde 404 */
+  if(/^chat_/.test(fn) && corpo && typeof corpo === 'object' && !Array.isArray(corpo) && !('p' in corpo)) corpo = { p: corpo };
   const r = await sbJson_(SUPABASE_URL_ + '/rest/v1/rpc/' + fn, { method:'POST', headers:{ 'apikey': SUPABASE_CHAVE_, 'Authorization': 'Bearer ' + SUPABASE_CHAVE_, 'Content-Type':'application/json' }, body: JSON.stringify(corpo) }, 30000);
   const j = await r.json().catch(()=>null);
   if(!r.ok) return { ok:false, message:'Não foi possível concluir agora (erro ' + r.status + '). Tente novamente em instantes.' };
@@ -4265,7 +4273,7 @@ function abrirPerfilCliente(clienteId){
     html += `<button class="small-gold" onclick="abrirModalIndicado()">Indicou alguém</button></div>`;
     const carimbos = fid ? fid.carimbos : 0;
     html += `<div class="modal-section"><h3>Cartão Fidelidade</h3><div class="punch">`;
-    for(let i=1;i<=10;i++) html += `<div class="hole ${i<=carimbos?'filled':''}">${i<=carimbos?'★':''}</div>`;
+    for(let i=1;i<=10;i++) html += `<div class="hole ${i<=carimbos?'filled':''}" role="img" aria-label="${i<=carimbos?'Marca '+i+' carimbada':'Marca '+i+' vazia'}"></div>`;
     html += `</div><div class="info-line">${carimbos} de 10 marcas${fid&&fid.premios?(' · '+fid.premios+' prêmio(s) resgatado(s)'):''}</div>
       <div class="btnrow"><button class="small-gold" style="flex:1;" onclick="adicionarMarcaModal()">+1 marca</button><button class="small-gold" style="flex:1;" ${carimbos<10?'disabled':''} onclick="resgatarPremioModal()">Resgatar prêmio</button></div></div>`;
     box.innerHTML = html;
@@ -4320,15 +4328,25 @@ function excluirModalCliente(){
   };
   if(precisaConfirmarAdmin()) abrirModalSenhaAdmin(executar); else executar();
 }
+/* recarrega o perfil aberto (mesmo cliente, pelo id) e mantém o modal aberto com a mensagem de sucesso */
+function reabrirPerfilAtual_(telefone, msg){
+  let id = modalClienteId;
+  if(!id){ const t = normTel(telefone); const c = clientes.find(x => normTel(x.telefone) === t); id = c ? c.id : null; }
+  const modal = document.getElementById('clienteModal') || document.querySelector('#mTitulo') && document.querySelector('#mTitulo').closest('.modal-overlay');
+  const rolagem = modal ? (modal.querySelector('.modal-box') || modal).scrollTop : 0;
+  abrirPerfilCliente(id);
+  if(modal){ modal.classList.add('open'); const box = modal.querySelector('.modal-box') || modal; box.scrollTop = rolagem; }
+  if(msg) showMsg('mMsg', msg, 'ok');
+}
 async function adicionarMarcaModal(){
   const nome = document.getElementById('mNome').value.trim();
   const telefone = document.getElementById('mTelefone').value.trim();
-  try{ const r = await apiCallFila('addOrStampFidelidade', { telefone, nome, observacao: '' }, 'Carimbo de fidelidade'); if(r.fidelidade) fidelidadeClientes = r.fidelidade; salvarCache(); showMsg('mMsg', r.message, r.ok?'ok':'warn'); if(r.ok) abrirPerfilCliente(telefone); }
+  try{ const r = await apiCallFila('addOrStampFidelidade', { telefone, nome, observacao: '' }, 'Carimbo de fidelidade'); if(r.fidelidade) fidelidadeClientes = r.fidelidade; salvarCache(); showMsg('mMsg', r.message, r.ok?'ok':'warn'); if(r.ok) reabrirPerfilAtual_(telefone, r.message); }
   catch(e){ showMsg('mMsg','Não foi possível registrar.','warn'); }
 }
 async function resgatarPremioModal(){
   const telefone = document.getElementById('mTelefone').value.trim();
-  try{ const r = await apiCall('resgatarPremioFidelidade', { telefone }); if(r.fidelidade) fidelidadeClientes = r.fidelidade; salvarCache(); showMsg('mMsg', r.message, r.ok?'ok':'warn'); if(r.ok) abrirPerfilCliente(telefone); }
+  try{ const r = await apiCall('resgatarPremioFidelidade', { telefone }); if(r.fidelidade) fidelidadeClientes = r.fidelidade; salvarCache(); showMsg('mMsg', r.message, r.ok?'ok':'warn'); if(r.ok) reabrirPerfilAtual_(telefone, r.message); }
   catch(e){ showMsg('mMsg','Não foi possível resgatar.','warn'); }
 }
 function abrirModalIndicado(){
@@ -6073,6 +6091,7 @@ async function detectarNovosCozinha_(manual){
       else { novosCaixa = r.recebidos.filter(id=>!caixaVistos.has(id)); r.recebidos.forEach(id=>caixaVistos.add(id)); }
     }
     cozinhaUltimaChecagem = new Date(); _czLacuna = null;
+    if(souCozinha_()){ const naTela_ = new Set((vendas || []).map(v=>v.id)); if(atuais.some(id=>!naTela_.has(id))) cozinhaSyncPendente = true; }   /* pedido existe no servidor mas não na tela: baixa agora */
     if(souCozinha_()){ if(novos.length){ avisarNovoPedido_(novos.length); cozinhaSyncPendente = true; } }
     else if(novosCaixa.length){ avisarNovoPedido_(novosCaixa.length); cozinhaSyncPendente = true; }
     if(cozinhaSyncPendente || (manual && souCozinha_())){
@@ -6107,7 +6126,10 @@ function iniciarDetectorCozinha(){
     return; // sem "manter tela ligada": no celular do entregador/garçom isso gastaria bateria à toa
   }
   manterTelaLigada_();
-  cozinhaTimer = setInterval(()=>{ if(!_rt_.ativo) detectarNovosCozinha_(false); }, SYNC_INTERVALO_MS); // 3 min (era 30 s): menos chamadas ao Apps Script
+  /* Cozinha: o tempo real pode cair sem avisar (celular, rede) e o pedido some da tela. Por isso a consulta leve (só ids) roda a cada 20 s
+     mesmo com o tempo real ligado, e a tela é sincronizada por inteiro a cada 60 s enquanto está visível. Demais perfis seguem em 3 min. */
+  cozinhaTimer = setInterval(()=>{ if(souCozinha_() || !_rt_.ativo) detectarNovosCozinha_(false); }, souCozinha_() ? 20000 : SYNC_INTERVALO_MS);
+  if(souCozinha_()) setInterval(()=>{ if(!document.hidden && seguroParaSincronizar()) sincronizarEmSegundoPlano(); }, 60000);
   setInterval(manterTelaLigada_, 30000); // só local (bloqueio de tela), não chama a planilha
   setInterval(atualizarTelaLigadaUI_, 15000); // recalcula o aviso de "sem verificação há N min"
   document.addEventListener('visibilitychange', ()=>{
@@ -12560,6 +12582,7 @@ function sb6Parar(){ _sb6Parado_ = true; clearTimeout(_sb6Retry_); clearInterval
   /* ---------- IA-07: alertas em Notificações (só regras SQL; funciona com a IA desligada) ---------- */
   function montarAlertasCard(){
     const sec = $('tab-notificacoes'); let c = $('iaAlertasCard');
+    if(c) c.remove(); return;   /* card "Alertas inteligentes" removido (a IA só é acessada pelo balão) */
     if(!sec || !podeUsar()){ if(c) c.remove(); return; }
     if(c) return;
     c = document.createElement('div'); c.id = 'iaAlertasCard'; c.className = 'card ia-card';
@@ -12569,6 +12592,7 @@ function sb6Parar(){ _sb6Parado_ = true; clearTimeout(_sb6Retry_); clearInterval
     $('iaAlertasAtualizar').addEventListener('click', () => IA.carregarAlertas(true));
   }
   IA.carregarAlertas = async function(forcar){
+    return;   /* card removido: nada a carregar */
     if(!podeUsar()) return; montarAlertasCard();
     const box = $('iaAlertasSaida'); if(!box) return;
     if(!forcar && Date.now() - ultimosAlertas < 180000) return;      // no máx. 1x a cada 3 min
@@ -13156,10 +13180,16 @@ function sb6Parar(){ _sb6Parado_ = true; clearTimeout(_sb6Retry_); clearInterval
     for(let i = 0; i < 12; i++){ if(new RegExp('\\b' + meses[i] + '\\b').test(s)) return i !== atual; }
     return false;
   }
-  function extra_(acao, t, vc){
+  function extra_(acao, t, vc, ro){
     const e = { verComo:vc };
-    if(acao === 'ajuda' || acao === 'pergunte' || acao === 'operacional_estoque' || acao === 'operacional_entregas') e.pergunta = t;
-    if(acao === 'pergunte' || acao === 'resumo_dia' || acao === 'anomalias' || acao === 'alertas') e.periodo = periodo_(t);
+    /* ro = o que o roteador entendeu (pergunta com erros corrigidos, período e palavras de busca com sinônimos) */
+    const perg = (ro && typeof ro.pergunta === 'string' && ro.pergunta.trim().length >= 3) ? ro.pergunta.trim().slice(0, 300) : t;
+    if(acao === 'ajuda' || acao === 'pergunte' || acao === 'operacional_estoque' || acao === 'operacional_entregas') e.pergunta = perg;
+    if(acao === 'ajuda' && ro && Array.isArray(ro.busca)) e.busca = ro.busca.slice(0, 12).map(x => String(x).slice(0, 30));
+    if(acao === 'pergunte' || acao === 'resumo_dia' || acao === 'anomalias' || acao === 'alertas'){
+      const pe = ro && ['hoje','ontem','7d','30d','mes'].indexOf(ro.periodo) !== -1 ? ro.periodo : null;
+      e.periodo = pe || periodo_(t);
+    }
     return e;
   }
   function htmlIa_(acao, r){
@@ -13325,6 +13355,9 @@ function sb6Parar(){ _sb6Parado_ = true; clearTimeout(_sb6Retry_); clearInterval
     }
     if(/o que mudou|mudancas|mudou desde|o que alterou/.test(s)){ await devMudancas_(arq); return true; }
     if(/\banalis\w*\b.*(index|html|codigo|apps? ?script|planilha|contingenc|\.gs)/.test(s)){ await devAnalisar_(arq); return true; }
+    if(/^(por favor |pode |quero |faca |fazer |rodar |roda |executar |execute |inicie |iniciar )?(a |uma |um )?(analis\w*|audit\w*|revis\w*)( geral| completa| do sistema| da pagina| do codigo)?[ .!?]*$/.test(s)){
+      bolha_('ia', 'Desenvolvedor', 'Analisando o index.html (para o Apps Script, escreva "analise o apps script").'); await devAnalisar_(ARQ_DEV_.index); return true;
+    }
     if(/\b(envi\w*|atualiz\w*|subir|sincroniz\w*)\b.*(apps? ?script|planilha|contingenc|\.gs)/.test(s)){ devPedirArquivos_(); return true; }
     if(/\b(atualiz\w*|envi\w*|subir|sincroniz\w*)\b.*\b(codigo|index|html|pagina)\b/.test(s)){ await devAtualizarIndex_(); return true; }
     return false;
@@ -13348,7 +13381,7 @@ function sb6Parar(){ _sb6Parado_ = true; clearTimeout(_sb6Retry_); clearInterval
         await carregarFila_(); mostrarFila_(); return;
       }
       esp = bolha_('ia', 'Assistente', '⏳ Consultando…');
-      const r = await IA.chamar(ro.acao, extra_(ro.acao, t, vc), ro.acao === 'diagnostico' ? { ttl:60000 } : {});
+      const r = await IA.chamar(ro.acao, extra_(ro.acao, t, vc, ro), ro.acao === 'diagnostico' ? { ttl:60000 } : {});
       rm_(esp); esp = null;
       bolha_('ia', 'Assistente', htmlIa_(ro.acao, r), true);
     }catch(e){ rm_(esp); bolha_('ia', 'Assistente', 'Não consegui concluir agora. O restante do sistema funciona normal.'); }
@@ -13492,51 +13525,44 @@ function sb6Parar(){ _sb6Parado_ = true; clearTimeout(_sb6Retry_); clearInterval
   window.botaoVerLocalizacao_ = function(v){
     if(!v || v.statusPedido !== 'Saiu para entrega' || !v.entregador) return '';
     if(!currentUser || (currentUser.nivel !== 'Admin' && currentUser.nivel !== 'Operador')) return '';
-    return '<button type="button" class="ghost" style="margin-top:6px;" onclick="abrirMapaEntrega_(\'' + escH(v.id) + '\')">📍 Ver localização</button>';
+    return '<div class="btnrow" style="margin-top:6px;"><button type="button" class="ghost" onclick="abrirMapaEntrega_(\'' + escH(v.id) + '\')">📍 Ver localização</button></div>';
   };
   function modal_(){
     let m = $('mapaEntregaModal');
     if(!m){
       m = document.createElement('div'); m.className = 'modal-overlay'; m.id = 'mapaEntregaModal';
-      m.innerHTML = '<div class="modal-box" style="max-width:420px;"><div class="modal-header"><h2>📍 Localização do entregador</h2><button class="close-btn" type="button" aria-label="Fechar" onclick="fecharMapaEntrega_()">✕</button></div><div id="mapaEntregaCorpo"><div id="mapaEntregaTxt"></div><div id="mapaEntregaMapa" style="display:none;height:260px;margin-top:8px;border-radius:8px;overflow:hidden;"></div></div></div>';
+      m.innerHTML = '<div class="modal-box" style="max-width:420px;"><div class="modal-header"><h2>📍 Localização do entregador</h2><button class="close-btn" type="button" aria-label="Fechar" onclick="fecharMapaEntrega_()">✕</button></div><div id="mapaEntregaCorpo"><div id="mapaEntregaTxt"></div><div id="mapaEntregaMapa" style="display:none;position:relative;height:300px;margin-top:8px;border-radius:8px;overflow:hidden;background:#2a2a2a;touch-action:manipulation;"></div></div></div>';
       document.body.appendChild(m);
     }
     return m;
   }
 
-  /* ---------- MAPA EMBUTIDO (Leaflet local em vendor/leaflet/; sem ele, só o link "Abrir no mapa") ---------- */
-  let leafletP_ = null, mapa_ = null, marca_ = null;
-  function carregarLeaflet_(){
-    if(window.L && window.L.map) return Promise.resolve(true);
-    if(leafletP_) return leafletP_;
-    leafletP_ = new Promise(res => {
-      try{
-        const css = document.createElement('link'); css.rel = 'stylesheet'; css.href = 'vendor/leaflet/leaflet.css'; document.head.appendChild(css);
-        const js = document.createElement('script'); js.src = 'vendor/leaflet/leaflet.js';
-        js.onload = () => res(!!(window.L && window.L.map)); js.onerror = () => { leafletP_ = null; res(false); };
-        document.head.appendChild(js);
-      }catch(e){ leafletP_ = null; res(false); }
-    });
-    return leafletP_;
-  }
+  /* ---------- MAPA EMBUTIDO (tiles do OpenStreetMap em <img>; não depende de biblioteca nem de pasta vendor/) ---------- */
+  let zoom_ = 16, ultimoPonto_ = null;
+  function tile_(lat, lng, z){ const n = Math.pow(2, z), r = lat * Math.PI / 180; return { x:(lng + 180) / 360 * n, y:(1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2 * n, n:n }; }
   function mapaOculto_(){ const d = $('mapaEntregaMapa'); if(d) d.style.display = 'none'; }
-  async function mapaDesenhar_(lat, lng, semSinal){
+  window.mapaEntregaZoom_ = function(d){ zoom_ = Math.max(12, Math.min(18, zoom_ + d)); if(ultimoPonto_) mapaDesenhar_(ultimoPonto_.lat, ultimoPonto_.lng, ultimoPonto_.semSinal); };
+  function mapaDesenhar_(lat, lng, semSinal){
     const div = $('mapaEntregaMapa'); if(!div || !Number.isFinite(lat) || !Number.isFinite(lng)) return;
-    if(!(await carregarLeaflet_())){ div.style.display = 'none'; return; }
     if(!$('mapaEntregaModal') || !$('mapaEntregaModal').classList.contains('open')) return;
+    ultimoPonto_ = { lat:lat, lng:lng, semSinal:!!semSinal };
     div.style.display = 'block';
-    try{
-      if(mapa_ && mapa_.getContainer() !== div){ mapa_.remove(); mapa_ = null; marca_ = null; }
-      if(!mapa_){
-        mapa_ = L.map(div, { zoomControl:true, attributionControl:true }).setView([lat, lng], 16);
-        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom:19, attribution:'© OpenStreetMap' }).addTo(mapa_);
-        marca_ = L.circleMarker([lat, lng], { radius:9, color:'#fff', weight:2, fillColor:'#d4af37', fillOpacity:1 }).addTo(mapa_);
-      } else {
-        marca_.setLatLng([lat, lng]); mapa_.panTo([lat, lng]);
+    const W = div.clientWidth || 340, H = div.clientHeight || 280, t = tile_(lat, lng, zoom_);
+    const cx = Math.floor(t.x), cy = Math.floor(t.y), ox = (t.x - cx) * 256, oy = (t.y - cy) * 256;
+    const dxMax = Math.ceil((W / 2) / 256) + 1, dyMax = Math.ceil((H / 2) / 256) + 1;
+    let h = '';
+    for(let dy = -dyMax; dy <= dyMax; dy++){
+      const ty = cy + dy; if(ty < 0 || ty >= t.n) continue;
+      for(let dx = -dxMax; dx <= dxMax; dx++){
+        const tx = ((cx + dx) % t.n + t.n) % t.n;
+        h += '<img alt="" draggable="false" referrerpolicy="origin" src="https://tile.openstreetmap.org/' + zoom_ + '/' + tx + '/' + ty + '.png" style="position:absolute;width:256px;height:256px;left:' + Math.round(W / 2 - ox + dx * 256) + 'px;top:' + Math.round(H / 2 - oy + dy * 256) + 'px;">';
       }
-      marca_.setStyle({ fillColor: semSinal ? '#999' : '#d4af37' });
-      setTimeout(() => { try{ mapa_.invalidateSize(); }catch(e){} }, 150);
-    }catch(e){ div.style.display = 'none'; }
+    }
+    const cor = semSinal ? '#999' : '#d4af37';
+    h += '<div style="position:absolute;left:' + (W / 2 - 11) + 'px;top:' + (H / 2 - 11) + 'px;width:22px;height:22px;border-radius:50%;background:' + cor + ';border:3px solid #fff;box-shadow:0 0 0 3px rgba(0,0,0,.35);box-sizing:border-box;"></div>';
+    h += '<div style="position:absolute;left:8px;top:8px;display:flex;flex-direction:column;gap:6px;"><button type="button" aria-label="Aproximar" onclick="mapaEntregaZoom_(1)" style="width:36px;height:36px;padding:0;margin:0;border-radius:8px;background:#fff;color:#111;border:1px solid #999;font-size:20px;font-weight:700;line-height:1;">+</button><button type="button" aria-label="Afastar" onclick="mapaEntregaZoom_(-1)" style="width:36px;height:36px;padding:0;margin:0;border-radius:8px;background:#fff;color:#111;border:1px solid #999;font-size:20px;font-weight:700;line-height:1;">−</button></div>';
+    h += '<div style="position:absolute;right:0;bottom:0;background:rgba(255,255,255,.8);color:#222;font-size:10px;padding:1px 5px;">© OpenStreetMap</div>';
+    div.innerHTML = h;
   }
   async function carregarMapa_(){
     const corpo = $('mapaEntregaTxt'); if(!corpo || !mapaId) return;
@@ -13548,10 +13574,8 @@ function sb6Parar(){ _sb6Parado_ = true; clearTimeout(_sb6Retry_); clearInterval
     if(r.estado === 'sem_posicao'){ mapaOculto_(); corpo.innerHTML = '<p class="sub">Posição indisponível. O entregador ainda não enviou a localização (precisa permitir o GPS e manter o app aberto).</p>'; return; }
     const seg = Number(r.atualizadoHaSeg) || 0;
     const quando = seg < 90 ? 'há ' + seg + ' s' : 'há ' + Math.round(seg / 60) + ' min';
-    const link = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(r.lat + ',' + r.lng);
     corpo.innerHTML = (r.estado === 'sem_sinal' ? '<p class="sub" style="color:#f0d78c;">Posição indisponível. Última atualização ' + escH(quando) + '.</p>' : '<p class="sub">Atualizado ' + escH(quando) + '</p>') +
-      (r.km != null ? '<p class="sub">A <b>' + escH(String(r.km).replace('.', ',')) + ' km</b> do destino</p>' : (r.destinoCompartilhado ? '' : '<p class="sub">O cliente não compartilhou o destino (a distância fica indisponível).</p>')) +
-      '<a class="small-gold" style="display:inline-block;margin-top:8px;padding:10px 14px;text-decoration:none;" href="' + link + '" target="_blank" rel="noopener">🗺️ Abrir no mapa</a>';
+      (r.km != null ? '<p class="sub">A <b>' + escH(String(r.km).replace('.', ',')) + ' km</b> do destino</p>' : (r.destinoCompartilhado ? '' : '<p class="sub">O cliente não compartilhou o destino (a distância fica indisponível).</p>'));
     mapaDesenhar_(Number(r.lat), Number(r.lng), r.estado === 'sem_sinal');
   }
 window.abrirMapaEntrega_ = function(vendaId){
@@ -13561,16 +13585,17 @@ window.abrirMapaEntrega_ = function(vendaId){
   };
   window.fecharMapaEntrega_ = function(){
     const m = $('mapaEntregaModal'); if(m) m.classList.remove('open');
-    clearInterval(mapaTimer); mapaTimer = null; mapaId = null;
-    try{ if(mapa_){ mapa_.remove(); } }catch(e){} mapa_ = null; marca_ = null;
+    clearInterval(mapaTimer); mapaTimer = null; mapaId = null; ultimoPonto_ = null;
   };
 
   /* ---------- CLIENTE: distância aproximada + compartilhar destino (opcional) ---------- */
   const CHAVE_DEST = 'txb_destino_compartilhado_v1';
   const jaCompartilhou_ = c => { try{ return (JSON.parse(localStorage.getItem(CHAVE_DEST) || '{}') || {})[c] === 1; }catch(e){ return false; } };
   const marcarCompartilhou_ = c => { try{ const o = JSON.parse(localStorage.getItem(CHAVE_DEST) || '{}') || {}; o[c] = 1; const ks = Object.keys(o); if(ks.length > 30) delete o[ks[0]]; localStorage.setItem(CHAVE_DEST, JSON.stringify(o)); }catch(e){} };
+  const autoLoc_ = {};   /* por pedido: 'pedindo' | 'falhou' (a permissão é pedida sozinha, uma vez por pedido) */
   window.acLocalAtualizar_ = async function(codigo, r){
     const box = $('acLocal'); if(!box) return;
+    window.__acUltimo_ = { codigo:codigo, r:r };
     if(!r || r.tipoEntrega !== 'Entrega' || r.status === 'Cancelada' || ['Recebido','Em preparo','Pronta','Saiu para entrega'].indexOf(r.statusPedido) === -1){ box.innerHTML = ''; return; }
     let html = '';
     if(r.statusPedido === 'Saiu para entrega'){
@@ -13578,22 +13603,25 @@ window.abrirMapaEntrega_ = function(vendaId){
       if(d && d.ok && d.estado === 'ok') html += '<p class="sub" style="margin-top:8px;">🛵 O entregador está a cerca de <b>' + escH(String(d.km).replace('.', ',')) + ' km</b>.</p>';
       else if(d && d.ok && d.estado === 'sem_sinal') html += '<p class="sub" style="margin-top:8px;">🛵 Posição do entregador indisponível no momento.</p>';
     }
-    if(!jaCompartilhou_(codigo) && navigator.geolocation){
-      html += '<div style="margin-top:8px;"><button type="button" class="ghost" onclick="acCompartilharDestino_(\'' + escH(codigo) + '\')">📍 Compartilhar minha localização</button><p class="sub" style="margin-top:4px;font-size:11.5px;">Opcional. Ajuda o entregador a chegar e permite mostrar a distância aproximada. O restaurante não guarda a localização depois da entrega.</p><div class="msg" id="acLocalMsg"></div></div>';
+    if(!jaCompartilhou_(codigo) && navigator.geolocation && autoLoc_[codigo] !== 'falhou'){
+      if(!autoLoc_[codigo]){ autoLoc_[codigo] = 'pedindo'; setTimeout(() => window.acCompartilharDestino_(codigo, true), 0); }
+      html += '<p class="sub" style="margin-top:8px;font-size:11.5px;" id="acLocalMsg">📍 Pedindo permissão de localização para o entregador chegar até você…</p>';
+    } else if(!jaCompartilhou_(codigo) && navigator.geolocation){
+      html += '<div style="margin-top:8px;"><p class="sub" style="font-size:11.5px;">Não conseguimos pegar sua localização automaticamente. Libere a localização no navegador e toque abaixo.</p><button type="button" class="ghost" onclick="acCompartilharDestino_(\'' + escH(codigo) + '\')">📍 Compartilhar minha localização</button><p class="sub" style="margin-top:4px;font-size:11.5px;">Opcional. Ajuda o entregador a chegar e permite mostrar a distância aproximada. O restaurante não guarda a localização depois da entrega.</p><div class="msg" id="acLocalMsg"></div></div>';
     } else if(jaCompartilhou_(codigo)){
       html += '<p class="sub" style="margin-top:8px;font-size:11.5px;">✅ Localização compartilhada.</p>';
     }
     box.innerHTML = html;
   };
-  window.acCompartilharDestino_ = function(codigo){
+  window.acCompartilharDestino_ = function(codigo, auto){
     if(!navigator.geolocation){ showMsg('acLocalMsg', 'Seu aparelho não oferece localização.', 'warn'); return; }
     navigator.geolocation.getCurrentPosition(async pos => {
       const lat = Number(pos.coords.latitude), lng = Number(pos.coords.longitude);
       if(!Number.isFinite(lat) || !Number.isFinite(lng)) return;
       let r = null; try{ r = await sbRpcPublico_('api_compartilhar_destino_pedido', { p:{ codigo:codigo, lat:lat, lng:lng } }); }catch(e){ r = null; }
-      if(r && r.ok){ marcarCompartilhou_(codigo); const b = $('acLocal'); if(b) b.innerHTML = '<p class="sub" style="margin-top:8px;font-size:11.5px;">✅ Localização compartilhada.</p>'; }
-      else showMsg('acLocalMsg', (r && r.message) || 'Não foi possível enviar agora. O acompanhamento continua normalmente.', 'warn');
-    }, () => { showMsg('acLocalMsg', 'Não foi possível obter sua localização. O acompanhamento continua normalmente.', 'warn'); }, { enableHighAccuracy:true, timeout:10000, maximumAge:30000 });
+      if(r && r.ok){ marcarCompartilhou_(codigo); delete autoLoc_[codigo]; const b = $('acLocal'); if(b) b.innerHTML = '<p class="sub" style="margin-top:8px;font-size:11.5px;">✅ Localização compartilhada.</p>'; }
+      else { autoLoc_[codigo] = 'falhou'; showMsg('acLocalMsg', (r && r.message) || 'Não foi possível enviar agora. O acompanhamento continua normalmente.', 'warn'); }
+    }, () => { autoLoc_[codigo] = 'falhou'; if(typeof window.acLocalAtualizar_ === 'function' && window.__acUltimo_ && window.__acUltimo_.codigo === codigo) window.acLocalAtualizar_(codigo, window.__acUltimo_.r); else showMsg('acLocalMsg', 'Não foi possível obter sua localização. O acompanhamento continua normalmente.', 'warn'); }, { enableHighAccuracy:true, timeout:15000, maximumAge:30000 });
   };
 
   /* ---------- ganchos (envolvem funções existentes sem trocar o comportamento delas) ---------- */

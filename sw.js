@@ -7,10 +7,10 @@
      Dados, pedidos, login e RPCs nunca passam pelo cache do service worker — sempre vão direto para a rede.
    - O único cache de dados é o de fotos (FOTOS) e o da casca/ícones (SHELL/ASSETS). Não adicionar outros. */
 const SHELL = 'texas-shell-v10';
-const ASSETS = 'texas-assets-v5';   // trocou ícone/logo/manifest/leaflet? suba para v5
+const ASSETS = 'texas-assets-v6';   // trocou ícone/logo/manifest/leaflet? suba para v5
 const FOTOS = 'texas-fotos-v1';
 const FOTOS_MAX = 150;
-const PRE = ['manifest.webmanifest', 'icon-192.png', 'apple-touch-icon.png', 'logo-texas-burger.webp'];
+const PRE = ['manifest.webmanifest', 'icon-192.png', 'apple-touch-icon.png', 'logo-texas-burger.webp', 'logo-impressao-cor.png'];
 const HOSTS_FOTO = ['drive.google.com', 'lh3.googleusercontent.com'];
 
 self.addEventListener('install', e => e.waitUntil((async () => {
