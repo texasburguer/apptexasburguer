@@ -3219,6 +3219,16 @@ async function sbRenovar_(){
   return _sbRenovando_;
 }
 class SbSessaoExpirada_ extends Error {}
+/* ETAPA 1.4 — diagnóstico: registra de onde veio uma "sessão expirada" (no console: diagSessaoLog()). Não altera o comportamento. */
+function sbDiagSessao_(origem, action){
+  try{
+    const log = JSON.parse(sessionStorage.getItem('diagSessaoLog')||'[]');
+    log.push({ t:new Date().toISOString(), origem:origem, action:action||'', temSessao:!!sbSessaoLer_() });
+    sessionStorage.setItem('diagSessaoLog', JSON.stringify(log.slice(-50)));
+    console.warn('[DIAG sessão expirada]', origem, action||'');
+  }catch(e){}
+}
+window.diagSessaoLog = function(){ try{ console.table(JSON.parse(sessionStorage.getItem('diagSessaoLog')||'[]')); }catch(e){} };
 /* GET no banco. Com sessao=true usa o login do funcionário; senão, a chave pública (visitante). Páginas de 1000 linhas. */
 async function sbSelecionar_(tabela, consulta, sessao){
   const itens = []; let de = 0; const TAM = 1000;
@@ -3278,7 +3288,17 @@ async function sbMontarDados_(nivel, chaves){
     L('despesas'), L('despesas_recorrentes'), L('ajustes_pos_venda'),
     L('cupons'), L('eventos'), L('v_indicacoes'), L('feedbacks'), L('v_ocorrencias'), L('v_cardapio_mais_pedidos')
   ]);
-  if(!usuarios.length) throw new SbSessaoExpirada_(); // quem está logado sempre enxerga ao menos a si mesmo; lista vazia = sessão encerrada
+  if(!usuarios.length){ // quem está logado sempre enxerga ao menos a si mesmo; lista vazia só encerra a sessão se o banco também recusar o token (ETAPA 1.1)
+    let vivo = false;
+    try{
+      const sv = sbSessaoLer_();
+      if(sv){
+        const rv = await sbJson_(SUPABASE_URL_ + '/rest/v1/usuarios?select=login&limit=1', { headers:{ apikey:SUPABASE_CHAVE_, Authorization:'Bearer ' + sv.access_token } }, 8000);
+        vivo = rv.ok;
+      }
+    }catch(e){ vivo = false; }
+    if(!vivo){ sbDiagSessao_('sbMontarDados_:usuarios-vazio'); throw new SbSessaoExpirada_(); }
+  }
   const nomeIng = {}; estoque.forEach(e=>{ nomeIng[e.id] = e.ingrediente; });
   const loginDe = {}; usuarios.forEach(u=>{ loginDe[u.id] = u.login; });
   const semCusto = x=>{ if(!gestor) delete x.custo; return x; };
@@ -3525,7 +3545,7 @@ async function sbRotear_(action, payload){
     if(action === 'obterStatusBackup') return { ok:false, naoMigrada:true };
     return { ok:false, naoMigrada:true, message: SB_NAO_MIGRADA_ };
   }catch(e){
-    if(e instanceof SbSessaoExpirada_){ sbSessaoGravar_(null); return { ok:false, sessaoExpirada:true, message:'Sessão expirada.' }; }
+    if(e instanceof SbSessaoExpirada_){ sbDiagSessao_('sbRotear_', action); sbSessaoGravar_(null); return { ok:false, sessaoExpirada:true, message:'Sessão expirada.' }; }
     throw e;
   }
 }
@@ -12410,7 +12430,7 @@ async function sb5SairReserva_(){
   if(currentUser && currentUser.nivel === 'Admin' && !currentUser.emergencia){
     try{ const r = await apiCall('reconciliarContingenciaAgora', {}); if(r && r.ok){ lancadas = r.reaplicadas || 0; problemas = (r.falhas || []).length; } }catch(e){}
   }
-  try{ await atualizarAposDuplicado_(); }catch(e){}
+  try{ if(seguroParaSincronizar()) await atualizarAposDuplicado_(); }catch(e){}
   try{ if(typeof rtIniciar_ === 'function' && currentUser && !currentUser.emergencia) rtIniciar_(); }catch(e){}
   try{ sb6Iniciar(); }catch(e){}
   try{ setConexaoStatus('online'); }catch(e){}
