@@ -12691,7 +12691,7 @@ function sb6Parar(){ _sb6Parado_ = true; clearTimeout(_sb6Retry_); clearInterval
   };
 
   /* ---------- montagem e ganchos (envolvem funções existentes sem trocar o comportamento delas) ---------- */
-  IA.montar = function(){ try{ montarBolinha(); montarInicio(); montarAlertasCard(); }catch(e){ console.warn('IA.montar', e); } };
+  IA.montar = function(){ try{ montarBolinha(); montarInicio(); }catch(e){ console.warn('IA.montar', e); } };
   function envolver(nome, depois){
     const orig = window[nome]; if(typeof orig !== 'function' || orig.__ia) return;
     const nova = function(){ const r = orig.apply(this, arguments); try{ depois.apply(this, arguments); }catch(e){} return r; };
@@ -12700,7 +12700,7 @@ function sb6Parar(){ _sb6Parado_ = true; clearTimeout(_sb6Retry_); clearInterval
   envolver('entrarNoApp', () => { setTimeout(() => { IA.montar(); IA.atualizarStatus(); }, 1500); });
   envolver('aplicarPermissoesNivel', () => { IA.montar(); });
   envolver('abrirAdministrador', sub => { if(sub === 'ia') IA.abrirAba(); });
-  envolver('ativarApenasSecao_', id => { if(id === 'tab-notificacoes') IA.carregarAlertas(); });
+  
   if(typeof window.sair === 'function' && !window.sair.__ia){
     const so = window.sair; window.sair = async function(){ cache.clear(); ultimoStatus = null; const b = $('iaDot'); if(b) b.classList.remove('visivel'); const c = $('iaInicioCard'); if(c) c.remove(); return so.apply(this, arguments); };
     window.sair.__ia = true;
@@ -13395,11 +13395,19 @@ function sb6Parar(){ _sb6Parado_ = true; clearTimeout(_sb6Retry_); clearInterval
     const fab = $('balaoIa'); if(!fab) return;
     const interno = logado(), ligado = window.chatPublicoLigado_ === true;
     fab.style.display = (interno || ligado) ? '' : 'none';
+    if (interno) {
+      fab.hidden = false;
+      fab.removeAttribute('hidden');
+      fab.style.visibility = 'visible';
+      fab.style.opacity = '1';
+      fab.style.pointerEvents = 'auto';
+    }
     const rot = $('balaoIaRot'); if(rot) rot.textContent = interno ? 'Assistente' : 'Atendimento';
     const ic = $('balaoIaIcone'); if(ic) ic.textContent = interno ? '✨' : '💬';
     aviso_();
   }
   window.balaoIaAtualizar_ = atualizarFab_;
+  setTimeout(() => { try{ atualizarFab_(); }catch(e){} }, 1200);
   window.balaoIaAbrir_ = function(){
     if(logado()) return abrir_();
     const ex = $('balaoIaHdrExtra'); if(ex) ex.innerHTML = '';
