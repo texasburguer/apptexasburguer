@@ -147,7 +147,27 @@
   .cd-card img{width:100%;height:auto;aspect-ratio:1/1;object-fit:cover;background:#111;}
   .cd-card .cd-info{padding:8px 10px 10px;display:flex;flex-direction:column;gap:4px;flex:1;}
   .cd-card .cd-nome{font-size:13px;font-weight:700;color:var(--cream);}
-  .cd-card .cd-desc{font-size:11px;color:var(--muted);line-height:1.3;}
+  .cd-card .cd-desc{
+    font-size:11px;color:var(--muted);line-height:1.3;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+  }
+  .cd-cat-bloco{ margin-bottom:6px; }
+  @media (max-width:899px){
+    .cd-cat-lista{
+      display:flex;gap:10px;
+      overflow-x:auto;overflow-y:hidden;
+      scroll-snap-type:x proximity;
+      -webkit-overflow-scrolling:touch;
+      scrollbar-width:none;
+      padding:2px 0 8px;
+    }
+    .cd-cat-lista::-webkit-scrollbar{ display:none; }
+    .cd-cat-lista > .cd-card{
+      flex:0 0 62%;                /* D3=b: 1 card inteiro + metade do próximo, sinaliza que dá para arrastar */
+      min-width:0;
+      scroll-snap-align:start;
+    }
+  }
   .cd-card .cd-preco{font-size:14px;font-weight:800;color:var(--gold);margin-top:auto;}
   .cd-card button{margin-top:6px;background:var(--gold);color:#241a10;border:none;border-radius:8px;padding:7px;font-weight:700;font-size:12px;cursor:pointer;}
   .cd-fab-carrinho{position:fixed;bottom:16px;right:16px;left:16px;max-width:676px;margin:0 auto;background:var(--gold);color:#241a10;border:none;border-radius:14px;padding:14px;font-weight:800;font-size:14px;display:none;justify-content:space-between;align-items:center;cursor:pointer;z-index:50;}
@@ -2111,6 +2131,11 @@ body:has(.cd-fab-carrinho.show) .balao-ia{bottom:84px;}
     <div id="ppAvancadoBox" style="display:none;margin-top:10px;">
 
       <div class="modal-section">
+        <h3>🎁 Este produto é um prêmio</h3>
+        <label style="display:flex;align-items:center;gap:8px;"><input type="checkbox" id="ppPremioFid" style="width:auto;"> Prêmio do cartão fidelidade</label>
+        <label style="display:flex;align-items:center;gap:8px;margin-top:6px;"><input type="checkbox" id="ppPremioInd" style="width:auto;"> Prêmio de indicação</label>
+      </div>
+      <div class="modal-section">
         <h3>Preço diferente para uma forma de pagamento</h3>
         <div id="ppPrecosExcecoes"></div>
         <button type="button" class="ghost" style="width:100%;margin-top:6px;" onclick="adicionarExcecaoPreco('pp')">+ Adicionar exceção de preço</button>
@@ -3064,7 +3089,7 @@ const API_ROTULOS_ = {
   uploadFotoProduto:'Enviando a foto…', uploadFotoCombo:'Enviando a foto…', sincronizarContingenciaAgora:'Sincronizando…', reconciliarContingenciaAgora:'Reconciliando…'
 };
 const API_TRAVAM_TELA_ = new Set(['iniciarVenda','criarPedidoCardapio','fecharCaixa','abrirCaixa','fecharContaMesa','cancelarVenda','editarVenda','pagarDespesa',
-  'avancarStatusPedido','aceitarPedido','rejeitarPedido','fazerBackupAgora','restaurarBackup','fecharPeriodoEntregador','addSangria','resgatarPremioFidelidade']);
+  'avancarStatusPedido','aceitarPedido','rejeitarPedido','fazerBackupAgora','restaurarBackup','fecharPeriodoEntregador','addSangria','resgatarPremioFidelidade','registrarBrinde']);
 let _apiAtivas = 0, _apiTravaTela = 0, _apiRotulo = '', _apiTimerAviso = null;
 function _carregandoAtualizar_(){
   let el = document.getElementById('apiCarregando');
@@ -3249,7 +3274,7 @@ async function sbSelecionar_(tabela, consulta, sessao){
   return itens;
 }
 const SB_NOTIF_PADRAO_ = { pedido:['Admin','Operador'], entrega:['Admin','Operador'], estoque:['Admin','Operador','Cozinha'], financeiro:['Admin'], ocorrencia:['Admin','Operador'], sistema:['Admin'], fidelidade:['Admin','Operador'], indicacao:['Admin','Operador'], aniversario:['Admin','Operador'], inativos:['Admin','Operador'] };
-const SB_CATEGORIAS_DESPESA_ = ['Insumos','Aluguel','Energia','Água','Gás','Internet/Telefone','Salários','Impostos','Manutenção','Marketing','Embalagens','Entregadores','Outros'];
+const SB_CATEGORIAS_DESPESA_ = ['Insumos','Aluguel','Energia','Água','Gás','Internet/Telefone','Salários','Impostos','Manutenção','Marketing','Embalagens','Entregadores','Brindes','Outros'];
 function sbDataBr_(iso){ if(!iso) return ''; const d = new Date(iso); if(isNaN(d)) return ''; const p = n=>String(n).padStart(2,'0'); return p(d.getDate())+'/'+p(d.getMonth()+1)+'/'+d.getFullYear()+' '+p(d.getHours())+':'+p(d.getMinutes()); }
 function sbCfg_(sistema, chave, padrao){ const x = sistema.find(i=>i.chave===chave); if(!x || x.valor===null || x.valor==='' || x.valor===undefined) return padrao; return x.valor; }
 /* Lê tudo que o perfil pode ver (as regras do banco já filtram por perfil) e devolve no MESMO formato que a planilha devolvia. */
@@ -3306,7 +3331,7 @@ async function sbMontarDados_(nivel, chaves){
     formasPagamento: (formas.length ? formas : formasOp).map((f,i)=>({ id:f.id, nome:f.nome, ativa:f.ativa !== false, visivelCardapio:f.visivel_cardapio !== false, taxaPct:Number(f.taxa_percentual)||0, taxaFixa:Number(f.taxa_fixa)||0, prazoDias:Number(f.prazo_dias)||0, permiteTroco:f.permite_troco, ordem:Number(f.ordem)||(i+1) })).sort((a,b)=>a.ordem-b.ordem)
       .map(f=> operacional ? { id:f.id, nome:f.nome, ativa:f.ativa, permiteTroco:f.permiteTroco, ordem:f.ordem } : f),
     categorias: cats.map(c=>({ id:c.id, nome:c.nome, ativa:c.ativa, ordem:Number(c.ordem)||0 })).sort((a,b)=>a.ordem-b.ordem),
-    produtos: prods.map(p=>({ id:p.id, nome:p.nome, descricao:p.descricao||'', categoria:p.categoria_id||'', ativo:p.ativo, fotoId:p.foto_id_principal||'', fotoUrl:sbFotoUrl_(p.foto_id_principal), destaque:p.destaque, estoqueProprioIngredienteId:p.estoque_proprio_ingrediente_id||'', ordemCardapio:Number(p.ordem_cardapio)||0 })),
+    produtos: prods.map(p=>({ id:p.id, nome:p.nome, descricao:p.descricao||'', categoria:p.categoria_id||'', ativo:p.ativo, fotoId:p.foto_id_principal||'', fotoUrl:sbFotoUrl_(p.foto_id_principal), destaque:p.destaque, premioFidelidade:!!p.premio_fidelidade, premioIndicacao:!!p.premio_indicacao, estoqueProprioIngredienteId:p.estoque_proprio_ingrediente_id||'', ordemCardapio:Number(p.ordem_cardapio)||0 })),
     produtoPrecos: pprec.map(x=>semCusto({ id:x.id, produtoId:x.produto_id, formaPagamentoId:x.forma_pagamento_id, preco:Number(x.preco), custo:Number(x.custo) })),
     produtoIngredientes: ping.map(x=>({ id:x.id, produtoId:x.produto_id, ingredienteId:x.ingrediente_id, ingredienteNome:nomeIng[x.ingrediente_id]||'', quantidadePorUnidade:Number(x.quantidade_por_unidade) })),
     combos: combos.map(c=>({ id:c.id, nome:c.nome, categoria:c.categoria_id||'', ativo:c.ativo, fotoId:c.foto_id_principal||'', fotoUrl:sbFotoUrl_(c.foto_id_principal), destaque:c.destaque, ordemCardapio:Number(c.ordem_cardapio)||0 })),
@@ -3419,6 +3444,7 @@ const SB_ESCRITAS_ = {
   addCategoria:['categorias'], editarCategoria:['categorias'], excluirCategoria:['categorias'],
   addIngrediente:['estoque','movimentacoesEstoque'], editarIngrediente:['estoque','movimentacoesEstoque'], excluirIngrediente:['estoque'],
   addAdicional:['adicionais'], editarAdicional:['adicionais'], excluirAdicional:['adicionais','produtoAdicionais'], vincularAdicionaisEmLote:['produtoAdicionais'],
+  registrarBrinde:['fidelidade','indicacoes','estoque','movimentacoesEstoque'], editarPremioProduto:['produtos'],
   addProduto:['produtos','produtoPrecos','produtoIngredientes','produtoAdicionais','estoque'], editarProduto:['produtos','produtoPrecos','produtoIngredientes','produtoAdicionais','estoque'],
   excluirProduto:['produtos','produtoPrecos','produtoIngredientes'], editarVisibilidadeCardapioProduto:['produtos'], editarOrdemCardapioProduto:['produtos'],
   addCombo:['combos','comboPrecos','comboItens'], editarCombo:['combos','comboPrecos','comboItens'], excluirCombo:['combos','comboPrecos','comboItens'],
@@ -3457,7 +3483,7 @@ async function sbRpc_(fn, corpo){
   if(!r.ok) return { ok:false, message:'Não foi possível salvar' + (j && j.message ? ' (' + j.message + ')' : ' (erro ' + r.status + ')') + '. Nada foi gravado.' };
   return j && typeof j === 'object' ? j : { ok:false, message:'Resposta inesperada do servidor.' };
 }
-const SB_IDEM_NOVAS_ = ['addDespesa','pagarDespesa','registrarAjustePosVenda','cancelarAjustePosVenda']; // o banco já devolve a resposta guardada se o mesmo pedido chegar duas vezes
+const SB_IDEM_NOVAS_ = ['addDespesa','pagarDespesa','registrarAjustePosVenda','cancelarAjustePosVenda','registrarBrinde']; // o banco já devolve a resposta guardada se o mesmo pedido chegar duas vezes
 async function sbEscrever_(action, payload){
   const mapa = SB_ESCRITAS_[action];
   let chaveIdem = '';
@@ -4301,12 +4327,24 @@ function abrirPerfilCliente(clienteId){
     let html = `<div class="modal-section"><h3>Indicações</h3>`;
     html += indicou.length ? `<div class="info-line">Indicou: ${escH(indicou.map(i=>i.nomeIndicado).join(', '))}</div>` : `<div class="info-line">Ainda não indicou ninguém.</div>`;
     html += foiIndicadoPor ? `<div class="info-line">Foi indicado por: ${escH(foiIndicadoPor.nomeIndicador)}</div>` : '';
+    const premiosInd = (produtos||[]).filter(p=>p.ativo && p.premioIndicacao);
+    if(indicou.some(i=>!i.resgatado)){
+      html += premiosInd.length
+        ? `<div style="margin-top:8px;"><label>Prêmio da indicação:</label><select id="mPremioIndSel">${premiosInd.map(p=>`<option value="${p.id}">${escH(p.nome)}</option>`).join('')}</select><button class="small-gold" style="width:100%;margin-top:6px;" onclick="resgatarBrindeCliente_('Indicação')">🎁 Resgatar indicação</button></div>`
+        : `<div class="obs-line">Nenhum prêmio cadastrado. Fale com o gerente.</div>`;
+    }
     html += `<button class="small-gold" onclick="abrirModalIndicado()">Indicou alguém</button></div>`;
     const carimbos = fid ? fid.carimbos : 0;
     html += `<div class="modal-section"><h3>Cartão Fidelidade</h3><div class="punch">`;
     for(let i=1;i<=10;i++) html += `<div class="hole ${i<=carimbos?'filled':''}" role="img" aria-label="${i<=carimbos?'Marca '+i+' carimbada':'Marca '+i+' vazia'}"></div>`;
-    html += `</div><div class="info-line">${carimbos} de 10 marcas${fid&&fid.premios?(' · '+fid.premios+' prêmio(s) resgatado(s)'):''}</div>
-      <div class="btnrow"><button class="small-gold" style="flex:1;" onclick="adicionarMarcaModal()">+1 marca</button><button class="small-gold" style="flex:1;" ${carimbos<10?'disabled':''} onclick="resgatarPremioModal()">Resgatar prêmio</button></div></div>`;
+    const premiosFid = (produtos||[]).filter(p=>p.ativo && p.premioFidelidade);
+    html += `</div><div class="info-line">${carimbos} de 10 marcas${fid&&fid.premios?(' · '+fid.premios+' prêmio(s) resgatado(s)'):''}</div>`;
+    if(carimbos >= 10){
+      html += premiosFid.length
+        ? `<div style="margin-top:8px;"><label>Prêmio:</label><select id="mPremioFidSel">${premiosFid.map(p=>`<option value="${p.id}">${escH(p.nome)}</option>`).join('')}</select><button class="small-gold" style="width:100%;margin-top:6px;" onclick="resgatarBrindeCliente_('Fidelidade')">🎁 Resgatar prêmio</button></div>`
+        : `<div class="obs-line">Nenhum prêmio cadastrado. Fale com o gerente.</div><button class="small-gold" style="width:100%;margin-top:6px;" onclick="showMsg('mMsg','Nenhum prêmio cadastrado. Fale com o gerente.','warn')">Resgatar prêmio</button>`;
+    }
+    html += `<div class="btnrow"><button class="small-gold" style="flex:1;" onclick="adicionarMarcaModal()">+1 marca</button></div></div>`;
     box.innerHTML = html;
   }
   const boxFeedback = document.getElementById('mFeedbackSection');
@@ -4375,10 +4413,27 @@ async function adicionarMarcaModal(){
   try{ const r = await apiCallFila('addOrStampFidelidade', { telefone, nome, observacao: '' }, 'Carimbo de fidelidade'); if(r.fidelidade) fidelidadeClientes = r.fidelidade; salvarCache(); showMsg('mMsg', r.message, r.ok?'ok':'warn'); if(r.ok) reabrirPerfilAtual_(telefone, r.message); }
   catch(e){ showMsg('mMsg','Não foi possível registrar.','warn'); }
 }
-async function resgatarPremioModal(){
+async function resgatarBrindeCliente_(tipo){
+  if(!sessaoCaixa){ showMsg('mMsg','Abra o caixa antes de lançar o brinde.','warn'); return; }
+  const selId = tipo==='Fidelidade' ? 'mPremioFidSel' : 'mPremioIndSel';
+  const produtoId = (document.getElementById(selId)||{}).value;
+  if(!produtoId){ showMsg('mMsg','Nenhum prêmio disponível.','warn'); return; }
+  const p = produtos.find(x=>x.id===produtoId);
+  if(!confirm('Lançar "'+(p?p.nome:'brinde')+'" como prêmio?\n\nZera o cartão (ou marca a indicação) e baixa o estoque.')) return;
   const telefone = document.getElementById('mTelefone').value.trim();
-  try{ const r = await apiCall('resgatarPremioFidelidade', { telefone }); if(r.fidelidade) fidelidadeClientes = r.fidelidade; salvarCache(); showMsg('mMsg', r.message, r.ok?'ok':'warn'); if(r.ok) reabrirPerfilAtual_(telefone, r.message); }
-  catch(e){ showMsg('mMsg','Não foi possível resgatar.','warn'); }
+  const ind = tipo==='Indicação' ? indicacoes.find(i=>normTel(i.telIndicador)===normTel(telefone) && !i.resgatado) : null;
+  const telIndicado = ind ? ind.telIndicado : null;
+  if(tipo==='Indicação' && !telIndicado){ showMsg('mMsg','Indicação pendente não encontrada.','warn'); return; }
+  try{
+    const r = await apiCall('registrarBrinde', { tipo, produtoId, telefone, telIndicado });
+    if(r.fidelidade) fidelidadeClientes = r.fidelidade;
+    if(r.indicacoes) indicacoes = r.indicacoes;
+    if(r.estoque) estoque = r.estoque;
+    if(r.movimentacoesEstoque) movimentacoesEstoque = r.movimentacoesEstoque;
+    salvarCache();
+    showMsg('mMsg', r.message, r.ok?'ok':'warn');
+    if(r.ok) reabrirPerfilAtual_(telefone, r.message);
+  }catch(e){ showMsg('mMsg','Não foi possível resgatar.','warn'); }
 }
 function abrirModalIndicado(){
   const nome = document.getElementById('mNome').value.trim();
@@ -4874,6 +4929,8 @@ function abrirEditarProduto(id){
   carregarExcecoesExistentes('pp', precosDoProduto, precoBaseAtual);
   document.getElementById('ppAtivo').checked = p.ativo;
   document.getElementById('ppDestaque').checked = !!p.destaque;
+  document.getElementById('ppPremioFid').checked = !!p.premioFidelidade;
+  document.getElementById('ppPremioInd').checked = !!p.premioIndicacao;
   const ingredienteProprio = p.estoqueProprioIngredienteId ? estoque.find(e=>e.id===p.estoqueProprioIngredienteId) : null;
   document.getElementById('ppEstoqueProprioAtivo').checked = !!ingredienteProprio;
   document.getElementById('ppEstoqueMin').value = ingredienteProprio ? ingredienteProprio.minimo : '';
@@ -4931,6 +4988,9 @@ async function salvarEdicaoProduto(){
   if(!nome){ showMsg('ppMsg','Informe o nome.','warn'); return; }
   const precoBase = Number(document.getElementById('ppPreco').value) || 0;
   const custoBase = Number(document.getElementById('ppCusto').value) || 0;
+  const premioFid = document.getElementById('ppPremioFid').checked, premioInd = document.getElementById('ppPremioInd').checked;
+  const pAntes = produtos.find(x=>x.id===produtoEditandoId) || {};
+  const premioMudou = premioFid !== !!pAntes.premioFidelidade || premioInd !== !!pAntes.premioIndicacao;
   try{
     const r = await apiCall('editarProduto', {
       id: produtoEditandoId, nome, descricao: document.getElementById('ppDescricao').value.trim(),
@@ -4940,6 +5000,11 @@ async function salvarEdicaoProduto(){
       adicionaisIds: coletarAdicionaisChecklist('ppAdicionaisLista'), estoqueProprio: coletarEstoqueProprio('pp')
     });
     produtos = r.produtos || produtos; produtoPrecos = r.produtoPrecos || produtoPrecos; produtoIngredientes = r.produtoIngredientes || produtoIngredientes; produtoAdicionais = r.produtoAdicionais || produtoAdicionais; estoque = r.estoque || estoque; salvarCache();
+    if(r.ok && premioMudou){
+      const rp = await apiCall('editarPremioProduto', { produtoId: produtoEditandoId, premioFidelidade: premioFid, premioIndicacao: premioInd });
+      if(rp && rp.ok){ produtos = rp.produtos || produtos; salvarCache(); }
+      else { showMsg('ppMsg', 'Produto salvo, mas o prêmio não foi atualizado: ' + ((rp && rp.message) || 'tente de novo.'), 'warn'); renderProdutos(); return; }
+    }
     if(r.ok){ showMsg('ppMsg', r.message, 'ok'); renderProdutos(); renderProdutoCuradoria(); renderEstoque(); popularSelectProdutos(); setTimeout(fecharModalProduto, 700); }
     else showMsg('ppMsg', r.message, 'warn');
   } catch(e){ showMsg('ppMsg','Não foi possível salvar.','warn'); }
@@ -8167,7 +8232,7 @@ async function salvarDespesaModal(){
   finally { setBotoesOcupados(false); }
 }
 /* ---------- FASE 8B — CONTAS A PAGAR E DESPESAS MENSAIS ---------- */
-const CATEGORIAS_DESPESA_PADRAO = ['Insumos','Aluguel','Energia','Água','Gás','Internet/Telefone','Salários','Impostos','Manutenção','Marketing','Embalagens','Entregadores','Outros'];
+const CATEGORIAS_DESPESA_PADRAO = ['Insumos','Aluguel','Energia','Água','Gás','Internet/Telefone','Salários','Impostos','Manutenção','Marketing','Embalagens','Entregadores','Brindes','Outros'];
 function listaCategoriasDespesa(){ return (categoriasDespesa && categoriasDespesa.length) ? categoriasDespesa : CATEGORIAS_DESPESA_PADRAO; }
 function ehAdminAtual(){ return !!currentUser && currentUser.nivel === 'Admin'; }
 function despesaEfetiva(d){ return d.status==='Confirmada' && d.situacao!=='A pagar'; }
@@ -9687,11 +9752,11 @@ function renderizarGrafico(vendasMes, ano, mes){
 function renderNotificacoes(){
   const fidBox = document.getElementById('notifFidelidade');
   const quase = fidelidadeClientes.filter(f=>f.carimbos===9);
-  fidBox.innerHTML = quase.length ? quase.map(f=>`<div class="notif-card"><b>${escH(f.nome)}</b> — ${escH(f.telefone)} — está com 9/10 marcas. No próximo pedido ganha a batata frita!</div>`).join('') : '<div class="notif-empty">Nenhum cliente perto de completar.</div>';
+  fidBox.innerHTML = quase.length ? quase.map(f=>`<div class="notif-card"><b>${escH(f.nome)}</b> — ${escH(f.telefone)} — está com 9/10 marcas. No próximo pedido ganha o prêmio!</div>`).join('') : '<div class="notif-empty">Nenhum cliente perto de completar.</div>';
 
   const indBox = document.getElementById('notifIndicacoes');
   const pendentes = indicacoes.filter(i=>!i.resgatado);
-  indBox.innerHTML = pendentes.length ? pendentes.map(i=>`<div class="notif-card"><b>${escH(i.nomeIndicador)}</b> — ${i.telIndicador} — indicou ${escH(i.nomeIndicado)} e ainda não recebeu a batata pequena.<br><button class="ghost" style="margin-top:6px;" onclick="toggleResgateNotif('${i.telIndicado}')">marcar como resgatado</button></div>`).join('') : '<div class="notif-empty">Nenhuma indicação pendente.</div>';
+  indBox.innerHTML = pendentes.length ? pendentes.map(i=>`<div class="notif-card"><b>${escH(i.nomeIndicador)}</b> — ${i.telIndicador} — indicou ${escH(i.nomeIndicado)} e ainda não recebeu o prêmio.<br><button class="ghost" style="margin-top:6px;" onclick="abrirPerfilClientePorTelefone('${i.telIndicador}')">abrir cadastro do cliente</button></div>`).join('') : '<div class="notif-empty">Nenhuma indicação pendente.</div>';
 
   const estBox = document.getElementById('notifEstoque');
   const baixos = estoque.filter(e=>e.quantidade<=e.minimo);
@@ -9793,8 +9858,10 @@ async function salvarConfigNotificacoesUI(){
     else showMsg('notifCfgMsg', r.message || 'Não foi possível salvar.', 'warn');
   } catch(e){ showMsg('notifCfgMsg', 'Sem conexão com a planilha. Tente novamente.', 'warn'); }
 }
-async function toggleResgateNotif(telIndicado){
-  try{ const r = await apiCall('toggleResgateIndicacao', { telIndicado }); indicacoes = r.indicacoes || indicacoes; salvarCache(); renderNotificacoes(); } catch(e){}
+function abrirPerfilClientePorTelefone(tel){
+  const c = clientes.find(x=>normTel(x.telefone)===normTel(tel));
+  if(!c){ alert('Cliente não encontrado no cadastro.'); return; }
+  abrirPerfilCliente(c.id);
 }
 
 /* ============================================================
@@ -11112,11 +11179,41 @@ function renderCdSecoes(){
   } else destaquesEl.innerHTML = '';
 
   const listaEl = document.getElementById('cdListaProdutos');
+
+  if(!visaoTodas){
+    let html = '';
+    if(produtos.length) html += '<div class="cd-secao-titulo">Produtos</div><div class="cd-grid">' + produtos.map(p=>cdCardHTML('produto',p)).join('') + '</div>';
+    if(combos.length)   html += '<div class="cd-secao-titulo">Combos</div><div class="cd-grid">'   + combos.map(c=>cdCardHTML('combo',c)).join('')   + '</div>';
+    // só diz "nada disponível" se realmente não há nada (nem em cima, nem embaixo)
+    if(!produtos.length && !combos.length && !jaMostrados.size) html = '<p class="sub">Nada disponível nessa categoria no momento.</p>';
+    listaEl.innerHTML = html;
+    return;
+  }
+
+  // "Todas": cada categoria com seu título; no celular o bloco rola para o lado, no PC é grade
   let html = '';
-  if(produtos.length) html += '<div class="cd-secao-titulo">Produtos</div><div class="cd-grid">' + produtos.map(p=>cdCardHTML('produto',p)).join('') + '</div>';
-  if(combos.length) html += '<div class="cd-secao-titulo">Combos</div><div class="cd-grid">' + combos.map(c=>cdCardHTML('combo',c)).join('') + '</div>';
-  // só diz "nada disponível" se realmente não há nada (nem em cima, nem embaixo)
-  if(!produtos.length && !combos.length && !jaMostrados.size) html = '<p class="sub">Nada disponível nessa categoria no momento.</p>';
+  let total = jaMostrados.size;
+  (cdDados.categorias||[]).forEach(cat => {
+    const prods = (cdDados.produtos||[]).filter(p => p.categoria===cat.id && !jaMostrados.has('produto:'+p.id));
+    const cbos  = (cdDados.combos||[]).filter(c => c.categoria===cat.id && !jaMostrados.has('combo:'+c.id));
+    if(!prods.length && !cbos.length) return;
+    total += prods.length + cbos.length;
+    html += `<section class="cd-cat-bloco"><div class="cd-secao-titulo">${escH(cat.nome)}</div>`
+          + `<div class="cd-grid cd-cat-lista">`
+          + prods.map(p=>cdCardHTML('produto',p)).join('')
+          + cbos.map(c=>cdCardHTML('combo',c)).join('')
+          + `</div></section>`;
+  });
+  const orfP = (cdDados.produtos||[]).filter(p => !p.categoria && !jaMostrados.has('produto:'+p.id));
+  const orfC = (cdDados.combos||[]).filter(c => !c.categoria && !jaMostrados.has('combo:'+c.id));
+  if(orfP.length || orfC.length){
+    total += orfP.length + orfC.length;
+    html += `<section class="cd-cat-bloco"><div class="cd-secao-titulo">Outros</div><div class="cd-grid cd-cat-lista">`
+          + orfP.map(p=>cdCardHTML('produto',p)).join('')
+          + orfC.map(c=>cdCardHTML('combo',c)).join('')
+          + `</div></section>`;
+  }
+  if(!total) html = '<p class="sub">Nada disponível no momento.</p>';
   listaEl.innerHTML = html;
 }
 

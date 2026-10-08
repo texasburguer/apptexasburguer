@@ -233,16 +233,21 @@ function atualizarEspelho(dados) {
   if (!dados || typeof dados !== 'object') return { ok: false, message: 'Sem dados pra espelhar.' };
   const sh = ss_().getSheetByName('Espelho');
   const last = sh.getLastRow();
-  const existentes = {};
-  if (last >= 2) sh.getRange(2, 1, last - 1, 1).getValues().forEach((r, i) => { existentes[r[0]] = i + 2; });
+  const existentes = {}, hashes = {};
+  if (last >= 2) sh.getRange(2, 1, last - 1, 4).getValues().forEach((r, i) => { existentes[r[0]] = i + 2; hashes[r[0]] = String(r[3] || ''); });
   const agora = new Date();
   const chaves = Object.keys(dados);
+  let gravadas = 0, iguais = 0;
   chaves.forEach(chave => {
     const json = JSON.stringify(dados[chave]);
-    if (existentes[chave]) sh.getRange(existentes[chave], 2, 1, 2).setValues([[json, agora]]);
-    else sh.appendRow([chave, json, agora]);
+    const h = Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, json).map(b => ('0' + (b & 0xff).toString(16)).slice(-2)).join('');
+    if (existentes[chave]) {
+      if (hashes[chave] === h) { iguais++; return; }   // conteúdo idêntico ao que já está aí: não regrava (coluna D guarda o hash)
+      sh.getRange(existentes[chave], 2, 1, 3).setValues([[json, agora, h]]);
+    } else sh.appendRow([chave, json, agora, h]);
+    gravadas++;
   });
-  return { ok: true, message: 'Espelho atualizado (' + chaves.length + ' tabelas).', atualizadoEm: agora };
+  return { ok: true, message: 'Espelho atualizado (' + gravadas + ' de ' + chaves.length + ' tabelas gravadas' + (iguais ? ', ' + iguais + ' já estavam iguais' : '') + ').', atualizadoEm: agora };
 }
 
 function lerEspelho_() {
@@ -410,6 +415,7 @@ function ctAba_(nome) {
   return sh;
 }
 function ctUpsert_(nomeAba, linhas, remover) {
+  /* OTIMIZADO: lê a coluna de ids uma vez, grava linhas vizinhas em um só bloco e apaga em faixas (antes: uma chamada por linha). */
   const sh = ctAba_(nomeAba);
   let cab = sh.getLastColumn() ? sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(String) : ['_id'];
   if (!cab.length || cab[0] === '') cab = ['_id'];
@@ -419,22 +425,32 @@ function ctUpsert_(nomeAba, linhas, remover) {
   const ultima = sh.getLastRow();
   const ids = ultima > 1 ? sh.getRange(2, 1, ultima - 1, 1).getValues().map(function (r) { return String(r[0]).replace(/^'/, ''); }) : [];
   const pos = {}; ids.forEach(function (id, i) { pos[id] = i + 2; });
-  const novasLinhas = []; let gravadas = 0;
+  const atualizar = [], novasLinhas = [], idxNova = {}; let gravadas = 0;
   linhas.forEach(function (l) {
     const linha = cab.map(function (c, i) { return i === 0 ? ctCelula_(l.id) : (c in l.dados ? ctCelula_(l.dados[c]) : ''); });
-    const p = pos[String(l.id)];
-    if (p) sh.getRange(p, 1, 1, cab.length).setValues([linha]);
-    else { novasLinhas.push(linha); pos[String(l.id)] = -1; }
+    const chave = String(l.id), p = pos[chave];
+    if (p > 0) atualizar.push({ p: p, linha: linha });
+    else if (idxNova[chave] !== undefined) novasLinhas[idxNova[chave]] = linha;
+    else { idxNova[chave] = novasLinhas.length; novasLinhas.push(linha); }
     gravadas++;
   });
+  if (atualizar.length) {
+    atualizar.sort(function (a, b) { return a.p - b.p; });
+    let k = 0;
+    while (k < atualizar.length) {
+      let f = k; while (f + 1 < atualizar.length && atualizar[f + 1].p === atualizar[f].p + 1) f++;
+      sh.getRange(atualizar[k].p, 1, f - k + 1, cab.length).setValues(atualizar.slice(k, f + 1).map(function (x) { return x.linha; }));
+      k = f + 1;
+    }
+  }
   if (novasLinhas.length) sh.getRange(sh.getLastRow() + 1, 1, novasLinhas.length, cab.length).setValues(novasLinhas);
   let removidas = 0;
   if (remover && remover.length) {
     const alvo = {}; remover.forEach(function (id) { alvo[String(id)] = true; });
-    const atuais = sh.getLastRow() > 1 ? sh.getRange(2, 1, sh.getLastRow() - 1, 1).getValues() : [];
-    for (let i = atuais.length - 1; i >= 0; i--) {
-      if (alvo[String(atuais[i][0]).replace(/^'/, '')]) { sh.deleteRow(i + 2); removidas++; }
-    }
+    const apagar = []; ids.forEach(function (id, i) { if (alvo[id]) apagar.push(i + 2); });
+    const o = apagar.sort(function (a, b) { return a - b; }), faixas = [];
+    o.forEach(function (n) { const u = faixas[faixas.length - 1]; if (u && n === u[0] + u[1]) u[1]++; else faixas.push([n, 1]); });
+    for (let f = faixas.length - 1; f >= 0; f--) { sh.deleteRows(faixas[f][0], faixas[f][1]); removidas += faixas[f][1]; }
   }
   return { gravadas: gravadas, removidas: removidas };
 }
