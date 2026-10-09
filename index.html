@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <!-- SEGURANÇA: mesmo que algum texto malicioso escapasse, a página só consegue falar com o Google Apps Script (planilha e contingência). -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' https: data: blob:; connect-src 'self' https://script.google.com https://script.googleusercontent.com https://awryywtgqfaxppayzpca.supabase.co wss://awryywtgqfaxppayzpca.supabase.co; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none';">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' https: data: blob:; connect-src 'self' https://nominatim.openstreetmap.org https://script.google.com https://script.googleusercontent.com https://awryywtgqfaxppayzpca.supabase.co wss://awryywtgqfaxppayzpca.supabase.co; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none';">
 <!-- =====================================================================
  TEXAS BURGER — captura de ERROS DE JAVASCRIPT (para o diagnóstico do Desenvolvedor)
  COLAR como PRIMEIRO bloco de script do head do index.html (logo depois da meta de Content-Security-Policy),
@@ -954,7 +954,7 @@ body.perfil-garcom #btnFecharContaItens{display:none !important;}
       <select id="cdTipoEntrega" onchange="onMudarTipoCdEntrega()"><option value="Retirada">Retirar no balcão</option><option value="Entrega">Entrega</option></select>
       <p class="sub" id="cdTempoEstimado" style="margin-top:4px;"></p></div>
       <div id="cdEnderecoBox" class="cd-hide-mesa" style="display:none;">
-        <label>Endereço *</label><input type="text" id="cdEndereco" placeholder="Rua, número, bairro">
+        <label>Endereço *</label><input type="text" id="cdEndereco" placeholder="Rua, número, bairro"><div id="cdEnderecoAviso" class="sub" style="display:none;font-size:11.5px;margin:4px 0 0;"></div>
         <label>Complemento</label><input type="text" id="cdComplemento" placeholder="Apto, bloco...">
         <label>Ponto de referência</label><input type="text" id="cdReferencia" placeholder="Referência">
       </div>
@@ -11197,7 +11197,7 @@ function cdCardHTML(tipo, item){
   const foto = item.fotoUrl || '';
   const esg = cdEsgotado_(tipo, item.id);
   return `<div class="cd-card${esg?' esgotado':''}">
-    ${foto?`<img src="${fotoSrc_(foto, 500)}" onerror="fotoFalhou_(this)" loading="lazy" decoding="async" alt="">`:''}
+    ${foto?`<img src="${fotoSrc_(foto, 500)}" onerror="fotoFalhou_(this)" loading="lazy" decoding="async" alt="" onclick="cdAmpliarFoto_('${tipo}','${item.id}')" style="cursor:zoom-in;">`:''}
     <div class="cd-info">
       <div class="cd-nome">${escH(item.nome)}</div>
       ${item.descricao?`<div class="cd-desc">${escH(item.descricao)}</div>`:''}
@@ -11232,12 +11232,12 @@ function renderCdSecoes(){
   const maisPedidosEl = document.getElementById('cdMaisPedidos');
   const destaquesEl = document.getElementById('cdDestaques');
   if(maisPedidos.length){
-    maisPedidosEl.innerHTML = '<div class="cd-secao-titulo">⭐ Mais pedidos</div><div class="cd-grid">' +
+    maisPedidosEl.innerHTML = '<div class="cd-secao-titulo">⭐ Mais pedidos</div><div class="cd-grid cd-cat-lista">' +
       maisPedidos.map(m=>cdCardHTML(m.tipo, completo(m))).join('') + '</div>';
   } else maisPedidosEl.innerHTML = '';
 
   if(visaoTodas && destaques.length){
-    destaquesEl.innerHTML = '<div class="cd-secao-titulo">📌 Destaques</div><div class="cd-grid">' +
+    destaquesEl.innerHTML = '<div class="cd-secao-titulo">📌 Destaques</div><div class="cd-grid cd-cat-lista">' +
       destaques.map(d=>cdCardHTML(d.tipo, d.item)).join('') + '</div>';
   } else destaquesEl.innerHTML = '';
 
@@ -11281,6 +11281,26 @@ function renderCdSecoes(){
 }
 
 /* ---------- MODAL DE ITEM (quantidade + adicionais) ITEM 20 ---------- */
+function cdAmpliarFoto_(tipo, id){
+  const item = ((tipo==='produto' ? cdDados.produtos : cdDados.combos)||[]).find(x=>x.id===id); if(!item || !item.fotoUrl) return;
+  let ov = document.getElementById('cdFotoOv'); if(ov) ov.remove();
+  ov = document.createElement('div'); ov.id = 'cdFotoOv';
+  const esg = cdEsgotado_(tipo, id), preco = cdFormatarPreco(cdPrecoDe(tipo, id));
+  const fechar = () => { const o = document.getElementById('cdFotoOv'); if(o) o.remove(); };
+  const box = document.createElement('div'); box.className = 'cdfo-box';
+  const img = document.createElement('img'); img.src = fotoSrc_(item.fotoUrl, 1000); img.alt = '';
+  const info = document.createElement('div'); info.className = 'cdfo-info';
+  const nome = document.createElement('div'); nome.className = 'cdfo-nome'; nome.textContent = item.nome;
+  info.appendChild(nome);
+  if(item.descricao){ const d = document.createElement('div'); d.className = 'cdfo-desc'; d.textContent = item.descricao; info.appendChild(d); }
+  const pr = document.createElement('div'); pr.className = 'cdfo-preco'; pr.textContent = preco; info.appendChild(pr);
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'cdfo-add'; b.textContent = esg ? 'Esgotado' : 'Adicionar'; b.disabled = esg;
+  if(!esg) b.onclick = () => { fechar(); abrirCdItemModal(tipo, id); };
+  const x = document.createElement('button'); x.type = 'button'; x.className = 'cdfo-x'; x.textContent = '✕'; x.setAttribute('aria-label', 'Fechar'); x.onclick = fechar;
+  info.appendChild(b); box.appendChild(x); box.appendChild(img); box.appendChild(info); ov.appendChild(box);
+  ov.addEventListener('click', e => { if(e.target === ov) fechar(); });
+  document.body.appendChild(ov);
+}
 function abrirCdItemModal(tipo, id){
   const lista = tipo==='produto' ? cdDados.produtos : cdDados.combos;
   const item = lista.find(x=>x.id===id);
@@ -11395,8 +11415,35 @@ function renderCdCarrinho(){
   document.getElementById('cdCarrinhoTotal').textContent = cdFormatarPreco(cdCarrinho.reduce((s,it)=>s+cdPrecoItemCarrinho(it),0));
 }
 function removerDoCarrinho(i){ cdCarrinho.splice(i,1); renderCdCarrinho(); atualizarFabCarrinho(); }
+var cdEndAuto_ = false, cdEndTentou_ = false;
+/* Endereço pré-preenchido pela localização (OpenStreetMap). Só rua e bairro: o número é sempre do cliente. */
+async function cdPreencherEnderecoPorLocal_(){
+  const campo = document.getElementById('cdEndereco'), aviso = document.getElementById('cdEnderecoAviso');
+  if(!campo || cdEndTentou_ || campo.value.trim()) return;
+  cdEndTentou_ = true;
+  let pos = null;
+  for(let i = 0; i < 8 && !pos; i++){
+    if(window.__posCd_) pos = window.__posCd_();
+    if(!pos) await new Promise(r => setTimeout(r, 700));
+  }
+  if(!pos){ cdEndTentou_ = false; return; }   /* sem localização: segue como antes e tenta de novo na próxima troca */
+  try{
+    const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 8000);
+    const r = await fetch('https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=17&addressdetails=1&accept-language=pt-BR&lat=' + encodeURIComponent(pos.lat) + '&lon=' + encodeURIComponent(pos.lng), { signal: ctl.signal });
+    clearTimeout(t);
+    if(!r.ok) return;
+    const j = await r.json(); const a = (j && j.address) || {};
+    const rua = a.road || a.pedestrian || a.residential || '';
+    const bairro = a.suburb || a.neighbourhood || a.quarter || a.city_district || '';
+    const txt = [rua, bairro].filter(Boolean).join(', ').replace(/[<>]/g, '').slice(0, 120);
+    if(!txt || campo.value.trim()) return;   /* não sobrescreve o que o cliente já digitou */
+    campo.value = txt + ', '; cdEndAuto_ = true;
+    if(aviso){ aviso.style.display = 'block'; aviso.textContent = '📍 Preenchemos rua e bairro pela sua localização. Confira e digite o número da casa.'; }
+  }catch(e){ /* silencioso: o cliente digita normalmente */ }
+}
 function onMudarTipoCdEntrega(){
   const tipo = document.getElementById('cdTipoEntrega').value;
+  if(tipo==='Entrega'){ try{ cdPreencherEnderecoPorLocal_(); }catch(e){} }
   document.getElementById('cdEnderecoBox').style.display = tipo==='Entrega' ? 'block':'none';
   const tempo = tipo==='Entrega' ? (cdDados.config&&cdDados.config.tempoEntrega) : (cdDados.config&&cdDados.config.tempoRetirada);
   const taxaCd = Number(cdDados.config && cdDados.config.taxaEntrega) || 0;
@@ -11427,6 +11474,7 @@ async function finalizarPedidoPublico(){
     referencia: document.getElementById('cdReferencia').value.trim(), observacoes: (document.getElementById('cdObservacoes')||{}).value.trim()
   } : null;
   if(tipoEntrega==='Entrega' && !dadosEntrega.endereco) return showMsg('cdCheckoutMsg','Informe o endereço de entrega.','warn');
+  if(tipoEntrega==='Entrega' && cdEndAuto_ && !/\d|s\s*\/?\s*n/i.test(dadosEntrega.endereco)) return showMsg('cdCheckoutMsg','Confira o endereço e informe o número da casa (ou "s/n").','warn');
   const formaEscolhida = (cdDados.formasPagamento||[]).find(f=>f.id===formaPagamentoId);
   const precisaTrocoBox = document.getElementById('cdPrecisaTroco');
   const ehDinheiro = formaEscolhida && formaEscolhida.nome.toLowerCase()==='dinheiro';
@@ -13353,6 +13401,30 @@ function sb6Parar(){ _sb6Parado_ = true; clearTimeout(_sb6Retry_); clearInterval
 })();
 
 </script>
+<style id="cdCompactoCss">
+/* cards menores na rolagem lateral (2,5 por tela) */
+@media (max-width:899px){
+  .cd-cat-lista > .cd-card{ flex:0 0 calc(44% - 5px); }
+  .cd-cat-lista .cd-info{ padding:7px 8px 9px; gap:3px; }
+  .cd-cat-lista .cd-nome{ font-size:12.5px; line-height:1.2; display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:2.4em; }
+  .cd-cat-lista .cd-desc{ font-size:10.5px; min-height:2.6em; }
+  .cd-cat-lista .cd-preco{ font-size:14px; }
+  .cd-cat-lista .cd-card button{ padding:6px; font-size:11.5px; margin-top:4px; }
+}
+.cd-card img{ cursor:zoom-in; }
+#cdFotoOv{position:fixed;inset:0;z-index:100001;background:rgba(0,0,0,.82);display:flex;align-items:center;justify-content:center;padding:14px;}
+#cdFotoOv .cdfo-box{position:relative;background:var(--panel);border:1.5px solid var(--gold-dim);border-radius:16px;max-width:520px;width:100%;max-height:92vh;overflow:auto;}
+#cdFotoOv img{display:block;width:100%;height:auto;max-height:62vh;object-fit:contain;background:#000;border-radius:14px 14px 0 0;}
+#cdFotoOv .cdfo-info{padding:10px 14px 14px;display:flex;flex-direction:column;gap:6px;}
+#cdFotoOv .cdfo-nome{font-size:16px;font-weight:800;color:var(--cream);}
+#cdFotoOv .cdfo-desc{font-size:12.5px;color:var(--muted);line-height:1.35;}
+#cdFotoOv .cdfo-preco{font-family:var(--font-display);font-size:20px;color:var(--gold);}
+#cdFotoOv .cdfo-add{background:linear-gradient(180deg,var(--gold-hi),var(--gold) 55%,var(--gold-lo));color:#241a10;border:1.5px solid #000;border-bottom-width:3px;border-radius:10px;padding:10px;font-weight:800;font-size:14px;cursor:pointer;}
+#cdFotoOv .cdfo-add:disabled{opacity:.6;cursor:not-allowed;}
+#cdFotoOv .cdfo-x{position:absolute;top:8px;right:8px;z-index:2;width:34px;height:34px;border-radius:50%;border:1.5px solid var(--gold);background:var(--red,#c8281e);color:#fff;font-size:16px;cursor:pointer;}
+/* campo de hora igual aos demais */
+input[type=time]{width:100%;background:#0b0705;border:1.5px solid #4a3414;border-radius:10px;color:var(--cream);padding:10px 11px;font-size:16px;font-family:inherit;color-scheme:dark;}
+</style>
 <style id="iaPublicaCss">
 .ia-acoes{flex:0 0 auto;}
 .ia-acoes:empty{display:none;}
@@ -13920,6 +13992,7 @@ window.abrirMapaEntrega_ = function(vendaId){
       }, fim, { enableHighAccuracy:true, timeout:15000, maximumAge:60000 });
     }catch(e){ fim(); }
   };
+  window.__posCd_ = function(){ return posSilenciosa_ ? { lat:posSilenciosa_.lat, lng:posSilenciosa_.lng } : null; };
   window.cdEnviarLocalDoPedido_ = async function(vendaId){
     try{
       if(!vendaId) return;
