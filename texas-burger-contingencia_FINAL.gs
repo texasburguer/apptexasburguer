@@ -28,11 +28,11 @@ const FILA_MAX_PENDENTES = 300, FILA_MAX_CHARS = 30000;
    FILA_MAX_PUBLICA pedidos pendentes e FILA_MAX_PUBLICA_10MIN envios a cada 10 minutos — assim spam não enche a fila e não trava a venda interna. */
 const FILA_MAX_PUBLICA = 100, FILA_MAX_PUBLICA_10MIN = 30;
 const PERMISSOES = {
-  servidor: ['listarPendentes', 'marcarSincronizado', 'atualizarEspelho', 'getEspelho', 'getEspelhoPublico', 'getEspelhoInterno',
+  servidor: ['status', 'listarPendentes', 'marcarSincronizado', 'atualizarEspelho', 'getEspelho', 'getEspelhoPublico', 'getEspelhoInterno',
              'guardarBackup', 'getArmazenamento', 'listarFotos', 'guardarFoto', 'removerFotosOrfas', 'syncLote', 'gerarChaveLeitura'],
-  interna:  ['enfileirar', 'getEspelhoPublico', 'getEspelhoInterno', 'getEspelhoReserva', 'listarFilaInterna'],
+  interna:  ['status', 'enfileirar', 'getEspelhoPublico', 'getEspelhoInterno', 'getEspelhoReserva', 'listarFilaInterna'],
   publica:  ['enfileirar', 'getEspelhoPublico'],
-  leitura:  ['getEspelhoReserva', 'listarFilaInterna']   // RESERVA DE LEITURA: só consulta (Cozinha/Garçom/Entregador também usam); sem dados de contato nem de pagamento
+  leitura:  ['status', 'getEspelhoReserva', 'listarFilaInterna']   // RESERVA DE LEITURA: só consulta (Cozinha/Garçom/Entregador também usam); sem dados de contato nem de pagamento
 };
 
 let _ssMemo_ = null; // abre a planilha UMA vez por execução
@@ -102,11 +102,20 @@ function rotacionarChavesSensiveis() {
 function perfilDaChave_(chave) {
   if (!chave || typeof chave !== 'string') return '';
   const p = PropertiesService.getScriptProperties();
-  if (chave === p.getProperty('CHAVE_SERVIDOR')) return 'servidor';
-  if (chave === p.getProperty('CHAVE_INTERNA')) return 'interna';
-  if (chave === p.getProperty('CHAVE_PUBLICA')) return 'publica';
-  if (chave === p.getProperty('CHAVE_LEITURA')) return 'leitura';
+  if (chaveIgual_(chave, p.getProperty('CHAVE_SERVIDOR'))) return 'servidor';
+  if (chaveIgual_(chave, p.getProperty('CHAVE_INTERNA'))) return 'interna';
+  if (chaveIgual_(chave, p.getProperty('CHAVE_PUBLICA'))) return 'publica';
+  if (chaveIgual_(chave, p.getProperty('CHAVE_LEITURA'))) return 'leitura';
   return '';
+}
+
+/* Comparação sem atalho: percorre sempre todos os caracteres (não revela, pelo tempo de resposta, quantos acertou). */
+function chaveIgual_(a, b) {
+  if (typeof a !== 'string' || typeof b !== 'string' || !a || !b) return false;
+  let d = a.length ^ b.length;
+  const n = Math.max(a.length, b.length);
+  for (let i = 0; i < n; i++) d |= (a.charCodeAt(i) || 0) ^ (b.charCodeAt(i) || 0);
+  return d === 0;
 }
 
 function responder(obj) {
@@ -116,7 +125,8 @@ function responder(obj) {
 /* Health check (abrir a URL /exec no navegador). Só números — nada de dados de pedido. */
 function doGet(e) {
   try {
-    return responder({ ok: true, servico: 'Texas Burger - Contingência', pendentes: contarPendentes_(), espelhoAtualizadoEm: espelhoAtualizadoEm_() });
+    /* Público de propósito (teste de "está no ar"): não mostra contagens. Os detalhes saem pela ação 'status', que exige chave. */
+    return responder({ ok: true, servico: 'Texas Burger - Contingência' });
   } catch (err) {
     return responder({ ok: false, message: 'Erro: ' + err.message });
   }
@@ -129,8 +139,8 @@ function doPost(e) {
   if (!perfil) return responder({ ok: false, message: 'Chave inválida.' });
   if (PERMISSOES[perfil].indexOf(body.action) === -1) return responder({ ok: false, message: 'Esta chave não tem permissão para esta ação.' });
 
-  /* OTIMIZAÇÃO (Etapa A): ações só de leitura NÃO esperam a trava. Antes, o cardápio público e a Cozinha ficavam na fila atrás de uma gravação. */
-  const SEM_TRAVA = ['listarPendentes', 'getEspelho', 'getEspelhoPublico', 'getEspelhoInterno', 'getEspelhoReserva', 'listarFilaInterna', 'listarFotos', 'getArmazenamento'];
+  /* OTIMIZAÇÃO: ações só de leitura NÃO esperam a trava. Antes, o cardápio público e a Cozinha ficavam na fila atrás de uma gravação. */
+  const SEM_TRAVA = ['status', 'listarPendentes', 'getEspelho', 'getEspelhoPublico', 'getEspelhoInterno', 'getEspelhoReserva', 'listarFilaInterna', 'listarFotos', 'getArmazenamento'];
   const lock = LockService.getScriptLock();
   const usaTrava = SEM_TRAVA.indexOf(body.action) === -1;
   if (usaTrava) { try { lock.waitLock(20000); } catch (err) { return responder({ ok: false, ocupado: true, message: 'Contingência ocupada, tente de novo.' }); } }
@@ -138,6 +148,7 @@ function doPost(e) {
     let r;
     switch (body.action) {
       case 'enfileirar': r = enfileirar(body.id, body.tipo, body.dados, perfil); break;
+      case 'status': r = { ok: true, pendentes: contarPendentes_(), espelhoAtualizadoEm: espelhoAtualizadoEm_() }; break;
       case 'listarPendentes': r = { ok: true, pendentes: readFilaPendente() }; break;
       case 'marcarSincronizado': r = marcarSincronizado(body.id); break;
       case 'atualizarEspelho': r = atualizarEspelho(body.dados); break;
@@ -152,7 +163,7 @@ function doPost(e) {
       case 'syncLote': r = ctSyncLote_(body.itens); break;
       case 'gerarChaveLeitura': r = gerarChaveLeitura_(); break;
       case 'listarFilaInterna': r = { ok: true, fila: filaInternaResumo_() }; break;
-      case 'getEspelhoReserva': { const esp = lerEspelho_(['reserva']); r = { ok: true, reserva: esp.reserva || null, atualizadoEm: esp._atualizadoEm }; break; }   // ETAPA 4 — espelho das tabelas do Supabase (abas SB_<tabela>)
+      case 'getEspelhoReserva': { const esp = lerEspelho_(['reserva']); r = { ok: true, reserva: esp.reserva || null, atualizadoEm: esp._atualizadoEm }; break; }   // espelho das tabelas do Supabase (abas SB_<tabela>)
       default: r = { ok: false, message: 'Ação desconhecida.' };
     }
     return responder(r);
@@ -197,7 +208,7 @@ function enfileirar(id, tipo, dados, perfil) {
   const sh = ss_().getSheetByName('Fila');
   const last = sh.getLastRow();
   if (last >= 2) {
-    /* OTIMIZAÇÃO (Etapa A): lê só as colunas id, status e origem (a coluna C guarda o pedido inteiro, até 30 mil caracteres por linha). */
+    /* OTIMIZAÇÃO: lê só as colunas id, status e origem (a coluna C guarda o pedido inteiro, até 30 mil caracteres por linha). */
     const n = last - 1;
     const ids = sh.getRange(2, 1, n, 1).getValues(), sts = sh.getRange(2, 5, n, 1).getValues(), ori = sh.getRange(2, 7, n, 1).getValues();
     let pend = 0, pendPub = 0;
@@ -219,7 +230,7 @@ function contarPendentes_() {
   return sh.getRange(2, 5, last - 1, 1).getValues().filter(r => r[0] === 'Pendente').length;
 }
 function readFilaPendente() {
-  /* OTIMIZAÇÃO (Etapa A): descobre pela coluna de status onde estão os pendentes e lê o pedido (coluna C) só dessa faixa. */
+  /* OTIMIZAÇÃO: descobre pela coluna de status onde estão os pendentes e lê o pedido (coluna C) só dessa faixa. */
   const sh = ss_().getSheetByName('Fila');
   const last = sh.getLastRow();
   if (last < 2) return [];
@@ -279,7 +290,7 @@ function espelhoAtualizadoEm_() {
   sh.getRange(2, 3, last - 1, 1).getValues().forEach(r => { if (r[0] && (!m || new Date(r[0]) > m)) m = new Date(r[0]); });
   return m;
 }
-/* OTIMIZAÇÃO (Etapa A): "chaves" limita o que é lido e convertido (o cardápio público não precisa baixar a lista de clientes).
+/* OTIMIZAÇÃO: "chaves" limita o que é lido e convertido (o cardápio público não precisa baixar a lista de clientes).
    Resultado guardado 60 s em cache (cada chave até ~90 mil caracteres); atualizarEspelho() limpa o cache na hora. */
 const ESP_CACHE_SEG = 60;
 function lerEspelho_(chaves) {
@@ -438,7 +449,7 @@ function getArmazenamentoCont_() {
 
 
 /* =====================================================================
-   ETAPA 4 — ESPELHO DO SUPABASE NA CONTINGÊNCIA (ação "syncLote")
+   ESPELHO DO SUPABASE NA CONTINGÊNCIA (ação "syncLote")
    Só a CHAVE_SERVIDOR pode chamar. Recebe os itens da fila_sync ({id, tabela, registro_id, operacao, payload}) e mantém
    uma aba "SB_<tabela>" por tabela (uma linha por registro, coluna A = id). Só vale o ÚLTIMO estado de cada registro.
    Não toca em Fila nem Espelho. Reenvio do mesmo lote não duplica.
@@ -519,7 +530,7 @@ function ctSyncLote_(itens) {
 
 
 /* =====================================================================
-   RESERVA DE LEITURA (Etapa 6 das correções pós-migração)
+   RESERVA DE LEITURA
    Quando o Supabase cai, o app mostra os pedidos em andamento (espelho a cada ~10 min) e os pedidos que entraram aqui na fila.
    Perfil "leitura": só lê. Nunca devolve telefone, endereço nem forma de pagamento.
    ===================================================================== */
@@ -541,7 +552,7 @@ function filaInternaResumo_() {
 
 
 /* =====================================================================
-   ETAPA A (OTIMIZAÇÃO) — LIMPEZA DA FILA
+   LIMPEZA DA FILA
    A aba Fila só crescia: cada pedido sincronizado continuava ali e todo envio relia tudo. Agora as linhas SINCRONIZADAS com mais
    de FILA_RETENCAO_DIAS dias são apagadas (em faixas, de baixo para cima). Pendentes e corrompidos NUNCA são apagados.
    Rode `garantirLimpezaFila` UMA vez no editor para criar o gatilho diário (4h).
@@ -568,4 +579,44 @@ function garantirLimpezaFila() {
   const tem = ScriptApp.getProjectTriggers().some(t => t.getHandlerFunction() === 'limparFilaSincronizada');
   if (!tem) ScriptApp.newTrigger('limparFilaSincronizada').timeBased().everyDays(1).atHour(4).create();
   return 'Limpeza diária da Fila ativada (4h).';
+}
+
+
+/* ============================================================================
+   LIMPEZA DE ABAS SEM USO (09/10/2026)
+   Esta planilha só precisa de: Fila, Espelho, Fotos e as abas SB_*. Qualquer outra (por exemplo
+   "Sheet1" / "Página1" ou sobras de versões antigas) pode sair.
+   COMO USAR (no editor do Apps Script, escolha a função e toque em Executar):
+     1) previaLimpezaAbasContingencia   só MOSTRA o que seria apagado (nada é alterado)
+     2) limparAbasContingencia          faz uma CÓPIA no seu Drive e então apaga as abas sem uso
+   Nunca apaga Fila, Espelho, Fotos nem SB_*.
+   ============================================================================ */
+function abaProtegidaContingencia_(nome) { return nome === 'Fila' || nome === 'Espelho' || nome === 'Fotos' || /^SB_/.test(nome); }
+
+function previaLimpezaAbasContingencia() {
+  const nomes = ss_().getSheets().map(function (s) { return s.getName(); });
+  const apagar = nomes.filter(function (n) { return !abaProtegidaContingencia_(n); });
+  const ficam = nomes.filter(function (n) { return abaProtegidaContingencia_(n); });
+  const texto = 'SERIAM APAGADAS (' + apagar.length + '): ' + (apagar.join(', ') || 'nenhuma') + '\nFICAM (' + ficam.length + '): ' + ficam.join(', ');
+  Logger.log(texto); return texto;
+}
+
+function limparAbasContingencia() {
+  const ss = ss_();
+  const apagar = ss.getSheets().map(function (s) { return s.getName(); }).filter(function (n) { return !abaProtegidaContingencia_(n); });
+  if (!apagar.length) { const m = 'Nenhuma aba sem uso encontrada.'; Logger.log(m); return m; }
+  if (!ss.getSheetByName('Fila') || !ss.getSheetByName('Espelho')) {
+    const m = 'NADA FOI APAGADO: as abas Fila/Espelho não existem. Rode "setup" primeiro.'; Logger.log(m); return m;
+  }
+  let copia;
+  try {
+    const stamp = Utilities.formatDate(new Date(), 'America/Sao_Paulo', 'yyyy-MM-dd HH:mm');
+    copia = ss.copy('COPIA antes de limpar abas - ' + stamp);
+  } catch (e) { const m = 'NADA FOI APAGADO: não consegui fazer a cópia de segurança (' + e.message + ').'; Logger.log(m); return m; }
+  const apagadas = [], falhas = [];
+  apagar.forEach(function (n) {
+    try { const s = ss.getSheetByName(n); if (s && ss.getSheets().length > 1) { ss.deleteSheet(s); apagadas.push(n); } } catch (e) { falhas.push(n + ' (' + e.message + ')'); }
+  });
+  const msg = 'Cópia criada: "' + copia.getName() + '" (Drive). Apagadas ' + apagadas.length + ' aba(s): ' + apagadas.join(', ') + (falhas.length ? '. Não apagadas: ' + falhas.join('; ') : '') + '.';
+  Logger.log(msg); return msg;
 }

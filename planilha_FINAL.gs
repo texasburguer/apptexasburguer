@@ -744,7 +744,7 @@ function doPost(e) {
   try { body = JSON.parse(e.postData.contents); } catch (err) { return responder({ ok: false, message: 'Requisição inválida.' }); }
   if (!body || typeof body !== 'object' || Array.isArray(body) || typeof body.action !== 'string') return responder({ ok: false, message: 'Requisição inválida.' });
   const action = body.action;
-    if (ACOES_SERVIDOR_SB_.indexOf(action) !== -1) return responder(acaoServidorSb_(action, body));   // ETAPAS 4/7/8/9 — chamadas da Edge Function (antes da sanitização)
+    if (ACOES_SERVIDOR_SB_.indexOf(action) !== -1) return responder(acaoServidorSb_(action, body));   // chamadas das Edge Functions (antes da sanitização)
   body = sanitizarEntrada_(body, '', 0);
   USUARIO_ATUAL = ''; NIVEL_ATUAL = ''; NIVEL_REAL_ATUAL = ''; AUTORIZADOR_ATUAL = ''; APARELHO_ATUAL = '';
   { // ITEM 2.8: em manutenção, todo mundo (inclusive o cardápio público) recebe aviso na hora; só Admin passa.
@@ -1458,7 +1458,7 @@ const PERMISSOES_ACAO = {
   seedCardapioTexasBurger: ['Admin'],
   addMesa: ['Admin'], excluirMesa: ['Admin'],
   editarStatusMesa: ['Admin', 'Operador', 'Garçom'], getQrMesas: ['Admin'], gerarNovoCodigoMesa: ['Admin'], atenderChamadoMesa: ['Admin', 'Operador', 'Garçom'],
-  fecharContaMesa: ['Admin', 'Operador', 'Garçom'], // ETAPA 3: garçom recebe só nas SUAS mesas (checado dentro de fecharContaMesa)
+  fecharContaMesa: ['Admin', 'Operador', 'Garçom'], // garçom recebe só nas SUAS mesas (checado dentro de fecharContaMesa)
   sincronizarContingenciaAgora: ['Admin'], reconciliarContingenciaAgora: ['Admin'], ativarSincronizacaoContingencia: ['Admin'],
   editarStatusFeedback: ['Admin', 'Operador'],
   registrarOcorrencia: ['Admin', 'Operador', 'Garçom', 'Cozinha', 'Entregador'], atualizarOcorrencia: ['Admin', 'Operador'],
@@ -1502,7 +1502,7 @@ function criarUsuario(novoLogin, novaSenha, nivel, senhaAdminConfirmacao, nome, 
   registrarLog('Usuário criado', '', novoLogin + ' (' + nivel + ')');
   return { ok: true, message: 'Usuário criado.', usuarios: readUsuarios() };
 }
-/* ETAPA C: o próprio usuário troca a senha (qualquer perfil). Só mexe no usuário da SESSÃO — o login nunca vem do app.
+/* o próprio usuário troca a senha (qualquer perfil). Só mexe no usuário da SESSÃO — o login nunca vem do app.
    Exige a senha atual (com limite de 5 erros / 10 min), aplica a mesma regra de senha forte e derruba as outras sessões
    do usuário (a "marca" da senha muda). Devolve um token novo para este aparelho continuar logado. */
 function trocarMinhaSenha(senhaAtual, novaSenha, tokenAtual) {
@@ -1589,7 +1589,7 @@ function dataTexto_(v) {
   if (v instanceof Date) return Utilities.formatDate(v, FUSO, 'dd/MM/yyyy HH:mm');
   return String(v || '');
 }
-/* ETAPA 1: a tela Auditoria lê a aba Auditoria (perfil e quem autorizou), não o Log simples. */
+/* a tela Auditoria lê a aba Auditoria (perfil e quem autorizou), não o Log simples. */
 function readLogRecentes(limite) {
   const sh = ss_().getSheetByName('Auditoria');
   if (!sh) return [];
@@ -1799,7 +1799,7 @@ function getAllData(grupo) {
     dados.estoque = dados.estoque.map(x => { const y = Object.assign({}, x); delete y.custo; return y; });
     dados.vendas = dados.vendas.map(x => { const y = Object.assign({}, x); delete y.custoTotal; return y; });
     dados.itensVenda = dados.itensVenda.map(x => { const y = Object.assign({}, x); delete y.custoUnitario; return y; });
-    // ETAPA 3: o Garçom agora recebe pagamento, então vê as formas ativas — mas nunca taxa %, taxa fixa nem prazo.
+    // o Garçom agora recebe pagamento, então vê as formas ativas — mas nunca taxa %, taxa fixa nem prazo.
     dados.formasPagamento = dados.formasPagamento.map(f => ({ id: f.id, nome: f.nome, ativa: f.ativa, permiteTroco: f.permiteTroco, ordem: f.ordem }));
   }
 
@@ -2012,14 +2012,14 @@ function upsertCliente(telefone, nome) {
   for (let i = 2; i <= last; i++) {
     if (normTel(sh.getRange(i, 3).getValue()) === tel) {
       if (nome && !sh.getRange(i, 2).getValue()) sh.getRange(i, 2).setValue(nome);
-      return sh.getRange(i, 1).getValue(); // ETAPA 2: devolve o ID permanente do cliente
+      return sh.getRange(i, 1).getValue(); // devolve o ID permanente do cliente
     }
   }
   const novoId = Utilities.getUuid();
   sh.appendRow([novoId, nome || '', telefone, '', '', '', agora(), '']);
   return novoId;
 }
-/* ETAPA 2: ID permanente do cliente a partir do telefone ('' se não existir). O telefone continua sendo a busca rápida. */
+/* ID permanente do cliente a partir do telefone ('' se não existir). O telefone continua sendo a busca rápida. */
 function idClientePorTelefone_(telefone) {
   if (!telefone) return '';
   const sh = ss_().getSheetByName('Clientes'); const last = sh.getLastRow();
@@ -2524,7 +2524,7 @@ function addOrStampFidelidade(telefone, nome, observacao) {
   const sh = ss_().getSheetByName('Fidelidade'); const tel = normTel(telefone); const last = sh.getLastRow();
   for (let i = 2; i <= last; i++) {
     if (normTel(sh.getRange(i, 2).getValue()) === tel) {
-      if (!sh.getRange(i, 7).getValue()) sh.getRange(i, 7).setValue(upsertCliente(telefone, nome) || ''); // ETAPA 2: vincula ao ID do cliente
+      if (!sh.getRange(i, 7).getValue()) sh.getRange(i, 7).setValue(upsertCliente(telefone, nome) || ''); // vincula ao ID do cliente
       const carimbosAtuais = sh.getRange(i, 3).getValue();
       if (observacao) sh.getRange(i, 6).setValue(observacao);
       if (carimbosAtuais >= 10) return { ok: true, novo: false, message: 'Cartão já está completo (10/10). Resgate o prêmio antes de somar nova marca.', fidelidade: readFidelidade() };
@@ -3067,7 +3067,7 @@ function excluirMesa(id) {
   for (let i = last; i >= 2; i--) { if (sh.getRange(i, 1).getValue() === id) { sh.deleteRow(i); break; } }
   return { ok: true, mesas: readMesas() };
 }
-/* ETAPA 3: libera a mesa direto na planilha. Existe porque editarStatusMesa recusa o Garçom ao devolver uma mesa a "Livre",
+/* libera a mesa direto na planilha. Existe porque editarStatusMesa recusa o Garçom ao devolver uma mesa a "Livre",
    e o fechamento de conta é uma ação do servidor, já validada (dono da mesa, caixa aberto, soma dos pagamentos). */
 function liberarMesaServidor_(mesaId) {
   const sh = ss_().getSheetByName('Mesas');
@@ -3096,7 +3096,7 @@ function fecharContaMesa(mesaId, pagamentos) {
   if ((pagamentos || []).some(p => p && String(p.forma || '').trim() === 'A Receber (Mesa)')) return { ok: false, message: 'Forma de pagamento inválida para esta operação.' };
   const vendasDaMesa = readVendas().filter(v => v.mesaId === mesaId && v.status === 'Confirmada' && v.statusPagamento === 'A Receber');
   if (!vendasDaMesa.length) { liberarMesaServidor_(mesaId); return { ok: true, message: 'Essa mesa não tinha conta pendente. Liberada.', vendas: readVendasResposta_(), mesas: readMesas() }; }
-  // ETAPA A: o dinheiro recebido precisa cair numa sessão de caixa, senão fica fora do fechamento e a gaveta nunca bate.
+  // o dinheiro recebido precisa cair numa sessão de caixa, senão fica fora do fechamento e a gaveta nunca bate.
   if (!readSessaoAberta()) return { ok: false, message: 'Abra o caixa antes de fechar a conta da mesa — o valor recebido precisa entrar no fechamento do caixa.' };
   const totalConta = Math.round(vendasDaMesa.reduce((s, v) => s + v.valorTotal, 0) * 100) / 100;
   const erroPagamentos = validarPagamentosVenda_(pagamentos, 'Mesa', NIVEL_ATUAL === 'Admin' || NIVEL_ATUAL === 'Operador' ? NIVEL_ATUAL : 'Caixa');
@@ -4053,7 +4053,7 @@ function iniciarVenda(itens, clienteNome, clienteTelefone, pagamentos, tipoEntre
   if (!itens || !itens.length) return { ok: false, message: 'Adicione ao menos um item à venda.' };
   if (!pagamentos || !pagamentos.length) return { ok: false, message: 'Informe ao menos uma forma de pagamento.' };
   if (tipoEntrega === 'Mesa' && !mesaId) return { ok: false, message: 'Informe a mesa.' };
-  /* ETAPA 4: o garçom só lança pedido de MESA, sem desconto e sem receber pagamento (fica "A Receber" até o caixa fechar a conta).
+  /* o garçom só lança pedido de MESA, sem desconto e sem receber pagamento (fica "A Receber" até o caixa fechar a conta).
      Vale no servidor, não só na tela. */
   if (NIVEL_ATUAL === 'Garçom') {
     if (['Mesa', 'Entrega', 'Retirada'].indexOf(tipoEntrega) === -1) return { ok: false, message: 'O garçom só lança pedidos de mesa, entrega ou retirada.' };
@@ -4156,7 +4156,7 @@ function iniciarVenda(itens, clienteNome, clienteTelefone, pagamentos, tipoEntre
   const formaPagamentoResumo = pagamentos.map(p => p.forma).join(' + ');
   const origemFinal = ['Cardápio', 'Garçom'].indexOf(origem) !== -1 ? origem : 'Balcão';
   const statusPedidoInicial = origemFinal === 'Cardápio' ? 'Recebido' : 'Em preparo';
-  const numeroPedido = proximoNumeroPedido_(shVendas); // ETAPA 2: número amigável sequencial (já estamos dentro do lock)
+  const numeroPedido = proximoNumeroPedido_(shVendas); // número amigável sequencial (já estamos dentro do lock)
   shVendas.appendRow([
     vendaId, dataVenda, clienteNome || '', clienteTelefone || '', formaPagamentoResumo, valorTotal, custoTotal, 'Confirmada', '',
     tipo, statusPedidoInicial, tipo === 'Entrega' ? (de.endereco || '') : '', tipo === 'Entrega' ? (de.complemento || '') : '', tipo === 'Entrega' ? (de.referencia || '') : '', de.observacoes || '', '', '',
@@ -5031,7 +5031,7 @@ function cancelarDespesa(id, motivo, senhaAdminConfirmacao) {
 }
 
 /* =========================================================
-   PARTE — BACKUP E RECUPERAÇÃO (Etapa 21)
+   PARTE — BACKUP E RECUPERAÇÃO
    ========================================================= */
 /* =========================================================
    FASE 10 — ARMAZENAMENTO, BACKUP E RECUPERAÇÃO (ITENS 71–77)
@@ -5655,7 +5655,7 @@ function reconciliarContingencia() {
    (Configurações do projeto -> Propriedades do script). Nunca escreva chave no código. Para trocar: rotacionarChavesSensiveis() no projeto da contingência. */
 
 /* ============================================================================
-   TEXAS BURGER — SINCRONIZAÇÃO COM O SUPABASE (Etapas 4, 7, 8 e 9)
+   TEXAS BURGER — SINCRONIZAÇÃO COM O SUPABASE
    Arquivo NOVO no mesmo projeto do Apps Script da planilha principal (+ Arquivo → "Novo arquivo de script").
 
    1) Propriedades do script (Configurações do projeto → Propriedades):
@@ -5666,7 +5666,7 @@ function reconciliarContingencia() {
    3) Republicar o Web App (nova versão).
 
    O espelho grava em abas "SB_<tabela>" (uma linha por registro, coluna A = id). As abas antigas
-   (Vendas, ItensVenda…) NÃO são mexidas: o mapeamento delas depende do plano de colunas da Etapa 0.
+   (Vendas, ItensVenda…) NÃO são mexidas: o mapeamento delas é outro.
    ============================================================================ */
 /* Chave que a Edge Function envia. Já vem preenchida aqui; se existir a propriedade de script SB_CHAVE_SERVIDOR, ela tem prioridade. */
 const SB_CHAVE_SERVIDOR_PADRAO_ = 'txbsb-dPcBNH9tYyZ1K_cKKzBoWGKgrQ0QKch-EBe0TFc6bis';
@@ -5684,7 +5684,7 @@ function acaoServidorSb_(action, body) {
     try { return action === 'sbLerArquivo' ? sbLerArquivo_(body.mes) : action === 'sbLerArquivoCaixa' ? sbLerArquivoCaixa_(body.mes) : sbSincAutoStatus_(); }
     catch (e) { return { ok: false, message: 'Erro: ' + String(e && e.message || e).slice(0, 300) }; }
   }
-  /* ETAPA 2 (OTIMIZAÇÃO) — só leitura / demoradas: NÃO seguram a trava das gravações. Antes, abrir o painel de armazenamento
+  /* só leitura / demoradas: NÃO seguram a trava das gravações. Antes, abrir o painel de armazenamento
      (que varre o Drive) ou rodar o espelho da contingência fazia o envio de vendas esperar. */
   if (ACOES_SEM_TRAVA_SB_.indexOf(action) !== -1) {
     try {
@@ -5746,7 +5746,7 @@ function sbAba_(nome) {
   return sh;
 }
 
-/* ETAPA 2 (OTIMIZAÇÃO) — marcas de "o que mudou": cada aba SB_ alterada recebe a hora da última alteração.
+/* marcas de "o que mudou": cada aba SB_ alterada recebe a hora da última alteração.
    O espelho da contingência usa essas marcas para reler e reenviar SÓ o que mudou. Gravadas UMA vez por chamada (sbGravarStamps_). */
 let _sbStamps_ = {};
 function sbMarcarAlterada_(aba) { if (/^(SB_|Arquivo_)/.test(aba)) _sbStamps_[aba] = Date.now(); }   // Arquivo_* também: o cache de leitura do arquivo usa a marca
@@ -5810,7 +5810,7 @@ function sbUpsert_(nomeAba, linhas, remover) {
   return { gravadas: gravadas, removidas: removidas };
 }
 
-/* ETAPA 4 — itens da fila_sync: {id, tabela, registro_id, operacao, payload}. Só vale o ÚLTIMO estado de cada registro. */
+/* itens da fila_sync: {id, tabela, registro_id, operacao, payload}. Só vale o ÚLTIMO estado de cada registro. */
 function sbSyncLote_(itens) {
   if (!Array.isArray(itens)) return { ok: false, message: 'Lote inválido.' };
   const ultimo = {}; // tabela|id -> item
@@ -5831,7 +5831,7 @@ function sbSyncLote_(itens) {
   return { ok: true, processados: total };
 }
 
-/* ETAPA 7 — arquivo permanente. Grava por id (reenvio não duplica), confere e só então tira do espelho. */
+/* arquivo permanente. Grava por id (reenvio não duplica), confere e só então tira do espelho. */
 function sbArquivar_(b) {
   function pacote(lista, aba, chaveAba) {
     const linhas = (lista || []).map(function (r) {
@@ -5856,7 +5856,7 @@ function sbArquivar_(b) {
   return { ok: false, message: 'Tipo de arquivamento desconhecido.' };
 }
 
-/* ETAPA 8 — fotos. O envio usa _uploadFotoSegura (valida tipo/tamanho) e a cópia para a reserva usa a mesma
+/* fotos. O envio usa _uploadFotoSegura (valida tipo/tamanho) e a cópia para a reserva usa a mesma
    contingência que o app já tinha (chamarContingencia_ 'guardarFoto'): nada de pasta ou conta nova. */
 function sbUploadFotoSb_(b) {
   const r = _uploadFotoSegura(b.nomeBase || 'item', b.base64Data, b.mimeType, null);
@@ -5890,7 +5890,7 @@ function sbReplicarFotos_(itens) {
   return { ok: true, resultados: resultados, falhas: falhas, message: falhas.length ? falhas.length + ' foto(s) não copiadas.' : '' };
 }
 
-/* ETAPA 9 — vendas confirmadas do dia (horário de Brasília) no espelho. data = 'yyyy-MM-dd'.
+/* vendas confirmadas do dia (horário de Brasília) no espelho. data = 'yyyy-MM-dd'.
    OTIMIZADO: lê só as colunas status e data_hora, de baixo para cima, e para quando passa dos dias que interessam
    (antes lia a aba inteira, todas as colunas). Sem trava: é só leitura. */
 function sbContarVendasHoje_(data) {
@@ -5918,8 +5918,8 @@ function sbContarVendasHoje_(data) {
 
 
 /* ============================================================================
-   TEXAS BURGER — ETAPA 2 (CORREÇÕES PÓS-MIGRAÇÃO): CONTINGÊNCIA E ARMAZENAMENTO
-   Colar no FIM do arquivo novo do Apps Script (o mesmo das Etapas 4, 7, 8 e 9) e republicar o Web App.
+   TEXAS BURGER — CONTINGÊNCIA E ARMAZENAMENTO
+   (Já faz parte deste arquivo.)
    O espelho da contingência agora é montado a partir das abas SB_<tabela> (o que o Supabase envia),
    e não mais das abas antigas (Produtos, Clientes…), que deixaram de ser atualizadas.
    Chamadas só pela Edge Function "planilha-admin" (chave do servidor); as chaves da contingência
@@ -5967,7 +5967,7 @@ function sbSincronizarFotosContingencia_(prods, combos, limiteMs) {
 
 /* Monta o mesmo "espelho" que a contingência sempre recebeu (formato idêntico ao antigo), agora lendo as abas SB_. */
 function sbSincronizarContingencia_(rapido) {
-  /* ETAPA 2 (OTIMIZAÇÃO) — espelho INCREMENTAL. No modo rápido (a cada ~10 min) só relê e reenvia o que mudou desde o último envio
+  /* espelho INCREMENTAL. No modo rápido (a cada ~10 min) só relê e reenvia o que mudou desde o último envio
      (as marcas por aba vêm de sbUpsert_). A "reserva" (pedidos em andamento) é sempre refeita: lê só o final das abas de vendas.
      Sincronização manual e a diária das 3h continuam COMPLETAS (rede de segurança contra qualquer diferença). */
   const stamps = sbLerStamps_(), sigAnt = sbLerAssinaturasEspelho_();
@@ -6129,7 +6129,7 @@ function sbObterArmazenamento_() {
 
 
 /* ============================================================================
-   ETAPA 5 (CORREÇÕES) — MESES ARQUIVADOS NOS RELATÓRIOS
+   MESES ARQUIVADOS NOS RELATÓRIOS
    Devolve as vendas (com itens e pagamentos) de um mês que já saiu do Supabase e está nas abas Arquivo_*.
    Chamado pela Edge Function "planilha-admin" (acao arquivoVendas). Só leitura.
    ============================================================================ */
@@ -6170,7 +6170,7 @@ function sbLerColuna_(nome, col) {
   return a.sh.getRange(2, ci + 1, a.ultima - 1, 1).getValues().map(function (r) { return r[0]; });
 }
 function sbMs_(v) { return (v instanceof Date) ? v.getTime() : Date.parse(String(v)); }
-/* ETAPA (OTIMIZAÇÃO IA) — cache da leitura de um mês arquivado. A chave inclui a marca de alteração das abas Arquivo_*:
+/* OTIMIZAÇÃO — cache da leitura de um mês arquivado. A chave inclui a marca de alteração das abas Arquivo_*:
    se o Supabase arquivar mais linhas, a marca muda e o cache antigo deixa de valer sozinho (nada fica desatualizado).
    Só leitura: não mexe na gravação nem na trava. Resultado grande é dividido em partes; se não couber, simplesmente não guarda. */
 function sbCacheArq_(chave, abas, calcular) {
@@ -6236,7 +6236,7 @@ function sbLerArquivoCaixaCalc_(mes) {
 
 
 /* ============================================================================
-   ETAPA 6 (CORREÇÕES) — CÓPIA DO BACKUP DO SUPABASE NO GOOGLE DRIVE
+   CÓPIA DO BACKUP DO SUPABASE NO GOOGLE DRIVE
    A Edge Function "criar-backup" envia cada backup (.json.gz) para cá logo depois de guardá-lo no Storage do Supabase.
    Pasta própria (não mistura com as cópias da planilha). Limpa só os AUTOMÁTICOS antigos; manuais e de segurança ficam.
    ============================================================================ */
@@ -6286,3 +6286,105 @@ function sbLerAbaUltimas_(nome, n) {
     const o = {}; for (let i = 1; i < cab.length; i++) if (cab[i]) o[cab[i]] = r[i]; return o;
   }).filter(function (o) { return o.id !== undefined && String(o.id) !== ''; });
 }
+
+
+/* ============================================================================
+   LIMPEZA DAS ABAS DO SISTEMA ANTIGO (feita em 09/10/2026)
+   O app hoje fala com o Supabase. Esta planilha só precisa de:
+     - SB_*        cópia automática do Supabase (a contingência lê dela)
+     - Arquivo_*   vendas e caixas antigos enviados pelo app para liberar espaço
+     - Log         registro de eventos da sincronização (ainda é usado)
+     - Auditoria   registro de ações importantes
+   Tudo que está na lista abaixo é do sistema antigo (Google Sheets puro) e não tem mais uso.
+
+   COMO USAR (no editor do Apps Script, escolha a função na lista e toque em Executar):
+     1) previaLimpezaAbas        só MOSTRA o que seria apagado (nada é alterado). Veja em Execuções/Registro.
+     2) ocultarAbasAntigas       esconde as abas (reversível: botão direito nas abas > Mostrar). Use uns dias.
+     3) limparAbasAntigas        faz uma CÓPIA da planilha no seu Drive e então APAGA as abas antigas
+                                 e os acionadores (gatilhos) antigos. Só apaga se a cópia foi feita.
+     removerAcionadoresAntigos   remove só os gatilhos antigos (já está dentro do passo 3).
+   Nunca apaga SB_*, Arquivo_*, Log nem Auditoria.
+   ============================================================================ */
+const ABAS_ANTIGAS_LIMPEZA_ = [
+  'Vendas', 'ItensVenda', 'PagamentosVenda', 'Clientes', 'Produtos', 'ProdutoPrecos', 'ProdutoAdicionais', 'ProdutoIngredientes',
+  'Combos', 'ComboPrecos', 'ComboItens', 'Categorias', 'Adicionais', 'Formas de Pagamento', 'Promoções', 'Cupons', 'CuponsUsos',
+  'Mesas', 'Caixa', 'Sangrias', 'Estoque', 'MovimentaçõesEstoque', 'Despesas', 'DespesasRecorrentes', 'AjustesPosVenda',
+  'Ocorrências', 'Feedbacks', 'Indicações', 'Fidelidade', 'Eventos', 'EventosCustos', 'EventosRecebimentos',
+  'FechamentosEntrega', 'EntregasFechadas', 'Configurações', 'Usuários', 'Backups', 'Requisicoes', 'ContingenciaReconciliada',
+  'Sheet1', 'Página1', 'Planilha1'
+];
+const ACIONADORES_ANTIGOS_LIMPEZA_ = ['tarefaDespesasMensais', 'criarBackupDiario', 'sincronizarContingencia', 'reconciliarContingenciaAuto'];
+
+function abaProtegidaLimpeza_(nome) { return /^(SB_|Arquivo_)/.test(nome) || nome === 'Log' || nome === 'Auditoria'; }
+
+function abasParaLimpar_() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const todas = ss.getSheets().map(function (s) { return s.getName(); });
+  return {
+    apagar: todas.filter(function (n) { return ABAS_ANTIGAS_LIMPEZA_.indexOf(n) !== -1 && !abaProtegidaLimpeza_(n); }),
+    mantidas: todas.filter(function (n) { return abaProtegidaLimpeza_(n); }),
+    desconhecidas: todas.filter(function (n) { return ABAS_ANTIGAS_LIMPEZA_.indexOf(n) === -1 && !abaProtegidaLimpeza_(n); })
+  };
+}
+
+function previaLimpezaAbas() {
+  const r = abasParaLimpar_();
+  const texto = 'SERIAM APAGADAS (' + r.apagar.length + '): ' + (r.apagar.join(', ') || 'nenhuma') +
+    '\nFICAM (' + r.mantidas.length + '): ' + (r.mantidas.join(', ') || 'nenhuma') +
+    '\nNÃO RECONHECIDAS, ficam como estão (' + r.desconhecidas.length + '): ' + (r.desconhecidas.join(', ') || 'nenhuma') +
+    '\nACIONADORES ANTIGOS ENCONTRADOS: ' + (acionadoresAntigosEncontrados_().join(', ') || 'nenhum');
+  Logger.log(texto);
+  return texto;
+}
+
+function ocultarAbasAntigas() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const r = abasParaLimpar_();
+  const visiveisFicam = ss.getSheets().filter(function (s) { return r.apagar.indexOf(s.getName()) === -1 && !s.isSheetHidden(); }).length;
+  if (!visiveisFicam) { Logger.log('Nada a ocultar: sobraria nenhuma aba visível.'); return 'Nada a ocultar.'; }
+  r.apagar.forEach(function (n) { const s = ss.getSheetByName(n); if (s && !s.isSheetHidden()) s.hideSheet(); });
+  const msg = 'Ocultadas ' + r.apagar.length + ' aba(s): ' + r.apagar.join(', ') + '. Para mostrar de novo: menu Exibir > Planilhas ocultas.';
+  Logger.log(msg); return msg;
+}
+
+function acionadoresAntigosEncontrados_() {
+  return ScriptApp.getProjectTriggers().map(function (t) { return t.getHandlerFunction(); })
+    .filter(function (f) { return ACIONADORES_ANTIGOS_LIMPEZA_.indexOf(f) !== -1; });
+}
+
+function removerAcionadoresAntigos() {
+  let n = 0;
+  ScriptApp.getProjectTriggers().forEach(function (t) {
+    if (ACIONADORES_ANTIGOS_LIMPEZA_.indexOf(t.getHandlerFunction()) !== -1) { ScriptApp.deleteTrigger(t); n++; }
+  });
+  const msg = n + ' acionador(es) antigo(s) removido(s).';
+  Logger.log(msg); return msg;
+}
+
+function limparAbasAntigas() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const r = abasParaLimpar_();
+  if (!r.apagar.length) { const m = 'Nenhuma aba antiga encontrada. ' + removerAcionadoresAntigos(); Logger.log(m); return m; }
+  // 1) cópia de segurança no Drive; sem ela, nada é apagado
+  let copia;
+  try {
+    const stamp = Utilities.formatDate(new Date(), 'America/Sao_Paulo', 'yyyy-MM-dd HH:mm');
+    copia = ss.copy('COPIA antes de limpar abas antigas - ' + stamp);
+  } catch (e) {
+    const m = 'NADA FOI APAGADO: não consegui fazer a cópia de segurança (' + e.message + ').'; Logger.log(m); return m;
+  }
+  // 2) apaga (nunca deixa a planilha sem abas)
+  const apagadas = [], falhas = [];
+  r.apagar.forEach(function (n) {
+    try {
+      if (ss.getSheets().length <= 1) { falhas.push(n + ' (única aba restante)'); return; }
+      const s = ss.getSheetByName(n); if (s) { ss.deleteSheet(s); apagadas.push(n); }
+    } catch (e) { falhas.push(n + ' (' + e.message + ')'); }
+  });
+  // 3) gatilhos antigos
+  const gat = removerAcionadoresAntigos();
+  const msg = 'Cópia criada: "' + copia.getName() + '" (Drive). Apagadas ' + apagadas.length + ' aba(s): ' + apagadas.join(', ') +
+    (falhas.length ? '. Não apagadas: ' + falhas.join('; ') : '') + '. ' + gat;
+  Logger.log(msg); return msg;
+}
+

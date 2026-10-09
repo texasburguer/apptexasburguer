@@ -419,7 +419,7 @@
     .modal-box{max-width:560px;}
   }
   @media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important;scroll-behavior:auto!important;}}
-  /* ETAPA 4 — Cozinha e Garçom */
+  /* Cozinha e Garçom */
   .cz-topo{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin-bottom:10px;}
   .cz-status{font-size:12px;color:var(--muted);}
   .cz-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
@@ -475,7 +475,7 @@
   body.perfil-garcom #btnRepetirVenda, body.perfil-garcom #mesaModoPagBox{display:none !important;}
 
 /* =====================================================================
-   ETAPA 5 — TEMA TEXAS BURGER (inspirado na logo)
+   TEMA TEXAS BURGER (inspirado na logo)
    Este bloco fica por último de propósito: sobrescreve as regras antigas.
    Para desfazer o visual: apagar este bloco e restaurar o :root antigo.
    NÃO tocar em .recibo*, no CSS de impressão (cssImpressao) nem no verde do WhatsApp (#25D366).
@@ -1430,7 +1430,7 @@ body:has(.cd-fab-carrinho.show) .balao-ia{bottom:84px;}
       <button type="button" id="pedSubMesas" onclick="pedidosPainel_('mesas')">🍽️ Mesas<span class="dot"></span></button>
     </div>
     <div id="pedidosPainelPedidos">
-    <!-- ETAPA 4: tela da Cozinha (só aparece para o perfil Cozinha) -->
+    <!-- tela da Cozinha (só aparece para o perfil Cozinha) -->
     <div id="cozinhaBoard">
       <div class="cz-topo">
         <h2 style="margin:0;">🍳 Cozinha</h2>
@@ -2271,7 +2271,7 @@ body:has(.cd-fab-carrinho.show) .balao-ia{bottom:84px;}
   </div>
 </div>
 
-<!-- MODAL FECHAR CONTA DA MESA (ETAPA A) -->
+<!-- MODAL FECHAR CONTA DA MESA -->
 <div class="modal-overlay" id="qrMesasModal">
   <div class="modal-box">
     <div class="modal-header"><h2>📲 QR Codes das mesas</h2><button class="close-btn" onclick="fecharQrMesas()" aria-label="Fechar">✕</button></div>
@@ -2346,7 +2346,7 @@ body:has(.cd-fab-carrinho.show) .balao-ia{bottom:84px;}
     <div class="msg" id="aeMsg"></div>
   </div>
 </div>
-<!-- MODAL TROCAR MINHA SENHA (ETAPA C) -->
+<!-- MODAL TROCAR MINHA SENHA -->
 <div class="modal-overlay" id="avisosModal">
   <div class="modal-box">
     <div class="modal-header"><h2>🔔 Alertas de pedido</h2><button class="close-btn" onclick="fecharModalAvisos_()">✕</button></div>
@@ -2383,7 +2383,7 @@ body:has(.cd-fab-carrinho.show) .balao-ia{bottom:84px;}
   </div>
 </div>
 
-<!-- MODAL EDITAR USUÁRIO (ETAPA D) -->
+<!-- MODAL EDITAR USUÁRIO -->
 <div class="modal-overlay" id="ueModal">
   <div class="modal-box">
     <div class="modal-header"><h2 id="ueTitulo">Editar usuário</h2><button class="close-btn" onclick="fecharModalEditarUsuario()">✕</button></div>
@@ -2869,7 +2869,7 @@ const API_URL = "https://script.google.com/macros/s/AKfycbwCftUm-1pxhA8XLNqMB7dM
 const CONTINGENCIA_API_URL = "https://script.google.com/macros/s/AKfycby3WljBnr7gpJrHdkbTvBCh5uIXqS4KCS6wkBYB5idxf5gI04efoDumQj264kR_smoW/exec";
 
 /* ===================== VERSÃO DO APP ===================== */
-const APP_VERSAO = 'v-etapa-13';
+const APP_VERSAO = '1.0';
 const APP_ATUALIZADO_EM = '09/10/2026';
 window.APP_VERSAO = APP_VERSAO;
 
@@ -2881,174 +2881,53 @@ window.APP_VERSAO = APP_VERSAO;
    A seção "🆕 O que mudou" do manual é gerada daqui. */
 const APP_NOVIDADES = {
   Admin: [
-    { v:'v-etapa-15', em:'09/10/2026', itens:[
-      'Assistente: a conversa fica ao fechar e reabrir o balão (some ao recarregar o app, ao sair da conta ou após 2 h parada). Botão "🗑️ Nova conversa" para começar do zero.'
-    ]},
-    { v:'v-etapa-14', em:'09/10/2026', itens:[
-      'Entregador automático: com só um entregador ativo, toda entrega já fica no nome dele (inclusive as pendentes). Com mais de um, escolha no campo "Entregador".',
-      'Estoque baixo só avisa para ingrediente com mínimo maior que 0. Itens com mínimo 0 não aparecem mais.',
-      'Impressão: não pergunta mais "Saiu no papel?" a cada comanda. Fica um botão "🔁 Não saiu? Reimprimir" por 10 min.'
-    ]},
-    { v:'v-etapa-13', em:'09/10/2026', itens:[
-      'Comanda única: cozinha, retirada, mesa e entrega agora imprimem o mesmo modelo (cliente, endereço na entrega, itens, total e se é para cobrar).',
-      'Prêmios: no cadastro do produto marque "🎁 Este produto é um prêmio" (fidelidade e/ou indicação). O resgate é feito no cadastro do cliente e baixa o estoque.',
-      'Backup: botão "Excluir" (pede a sua senha), "Restaurar" também pede a senha e "Enviar ao Drive" quando o backup ficou sem cópia no Drive.',
-      'Sincronização e contingência: mostra o uso da planilha de contingência e tem o interruptor da sincronização automática (todo dia às 3h).',
-      'Espaço e fotos: "Proteção de espaço" manda para a planilha o que já foi encerrado quando o Supabase chega a 90%, 95% ou 98% do limite.',
-      'Impressão: agora também dá para imprimir o pedido da Retirada e da Mesa (botão "🖨️ Imprimir pedido…" no cartão), além da entrega. O papel escolhido em Pedidos → Entregas vale para as três.',
-      'Corrigido: a comanda impressa pela Cozinha saía com "MESA ?"; agora mostra o número da mesa.',
-      'Notificações agora ficam dentro do Assistente, na aba "🔔 Avisos": só aparece o que precisa de você, em grupos que abrem ao toque. A aba Notificações saiu do menu (continua só para a Cozinha).',
-      'Cardápio público: atendente virtual com IA (dúvidas, preços e status do pedido pelo celular), cards menores, foto ampliada ao toque e endereço de entrega preenchido pela localização.',
-      'Cozinha: lista "Concluídos neste turno". Entregador não marca mais "Pronta".',
-      'A IA do Desenvolvedor foi retirada; o assistente do balão ficou só para Administrador e Operador.'
-    ]},
-    { v:'v-etapa-12', em:'08/10/2026', itens:[
-      'Assistente de IA agora consulta mais dados do sistema, só para ler (nunca altera nada).',
-      'Se a IA estiver desligada, sem cota ou fora do ar, uma faixa no topo do balão avisa e o balão continua mostrando os números do sistema.',
-      'Também lê caixas e sangrias antigos guardados na planilha, além das vendas antigas.'
-    ]},
-    { v:'v-etapa-11', em:'07/10/2026', itens:[
-      'Aviso de pedido novo chega em segundos com o app aberto (antes, até 3 min).',
-      'Se o servidor ficar lento (2 falhas seguidas), a próxima venda de retirada/entrega sem desconto vai direto para a contingência, com sua confirmação.',
-      'Modo reserva automático quando o Supabase cai: faixa laranja no topo e cartão "Pedidos na reserva" em Pedidos (somente consulta).',
-      'Modo emergência no login quando o servidor (Supabase) está fora do ar: só retirada/entrega na contingência, sem mesa, sem desconto.',
-      'Botão "na fila" no topo: mostra cadastros/feedbacks/ocorrências pendentes. Tentar de novo ou descartar.',
-      'Confirmação de impressão da comanda ("Saiu no papel?") e alerta "PEDIDO ALTERADO" quando um pedido é editado depois de impresso.',
-      '"📍 Ver localização" no cartão da entrega enquanto o entregador está na rua.',
-      'Balão único de atendimento no canto, com assistente de IA para perguntas do dia a dia.',
-      'Vendas com mais de 90 dias saem do Supabase e vão sozinhas para a planilha (abas Arquivo_*).',
-      'Ajuda do cliente embutida no cardápio público (rodapé → "❓ Como pedir / Ajuda").'
-    ]},
-    { v:'v-etapa-10', em:'22/09/2026', itens:[
-      'Servidor novo (Supabase) assumindo o dia a dia; planilha virou reserva.',
-      'Ocorrências com filtro Abertas/Todas e botão "Tratar" também no mural Notificações.',
-      'Mesas com QR Code próprio por mesa e impressão em A4.',
-      'Cardápio Digital guarda cópia no celular do cliente e abre mais rápido.'
-    ]},
-    { v:'v-etapa-09', em:'01/09/2026', itens:[
-      'Contas a pagar, despesas mensais e DRE por período.',
-      'Relatórios em 58mm, 80mm e A4.',
-      'Ajustes pós-venda separados no DRE.'
+    { v:'1.0', em:'09/10/2026', itens:[
+      'Primeira versão estável do sistema. O servidor principal é o Supabase; a planilha principal é a reserva e a planilha de contingência é o último recurso.',
+      'Toque na bolinha colorida do topo para ver o estado de cada servidor.',
+      'Impressão: não pergunta mais "Saiu no papel?". Fica um botão "🔁 Não saiu? Reimprimir" por 10 minutos.',
+      'Com só um entregador ativo, toda entrega já fica no nome dele.',
+      'O Assistente guarda a conversa; "Nova conversa" começa do zero.',
+      'Cupom não é aceito no Caixa: use o desconto por porcentagem.'
     ]}
   ],
   Operador: [
-    { v:'v-etapa-15', em:'09/10/2026', itens:[
-      'Assistente: a conversa fica ao fechar e reabrir o balão (some ao recarregar o app, ao sair da conta ou após 2 h parada). Botão "🗑️ Nova conversa" para começar do zero.'
-    ]},
-    { v:'v-etapa-14', em:'09/10/2026', itens:[
-      'Entregador automático: com só um entregador ativo, toda entrega já fica no nome dele (inclusive as pendentes). Com mais de um, escolha no campo "Entregador".',
-      'Estoque baixo só avisa para ingrediente com mínimo maior que 0. Itens com mínimo 0 não aparecem mais.',
-      'Impressão: não pergunta mais "Saiu no papel?" a cada comanda. Fica um botão "🔁 Não saiu? Reimprimir" por 10 min.'
-    ]},
-    { v:'v-etapa-13', em:'09/10/2026', itens:[
-      'Comanda única: cozinha, retirada, mesa e entrega agora imprimem o mesmo modelo.',
-      'Impressão: agora também dá para imprimir o pedido da Retirada e da Mesa (botão "🖨️ Imprimir pedido…" no cartão), além da entrega.',
-      'Corrigido: a comanda da Cozinha saía com "MESA ?"; agora mostra o número da mesa.',
-      'Notificações agora ficam dentro do Assistente, na aba "🔔 Avisos" (a aba Notificações saiu do menu).',
-      'Prêmios: no cadastro do cliente, o cartão cheio e a indicação pendente têm o botão "🎁 Resgatar" (precisa do caixa aberto).',
-      'Cardápio público com atendente virtual (IA) e endereço de entrega preenchido pela localização do cliente.',
-      'Na Cozinha aparece "Concluídos neste turno".'
-    ]},
-    { v:'v-etapa-12', em:'08/10/2026', itens:[
-      'Assistente de IA agora consulta mais dados do sistema, só para ler (nunca altera nada).',
-      'Se a IA estiver desligada, sem cota ou fora do ar, uma faixa no topo do balão avisa e o balão continua mostrando os números do sistema.',
-      'O assistente mostra só o que é da sua função: sem faturamento, custos, despesas nem dados de clientes.'
-    ]},
-    { v:'v-etapa-11', em:'07/10/2026', itens:[
-      'Aviso de pedido novo em segundos com o app aberto.',
-      'Modo reserva automático quando o Supabase cai (faixa laranja + cartão "Pedidos na reserva" em Pedidos).',
-      'Modo emergência no login quando o servidor (Supabase) está fora do ar.',
-      'Botão "na fila" no topo para ver e reenviar cadastros pendentes.',
-      '"📍 Ver localização" no cartão da entrega enquanto o entregador está na rua.',
-      'Balão de atendimento com assistente.',
-      'Você pode tratar Ocorrências e Feedbacks direto por Notificações.'
-    ]},
-    { v:'v-etapa-10', em:'22/09/2026', itens:[
-      'Servidor novo (Supabase); planilha como reserva.',
-      'Fechamento de caixa com conferência de gaveta e acerto de entregadores.'
+    { v:'1.0', em:'09/10/2026', itens:[
+      'Primeira versão estável do sistema.',
+      'Toque na bolinha colorida do topo para ver o estado dos servidores.',
+      'Impressão: fica um botão "🔁 Não saiu? Reimprimir" por 10 minutos; não precisa confirmar quando saiu certo.',
+      'Com só um entregador ativo, toda entrega já fica no nome dele.',
+      'Cupom não é aceito no Caixa: use o desconto por porcentagem.'
     ]}
   ],
   'Garçom': [
-    { v:'v-etapa-13', em:'09/10/2026', itens:[
-      'Novo: botão "🖨️ Imprimir pedido da mesa" no cartão do pedido (depois de aceito).',
-      'Cardápio público com atendente virtual (IA). Para você, nada mudou no fluxo das mesas.'
-    ]},
-    { v:'v-etapa-12', em:'08/10/2026', itens:[
-      'O balão do assistente não aparece mais neste perfil. Use o botão Ajuda para o passo a passo da sua tela.'
-    ]},
-    { v:'v-etapa-11', em:'07/10/2026', itens:[
-      'Aviso de pedido pronto na SUA mesa chega em segundos com o app aberto.',
-      'Quando a mesa pede a conta pelo QR, ela aparece em Mesas com pontinho de aviso e som.',
-      'Balão de atendimento no canto (ex.: "como abro uma mesa?").',
-      'Se houver cliente aguardando, o botão do balão mostra um contador vermelho.'
-    ]},
-    { v:'v-etapa-10', em:'22/09/2026', itens:[
-      'Você lança pedido de mesa direto pelo celular (sem desconto, sem receber).',
-      'Pode pedir o fechamento da mesa para o Caixa, ou receber você mesmo se o caixa estiver aberto.'
+    { v:'1.0', em:'09/10/2026', itens:[
+      'Primeira versão estável do sistema.',
+      'Toque na bolinha colorida do topo para ver se o sistema está online.'
     ]}
   ],
   Cozinha: [
-    { v:'v-etapa-14', em:'09/10/2026', itens:[
-      'Impressão: não pergunta mais "Saiu no papel?" a cada comanda. Se não saiu, toque em "🔁 Não saiu? Reimprimir" (fica 10 min).'
-    ]},
-    { v:'v-etapa-13', em:'09/10/2026', itens:[
-      'A comanda agora é única e traz o endereço do cliente nas entregas: imprima, grampeie no pedido e ele já segue para o entregador.',
-      'Corrigido: a comanda impressa saía com "MESA ?"; agora mostra o número da mesa.',
-      'Novo: "📜 Concluídos neste turno" no fim da tela de pedidos. Zera quando o caixa fecha.'
-    ]},
-    { v:'v-etapa-12', em:'08/10/2026', itens:[
-      'O balão do assistente não aparece mais neste perfil. Use o botão Ajuda para o passo a passo da sua tela.'
-    ]},
-    { v:'v-etapa-11', em:'07/10/2026', itens:[
-      'A comanda pergunta "Saiu no papel?" (✅ Saiu / 🔁 Não saiu). Sem resposta em 30 s, o aviso fica vermelho. (Mudou na v-etapa-14: agora é só o botão "Não saiu? Reimprimir".)',
-      'Se um pedido for alterado depois de impresso, o cartão ganha faixa vermelha "PEDIDO ALTERADO" e dois bipes.',
-      'Pedido novo chega em segundos com o app aberto (antes, até 3 min).',
-      'Aviso na tela quando o sistema NÃO está conseguindo manter a tela ligada.'
-    ]},
-    { v:'v-etapa-10', em:'22/09/2026', itens:[
-      'Três colunas (Novos, Em preparo, Prontos) com tempo decorrido e alerta de atraso.',
+    { v:'1.0', em:'09/10/2026', itens:[
+      'Primeira versão estável do sistema.',
+      'Impressão da comanda: fica um botão "🔁 Não saiu? Reimprimir" por 10 minutos; não precisa confirmar quando saiu certo.',
       'Comanda e "Imprimir novos" em 58mm, 80mm e A4.'
     ]}
   ],
   Entregador: [
-    { v:'v-etapa-13', em:'09/10/2026', itens:[
-      'O botão "Marcar como Pronta" saiu da sua tela: quem marca é a Cozinha.',
-      'Quando o cliente compartilha a localização ao pedir, o restaurante vê onde entregar.'
-    ]},
-    { v:'v-etapa-12', em:'08/10/2026', itens:[
-      'O balão do assistente não aparece mais neste perfil. Use o botão Ajuda para o passo a passo da sua tela.'
-    ]},
-    { v:'v-etapa-11', em:'07/10/2026', itens:[
-      'Aviso de entrega nova chega em segundos com o app aberto.',
-      'Enquanto você tem entrega "Saiu para entrega", o app envia sua localização a cada ~18 s (só nesse período, sem histórico).',
-      'O cliente vê apenas distância aproximada; o restaurante vê "📍 Ver localização".',
-      'Balão de atendimento no canto (ex.: "quantas entregas fiz hoje?").'
-    ]},
-    { v:'v-etapa-10', em:'22/09/2026', itens:[
-      'Aba "Minhas entregas" com mapa no endereço e botão de WhatsApp.',
-      '"💰 Meu dia" mostra suas taxas e a ajuda diária.'
+    { v:'1.0', em:'09/10/2026', itens:[
+      'Primeira versão estável do sistema.',
+      'Quem marca o pedido como "Pronta" é a Cozinha.',
+      'Enquanto você tem entrega "Saiu para entrega", o app envia sua localização a cada ~18 s (só nesse período, sem histórico).'
     ]}
   ],
   Cliente: [
-    { v:'v-etapa-13', em:'09/10/2026', itens:[
+    { v:'1.0', em:'09/10/2026', itens:[
       'Atendente virtual no balão "💬 Atendimento": tira dúvidas do cardápio, preços e promoções, e mostra o andamento do seu pedido pelo seu celular.',
-      'Cards menores e rolagem lateral também em "Mais pedidos". Toque na foto para ver ampliada.',
-      'Na entrega, o endereço vem com rua e bairro preenchidos pela sua localização. Você confere e digita o número.'
-    ]},
-    { v:'v-etapa-11', em:'07/10/2026', itens:[
-      'Novo botão "❓ Como pedir / Ajuda" no rodapé, com guia rápido.',
-      'Novo botão "💬 Falar com o restaurante" no rodapé (atendimento no site).',
-      'Cancelar o pedido pelo acompanhamento, nos primeiros 3 minutos e enquanto o restaurante não aceitou.',
-      '"📦 Acompanhe seu pedido" mostra todos os pedidos feitos neste aparelho.'
-    ]},
-    { v:'v-etapa-10', em:'22/09/2026', itens:[
-      'Cupom de desconto direto no carrinho.',
-      'Cálculo de troco para pagamento em dinheiro.',
-      'Mesa por QR Code: pedido confirmado antes de preparar, pagamento no caixa.'
+      '"📦 Acompanhe seu pedido" mostra todos os pedidos feitos neste aparelho; dá para cancelar nos primeiros 3 minutos, antes de o restaurante aceitar.',
+      'Cupom de desconto direto no carrinho, cálculo de troco e mesa por QR Code.'
     ]}
   ]
 };
-const CONTINGENCIA_CHAVE_PUBLICA = "txbpub-7be6640269f54d5db1bff1a474d76a417758957a"; // ETAPA 7: so permite enviar pedido validado e ler o catalogo publico (sem custos/clientes)
+const CONTINGENCIA_CHAVE_PUBLICA = "txbpub-7be6640269f54d5db1bff1a474d76a417758957a"; // so permite enviar pedido validado e ler o catalogo publico (sem custos/clientes)
 const CONTINGENCIA_CHAVE_KEY = 'txbContChaveInterna'; // chave interna (clientes): guardada so depois do login, apagada ao sair
 let modoContingenciaAtivo = false;
 
@@ -3183,7 +3062,7 @@ function idemId_(chave){
   return _idemMapa[chave];
 }
 function idemLimpar_(chave){ if(chave && _idemMapa[chave]){ delete _idemMapa[chave]; idemPersistir_(); } }
-/* ETAPA 7C / FASE 11C — controle de versão: toda edição leva a versão (_v) do registro que a pessoa estava vendo.
+/* controle de versão: toda edição leva a versão (_v) do registro que a pessoa estava vendo.
    Se outra pessoa alterou o mesmo registro no meio tempo, o servidor recusa (conflito) e o app puxa o estado real. */
 const VERSAO_FRONT_ = { editarProduto:()=>produtos, editarCombo:()=>combos, editarAdicional:()=>adicionais, editarFormaPagamento:()=>formasPagamento,
   editarCategoria:()=>categorias, editarDespesa:()=>despesas, editarDespesaRecorrente:()=>despesasRecorrentes, salvarCliente:()=>clientes,
@@ -3292,13 +3171,9 @@ async function fetchContingencia_(opts, ms, repeticoes){
   }
 }
 /* ===================================================================================================
-   ETAPA 3a + 3b + 3c — NOVO SERVIDOR (Supabase): login, LEITURAS, GRAVAÇÕES, PEDIDO PÚBLICO DO CARDÁPIO, MESA (QR), FEEDBACK, EDIÇÃO DE VENDA, AVISO DE PEDIDO NOVO, CUPONS, EVENTOS, FIDELIDADE/INDICAÇÕES, OCORRÊNCIAS e PRECIFICAÇÃO.   Versão: v-etapa-03c7
-   - Login, cardápio público e as telas de leitura vêm do Supabase.
-   - Gravações de CADASTROS (produtos, combos, categorias, preços, adicionais, ingredientes, formas de pagamento, mesas,
-     clientes, configurações e metas) já vão para o Supabase (funções api_* no banco).
-   - As demais gravações (venda, caixa, estoque, despesas, cupons, usuários…) ainda não foram migradas (etapa 3c): são recusadas com aviso
-     e NADA é gravado (nem na planilha, para os dois lados nunca ficarem diferentes).
-   - Para voltar ao servidor antigo (planilha) sem mexer em mais nada: troque USAR_SUPABASE_ para false.
+   SERVIDOR PRINCIPAL (Supabase): login, leituras, gravações, pedido público do cardápio, mesa (QR), feedback,
+   cupons, eventos, fidelidade, ocorrências e precificação. As regras e os limites ficam no banco (funções api_*).
+   Reserva: planilha principal (Apps Script). Último recurso: planilha de contingência.
    =================================================================================================== */
 const USAR_SUPABASE_ = true;
 const SUPABASE_URL_ = 'https://awryywtgqfaxppayzpca.supabase.co';
@@ -3310,7 +3185,7 @@ function sbEmail_(login){ return String(login||'').normalize('NFD').replace(/[\u
 function sbSessaoLer_(){ try{ return JSON.parse(localStorage.getItem(SB_SESSAO_KEY_)||'null'); }catch(e){ return null; } }
 function sbSessaoGravar_(s){ try{ if(s) localStorage.setItem(SB_SESSAO_KEY_, JSON.stringify(s)); else localStorage.removeItem(SB_SESSAO_KEY_); }catch(e){} }
 function sbFotoUrl_(id){ return id ? (SB_DRIVE_FOTO_ + id) : ''; }
-/* Nível ativo (Etapa 3): hoje só o nível 1 (Supabase) é usado; a troca automática para as planilhas é a Etapa 5. */
+/* Estado do servidor principal: _sbNivelOk_ fica falso quando o Supabase para de responder (faixa vermelha/laranja). */
 let _sbNivelOk_ = true, _sbFaixaBase_ = '';
 function sbNivelMarcar_(ok){
   if(_sbNivelOk_ === ok) return; _sbNivelOk_ = ok; sbFaixaTexto_();
@@ -3357,7 +3232,7 @@ async function sbRenovar_(){
   return _sbRenovando_;
 }
 class SbSessaoExpirada_ extends Error {}
-/* ETAPA 1.4 — diagnóstico: registra de onde veio uma "sessão expirada" (no console: diagSessaoLog()). Não altera o comportamento. */
+/* diagnóstico: registra de onde veio uma "sessão expirada" (no console: diagSessaoLog()). Não altera o comportamento. */
 function sbDiagSessao_(origem, action){
   try{
     const log = JSON.parse(sessionStorage.getItem('diagSessaoLog')||'[]');
@@ -3426,7 +3301,7 @@ async function sbMontarDados_(nivel, chaves){
     L('despesas'), L('despesas_recorrentes'), L('ajustes_pos_venda'),
     L('cupons'), L('eventos'), L('v_indicacoes'), L('feedbacks'), L('v_ocorrencias'), L('v_cardapio_mais_pedidos')
   ]);
-  if(!usuarios.length){ // quem está logado sempre enxerga ao menos a si mesmo; lista vazia só encerra a sessão se o banco também recusar o token (ETAPA 1.1)
+  if(!usuarios.length){ // quem está logado sempre enxerga ao menos a si mesmo; lista vazia só encerra a sessão se o banco também recusar o token
     let vivo = false;
     try{
       const sv = sbSessaoLer_();
@@ -3611,7 +3486,7 @@ async function sbEscrever_(action, payload){
   else Object.keys(mapa).forEach(k=>{ r[k] = todos[mapa[k]]; });
   return r;
 }
-/* ETAPA 3c-4a — AÇÕES PÚBLICAS DO CARDÁPIO (sem login): o cliente fala com o banco só pela chave pública; preços, total, cupom e limites são decididos no servidor. */
+/* 4a — AÇÕES PÚBLICAS DO CARDÁPIO (sem login): o cliente fala com o banco só pela chave pública; preços, total, cupom e limites são decididos no servidor. */
 const SB_PUBLICAS_ = { criarPedidoCardapio:'api_criar_pedido_cardapio', getStatusPedidoPublico:'api_get_status_pedido_publico', cancelarPedidoCardapioPublico:'api_cancelar_pedido_cardapio_publico', validarCupomCardapio:'api_validar_cupom_cardapio',
   getMesaPublica:'api_get_mesa_publica', criarPedidoMesa:'api_criar_pedido_mesa', cancelarPedidoMesa:'api_cancelar_pedido_mesa', pedirContaMesa:'api_pedir_conta_mesa', chamarGarcomMesa:'api_chamar_garcom_mesa', addFeedback:'api_add_feedback' };
 async function sbRpcPublico_(fn, corpo){
@@ -3622,8 +3497,8 @@ async function sbRpcPublico_(fn, corpo){
   if(!r.ok) return { ok:false, message:'Não foi possível concluir agora (erro ' + r.status + '). Tente novamente em instantes.' };
   return j && typeof j === 'object' ? j : { ok:false, message:'Resposta inesperada do servidor.' };
 }
-const SB_NAO_MIGRADA_ = 'Esta ação ainda não foi migrada para o novo servidor (remoção de foto e alguns itens de backup ficam para as próximas etapas). Nada foi gravado.';
-/* Roteador: devolve a resposta no formato antigo, ou undefined se a ação não for tratada aqui (não acontece com USAR_SUPABASE_ ligado). */
+const SB_NAO_MIGRADA_ = 'Esta ação não está disponível. Nada foi gravado.';
+/* Roteador: devolve a resposta no formato antigo, ou undefined se a ação não for tratada aqui (não acontece com o Supabase ligado). */
 let _sbDespMes_ = '';
 async function sbGarantirDespesasMes_(){ // faz o papel do gatilho diário da planilha: o banco só gera 1x por mês, então a chamada é barata
   const mes = new Date().toISOString().slice(0,7); if(_sbDespMes_ === mes) return;
@@ -3671,7 +3546,7 @@ async function sbRotear_(action, payload){
       if(action === 'trocarMinhaSenha' && r && r.ok){ const s = sbSessaoLer_(); if(s) r.token = s.access_token; }
       return r;
     }
-    if(action === 'uploadFotoProduto' || action === 'uploadFotoCombo') return await sbUploadFoto_(action, payload);   // ETAPA 8 (Edge Function → Drive)
+    if(action === 'uploadFotoProduto' || action === 'uploadFotoCombo') return await sbUploadFoto_(action, payload);   // (Edge Function → Drive)
     if(action === 'excluirFotoProduto' || action === 'excluirFotoCombo') return await sbRemoverFoto_(action, payload);   // Edge Function remover-foto
     // Contingência e Drive: Edge Function planilha-admin (Admin/Operador logado) → Apps Script da planilha principal
     if(action === 'obterArmazenamento') return await sb410Edge_('planilha-admin', { acao:'armazenamento' }, 90000);
@@ -4017,7 +3892,7 @@ function entrarNoApp(){
   try{ if(typeof sb410IniciarAlertaBackup_==='function') sb410IniciarAlertaBackup_(); }catch(e){}
   setTimeout(oferecerRecuperarCarrinho_, 800);  // ITEM 2.7
 }
-/* ETAPA 4: abas visíveis por perfil (a barra continua sendo a mesma de 7 abas; o backend valida cada ação de qualquer forma) */
+/* abas visíveis por perfil (a barra continua sendo a mesma de 7 abas; o backend valida cada ação de qualquer forma) */
 const NAV_POR_PERFIL_ = { 'Cozinha':['inicio','pedidos','notificacoes'], 'Garçom':['inicio','caixa','pedidos','clientes'], 'Entregador':['inicio','pedidos','meusganhos'] };
 function aplicarPermissoesNivel(){
   const ehDesenvolvedor = !!(currentUser && currentUser.nivelReal === 'Desenvolvedor');
@@ -4101,7 +3976,7 @@ function devMudarVisao(valor){
   const primeiro = document.querySelector('.tab-btn:not(.hidden-tab)');
   if(primeiro) primeiro.click();
 }
-/* ETAPA 7 / 11B: quem fez login (Admin, Operador, Garçom) recebe da planilha principal a chave INTERNA da contingência
+/* quem fez login (Admin, Operador, Garçom) recebe da planilha principal a chave INTERNA da contingência
    e a guarda neste aparelho, para conseguir ler a parte interna do espelho (clientes) se a principal cair.
    Cozinha e Entregador não recebem. A chave é apagada ao sair ou quando a sessão expira. */
 function garantirChaveContingencia_(){
@@ -4111,7 +3986,7 @@ function garantirChaveContingencia_(){
     apiCall('obterChaveContingencia', {}).then(r=>{ if(r && r.ok && r.chave){ localStorage.setItem(CONTINGENCIA_CHAVE_KEY, r.chave); emergenciaGuardarChave_(r.chave); } }).catch(()=>{});
   } catch(e){}
 }
-/* ETAPA C: troca da própria senha (qualquer perfil). O servidor devolve um token novo; sem ele este aparelho cairia no login. */
+/* troca da própria senha (qualquer perfil). O servidor devolve um token novo; sem ele este aparelho cairia no login. */
 let spOcupado = false;
 function abrirModalTrocarSenha(){
   ['spAtual','spNova','spConfirma'].forEach(id=>{ const el=document.getElementById(id); el.value=''; el.type='password'; });
@@ -4203,7 +4078,7 @@ const ADMIN_GRUPOS = [
   { nome:'⚙️ Sistema',    subs:['usuarios', 'auditoria', 'armazenamento', 'drive', 'integridade'] }
 ];
 const ADMIN_SUBABAS = ADMIN_GRUPOS.reduce((a,g)=>a.concat(g.subs), []);
-/* ETAPA 6: a barra do Administrador existia copiada em 13 telas. Agora há UMA definição, desenhada em todas. */
+/* a barra do Administrador existia copiada em 13 telas. Agora há UMA definição, desenhada em todas. */
 const ADMIN_SUBABAS_ROTULOS = { visaogeral:'Visão Geral', ocorrencias:'Ocorrências', feedbacks:'Feedbacks', relatorios:'Relatórios', financeiro:'Contas e despesas', analise:'Análise', ajustes:'Ajustes pós-venda', historico:'Histórico', produtos:'Produtos', estoque:'Estoque', custosprecificacao:'Custos e Precificação', cardapiodigital:'Cardápio Digital', promocoes:'Promoções', eventos:'Eventos', restaurante:'Mesas e QR Codes', pagamentos:'Pagamentos', taxasentregas:'Entregadores e taxas', notifadmin:'Configurar notificações', usuarios:'Usuários e Permissões', auditoria:'Auditoria', armazenamento:'Backup', drive:'Espaço e fotos', integridade:'Sincronização e contingência' };
 const ADMIN_GRUPOS_OPERADOR_ = [ { nome:'💬 Atendimento', subs:['ocorrencias', 'feedbacks'] } ];
 function gruposAdmin_(){ return (currentUser && currentUser.nivel==='Operador') ? ADMIN_GRUPOS_OPERADOR_ : ADMIN_GRUPOS; }
@@ -5460,7 +5335,7 @@ function totaisPorFormaNaSessao(idsVendas){
    PEDIDOS (Retirada / Entrega)
    ============================================================ */
 function ultimos5(id){ return id ? id.slice(-5).toUpperCase() : ''; }
-/* ETAPA 2: número amigável do pedido (venda antiga sem número cai nos 5 últimos caracteres do ID) */
+/* número amigável do pedido (venda antiga sem número cai nos 5 últimos caracteres do ID) */
 function rotuloPedido(v){ return (v && v.numero) ? String(v.numero) : ultimos5(v && v.id); }
 function rotuloPedidoId(id){ const v = (vendas||[]).find(x=>x.id===id); return v ? rotuloPedido(v) : ultimos5(id); }
 function itensDoPedido(vendaId){
@@ -5580,7 +5455,7 @@ function tempoEntre(ts1, ts2){
   const h = Math.floor(min/60), m = min%60;
   return h+'h'+(m?m+'min':'');
 }
-/* ETAPA H: avisar o cliente do andamento do pedido pelo WhatsApp (wa.me, mensagem pronta). Não é envio automático: a API oficial do
+/* avisar o cliente do andamento do pedido pelo WhatsApp (wa.me, mensagem pronta). Não é envio automático: a API oficial do
    WhatsApp Business exige conta Meta, modelos aprovados e custo. Quem avisa é o Admin/Caixa, que toca no botão e confirma no WhatsApp. */
 const AVISOS_CLIENTE_KEY_ = 'txbAvisosCliente';
 function telefoneWhatsApp_(tel){
@@ -5617,7 +5492,7 @@ function avisarClienteWhatsApp(vendaId){
   window.open('https://wa.me/'+fone+'?text='+encodeURIComponent(msg), '_blank');
   renderPedidos(); renderEntregas();
 }
-/* ETAPA 2B: quem fez o pedido. Garçom/Admin/Operador: nome da pessoa (e o perfil, quando a lista de usuários está disponível).
+/* quem fez o pedido. Garçom/Admin/Operador: nome da pessoa (e o perfil, quando a lista de usuários está disponível).
    Pedido feito sozinho pelo cliente (cardápio): "Cliente" + o nome que ele informou. */
 function quemFezPedido_(v){
   if(!v) return '';
@@ -5935,7 +5810,7 @@ function popularSelectEntregadoresHtml(vendaId, atual){
 let entregasAlertadas = JSON.parse(localStorage.getItem('entregasAlertadasEntregador')||'[]');
 function tocarAlertaNovaEntrega(){ somAlerta_(); mostrarNotificacao_('🛵 Nova entrega','Você recebeu uma entrega nova.'); }
 /* ============================================================
-   ETAPA 4 — COZINHA E GARÇOM
+   COZINHA E GARÇOM
    ============================================================ */
 function souCozinha_(){ return !!(currentUser && currentUser.nivel==='Cozinha'); }
 function souGarcom_(){ return !!(currentUser && currentUser.nivel==='Garçom'); }
@@ -5969,7 +5844,7 @@ function cardCozinha_(v, acao){
     <button type="button" class="ghost" style="margin-top:6px;" onclick="imprimirComandaPedido('${v.id}')">🖨️ Comanda</button>
   </div>`;
 }
-/* ETAPA G: comanda impressa na cozinha. Botão por pedido, "Imprimir novos" (um único trabalho de impressão, uma comanda por página)
+/* comanda impressa na cozinha. Botão por pedido, "Imprimir novos" (um único trabalho de impressão, uma comanda por página)
    e, opcional, impressão automática. Sem toque só funciona com o navegador em modo quiosque de impressão; senão o aparelho pergunta. */
 const COMANDAS_KEY_ = 'txbComandasImpressas', COMANDA_AUTO_KEY_ = 'txbComandaAuto';
 function comandasImpressas_(){ try{ return JSON.parse(localStorage.getItem(COMANDAS_KEY_)||'[]'); }catch(e){ return []; } }
@@ -6219,7 +6094,7 @@ function avisarNovoPedido_(qtd){
   alertaVisualCozinha_(qtd);
   mostrarNotificacao_('🍔 Novo pedido!', qtd>1 ? qtd+' pedidos novos esperando.' : 'Chegou um pedido novo.');
 }
-/* ETAPA E: mantém a tela ligada e MOSTRA se está funcionando. Se o sistema soltar o bloqueio com a página visível (economia de
+/* mantém a tela ligada e MOSTRA se está funcionando. Se o sistema soltar o bloqueio com a página visível (economia de
    bateria, por exemplo), tenta de novo uma vez; o vigia de 30 s (só local) tenta outra vez. Sem suporte, orienta a configurar o aparelho. */
 async function manterTelaLigada_(){
   try{
@@ -7046,7 +6921,7 @@ function atualizarPreviewDesconto(){
   msgEl.innerHTML = (desc>0 && desc>=bruto) ? '<span class="warn">O desconto não pode zerar ou deixar negativo o total.</span>' : '';
   renderPagamentos();
 }
-/* ETAPA 3B: no Caixa, pedido de mesa de Admin/Operador pode ficar na conta ("sair") ou ser pago na hora ("agora"). O Garçom é sempre "sair". */
+/* no Caixa, pedido de mesa de Admin/Operador pode ficar na conta ("sair") ou ser pago na hora ("agora"). O Garçom é sempre "sair". */
 let mesaModoPagamento = 'sair';
 function setMesaModoPagamento(modo){
   mesaModoPagamento = (modo==='agora') ? 'agora' : 'sair';
@@ -7199,7 +7074,7 @@ function fecharContaMesaUI(mesaIdParam, msgIdParam){
   document.getElementById('fcmBtn').disabled = false; fcmOcupado = false;
   document.getElementById('fcmModal').classList.add('open');
 }
-/* ETAPA 3: liberar mesa sem conta passa pelo servidor (fecharContaMesa com lista vazia), porque o garçom não pode usar editarStatusMesa('Livre'). */
+/* liberar mesa sem conta passa pelo servidor (fecharContaMesa com lista vazia), porque o garçom não pode usar editarStatusMesa('Livre'). */
 async function liberarMesaSemConta_(mesaId, msgId){
   try{
     const r = await apiCall('fecharContaMesa', { mesaId, pagamentos: [] });
@@ -7304,7 +7179,7 @@ const QR_ = (function(){
 
 
 /* ============================================================
-   ETAPA 6 — QR CODE DAS MESAS + CLIENTE PEDE PELA MESA
+   QR CODE DAS MESAS + CLIENTE PEDE PELA MESA
    O pedido do cliente SEMPRE passa por aceite (Admin/Operador) antes de ir ao preparo.
    ============================================================ */
 const QR_BASE_URL_ = 'https://texasburguer.github.io/apptexasburguer/';
@@ -7488,7 +7363,7 @@ function renderMesasPopup_(){
     if(m.chamadoEm) botoes.unshift(`<button class="small-gold" style="width:auto;padding:8px 12px;" onclick="atenderChamadoUI_('${m.id}')">✔ Atendido</button>`);
     if(staff && m.status==='Livre'){ /* mesa livre só chamando: nada a cobrar */ } else if(staff) botoes.push(c.pedidos.length ? `<button class="small-gold" style="width:auto;padding:8px 14px;" onclick="fecharContaMesaUI('${m.id}','mesasMsg')">💳 Fechar conta</button>` : `<button class="ghost" style="width:auto;padding:8px 12px;" onclick="fecharContaMesaUI('${m.id}','mesasMsg')">Liberar mesa</button>`);
     else if(souGarcom_()){
-      // ETAPA 3: o garçom recebe a conta das SUAS mesas (mesasVisiveis_ já filtra) ou pede ao caixa.
+      // o garçom recebe a conta das SUAS mesas (mesasVisiveis_ já filtra) ou pede ao caixa.
       botoes.push(c.pedidos.length ? `<button class="small-gold" style="width:auto;padding:8px 14px;" onclick="fecharContaMesaUI('${m.id}','mesasMsg')">💳 Receber conta</button>` : `<button class="ghost" style="width:auto;padding:8px 12px;" onclick="fecharContaMesaUI('${m.id}','mesasMsg')">Liberar mesa</button>`);
       if(m.status==='Ocupada' && c.pedidos.length) botoes.push(`<button class="ghost" style="width:auto;padding:8px 12px;" onclick="garcomPedirFechamentoMesa_('${m.id}')">Pedir fechamento</button>`);
     }
@@ -7939,7 +7814,7 @@ async function finalizarVendaConfirmada(total, desconto, senhaAdminConfirmacao){
   } : null;
   if(tipoEntregaAtual==='Entrega' && !dadosEntrega.endereco){ showMsg('vMsg','Informe o endereço de entrega.','warn'); return; }
 
-  /* ETAPA 7B / FASE 11D: planilha principal fora do ar -> o Caixa pode registrar a venda na CONTINGÊNCIA (com confirmação dela). */
+  /* planilha principal fora do ar -> o Caixa pode registrar a venda na CONTINGÊNCIA (com confirmação dela). */
   const ctxCont = { carrinho: carrinhoAtual.slice(), clienteNome, clienteTelefone, pagamentos: pagamentosParaEnviar, tipoEntrega: tipoEntregaAtual, dadosEntrega, statusPagamento: statusPagamentoParaEnviar, total, valorDescontoReal, subtotal: totalCarrinho(), timestampOriginal: Date.now() };
   const _reqVendaCont = { itens: carrinhoAtual.map(i=>[i.produtoId||i.comboId||i.descricao, i.quantidade, i.valorUnitario]), clienteTelefone, tipoEntrega: tipoEntregaAtual, mesaId: mesaEscolhidaId||'', pagamentos: pagamentosParaEnviar };
   ctxCont.reqConteudo = _reqVendaCont;
@@ -10052,7 +9927,7 @@ async function criarUsuarioApp(){
     else showMsg('uMsg', r.message, 'warn');
   } catch(e){ showMsg('uMsg','Não foi possível criar.','warn'); }
 }
-/* ETAPA D: formulário de edição de usuário (substitui os três prompt() soltos). Sobre si mesmo, o Admin não muda o próprio perfil,
+/* formulário de edição de usuário (substitui os três prompt() soltos). Sobre si mesmo, o Admin não muda o próprio perfil,
    não se desativa e troca a senha pelo botão "🔑 Senha" (trocar a senha por aqui derrubaria a própria sessão). */
 let uEditLogin = '', uEditOriginal = null, uEditOcupado = false;
 const PERFIS_USUARIO_ = [['Admin','Admin'],['Operador','Operador de caixa'],['Garçom','Garçom'],['Cozinha','Cozinha'],['Entregador','Entregador']];
@@ -10255,7 +10130,7 @@ async function alterarStatusFeedback(id, novoStatus){
 }
 
 
-/* ---------- ETAPA 3 — OCORRÊNCIAS (ITENS 62, 63, 70) ---------- */
+/* ---------- OCORRÊNCIAS ---------- */
 let filtroOcorrencias = 'abertas', ocGerenciandoId = null, ocVendaIdAtual = '';
 function escOc_(s){ return escH(s); }
 function podeTratarOcorrencia_(){ return !!(currentUser && (currentUser.nivel==='Admin' || currentUser.nivel==='Operador')); }
@@ -10397,7 +10272,7 @@ function setConexaoStatus(estado, textoExtra){
   atualizarBloqueioVendaOffline();
 }
 /* ---------- BOLINHA E POPUP DE CONEXÃO: Supabase / planilha principal / contingência ---------- */
-const SINCRONIZACAO_PLANILHAS_ATIVA_ = true; // Etapa 4 no ar: a fila_sync envia tudo para a planilha principal
+const SINCRONIZACAO_PLANILHAS_ATIVA_ = true; // a fila_sync envia tudo para a planilha principal
 let _connResultado_ = null;
 function atualizarConnDot_(){
   const d = document.getElementById('connDot'); if(!d) return;
@@ -10407,14 +10282,21 @@ function atualizarConnDot_(){
   const txt = el ? el.textContent : '';
   d.title = txt + ' — toque para ver os detalhes'; d.setAttribute('aria-label', 'Status da conexão: ' + txt);
 }
+/* A contingência só mostra pendentes/espelho a quem tem chave (quem está logado). Sem chave, só testa se está no ar. */
+function _connOptsContingencia_(){
+  let k = ''; try{ k = localStorage.getItem(CONTINGENCIA_CHAVE_KEY) || ''; }catch(e){}
+  return k ? { method:'POST', headers:{ 'Content-Type':'text/plain' }, body: JSON.stringify({ action:'status', chave:k }) } : {};
+}
 async function _connPing_(url, opts, ms){
   const t0 = Date.now();
   try{
-    const r = await sbJson_(url, opts || {}, ms);
+    /* fetch direto: o teste de uma planilha não pode marcar o Supabase como fora do ar (sbJson_ faz isso) */
+    const ctl = new AbortController(); const to = setTimeout(()=>ctl.abort(), ms || 12000);
+    let r; try{ r = await fetch(url, Object.assign({}, opts || {}, { signal: ctl.signal })); } finally { clearTimeout(to); }
     const j = await r.json().catch(()=>null);
     return { ok: r.ok, status: r.status, ms: Date.now()-t0, json: j };
   }catch(e){
-    return { ok:false, ms: Date.now()-t0, erro: (e && e.timeout) ? ('sem resposta em ' + Math.round(ms/1000) + 's') : 'sem conexão' };
+    return { ok:false, ms: Date.now()-t0, erro: (e && (e.timeout || e.name === 'AbortError')) ? ('sem resposta em ' + Math.round(ms/1000) + 's') : 'sem conexão' };
   }
 }
 function _connHora_(t){ const d = new Date(t), p = n=>String(n).padStart(2,'0'); return p(d.getHours())+':'+p(d.getMinutes())+':'+p(d.getSeconds()); }
@@ -10464,7 +10346,7 @@ async function verificarConexaoServidores_(){
   const [sb, pl, ct] = await Promise.all([
     _connPing_(SUPABASE_URL_ + '/rest/v1/v_cardapio_status?select=*&limit=1', { headers:{ apikey: SUPABASE_CHAVE_ } }, 8000),
     _connPing_(API_URL + '?ping=1', {}, 12000),
-    _connPing_(CONTINGENCIA_API_URL, {}, 12000)
+    _connPing_(CONTINGENCIA_API_URL, _connOptsContingencia_(), 12000)
   ]);
   _connResultado_ = { sb, pl, ct, quando: Date.now() };
   renderConexaoModal_();
@@ -10576,7 +10458,7 @@ function rtIniciar_(){
   ws.onopen = ()=>{
     _rt_.ultimaMsg = Date.now();
     const atual = sbSessaoLer_() || sessao;
-    rtEnviar_({ topic: RT_TOPICO_, event:'phx_join', ref:String(_rt_.ref++), payload:{ config:{ broadcast:{ ack:false, self:false }, presence:{ key:'' }, postgres_changes:[{ event:'*', schema:'public', table:'vendas' }], private:false }, access_token: atual.access_token } });
+    rtEnviar_({ topic: RT_TOPICO_, event:'phx_join', ref:String(_rt_.ref++), payload:{ config:{ broadcast:{ ack:false, self:false }, presence:{ key:'' }, postgres_changes:[{ event:'*', schema:'public', table:'vendas' }, { event:'*', schema:'public', table:'mesas' }], private:false }, access_token: atual.access_token } });
     clearInterval(_rt_.hb);
     _rt_.hb = setInterval(()=>{
       if(Date.now() - _rt_.ultimaMsg > 70000){ try{ ws.close(); }catch(e){} return; } /* sem resposta: conexão morta */
@@ -10639,7 +10521,7 @@ function configurarSincronizacaoAutomatica(){
       }, 200);
     }
   });
-  /* ETAPA 6 (ITENS 91/92): sem atualização periódica. Os dados são atualizados ao entrar em Pedidos/Entregas/Visão Geral/Relatórios,
+  /* sem atualização periódica. Os dados são atualizados ao entrar em Pedidos/Entregas/Visão Geral/Relatórios,
      ao voltar para o app (mais de 1 min fora), no botão "🔄 Atualizar" e no timer de 3 min. A Cozinha continua com o detector próprio. */
   document.addEventListener('visibilitychange', ()=>{ if(!document.hidden && Date.now()-ultimaSyncMs > 60000 && currentUser) sincronizarEmSegundoPlano(); });
   /* Timer de 3 min: só atualiza com o app visível, logado e quando nada está sendo feito (venda, formulário, janela aberta).
@@ -10774,7 +10656,7 @@ function relPorFuncionario(r, origem, vazio){
   const rows = Object.keys(g).map(k=>[nomeLogin(k), g[k].length, formatarMoeda(somaR(g[k],v=>v.valorTotal)), formatarMoeda(somaR(g[k],v=>v.valorTotal)/g[k].length)]).sort((a,b)=>b[1]-a[1]);
   return { cols:['Funcionário','Pedidos','Faturamento','Ticket médio'], rows, nota: rows.some(x=>x[0]==='(sem registro)') ? 'Vendas antigas podem aparecer como "(sem registro)" quando não houver responsável gravado no registro.' : (rows.length ? '' : vazio) };
 }
-/* ETAPA F: vendas e tempos por garçom. Tempos = MEDIANA em minutos (um pedido esquecido aberto por horas não distorce o resultado).
+/* vendas e tempos por garçom. Tempos = MEDIANA em minutos (um pedido esquecido aberto por horas não distorce o resultado).
    "Até ficar pronto" depende da cozinha; "Pronto → servido" é o tempo do garçom levar à mesa; "Até o pagamento" vai do pedido ao recebimento. */
 function medianaMin_(ms){
   const a = ms.filter(x=>x!=null && x>=0).map(x=>Math.round(x/60000)).sort((x,y)=>x-y);
@@ -12166,10 +12048,8 @@ async function impComplementarProdutos_(){
 }
 
 /* PASSO 3 — envia a foto de quem está sem foto, um por vez */
-/* Envio de fotos (uploadFotoProduto/Combo) migrado na Etapa 8: vai pela Edge Function upload-foto direto para o Google Drive. */
-const SB_FOTOS_MIGRADAS_ = true;
+/* Envio de fotos (uploadFotoProduto/Combo): vai pela Edge Function upload-foto direto para o Google Drive. */
 async function impAplicarFotos_(){
-  if(USAR_SUPABASE_ && !SB_FOTOS_MIGRADAS_) return { total:0, ok:0, falhas:0, parou:false, adiada:true };
   const fila = [];
   (produtos || []).forEach(function(p){
     const arq = IMP_FOTOS_PRODUTOS_[impNorm_(p.nome)];
@@ -12202,7 +12082,6 @@ async function impAplicarFotos_(){
 }
 
 function impResumoFotos_(f){
-  if(f.adiada) return 'Fotos: o envio de fotos ainda não foi migrado para o novo servidor (Etapa 8) — os produtos ficam sem foto por enquanto.';
   if(!f.total) return 'Fotos: nada a enviar (todos os itens da lista já têm foto).';
   let t = 'Fotos: ' + f.ok + ' enviada(s)';
   if(f.falhas) t += ', ' + f.falhas + ' falharam' + (f.parou ? ' (parou após 5 falhas seguidas)' : '') + '. Confira a internet e se a pasta fotos-cardapio está publicada no GitHub; depois toque em "Só aplicar as fotos".';
@@ -12284,10 +12163,8 @@ function testarVibracao_(){
   }
 }
 </script>
-<!-- ═══════════ TEXAS BURGER — ETAPAS 4, 7, 8 e 9 (frontend) ═══════════
-     APLICADO no index.html.
-     Não mexe nos cartões de Backup/Armazenamento que já existem: cria cartões novos (ids sb410*) no fim da aba Armazenamento.
-     Etapas 5 e 6 (modo reserva e tempo real) NÃO estão aqui: dependem do index.html novo. -->
+<!-- ═══════════ SINCRONIZAÇÃO, BACKUP, ESPAÇO, FOTOS E INTEGRIDADE (aba Armazenamento) ═══════════
+     Cria cartões novos (ids sb410*) no fim da aba Armazenamento. -->
 <div id="sb410FotoModal" class="modal-overlay" onclick="if(event.target===this)sb410FotoResp_(null)">
   <div class="modal-box" style="max-width:420px;">
     <h2 style="margin:0 0 6px;">Onde salvar esta foto?</h2>
@@ -12635,16 +12512,11 @@ async function sb410Integ(){
 })();
 </script>
 
-<!-- ═══════════ TEXAS BURGER — ETAPAS 5 e 6 (RASCUNHO, NÃO TESTADO) ═══════════
-     Colar ANTES de </body> do index.html, DEPOIS do bloco das etapas 4-7-8-9.
-     Escrito contra o index.html enviado em 2026-10-05; rever quando chegar o arquivo atualizado.
-     Etapa 5 (aqui): detecta a queda do Supabase, avisa com faixa laranja e reenvia a fila do aparelho sozinha na volta.
-       As vendas já ficam guardadas pelo mecanismo que o app tem (fila offline + requisicaoId, sem duplicar).
-       NÃO inclui a troca automática para a planilha principal / contingência (precisa da decisão de mapeamento).
-     Etapa 6 (aqui): tempo real por WebSocket direto (sem biblioteca). O evento só avisa "mudou algo";
-       os dados são baixados de novo pelo caminho normal do app. Requer a seção "ETAPA 6" do SQL. -->
+<!-- ═══════════ MODO RESERVA (queda do Supabase) ═══════════
+     Detecta a queda do Supabase, avisa com faixa laranja e reenvia a fila do aparelho sozinha na volta.
+     As vendas ficam guardadas pela fila offline + requisicaoId (sem duplicar). O tempo real é o bloco "TEMPO REAL" acima. -->
 <script>
-/* ===================== ETAPA 5 — QUEDA DO SUPABASE ===================== */
+/* ===================== QUEDA DO SUPABASE (modo reserva) ===================== */
 const SB5_FALHAS_PARA_AVISAR_ = 3;   // espelha contingencia_config.falhas_para_planilha (padrão 3)
 let _sb5Falhas_ = 0, _sb5Queda_ = false, _sb5Reserva_ = false, _sb5Sonda_ = null, _sb5AvisoTimer_ = null;
 const SB5_SONDA_MS_ = 20000;   // com o Supabase fora, testa a volta a cada 20 s
@@ -12720,7 +12592,6 @@ async function sb5PainelReservaAtualizar_(){
 function sb5EntrarReserva_(){
   if(_sb5Reserva_) return; _sb5Reserva_ = true;
   try{ sb5PainelReservaLigar_(true); }catch(e){}
-  try{ sb6Parar(); }catch(e){}
   try{ rtParar_(); }catch(e){}
   try{ setConexaoStatus('offline', 'Supabase fora do ar — modo reserva'); }catch(e){}
   clearInterval(_sb5Sonda_);
@@ -12745,7 +12616,6 @@ async function sb5SairReserva_(){
   }
   try{ if(seguroParaSincronizar()) await atualizarAposDuplicado_(); }catch(e){}
   try{ if(typeof rtIniciar_ === 'function' && currentUser && !currentUser.emergencia) rtIniciar_(); }catch(e){}
-  try{ sb6Iniciar(); }catch(e){}
   try{ setConexaoStatus('online'); }catch(e){}
   if(lancadas || problemas) sb5Aviso_('🟢 Supabase voltou. ' + lancadas + ' venda(s) da contingência lançada(s)' + (problemas ? ' · ' + problemas + ' com problema (veja Armazenamento → Contingência)' : '') + '.', problemas ? '#b45309' : '#166534');
   else sb5Aviso_('🟢 Supabase voltou. Tudo sincronizado.');
@@ -12765,60 +12635,6 @@ async function sb5SairReserva_(){
   };
   setInterval(()=>{ if(_sb5Queda_) sb5Atualizar_(); }, 5000);   // mantém o contador da fila em dia
   window.addEventListener('online', ()=>{ if(_sb5Reserva_) sb5Sondar_().then(ok=>{ if(ok) sb5SairReserva_(); }); });   // o celular voltou da rede: testa já
-})();
-
-/* ===================== ETAPA 6 — TEMPO REAL ===================== */
-let _sb6Ws_ = null, _sb6Hb_ = null, _sb6Tok_ = null, _sb6Tent_ = 0, _sb6Retry_ = null, _sb6Deb_ = null, _sb6Parado_ = true, _sb6Pendente_ = false, _sb6Ref_ = 1;
-const SB6_TOPICO_ = 'realtime:txb-rt';
-async function sb6Token_(){
-  let s = sbSessaoLer_(); if(!s) return null;
-  if(Date.now() > s.expira){ if(!(await sbRenovar_())) return null; s = sbSessaoLer_(); }
-  return s ? s.access_token : null;
-}
-function sb6Enviar_(topic, event, payload){ try{ if(_sb6Ws_ && _sb6Ws_.readyState === 1) _sb6Ws_.send(JSON.stringify({ topic, event, payload, ref: String(_sb6Ref_++), join_ref: '1' })); }catch(e){} }
-async function sb6Conectar_(){
-  if(_sb6Ws_ || _sb6Parado_ || !USAR_SUPABASE_ || !currentUser || currentUser.emergencia) return;
-  const tok = await sb6Token_(); if(!tok || _sb6Parado_ || _sb6Ws_) return;
-  let ws;
-  try{ ws = new WebSocket(SUPABASE_URL_.replace(/^http/, 'ws') + '/realtime/v1/websocket?apikey=' + encodeURIComponent(SUPABASE_CHAVE_) + '&vsn=1.0.0'); }
-  catch(e){ return sb6Reagendar_(); }
-  _sb6Ws_ = ws;
-  ws.onopen = () => {
-    _sb6Tent_ = 0;
-    ws.send(JSON.stringify({ topic: SB6_TOPICO_, event: 'phx_join', ref: '1', join_ref: '1', payload: {
-      config: { broadcast: { ack: false, self: false }, presence: { key: '' }, private: false,
-        postgres_changes: [ { event: '*', schema: 'public', table: 'vendas' }, { event: '*', schema: 'public', table: 'mesas' } ] },
-      access_token: tok } }));
-    _sb6Hb_ = setInterval(() => sb6Enviar_('phoenix', 'heartbeat', {}), 25000);
-    _sb6Tok_ = setInterval(async () => { const t = await sb6Token_(); if(t) sb6Enviar_(SB6_TOPICO_, 'access_token', { access_token: t }); }, 20 * 60000);
-  };
-  ws.onmessage = (m) => {
-    let j; try{ j = JSON.parse(m.data); }catch(e){ return; }
-    if(j.event === 'postgres_changes') sb6Mudou_();
-    else if(j.event === 'phx_reply' && j.topic === SB6_TOPICO_ && j.payload && j.payload.status === 'error') { console.warn('[Tempo real] recusado', j.payload); try{ ws.close(); }catch(e){} }
-  };
-  ws.onclose = () => { clearInterval(_sb6Hb_); clearInterval(_sb6Tok_); _sb6Ws_ = null; if(!_sb6Parado_) sb6Reagendar_(); };
-  ws.onerror = () => { try{ ws.close(); }catch(e){} };
-}
-function sb6Reagendar_(){
-  clearTimeout(_sb6Retry_);
-  const ms = Math.min(30000, 1000 * Math.pow(2, Math.min(_sb6Tent_++, 5)));
-  _sb6Retry_ = setTimeout(sb6Conectar_, ms);
-}
-function sb6Mudou_(){
-  clearTimeout(_sb6Deb_);
-  _sb6Deb_ = setTimeout(()=>{
-    if(document.hidden){ _sb6Pendente_ = true; return; }          // aba em segundo plano: atualiza quando voltar
-    try{ atualizarAposDuplicado_(); }catch(e){}                    // caminho normal do app; respeita pop-ups abertos
-  }, 1500);
-}
-document.addEventListener('visibilitychange', ()=>{ if(!document.hidden && _sb6Pendente_){ _sb6Pendente_ = false; sb6Mudou_(); } });
-function sb6Iniciar(){ _sb6Parado_ = false; sb6Conectar_(); }
-function sb6Parar(){ _sb6Parado_ = true; clearTimeout(_sb6Retry_); clearInterval(_sb6Hb_); clearInterval(_sb6Tok_); try{ if(_sb6Ws_) _sb6Ws_.close(); }catch(e){} _sb6Ws_ = null; }
-(function(){
-  const entrar = window.entrarNoApp, sairOrig = window.sair;
-  if(typeof entrar === 'function') window.entrarNoApp = function(){ const r = entrar.apply(this, arguments); setTimeout(sb6Iniciar, 1200); return r; };
-  if(typeof sairOrig === 'function') window.sair = async function(){ sb6Parar(); return sairOrig.apply(this, arguments); };
 })();
 </script>
 
@@ -12980,40 +12796,6 @@ function sb6Parar(){ _sb6Parado_ = true; clearTimeout(_sb6Retry_); clearInterval
     return r;
   }
 
-  /* ---------- IA-05: "Como foi o dia?" no Início (sob demanda; fora do renderInicio) ---------- */
-  function montarInicio(){
-    const base = $('inicioResumo'); let c = $('iaInicioCard');
-    if(c) c.remove(); return;   /* D2: a IA só é acessada pelo balão único; este card foi removido */
-    if(c) return;
-    c = document.createElement('div'); c.id = 'iaInicioCard'; c.className = 'card ia-card';
-    c.innerHTML = '<h2>✨ Como foi o dia?</h2><div class="ia-linha"><select id="iaInicioPeriodo"><option value="hoje">Hoje</option><option value="ontem">Ontem</option><option value="7d">Últimos 7 dias</option></select>' +
-      '<button class="primary" id="iaInicioBtn" type="button">Gerar resumo</button></div><div id="iaInicioSaida"></div>';
-    base.insertAdjacentElement('afterend', c);
-    $('iaInicioBtn').addEventListener('click', () => executar($('iaInicioBtn'), $('iaInicioSaida'), 'resumo_dia', { periodo:$('iaInicioPeriodo').value }, htmlResumo));
-  }
-
-  /* ---------- IA-07: alertas em Notificações (só regras SQL; funciona com a IA desligada) ---------- */
-  function montarAlertasCard(){
-    const sec = $('tab-notificacoes'); let c = $('iaAlertasCard');
-    if(c) c.remove(); return;   /* card "Alertas inteligentes" removido (a IA só é acessada pelo balão) */
-    if(!sec || !podeUsar()){ if(c) c.remove(); return; }
-    if(c) return;
-    c = document.createElement('div'); c.id = 'iaAlertasCard'; c.className = 'card ia-card';
-    c.innerHTML = '<h2>🔎 Alertas inteligentes</h2><p class="sub">Verificações automáticas do dia (pedidos parados, estoque, caixa, contas, cancelamentos…).</p><div id="iaAlertasSaida"></div>' +
-      '<div class="ia-linha"><button class="ghost ia-btn" id="iaAlertasAtualizar" type="button">Atualizar</button></div><div id="iaAlertasIA"></div>';
-    sec.insertBefore(c, sec.firstChild);
-    $('iaAlertasAtualizar').addEventListener('click', () => IA.carregarAlertas(true));
-  }
-  IA.carregarAlertas = async function(forcar){
-    return;   /* card removido: nada a carregar */
-    if(!podeUsar()) return; montarAlertasCard();
-    const box = $('iaAlertasSaida'); if(!box) return;
-    if(!forcar && Date.now() - ultimosAlertas < 180000) return;      // no máx. 1x a cada 3 min
-    ultimosAlertas = Date.now(); box.innerHTML = '<p class="ia-sub">⏳ Verificando…</p>';
-    const r = await IA.chamar('alertas', { periodo:'hoje' }, { forcar:true, ttl:1 });
-    box.innerHTML = r && r.ok ? (htmlAlertas(r.dados) || '') + (r.texto ? '<p class="ia-sub">' + esc(r.texto) + '</p>' : '') : htmlResposta(r);
-  };
-
   /* ---------- IA-04/06/08: aba "Pergunte à IA" dentro do Administrador (sem aba nova no menu principal) ---------- */
   function criarAbaAdmin(){
     if($('tab-ia')) return;
@@ -13126,7 +12908,7 @@ function sb6Parar(){ _sb6Parado_ = true; clearTimeout(_sb6Retry_); clearInterval
   };
 
   /* ---------- montagem e ganchos (envolvem funções existentes sem trocar o comportamento delas) ---------- */
-  IA.montar = function(){ try{ montarBolinha(); montarInicio(); montarAlertasCard(); }catch(e){ console.warn('IA.montar', e); } };
+  IA.montar = function(){ try{ montarBolinha(); }catch(e){ console.warn('IA.montar', e); } };
   function envolver(nome, depois){
     const orig = window[nome]; if(typeof orig !== 'function' || orig.__ia) return;
     const nova = function(){ const r = orig.apply(this, arguments); try{ depois.apply(this, arguments); }catch(e){} return r; };
@@ -13135,7 +12917,6 @@ function sb6Parar(){ _sb6Parado_ = true; clearTimeout(_sb6Retry_); clearInterval
   envolver('entrarNoApp', () => { setTimeout(() => { IA.montar(); IA.atualizarStatus(); }, 1500); });
   envolver('aplicarPermissoesNivel', () => { IA.montar(); });
   envolver('abrirAdministrador', sub => { if(sub === 'ia') IA.abrirAba(); });
-  envolver('ativarApenasSecao_', id => { if(id === 'tab-notificacoes') IA.carregarAlertas(); });
   if(typeof window.sair === 'function' && !window.sair.__ia){
     const so = window.sair; window.sair = async function(){ cache.clear(); ultimoStatus = null; const b = $('iaDot'); if(b) b.classList.remove('visivel'); const c = $('iaInicioCard'); if(c) c.remove(); return so.apply(this, arguments); };
     window.sair.__ia = true;
