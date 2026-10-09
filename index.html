@@ -438,11 +438,13 @@
   #cozinhaBoard.cz-flash{animation:czPisca .8s ease-in-out 4;}
   #cozinhaBoard{display:none;}
   .caixa-topo{flex-wrap:wrap;gap:8px;}
-  .caixa-topo-btns{display:flex;gap:6px;align-items:center;flex-wrap:nowrap;width:100%;}
+  .caixa-topo-btns{display:flex;gap:6px;align-items:center;flex-wrap:wrap;width:100%;}
+  .caixa-topo-btns .cdChipCaixa{flex:1 1 100%;order:9;}
   .caixa-topo-btns .ghost{width:auto;flex:1 1 auto;min-width:0;white-space:nowrap;padding:9px 8px;font-size:12.5px;min-height:42px;}
   .caixa-topo-btns .calc-btn{width:42px;height:42px;flex:0 0 42px;}
   @media (max-width:400px){ .caixa-topo-btns{gap:4px;} .caixa-topo-btns .ghost{padding:9px 4px;font-size:11px;} }
   #caixaStatusBtn.caixa-fechado{border-color:var(--red);color:var(--gold);}
+  .cdChipBtn.caixa-fechado{border-color:var(--red);color:var(--gold);}
   .resumo-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;}
   .resumo-box{display:block;width:100%;text-align:left;background:var(--panel-2);border:1px solid var(--line);border-radius:12px;padding:12px;color:var(--cream);cursor:pointer;font:inherit;}
   .resumo-box b{display:block;font-size:20px;color:var(--gold);font-family:Georgia,serif;line-height:1.15;margin-top:2px;}
@@ -1121,7 +1123,7 @@ body:has(.cd-fab-carrinho.show) .balao-ia{bottom:84px;}
       <div id="inicioResumo"></div>
       <div class="btnrow" style="flex-wrap:wrap;margin-top:14px;">
         <button class="atalho-btn" onclick="document.querySelector('[data-tab=caixa]').click()">🧾 Abrir Caixa</button>
-        <button type="button" class="ghost cdChipBtn" style="display:none;font-size:12px;padding:4px 8px;align-self:center;" onclick="cdChipAlternar_()" title="Abrir ou fechar o cardápio dos clientes">🌐</button>
+        <button type="button" class="atalho-btn cdChipBtn" style="display:none;flex:1 1 100%;order:9;" onclick="cdChipAlternar_()" title="Abrir ou fechar o cardápio dos clientes">🌐</button>
         <button class="atalho-btn atalho-pedidos" onclick="abrirPedidosPainel_('pedidos')">📋 Retiradas</button>
         <button class="atalho-btn" onclick="abrirPedidosPainel_('entregas')">🛵 Entregas</button>
         <button class="atalho-btn btn-mesas" id="atalhoMesas" style="display:none;" onclick="abrirMesasPopup_()">🍽️ Mesas</button>
@@ -1258,9 +1260,9 @@ body:has(.cd-fab-carrinho.show) .balao-ia{bottom:84px;}
       <div class="caixa-topo-btns">
         <button type="button" class="ghost btn-mesas" id="btnMesasCaixa" style="display:none;" onclick="abrirMesasPopup_()">🍽️ Mesas</button>
         <button type="button" class="ghost" id="caixaStatusBtn" onclick="abrirCaixaStatus_()">🔒 Caixa fechado</button>
-        <button type="button" class="ghost cdChipBtn" style="display:none;font-size:12px;padding:4px 8px;" onclick="cdChipAlternar_()" title="Abrir ou fechar o cardápio dos clientes">🌐</button>
         <button type="button" class="ghost" id="caixaLancBtn" onclick="abrirLancamentos_()">🧾 Lançamentos</button>
         <button class="calc-btn" onclick="abrirCalculadora()" title="Calculadora">🧮</button>
+        <button type="button" class="ghost cdChipBtn cdChipCaixa" style="display:none;" onclick="cdChipAlternar_()" title="Abrir ou fechar o cardápio dos clientes">🌐</button>
       </div>
     </div>
 
@@ -3008,7 +3010,7 @@ const APP_NOVIDADES = {
       'O Assistente guarda a conversa; "Nova conversa" começa do zero.',
       'Acréscimo por forma de pagamento: em Pagamentos, cada forma pode cobrar % ou valor fixo a mais (ex.: iFood). O preço do produto agora é um só. O cliente é avisado no cardápio, e o Caixa e o fechamento de mesa somam o acréscimo sozinhos.',
       'Novo: Compras e fornecedores (Catálogo): registre compras, atualize estoque e custo e gere a despesa. No Assistente, "comprei 30kg de picanha por R$ 900" vira um cartão para você confirmar; a IA nunca grava sozinha.',
-      'Novo: botão discreto "🌐 Cardápio aberto · fechar" em Início e no Caixa para fechar e reabrir o cardápio dos clientes em um toque. Correção: o cardápio podia aparecer "fechado" com o caixa aberto.',
+      'Novo: botão discreto "🌐 Cardápio aberto" em Início e no Caixa para fechar e reabrir o cardápio dos clientes em um toque. Correção: o cardápio podia aparecer "fechado" com o caixa aberto.',
       'Novo: modo reserva mais claro (a faixa laranja diz o que funciona e o que espera) e cartão "Saúde do sistema" em Visão geral, com backup, conferência diária de vendas e tarefas automáticas.',
       'Novo: avisos com o app fechado. No 🔔 do topo, toque em "Ligar avisos com o app fechado": o celular passa a avisar "Novo pedido" do cardápio e "Cliente no atendimento", mesmo com o app fechado. No iPhone, instale o app na tela inicial antes.',
       'Novo: Auditoria com IP de origem (apagado após 90 dias), registro de entradas no sistema e de tentativas de login erradas, com busca e filtro de período. Em Sistema → Usuários, cada sessão mostra o IP.',
@@ -3023,7 +3025,7 @@ const APP_NOVIDADES = {
   ],
   Operador: [
     { v:'1.0', em:'09/10/2026', itens:[
-      'Novo: botão discreto "🌐 Cardápio aberto · fechar" em Início e no Caixa para fechar e reabrir o cardápio dos clientes em um toque.',
+      'Novo: botão discreto "🌐 Cardápio aberto" em Início e no Caixa para fechar e reabrir o cardápio dos clientes em um toque.',
       'Novo: modo reserva mais claro. A faixa laranja no topo diz o que funciona (Caixa e pedidos do cardápio) e o que espera a volta do sistema.',
       'Novo: avisos com o app fechado. No 🔔 do topo, toque em "Ligar avisos com o app fechado" para o celular avisar "Novo pedido" e "Cliente no atendimento" mesmo com o app fechado. No iPhone, instale o app na tela inicial antes.',
       'Primeira versão estável do sistema.',
@@ -8982,7 +8984,7 @@ Admin:{ nome:'Administrador', secoes:[
   { t:'Cardápio Digital, promoções e eventos', itens:[
     'Cardápio Digital: escolha o que aparece para o cliente, destaques, ordem e frase de abertura. "Mais Pedidos" é automático.',
     'Se o cliente pedir mais de 1 lanche com adicionais, os adicionais valem para todos — o cardápio avisa.',
-    'Abrir ou fechar o cardápio: no topo do Cardápio Digital, marque "Fechar o cardápio agora" (com uma mensagem para o cliente) para parar os pedidos sem fechar o caixa, ou programe períodos (férias, feriado) com data de início, fim e mensagem. Pedido de mesa por QR Code continua valendo. Atalho: o botão discreto "🌐 Cardápio aberto · fechar" em Início e no Caixa faz o mesmo em um toque (Admin, Operador e Desenvolvedor).',
+    'Abrir ou fechar o cardápio: no topo do Cardápio Digital, marque "Fechar o cardápio agora" (com uma mensagem para o cliente) para parar os pedidos sem fechar o caixa, ou programe períodos (férias, feriado) com data de início, fim e mensagem. Pedido de mesa por QR Code continua valendo. Atalho: o botão discreto "🌐 Cardápio aberto" em Início e no Caixa faz o mesmo em um toque (Admin, Operador e Desenvolvedor).',
     'Cupom progressivo: em Promoções → novo cupom, escolha o tipo "Progressivo (por faixa)" e escreva uma faixa por linha (ex.: "50 5" e "100 10" = R$ 5 de desconto a partir de R$ 50 e R$ 10 a partir de R$ 100). Vale a maior faixa que o pedido alcança, contando só os itens (sem a taxa de entrega).',
     'Dados do restaurante: nome, endereço, telefone, horário e redes sociais (texto livre) aparecem no rodapé do cardápio do cliente e nas mensagens de WhatsApp e relatórios.',
     'O cliente pode escrever uma observação em cada item; ela aparece na comanda da cozinha e no pedido.',
@@ -10888,10 +10890,10 @@ function fcRenderPeriodos_(){
 /* Botão discreto (Início e Caixa): fecha ou reabre o cardápio dos clientes. Usa o mesmo fechamento manual de Cardápio Digital. */
 function cdChipAtualizar_(){
   const btns = document.querySelectorAll('.cdChipBtn'); if(!btns.length) return;
-  const n = currentUser && currentUser.nivel, ok = n === 'Admin' || n === 'Operador' || n === 'Desenvolvedor';
+  const n = currentUser && currentUser.nivel, ok = (n === 'Admin' || n === 'Operador' || n === 'Desenvolvedor') && !(currentUser && currentUser.emergencia);
   const f = (typeof configCardapio !== 'undefined' && configCardapio && configCardapio.fechamento) || null;
   const fechado = !!(f && f.ativo);
-  btns.forEach(b=>{ b.style.display = ok ? '' : 'none'; b.textContent = fechado ? '🌐 Cardápio fechado · reabrir' : '🌐 Cardápio aberto · fechar'; b.style.opacity = fechado ? '1' : '.75'; });
+  btns.forEach(b=>{ b.style.display = ok ? '' : 'none'; b.textContent = fechado ? '🌐 Cardápio fechado' : '🌐 Cardápio aberto'; b.classList.toggle('caixa-fechado', fechado); b.title = fechado ? 'Toque para reabrir o cardápio dos clientes' : 'Toque para fechar o cardápio dos clientes'; });
 }
 async function cdChipAlternar_(){
   const f = (configCardapio && configCardapio.fechamento) || { ativo:false, mensagem:'', periodos:[] };
