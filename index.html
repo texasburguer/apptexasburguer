@@ -1810,6 +1810,10 @@ body:has(.cd-fab-carrinho.show) .balao-ia{bottom:84px;}
 
   </section>
 
+  <section class="tab" id="tab-admininicio">
+    <div class="admin-subnav" data-admin-nav="1"></div>
+    <p class="sub" id="adminInicioDica" style="text-align:center;margin-top:18px;">Escolha um grupo acima.</p>
+  </section>
   <section class="tab" id="tab-visaogeral">
     <div class="admin-subnav" data-admin-nav="1"></div>
     <div class="card" id="saudeCard" style="display:none;">
@@ -2867,6 +2871,7 @@ window.APP_VERSAO = APP_VERSAO;
 const APP_NOVIDADES = {
   Admin: [
     { v:'1.0', em:'09/10/2026', itens:[
+      'Nada abre sozinho: a Ajuda e os avisos do Assistente vêm fechados (toque no título para abrir) e, ao entrar no Admin, aparecem só os grupos — toque no grupo e depois na tela.',
       'Primeira versão estável do sistema. O servidor principal é o Supabase; a planilha principal é a reserva e a planilha de contingência é o último recurso.',
       'Toque na bolinha colorida do topo para ver o estado de cada servidor.',
       'Impressão: não pergunta mais "Saiu no papel?". Fica um botão "🔁 Não saiu? Reimprimir" por 10 minutos.',
@@ -2892,6 +2897,7 @@ const APP_NOVIDADES = {
   ],
   Operador: [
     { v:'1.0', em:'09/10/2026', itens:[
+      'Nada abre sozinho: a Ajuda e os avisos do Assistente vêm fechados (toque no título para abrir) e, ao entrar no Admin, aparecem só as telas para você escolher.',
       'Novo: menu fixo embaixo no celular (Início, Caixa, Pedidos e "Mais"), com bolinha vermelha nos avisos. No computador continua no topo.',
       'Novo visual do cardápio do cliente: cabeçalho menor, produtos rolando para o lado com botão "+", fotos mais baixas e Atendimento como ícone redondo. Pop-ups sem corte no fim da tela.',
       'Novo: botão discreto "🌐 Cardápio aberto" em Início e no Caixa para fechar e reabrir o cardápio dos clientes em um toque.',
@@ -2910,6 +2916,7 @@ const APP_NOVIDADES = {
   ],
   'Garçom': [
     { v:'1.0', em:'09/10/2026', itens:[
+      'A Ajuda vem com os tópicos fechados: toque no título para abrir.',
       'Primeira versão estável do sistema.',
       'Toque na bolinha colorida do topo para ver se o sistema está online.',
       'Novo: busca 🔍 no topo (cliente, pedido ou produto). A busca de cliente por nome voltou a funcionar.'
@@ -2917,6 +2924,7 @@ const APP_NOVIDADES = {
   ],
   Cozinha: [
     { v:'1.0', em:'09/10/2026', itens:[
+      'A Ajuda vem com os tópicos fechados: toque no título para abrir.',
       'Primeira versão estável do sistema.',
       'Impressão da comanda: fica um botão "🔁 Não saiu? Reimprimir" por 10 minutos; não precisa confirmar quando saiu certo.',
       'Comanda e "Imprimir novos" em 58mm, 80mm e A4.',
@@ -2925,6 +2933,7 @@ const APP_NOVIDADES = {
   ],
   Entregador: [
     { v:'1.0', em:'09/10/2026', itens:[
+      'A Ajuda vem com os tópicos fechados: toque no título para abrir.',
       'Primeira versão estável do sistema.',
       'Quem marca o pedido como "Pronta" é a Cozinha.',
       'Enquanto você tem entrega "Saiu para entrega", o app envia sua localização a cada ~18 s (só nesse período, sem histórico).'
@@ -2932,6 +2941,7 @@ const APP_NOVIDADES = {
   ],
   Cliente: [
     { v:'1.0', em:'09/10/2026', itens:[
+      'A Ajuda vem com os tópicos fechados: toque no título para abrir.',
       'Atendente virtual no balão "💬 Atendimento": tira dúvidas do cardápio, preços e promoções, e mostra o andamento do seu pedido pelo seu celular.',
       '"📦 Acompanhe seu pedido" mostra todos os pedidos feitos neste aparelho; dá para cancelar nos primeiros 3 minutos, antes de o restaurante aceitar.',
       'Cupom de desconto direto no carrinho, cálculo de troco e mesa por QR Code.',
@@ -4115,13 +4125,24 @@ const ADMIN_SUBABAS = ADMIN_GRUPOS.reduce((a,g)=>a.concat(g.subs), []);
 const ADMIN_SUBABAS_ROTULOS = { visaogeral:'Visão Geral', ocorrencias:'Ocorrências', feedbacks:'Feedbacks', relatorios:'Relatórios', financeiro:'Contas e despesas', analise:'Análise', ajustes:'Ajustes pós-venda', historico:'Histórico', produtos:'Produtos', estoque:'Estoque', compras:'Compras e fornecedores', custosprecificacao:'Custos e Precificação', cardapiodigital:'Cardápio Digital', promocoes:'Promoções', eventos:'Eventos', restaurante:'Mesas e QR Codes', pagamentos:'Pagamentos', taxasentregas:'Entregadores e taxas', notifadmin:'Configurar notificações', usuarios:'Usuários e Permissões', auditoria:'Auditoria', armazenamento:'Backup', drive:'Espaço e fotos', integridade:'Sincronização e contingência' };
 const ADMIN_GRUPOS_OPERADOR_ = [ { nome:'💬 Atendimento', subs:['ocorrencias', 'feedbacks'] } ];
 function gruposAdmin_(){ return (currentUser && currentUser.nivel==='Operador') ? ADMIN_GRUPOS_OPERADOR_ : ADMIN_GRUPOS; }
-function montarBarrasAdmin_(alvo){
+function montarBarrasAdmin_(alvo, grupoIdx){
+  /* alvo = tela aberta; sem alvo, mostra só os grupos (ou as telas do grupo escolhido), nada aberto até tocar */
   const grupos = gruposAdmin_();
-  const ativo = grupos.find(g=>g.subs.includes(alvo)) || grupos[0];
-  const abas = grupos.length>1 ? grupos.map(g=>`<button class="admin-gbtn${g===ativo?' active':''}" onclick="abrirAdministrador('${g.subs[0]}')">${g.nome}</button>`).join('') : '';
-  const subs = `<div class="admin-grupo">${grupos.length>1 ? ativo.nome : (ativo.nome+' — o que você pode tratar aqui')}</div>` + ativo.subs.map(id=>`<button data-sub="${id}" class="${id===alvo?'active':''}" onclick="abrirAdministrador('${id}')">${ADMIN_SUBABAS_ROTULOS[id]}</button>`).join('');
+  const ativo = alvo ? (grupos.find(g=>g.subs.includes(alvo)) || grupos[0]) : (grupoIdx != null ? grupos[grupoIdx] : (grupos.length === 1 ? grupos[0] : null));
+  const abas = grupos.length>1 ? grupos.map((g,i)=>`<button class="admin-gbtn${g===ativo?' active':''}" onclick="abrirAdminGrupo_(${i})">${g.nome}</button>`).join('') : '';
+  const subs = ativo ? (`<div class="admin-grupo">${grupos.length>1 ? ativo.nome : (ativo.nome+' — o que você pode tratar aqui')}</div>` + ativo.subs.map(id=>`<button data-sub="${id}" class="${id===alvo?'active':''}" onclick="abrirAdministrador('${id}')">${ADMIN_SUBABAS_ROTULOS[id]}</button>`).join('')) : '';
   document.querySelectorAll('.admin-subnav[data-admin-nav]').forEach(nav=>{ nav.innerHTML = abas + subs; });
+  const dica = document.getElementById('adminInicioDica');
+  if(dica) dica.textContent = ativo ? 'Escolha uma tela acima.' : 'Escolha um grupo acima.';
 }
+/* Entrar no Admin: só os grupos, nenhuma tela aberta. Tocar num grupo mostra as telas dele; a tela abre só quando você toca nela. */
+function abrirAdminGrupo_(i){
+  montarBarrasAdmin_(null, i);
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  const bt = document.querySelector('[data-tab="administrador"]'); if(bt) bt.classList.add('active');
+  ativarApenasSecao_('tab-admininicio');
+}
+function abrirAdminInicio_(){ abrirAdminGrupo_(null); }
 montarBarrasAdmin_('visaogeral');
 (function(){ const inicial=document.querySelector('section.tab.active'); if(inicial) ativarApenasSecao_(inicial.id); })();
 function ativarApenasSecao_(id){
@@ -4171,7 +4192,7 @@ function abrirAdministrador(sub){
 document.querySelectorAll('.tab-btn').forEach(btn=>{
   btn.addEventListener('click', ()=>{
     if(btn.classList.contains('hidden-tab')) return;
-    if(btn.dataset.tab==='administrador'){ abrirAdministrador('visaogeral'); return; }
+    if(btn.dataset.tab==='administrador'){ abrirAdminInicio_(); return; }
     document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
     btn.classList.add('active');
     ativarApenasSecao_('tab-'+btn.dataset.tab);
@@ -4289,7 +4310,7 @@ async function salvarCupomUI(){const p={codigo:cupCodigo.value,nome:cupNome.valu
 async function alternarCupomUI(id,ativo){try{const r=await apiCall('alternarCupom',{id,ativo});if(r.ok){cupons=r.cupons||[];renderCuponsUI();}else alert(r.message);}catch(e){alert('Não foi possível alterar o cupom.');}}
 function limparEventoUI(){['evId','evNome','evTipo','evData','evHoraInicio','evHoraFim','evLocal','evContratante','evTelefone','evValor','evObs'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});document.getElementById('evStatus').value='Orçamento';document.getElementById('evMovId').value='';}
 function evPreencherFormas_(){ const sel=document.getElementById('evRecForma'); if(!sel) return; const atual=sel.value; sel.innerHTML=(formasPagamento||[]).filter(f=>f.ativa!==false).map(f=>`<option value="${escH(f.nome)}">${escH(f.nome)}</option>`).join(''); if(atual) sel.value=atual; }
-function renderEventosUI(){evPreencherFormas_();const box=document.getElementById('evLista');if(!box)return;box.innerHTML=(eventos||[]).length?(eventos||[]).slice().reverse().map(e=>`<div class="notif-card"><b>${escH(e.nome)}</b> · ${escH(e.data)} · ${escH(e.status)}<div class="obs-line">Contratante: ${escH(e.contratante||'—')} · Contratado: ${formatarMoeda(e.valorContratado)} · Recebido: ${formatarMoeda(e.valorRecebido)} · A receber: ${formatarMoeda(e.valorAReceber)} · Custos: ${formatarMoeda(e.custoTotal)} · Resultado: ${formatarMoeda(e.resultado)}</div><button class="small-gold" onclick="selecionarEventoUI('${e.id}')">Gerenciar</button>${e.status!=='Cancelado'?` <button class="ghost" onclick="cancelarEventoUI('${e.id}')">Cancelar</button>`:''}</div>`).join(''):'<div class="notif-empty">Nenhum evento.</div>';}
+function renderEventosUI(){evPreencherFormas_();const box=document.getElementById('evLista');if(!box)return;box.innerHTML=(eventos||[]).length?(eventos||[]).slice().reverse().map(e=>`<div class="notif-card"><b>${escH(e.nome)}</b> · ${escH(/^\d{4}-\d{2}-\d{2}/.test(String(e.data||'')) ? String(e.data).slice(0,10).split('-').reverse().join('/') : (e.data||''))} · ${escH(e.status)}<div class="obs-line">Contratante: ${escH(e.contratante||'—')} · Contratado: ${formatarMoeda(e.valorContratado)} · Recebido: ${formatarMoeda(e.valorRecebido)} · A receber: ${formatarMoeda(e.valorAReceber)} · Custos: ${formatarMoeda(e.custoTotal)} · Resultado: ${formatarMoeda(e.resultado)}</div><button class="small-gold" onclick="selecionarEventoUI('${e.id}')">Gerenciar</button>${e.status!=='Cancelado'?` <button class="ghost" onclick="cancelarEventoUI('${e.id}')">Cancelar</button>`:''}</div>`).join(''):'<div class="notif-empty">Nenhum evento.</div>';}
 function selecionarEventoUI(id){const e=(eventos||[]).find(x=>x.id===id);if(!e)return;document.getElementById('evId').value=e.id;document.getElementById('evNome').value=e.nome;document.getElementById('evTipo').value=e.tipo||'';document.getElementById('evData').value=e.data instanceof Date?'':String(e.data||'').slice(0,10);document.getElementById('evHoraInicio').value=e.horaInicio||'';document.getElementById('evHoraFim').value=e.horaFim||'';document.getElementById('evLocal').value=e.local||'';document.getElementById('evContratante').value=e.contratante||'';document.getElementById('evTelefone').value=e.telefone||'';document.getElementById('evStatus').value=e.status||'Orçamento';document.getElementById('evValor').value=e.valorContratado||0;document.getElementById('evObs').value=e.observacoes||'';document.getElementById('evMovId').value=e.id;abrirFormModal('eventoModal');}
 async function salvarEventoUI(){const p={id:evId.value,nome:evNome.value,tipo:evTipo.value,data:evData.value,horaInicio:evHoraInicio.value,horaFim:evHoraFim.value,local:evLocal.value,contratante:evContratante.value,telefone:evTelefone.value,status:evStatus.value,valorContratado:evValor.value,observacoes:evObs.value};try{const r=await apiCall('salvarEvento',p);showMsg('evMsg',r.message,r.ok?'ok':'warn');if(r.ok){eventos=r.eventos||[];renderEventosUI();selecionarEventoUI(r.evento.id);}}catch(e){showMsg('evMsg','Erro ao salvar evento.','warn');}}
 async function cancelarEventoUI(id){const motivo=prompt('Motivo do cancelamento (opcional):','');if(motivo===null)return;try{const r=await apiCall('cancelarEvento',{id,motivo});if(r.ok){eventos=r.eventos||[];renderEventosUI();}else alert(r.message);}catch(e){alert('Erro ao cancelar.');}}
@@ -8774,7 +8795,7 @@ function novidadesHtml_(perfil){
       antigas.map((r, i) => bloco(r, i + 1)).join('') + '</details>'
     : '';
 
-  return '<details class="ajuda-det" open><summary>🆕 O que mudou</summary>' +
+  return '<details class="ajuda-det"><summary>🆕 O que mudou</summary>' +
     '<p class="sub" style="margin:0 0 6px;font-size:12px;">Só aparece o que este perfil usa. A versão em uso está no rodapé.</p>' +
     atualHtml + antigasHtml + '</details>';
 }
@@ -8787,6 +8808,7 @@ Admin:{ nome:'Administrador', secoes:[
     'No cliente, toque em "abrir" para ver o perfil. No pedido, toque em "ver pedido completo": aparece também a 🕒 Linha do tempo (feito, aceito, pronto, saiu, entregue e quanto tempo levou cada etapa).' ]},
 
   { t:'Onde fica cada coisa', itens:[
+    'Ao tocar em Admin, nada abre sozinho: aparecem só os 6 grupos; toque num grupo para ver as telas dele e depois na tela que quer abrir.',
     'A aba Administrador tem uma barra dividida em 6 grupos: Painel (Visão Geral, Ocorrências, Feedbacks, Relatórios); Financeiro (Contas e despesas, Análise, Ajustes pós-venda, Histórico); Catálogo (Produtos, Estoque, Custos e Precificação, Cardápio Digital); Campanhas (Promoções, Eventos); Operação (Mesas e QR Codes, Pagamentos, Entregadores e taxas, Configurar notificações); Sistema (Usuários e Permissões, Auditoria, Backup, Espaço e fotos, Sincronização e contingência).',
     'Caixa, Pedidos, Entregas e Clientes funcionam como nos outros perfis, e você pode tudo.' ]},
 
@@ -9345,7 +9367,7 @@ function ajudaClienteHtml_(){
   let h = '<p class="sub">Guia rápido para pedir pelo cardápio. Toque num título para abrir.</p>';
   h += novidadesHtml_('Cliente');
   m.secoes.forEach((s,i)=>{
-    h += '<details class="ajuda-det"'+(i===0?' open':'')+'><summary>'+escH(s.t)+'</summary>';
+    h += '<details class="ajuda-det"><summary>'+escH(s.t)+'</summary>';
     if(s.passos) h += '<ol>'+li(s.passos)+'</ol>';
     if(s.itens)  h += '<ul>'+li(s.itens)+'</ul>';
     if(s.comuns) h += '<div class="ajuda-comuns"><b>Detalhes</b>'+s.comuns.map(x=>'<div>• '+escH(x)+'</div>').join('')+'</div>';
@@ -9389,7 +9411,7 @@ function ajudaHtml_(p){
     ' Toque num título para abrir.</p>';
   h += novidadesHtml_(p);
   secoes.forEach((s,i)=>{
-    h += '<details class="ajuda-det"'+(i===0?' open':'')+'><summary>'+escH(s.t)+'</summary>';
+    h += '<details class="ajuda-det"><summary>'+escH(s.t)+'</summary>';
     if(s.passos) h += '<ol>'+li(s.passos)+'</ol>';
     if(s.itens)  h += '<ul>'+li(s.itens)+'</ul>';
     if(s.comuns) h += '<div class="ajuda-comuns"><b>Erros comuns</b>'+s.comuns.map(x=>'<div>• '+escH(x)+'</div>').join('')+'</div>';
@@ -9493,6 +9515,12 @@ function calcEquals(){
 /* ============================================================
    FINANCEIRO
    ============================================================ */
+/* "09/10 às 19:43" no horário de Brasília */
+function fmtDiaHoraBr_(iso){
+  const d = new Date(iso); if(isNaN(d)) return String(iso||'');
+  const p = Object.fromEntries(new Intl.DateTimeFormat('pt-BR', { timeZone:'America/Sao_Paulo', day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit', hour12:false }).formatToParts(d).map(x=>[x.type, x.value]));
+  return p.day + '/' + p.month + ' às ' + p.hour + ':' + p.minute;
+}
 function formatarDataHoraISO(iso){
   if(!iso) return null;
   const d = new Date(iso);
@@ -9650,7 +9678,7 @@ async function carregarStatusContingencia(){
       if(r.pendentes === undefined && r.espelhoAtualizadoEm === undefined){
         box.innerHTML = '🟢 Contingência acessível. Para ver a data do espelho e as vendas pendentes, a chave da contingência precisa estar neste aparelho (ela é carregada quando o Administrador entra; saia e entre de novo).';
       } else {
-        const idade = r.espelhoAtualizadoEm ? formatarDataHoraISO(r.espelhoAtualizadoEm) : 'nunca sincronizado';
+        const idade = r.espelhoAtualizadoEm ? fmtDiaHoraBr_(r.espelhoAtualizadoEm) : 'nunca sincronizado';
         const pend = (typeof r.pendentes === 'number') ? r.pendentes : (Array.isArray(r.pendentes) ? r.pendentes.length : 0);
         box.innerHTML = `🟢 Contingência acessível — espelho atualizado em: <b>${idade}</b> · ${pend} venda(s) pendente(s) de reconciliar`;
       }
@@ -10610,7 +10638,15 @@ async function registrarCompraUI(){
 async function receberCompraUI(id){
   const pg = confirm('Marcar esta compra como RECEBIDA (entra no estoque).\n\nEla já foi paga?\n• OK = já paga\n• Cancelar = ainda a pagar (peço o vencimento em seguida)') ? 'Pago' : 'A pagar';
   let venc = '';
-  if(pg==='A pagar'){ venc = prompt('Vencimento (AAAA-MM-DD):', cpHoje_()) || ''; if(!venc) return; }
+  if(pg==='A pagar'){
+    const txt = prompt('Vencimento (DD/MM/AAAA):', cpHoje_().split('-').reverse().join('/')); if(!txt) return;
+    const m = String(txt).trim().match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{2}|\d{4})$/);
+    if(!m){ showMsg('cpListaMsg','Data inválida. Use DD/MM/AAAA, por exemplo 20/10/2026.','warn'); return; }
+    const ano = m[3].length === 2 ? '20' + m[3] : m[3], mes = m[2].padStart(2,'0'), dia = m[1].padStart(2,'0');
+    const dt = new Date(ano + '-' + mes + '-' + dia + 'T12:00:00');
+    if(isNaN(dt) || dt.getDate() !== Number(dia)){ showMsg('cpListaMsg','Data inválida. Use DD/MM/AAAA, por exemplo 20/10/2026.','warn'); return; }
+    venc = ano + '-' + mes + '-' + dia;
+  }
   try{
     const r = await apiCall('receberCompra', { id, pagamento: pg, vencimento: venc, saiuDoCaixa: false });
     showMsg('cpListaMsg', r.message, r.ok?'ok':'warn');
@@ -10898,7 +10934,7 @@ function renderConexaoModal_(){
     else {
       const j = ct.json || {}; const det = [];
       if(typeof j.pendentes === 'number') det.push(j.pendentes + ' venda(s) pendente(s) de trazer');
-      if(j.espelhoAtualizadoEm) det.push('espelho atualizado em ' + j.espelhoAtualizadoEm);
+      if(j.espelhoAtualizadoEm) det.push('espelho atualizado em ' + fmtDiaHoraBr_(j.espelhoAtualizadoEm));
       ctL = _connLinha_('Planilha de contingência','último recurso','ok','Online · ' + ms(ct), det.join(' · '));
     }
     box.innerHTML = sbL + plL + ctL;
@@ -14571,7 +14607,7 @@ input[type=time]{width:100%;background:#0b0705;border:1.5px solid #4a3414;border
     if(!forcar && assin === IN.avAssin) return;
     IN.avAssin = assin;
     const unica = com.length <= 2;
-    let h = com.map(x => '<details class="av-sec" data-ev="' + x.ev + '"' + ((IN.avAberto[x.ev] !== undefined ? IN.avAberto[x.ev] : unica) ? ' open' : '') + '><summary><span class="av-ic">' + x.ic + '</span><span class="av-tt">' + esc(x.tit) + '</span><b class="av-n' + (x.urg ? ' urg' : '') + '">' + x.n + '</b><span class="av-seta">›</span></summary><div class="av-corpo' + (IN.avMais[x.ev] ? ' mais' : '') + '">' + x.html + '</div></details>').join('');
+    let h = com.map(x => '<details class="av-sec" data-ev="' + x.ev + '"' + ((IN.avAberto[x.ev] !== undefined ? IN.avAberto[x.ev] : false) ? ' open' : '') + '><summary><span class="av-ic">' + x.ic + '</span><span class="av-tt">' + esc(x.tit) + '</span><b class="av-n' + (x.urg ? ' urg' : '') + '">' + x.n + '</b><span class="av-seta">›</span></summary><div class="av-corpo' + (IN.avMais[x.ev] ? ' mais' : '') + '">' + x.html + '</div></details>').join('');
     if(!com.length) h = '<div class="av-vazio"><b>✅</b>Tudo em ordem.<br>Nenhum aviso no momento.</div>';
     else if(sem.length) h += '<div class="av-ok">✅ Em dia: ' + sem.map(esc).join(' · ') + '</div>';
     box.innerHTML = h;
