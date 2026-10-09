@@ -181,22 +181,34 @@ function criarClientes(ss) {
    Colunas: ID, Nome, Ativa, VisívelCardápio, Taxa %, Taxa Fixa, Prazo (dias), Permite Troco, Ordem.
    A taxa é uma FOTO: cada pagamento de venda guarda a taxa calculada na hora (PagamentosVenda col. E),
    então mudar a taxa depois não altera vendas antigas. */
-const CABECALHO_FORMAS_PAGAMENTO = ['ID', 'Nome', 'Ativa', 'VisívelCardápio', 'Taxa %', 'Taxa Fixa', 'Prazo (dias)', 'Permite Troco', 'Ordem'];
+const CABECALHO_FORMAS_PAGAMENTO = ['ID', 'Nome', 'Ativa', 'VisívelCardápio', 'Taxa %', 'Taxa Fixa', 'Prazo (dias)', 'Permite Troco', 'Ordem', 'Acréscimo %', 'Acréscimo Fixo'];
 function criarFormasPagamento(ss) {
   let sh = ss.getSheetByName('Formas de Pagamento') || ss.insertSheet('Formas de Pagamento');
   sh.clear();
   sh.setTabColor(COR_DOURADO);
-  if (sh.getMaxColumns() < 9) sh.insertColumnsAfter(sh.getMaxColumns(), 9 - sh.getMaxColumns());
+  if (sh.getMaxColumns() < 11) sh.insertColumnsAfter(sh.getMaxColumns(), 11 - sh.getMaxColumns());
   formatarCabecalho(sh, CABECALHO_FORMAS_PAGAMENTO);
-  [40,200,80,110,80,90,100,110,70].forEach((w,i)=>sh.setColumnWidth(i+1,w));
+  [40,200,80,110,80,90,100,110,70,110,110].forEach((w,i)=>sh.setColumnWidth(i+1,w));
   const regraSimNao = SpreadsheetApp.newDataValidation().requireValueInList(['Sim', 'Não'], true).setAllowInvalid(false).build();
   ['C2:C200','D2:D200','H2:H200'].forEach(a => sh.getRange(a).setDataValidation(regraSimNao));
   sh.getRange('E2:E200').setNumberFormat('0.00"%"');
   sh.getRange('F2:F200').setNumberFormat('R$ #,##0.00');
-  aplicarZebraELinhas(sh, 9, 200);
+  sh.getRange('J2:J200').setNumberFormat('0.00"%"');
+  sh.getRange('K2:K200').setNumberFormat('R$ #,##0.00');
+  aplicarZebraELinhas(sh, 11, 200);
   sh.hideColumns(1, 1);
   const iniciais = ['Dinheiro', 'Pix', 'Cartão de Débito', 'Cartão de Crédito', 'Alelo', 'iFood'];
-  iniciais.forEach((nome, i) => sh.appendRow([Utilities.getUuid(), nome, 'Sim', 'Sim', 0, 0, 0, nome === 'Dinheiro' ? 'Sim' : 'Não', i + 1]));
+  iniciais.forEach((nome, i) => sh.appendRow([Utilities.getUuid(), nome, 'Sim', 'Sim', 0, 0, 0, nome === 'Dinheiro' ? 'Sim' : 'Não', i + 1, 0, 0]));
+}
+/* Acréscimo por forma de pagamento (ex.: iFood cobra a mais): colunas J (%) e K (valor fixo) de Formas de Pagamento e
+   Vendas!AH (acréscimo da venda). Planilha antiga ganha as colunas sozinha na primeira vez que for preciso. Pode repetir sem duplicar. */
+const COL_VENDA_ACRESCIMO_ = 34;
+function prepararAcrescimoForma_() {
+  const shF = ss_().getSheetByName('Formas de Pagamento');
+  garantirColuna_(shF, 10, 'Acréscimo %', 110); garantirColuna_(shF, 11, 'Acréscimo Fixo', 110);
+  const shV = ss_().getSheetByName('Vendas');
+  garantirColuna_(shV, COL_VENDA_ACRESCIMO_, 'Acréscimo forma pgto (R$)', 150);
+  return { ok: true, message: 'Estrutura do acréscimo por forma de pagamento pronta.' };
 }
 
 /* Rode UMA vez na planilha atual (não apaga nada): acrescenta as colunas novas de Formas de Pagamento
@@ -825,8 +837,8 @@ function doPost(e) {
       case 'addOrStampFidelidade': resultado = addOrStampFidelidade(body.telefone, body.nome, body.observacao); break;
       case 'resgatarPremioFidelidade': resultado = resgatarPremioFidelidade(body.telefone); break;
 
-      case 'addFormaPagamento': resultado = addFormaPagamento(body.nome, body.taxaPct, body.taxaFixa, body.prazoDias, body.permiteTroco); break;
-      case 'editarFormaPagamento': resultado = editarFormaPagamento(body.id, body.novoNome, body.novoAtivo, body.novoVisivelCardapio, body.novaTaxaPct, body.novaTaxaFixa, body.novoPrazoDias, body.novoPermiteTroco, body.novaOrdem); break;
+      case 'addFormaPagamento': resultado = addFormaPagamento(body.nome, body.taxaPct, body.taxaFixa, body.prazoDias, body.permiteTroco, body.acrescimoPct, body.acrescimoFixo); break;
+      case 'editarFormaPagamento': resultado = editarFormaPagamento(body.id, body.novoNome, body.novoAtivo, body.novoVisivelCardapio, body.novaTaxaPct, body.novaTaxaFixa, body.novoPrazoDias, body.novoPermiteTroco, body.novaOrdem, body.novoAcrescimoPct, body.novoAcrescimoFixo); break;
 
       case 'addCategoria': resultado = addCategoria(body.nome); break;
       case 'editarCategoria': resultado = editarCategoria(body.id, body.novoNome, body.novoAtivo, body.novaOrdem); break;
@@ -1876,7 +1888,7 @@ function montarCardapioEstatico_() {
     .map(c => ({
       id: c.id, nome: c.nome, categoria: c.categoria, fotoUrl: c.fotoUrl, destaque: c.destaque
     }));
-  const formasPagamento = readFormasPagamento().filter(f => f.ativa && f.visivelCardapio).map(f => ({ id: f.id, nome: f.nome, ativa: true, visivelCardapio: true }));
+  const formasPagamento = readFormasPagamento().filter(f => f.ativa && f.visivelCardapio).map(f => ({ id: f.id, nome: f.nome, ativa: true, visivelCardapio: true, acrescimoPct: f.acrescimoPct || 0, acrescimoFixo: f.acrescimoFixo || 0 }));
   const idsFormasAtivas = formasPagamento.map(f => f.id);
   const produtoPrecos = readProdutoPrecos().filter(p => idsFormasAtivas.indexOf(p.formaPagamentoId) !== -1)
     .map(p => ({ produtoId: p.produtoId, formaPagamentoId: p.formaPagamentoId, preco: p.preco }));
@@ -1907,8 +1919,8 @@ function getCardapioPublico() {
   let base = cacheLerJson_('cd_est');
   if (!base) { base = montarCardapioEstatico_(); if (cardapioGen_() === gen) cacheGravarJson_('cd_est', base, CARDAPIO_TTL_EST_); } // não guarda se alguém editou durante a leitura
   let din = cacheLerJson_('cd_din');
-  if (!din) { din = { caixaAberto: !!readSessaoAberta(), esgotados: calcularEsgotados_() }; cacheGravarJson_('cd_din', din, CARDAPIO_TTL_DIN_); }
-  return Object.assign({}, base, { maisPedidos: maisPedidosEmCache_(), caixaAberto: din.caixaAberto, esgotados: din.esgotados });
+  if (!din) { din = { caixaAberto: !!readSessaoAberta(), esgotados: calcularEsgotados_(), cardapioBloqueio: cardapioBloqueioReserva_() }; cacheGravarJson_('cd_din', din, CARDAPIO_TTL_DIN_); }
+  return Object.assign({}, base, { maisPedidos: maisPedidosEmCache_(), caixaAberto: din.caixaAberto, esgotados: din.esgotados, cardapioBloqueio: din.cardapioBloqueio || '' });
 }
 /* "Geração" do cache estático: cada edição de cardápio troca a geração; uma leitura que começou antes da edição não grava dado velho. */
 function cardapioGen_() { try { return CacheService.getScriptCache().get('cd_gen') || '0'; } catch (e) { return '0'; } }
@@ -1939,6 +1951,7 @@ function criarPedidoCardapio(itens, clienteNome, clienteTelefone, tipoEntrega, d
   if (excedeuTentativas_(chaveTel, mesaCtx ? 8 : 5)) return { ok: false, message: mesaCtx ? 'Muitos pedidos em sequência nesta mesa. Chame o garçom.' : 'Muitos pedidos em sequência. Aguarde alguns minutos.' };
   const sessao = readSessaoAberta();
   if (!sessao) return { ok: false, message: 'Estamos fechados no momento. Tente novamente mais tarde.' };
+  if (!mesaCtx) { const bloqueio = cardapioBloqueioReserva_(); if (bloqueio) return { ok: false, message: bloqueio }; }
   const tipo = mesaCtx ? 'Mesa' : (tipoEntrega === 'Entrega' ? 'Entrega' : 'Retirada');
   if (tipo === 'Entrega') {
     const de = dadosEntrega || {};
@@ -1997,8 +2010,9 @@ function criarPedidoCardapio(itens, clienteNome, clienteTelefone, tipoEntrega, d
   if (resultado.ok) {
     if (!resultado.duplicado) { registrarFalha_(chaveTel); registrarFalha_('pedcard_global'); }
     if (promocaoValidada && !resultado.duplicado) { const usoCupom=registrarUsoCupom_(promocaoValidada, resultado.id, clienteTelefone, requisicaoId); if(!usoCupom.ok) registrarLog('Falha ao registrar uso de cupom', resultado.id, usoCupom.message||''); }
-    registrarLog(mesaCtx ? 'Pedido recebido pelo cliente na mesa ' + mesaCtx.numero : 'Pedido recebido pelo Cardápio', clienteTelefone || clienteNome, 'Total R$ ' + valorTotal.toFixed(2) + (promocaoValidada ? ' | Cupom ' + promocaoValidada.codigo : ''));
-    return { ok: true, message: 'Pedido enviado!' + (resultado.numero ? ' Nº ' + resultado.numero + '.' : '') + ' Total: R$ ' + valorTotal.toFixed(2) + '.', id: resultado.id, numero: resultado.numero || 0, valorTotal: valorTotal, valorOriginal: valorOriginalPedido, valorDesconto: promocaoValidada ? promocaoValidada.desconto : 0, cupom: promocaoValidada ? promocaoValidada.codigo : '', freteGratis: !!(promocaoValidada && promocaoValidada.freteGratis) };
+    registrarLog(mesaCtx ? 'Pedido recebido pelo cliente na mesa ' + mesaCtx.numero : 'Pedido recebido pelo Cardápio', clienteTelefone || clienteNome, 'Total R$ ' + (Number(resultado.valorTotal) || valorTotal).toFixed(2) + (promocaoValidada ? ' | Cupom ' + promocaoValidada.codigo : ''));
+    const totalComAcr = Number(resultado.valorTotal) || valorTotal; // já com o acréscimo da forma de pagamento (pedido de mesa não tem)
+    return { ok: true, message: 'Pedido enviado!' + (resultado.numero ? ' Nº ' + resultado.numero + '.' : '') + ' Total: R$ ' + totalComAcr.toFixed(2) + '.', id: resultado.id, numero: resultado.numero || 0, valorTotal: totalComAcr, acrescimo: Math.round((totalComAcr - valorTotal) * 100) / 100, valorOriginal: valorOriginalPedido, valorDesconto: promocaoValidada ? promocaoValidada.desconto : 0, cupom: promocaoValidada ? promocaoValidada.codigo : '', freteGratis: !!(promocaoValidada && promocaoValidada.freteGratis) };
   }
   return resultado;
 }
@@ -2097,13 +2111,14 @@ function readClientes() {
 function readFormasPagamento() {
   const sh = ss_().getSheetByName('Formas de Pagamento'); const last = sh.getLastRow();
   if (last < 2) return [];
-  const colunas = Math.min(9, sh.getMaxColumns());
+  const colunas = Math.min(11, sh.getMaxColumns());
   const linhas = sh.getRange(2, 1, last - 1, colunas).getValues().filter(r => r[1]);
   return linhas.map((r, idx) => ({
     id: r[0], nome: r[1], ativa: r[2] !== 'Não', visivelCardapio: r[3] !== 'Não',
     taxaPct: numPlanilha_(r[4]) || 0, taxaFixa: numPlanilha_(r[5]) || 0, prazoDias: numPlanilha_(r[6]) || 0,
     permiteTroco: r[7] === 'Sim' || (r[7] === '' && r[1] === 'Dinheiro'),
-    ordem: numPlanilha_(r[8]) || (idx + 1)
+    ordem: numPlanilha_(r[8]) || (idx + 1),
+    acrescimoPct: numPlanilha_(r[9]) || 0, acrescimoFixo: numPlanilha_(r[10]) || 0
   })).sort((a, b) => a.ordem - b.ordem);
 }
 /* Taxa de UM pagamento = valor x taxa% + taxa fixa (fixa cobrada por pagamento). Sem taxa = 0. */
@@ -2112,6 +2127,13 @@ function calcularTaxaPagamento_(nomeForma, valor) {
   const v = Number(valor) || 0;
   if (!f || v <= 0) return 0;
   return Math.round((v * f.taxaPct / 100 + f.taxaFixa) * 100) / 100;
+}
+/* Acréscimo de UM pagamento = parte x acréscimo% + acréscimo fixo (o fixo é cobrado por forma usada). Sem acréscimo = 0. */
+function calcularAcrescimoPagamento_(nomeForma, valor) {
+  const f = readFormasPagamento().find(x => String(x.nome).toLowerCase() === String(nomeForma || '').toLowerCase());
+  const v = Number(valor) || 0;
+  if (!f || v <= 0) return 0;
+  return Math.round((v * (f.acrescimoPct || 0) / 100 + (f.acrescimoFixo || 0)) * 100) / 100;
 }
 function readProdutoPrecos() {
   const sh = ss_().getSheetByName('ProdutoPrecos'); const last = sh.getLastRow();
@@ -2278,7 +2300,7 @@ function simularPrecificacao(produtoId,formaPagamentoId,precoSimulado,embalagem,
 }
 function aplicarPrecoCalculadora(produtoId,formaPagamentoId,novoPreco){
   if(NIVEL_ATUAL!=='Admin')return{ok:false,message:'Acesso negado.'}; novoPreco=Number(novoPreco);if(!Number.isFinite(novoPreco)||novoPreco<=0)return{ok:false,message:'Preço inválido.'};
-  const sh=ss_().getSheetByName('ProdutoPrecos');const l=sh.getLastRow();for(let i=2;i<=l;i++){if(sh.getRange(i,2).getValue()===produtoId&&sh.getRange(i,3).getValue()===formaPagamentoId){const antigo=numPlanilha_(sh.getRange(i,4).getValue())||0;sh.getRange(i,4).setValue(novoPreco);registrarLog('Preço aplicado pela calculadora',produtoId,'Forma '+formaPagamentoId+' | R$ '+antigo.toFixed(2)+' → R$ '+novoPreco.toFixed(2));return{ok:true,message:'Preço aplicado.',produtoPrecos:readProdutoPrecos()};}}return{ok:false,message:'Preço do produto para esta forma de pagamento não encontrado.'};}
+  let achou=false,antigo=0;const sh=ss_().getSheetByName('ProdutoPrecos');const l=sh.getLastRow();for(let i=2;i<=l;i++){if(sh.getRange(i,2).getValue()===produtoId){if(!achou)antigo=numPlanilha_(sh.getRange(i,4).getValue())||0;achou=true;sh.getRange(i,4).setValue(novoPreco);}}if(achou){registrarLog('Preço aplicado pela calculadora',produtoId,'R$ '+antigo.toFixed(2)+' → R$ '+novoPreco.toFixed(2)+' (vale para todas as formas de pagamento)');return{ok:true,message:'Preço aplicado.',produtoPrecos:readProdutoPrecos()};}return{ok:false,message:'Preço do produto para esta forma de pagamento não encontrado.'};}
 function readIndicacoes() {
   const sh = ss_().getSheetByName('Indicações'); const last = sh.getLastRow();
   if (last < 2) return [];
@@ -2340,7 +2362,7 @@ function readVendasCauda_(n) { const sh = ss_().getSheetByName('Vendas'); return
 function readVendasDesde_(linhaIni) {
   const sh = ss_().getSheetByName('Vendas'); const last = sh.getLastRow();
   if (last < 2 || last < linhaIni) return [];
-  const colunas = Math.min(31, sh.getMaxColumns());
+  const colunas = Math.min(34, sh.getMaxColumns());
   return sh.getRange(linhaIni, 1, last - linhaIni + 1, colunas).getValues().filter(r => r[0]).map(r => ({
     id: r[0], data: Utilities.formatDate(new Date(r[1]), FUSO, 'dd/MM/yyyy HH:mm'), timestamp: new Date(r[1]).getTime(),
     clienteNome: r[2], clienteTelefone: r[3], formaPagamento: r[4], valorTotal: numPlanilha_(r[5]), custoTotal: numPlanilha_(r[6]), status: r[7], motivoCancelamento: r[8],
@@ -2350,7 +2372,8 @@ function readVendasDesde_(linhaIni) {
     valorOriginal: numPlanilha_(r[19]) || numPlanilha_(r[5]), valorDesconto: numPlanilha_(r[20]), descontoDetalhe: r[21] || '', entregador: r[22] || '',
     timestampSaiu: r[23] ? new Date(r[23]).getTime() : null, origem: r[24] || 'Balcão', mesaId: r[25] || '',
     taxaEntrega: numPlanilha_(r[26]) || 0, fechamentoEntregaId: r[27] || '', registradoPor: r[28] || '', numero: numPlanilha_(r[29]) || 0,
-    timestampInicioPreparo: r[30] ? new Date(r[30]).getTime() : null
+    timestampInicioPreparo: r[30] ? new Date(r[30]).getTime() : null,
+    acrescimoForma: numPlanilha_(r[33]) || 0
   }));
 }
 function readItensVenda() { return readItensVendaDesde_(2); }
@@ -2429,7 +2452,8 @@ function readConfigCardapio() {
     frase: lerConfigChave_('CardapioFrase', 'Peça pelo cardápio — rápido, sem complicação.'),
     tempoEntrega: lerConfigChave_('CardapioTempoEntrega', '40-60 min'),
     tempoRetirada: lerConfigChave_('CardapioTempoRetirada', '20-30 min'),
-    tempoMesa: lerConfigChave_('CardapioTempoMesa', '20-30 min')
+    tempoMesa: lerConfigChave_('CardapioTempoMesa', '20-30 min'),
+    restaurante: { nome: lerConfigChave_('RestauranteNome', ''), endereco: lerConfigChave_('RestauranteEndereco', ''), telefone: lerConfigChave_('RestauranteTelefone', ''), horario: lerConfigChave_('RestauranteHorario', ''), redes: lerConfigChave_('RestauranteRedes', '') }
   };
 }
 function salvarConfigCardapio(kicker, frase, tempoEntrega, tempoRetirada, tempoMesa) {
@@ -3104,10 +3128,17 @@ function fecharContaMesa(mesaId, pagamentos) {
   const somaPagamentos = Math.round((pagamentos || []).reduce((s, p) => s + Number(p.valor), 0) * 100) / 100;
   if (Math.abs(somaPagamentos - totalConta) > 0.02) return { ok: false, message: 'A soma dos pagamentos (R$ ' + somaPagamentos.toFixed(2) + ') não bate com a conta da mesa (R$ ' + totalConta.toFixed(2) + ').' };
 
+  prepararAcrescimoForma_();
   const shVendas = ss_().getSheetByName('Vendas');
   const last = shVendas.getLastRow();
   const formaResumo = pagamentos.map(p => p.forma).join(' + ');
   const shPagamentos = ss_().getSheetByName('PagamentosVenda');
+  /* Acréscimo da forma de pagamento: calculado sobre a PARTE paga em cada forma e repartido entre as vendas da mesa na mesma
+     proporção do pagamento. A última venda fica com o resto, para os centavos fecharem exatamente. */
+  const acrPorPag = pagamentos.map(p => calcularAcrescimoPagamento_(p.forma, Number(p.valor)));
+  const acrTotalConta = Math.round(acrPorPag.reduce((a, b) => a + b, 0) * 100) / 100;
+  const restoPag = pagamentos.map(p => Math.round(Number(p.valor) * 100) / 100), restoAcr = acrPorPag.slice();
+  const idsMesa = vendasDaMesa.map(v => v.id), ultimoId = idsMesa[idsMesa.length - 1];
   for (let i = 2; i <= last; i++) {
     const idLinha = shVendas.getRange(i, 1).getValue();
     const venda = vendasDaMesa.find(v => v.id === idLinha);
@@ -3117,13 +3148,27 @@ function fecharContaMesa(mesaId, pagamentos) {
     shVendas.getRange(i, 19).setValue(new Date());
     // Divide o pagamento informado proporcionalmente ao valor de cada venda da mesa, e registra na aba de pagamentos.
     const proporcao = totalConta > 0 ? (venda.valorTotal / totalConta) : (1 / vendasDaMesa.length);
-    pagamentos.forEach(p => { const parte = Math.round(Number(p.valor) * proporcao * 100) / 100; shPagamentos.appendRow([Utilities.getUuid(), idLinha, p.forma, parte, calcularTaxaPagamento_(p.forma, parte)]); });
+    const ehUltima = idLinha === ultimoId;
+    let acrVenda = 0;
+    pagamentos.forEach((p, k) => {
+      const parteBase = ehUltima ? restoPag[k] : Math.round(Number(p.valor) * proporcao * 100) / 100;
+      const parteAcr = ehUltima ? restoAcr[k] : Math.round(acrPorPag[k] * proporcao * 100) / 100;
+      restoPag[k] = Math.round((restoPag[k] - parteBase) * 100) / 100; restoAcr[k] = Math.round((restoAcr[k] - parteAcr) * 100) / 100;
+      acrVenda += parteAcr;
+      const parte = Math.round((parteBase + parteAcr) * 100) / 100;
+      shPagamentos.appendRow([Utilities.getUuid(), idLinha, p.forma, parte, calcularTaxaPagamento_(p.forma, parte)]);
+    });
+    acrVenda = Math.round(acrVenda * 100) / 100;
+    if (acrVenda > 0) {
+      shVendas.getRange(i, 6).setValue(Math.round((venda.valorTotal + acrVenda) * 100) / 100);
+      shVendas.getRange(i, COL_VENDA_ACRESCIMO_).setValue(acrVenda);
+    }
   }
   const telsMesa = {};
   vendasDaMesa.forEach(v => { if (v.clienteTelefone && !telsMesa[normTel(v.clienteTelefone)]) { telsMesa[normTel(v.clienteTelefone)] = 1; addOrStampFidelidade(v.clienteTelefone, v.clienteNome, ''); } });
   liberarMesaServidor_(mesaId);
-  registrarLog('Conta de mesa fechada', '', 'Mesa ' + mesa.numero + ': R$ ' + totalConta.toFixed(2) + ' | ' + formaResumo + ' | recebido por ' + (USUARIO_ATUAL || '?') + ' (' + NIVEL_ATUAL + ')');
-  return { ok: true, message: 'Conta da mesa ' + mesa.numero + ' fechada — R$ ' + totalConta.toFixed(2) + '.', vendas: readVendasResposta_(), mesas: readMesas() };
+  registrarLog('Conta de mesa fechada', '', 'Mesa ' + mesa.numero + ': R$ ' + (totalConta + acrTotalConta).toFixed(2) + (acrTotalConta > 0 ? ' (inclui acréscimo da forma R$ ' + acrTotalConta.toFixed(2) + ')' : '') + ' | ' + formaResumo + ' | recebido por ' + (USUARIO_ATUAL || '?') + ' (' + NIVEL_ATUAL + ')');
+  return { ok: true, message: 'Conta da mesa ' + mesa.numero + ' fechada — R$ ' + (totalConta + acrTotalConta).toFixed(2) + '.', acrescimo: acrTotalConta, vendas: readVendasResposta_(), mesas: readMesas() };
 }
 
 /* ---------- PREÇOS POR FORMA DE PAGAMENTO ---------- */
@@ -3246,23 +3291,27 @@ function excluirProduto(id) {
 }
 
 /* ---------- FORMAS DE PAGAMENTO ---------- */
-function validarConfigForma_(taxaPct, taxaFixa, prazoDias) {
+function validarConfigForma_(taxaPct, taxaFixa, prazoDias, acrPct, acrFixo) {
   const pct = Number(taxaPct) || 0, fixa = Number(taxaFixa) || 0, prazo = Number(prazoDias) || 0;
   if (pct < 0 || pct > 100) return 'A taxa % deve ficar entre 0 e 100.';
   if (fixa < 0) return 'A taxa fixa não pode ser negativa.';
   if (prazo < 0 || prazo > 365 || Math.floor(prazo) !== prazo) return 'O prazo deve ser um número inteiro de dias (0 a 365).';
+  const ap = Number(acrPct) || 0, af = Number(acrFixo) || 0;
+  if (ap < 0 || ap > 100) return 'O acréscimo % deve ficar entre 0 e 100.';
+  if (af < 0 || af > 1000) return 'O acréscimo fixo deve ficar entre R$ 0,00 e R$ 1.000,00.';
   return '';
 }
-function addFormaPagamento(nome, taxaPct, taxaFixa, prazoDias, permiteTroco) {
+function addFormaPagamento(nome, taxaPct, taxaFixa, prazoDias, permiteTroco, acrescimoPct, acrescimoFixo) {
   nome = String(nome || '').trim();
   if (!nome) return { ok: false, message: 'Informe o nome da forma de pagamento.' };
   if (readFormasPagamento().some(f => f.nome.toLowerCase() === nome.toLowerCase())) return { ok: false, message: 'Já existe uma forma de pagamento com esse nome.' };
-  const erro = validarConfigForma_(taxaPct, taxaFixa, prazoDias);
+  const erro = validarConfigForma_(taxaPct, taxaFixa, prazoDias, acrescimoPct, acrescimoFixo);
   if (erro) return { ok: false, message: erro };
+  prepararAcrescimoForma_();
   const sh = ss_().getSheetByName('Formas de Pagamento');
   const id = Utilities.getUuid();
   const ordem = readFormasPagamento().reduce((m, f) => Math.max(m, f.ordem), 0) + 1;
-  sh.appendRow([id, nome, 'Sim', 'Sim', Number(taxaPct) || 0, Number(taxaFixa) || 0, Number(prazoDias) || 0, permiteTroco ? 'Sim' : 'Não', ordem]);
+  sh.appendRow([id, nome, 'Sim', 'Sim', Number(taxaPct) || 0, Number(taxaFixa) || 0, Number(prazoDias) || 0, permiteTroco ? 'Sim' : 'Não', ordem, Number(acrescimoPct) || 0, Number(acrescimoFixo) || 0]);
 
   // Ao nascer, a nova forma já recebe o preço/custo "base" (usa a primeira forma ativa como referência)
   const formas = readFormasPagamento();
@@ -3279,12 +3328,13 @@ function addFormaPagamento(nome, taxaPct, taxaFixa, prazoDias, permiteTroco) {
     shCP.appendRow([Utilities.getUuid(), c.id, id, precoRef ? precoRef.preco : 0, precoRef ? precoRef.custo : 0]);
   });
 
-  registrarLog('Forma de pagamento cadastrada', '', nome + ' | taxa ' + (Number(taxaPct) || 0) + '% + R$ ' + (Number(taxaFixa) || 0).toFixed(2) + ' | prazo ' + (Number(prazoDias) || 0) + 'd | troco ' + (permiteTroco ? 'sim' : 'não'));
+  registrarLog('Forma de pagamento cadastrada', '', nome + ' | taxa ' + (Number(taxaPct) || 0) + '% + R$ ' + (Number(taxaFixa) || 0).toFixed(2) + ' | prazo ' + (Number(prazoDias) || 0) + 'd | troco ' + (permiteTroco ? 'sim' : 'não') + ' | acréscimo ' + (Number(acrescimoPct) || 0) + '% + R$ ' + (Number(acrescimoFixo) || 0).toFixed(2));
   return { ok: true, message: 'Forma de pagamento cadastrada.', formasPagamento: readFormasPagamento(), produtoPrecos: readProdutoPrecos(), comboPrecos: readComboPrecos() };
 }
 /* Campos não enviados (undefined) ficam como estão. Mudança de taxa vale só para vendas FUTURAS
    (as antigas guardam a taxa aplicada na época) e fica no Log com antes → depois. */
-function editarFormaPagamento(id, novoNome, novoAtivo, novoVisivelCardapio, novaTaxaPct, novaTaxaFixa, novoPrazoDias, novoPermiteTroco, novaOrdem) {
+function editarFormaPagamento(id, novoNome, novoAtivo, novoVisivelCardapio, novaTaxaPct, novaTaxaFixa, novoPrazoDias, novoPermiteTroco, novaOrdem, novoAcrescimoPct, novoAcrescimoFixo) {
+  prepararAcrescimoForma_();
   const sh = ss_().getSheetByName('Formas de Pagamento'); const last = sh.getLastRow();
   for (let i = 2; i <= last; i++) {
     if (sh.getRange(i, 1).getValue() !== id) continue;
@@ -3292,7 +3342,9 @@ function editarFormaPagamento(id, novoNome, novoAtivo, novoVisivelCardapio, nova
     const pct = novaTaxaPct !== undefined ? novaTaxaPct : atual.taxaPct;
     const fixa = novaTaxaFixa !== undefined ? novaTaxaFixa : atual.taxaFixa;
     const prazo = novoPrazoDias !== undefined ? novoPrazoDias : atual.prazoDias;
-    const erro = validarConfigForma_(pct, fixa, prazo);
+    const acrP = novoAcrescimoPct !== undefined ? novoAcrescimoPct : atual.acrescimoPct;
+    const acrF = novoAcrescimoFixo !== undefined ? novoAcrescimoFixo : atual.acrescimoFixo;
+    const erro = validarConfigForma_(pct, fixa, prazo, acrP, acrF);
     if (erro) return { ok: false, message: erro };
     if (novoNome) {
       const nomeLimpo = String(novoNome).trim();
@@ -3308,10 +3360,13 @@ function editarFormaPagamento(id, novoNome, novoAtivo, novoVisivelCardapio, nova
     sh.getRange(i, 5, 1, 3).setValues([[Number(pct) || 0, Number(fixa) || 0, Number(prazo) || 0]]);
     if (novoPermiteTroco !== undefined) sh.getRange(i, 8).setValue(novoPermiteTroco ? 'Sim' : 'Não');
     if (novaOrdem !== undefined) sh.getRange(i, 9).setValue(Number(novaOrdem) || 0);
+    sh.getRange(i, 10, 1, 2).setValues([[Number(acrP) || 0, Number(acrF) || 0]]);
     const depois = readFormasPagamento().find(f => f.id === id);
     const mudou = [];
     if (depois.taxaPct !== atual.taxaPct) mudou.push('taxa % ' + atual.taxaPct + ' → ' + depois.taxaPct);
     if (depois.taxaFixa !== atual.taxaFixa) mudou.push('taxa fixa R$ ' + atual.taxaFixa.toFixed(2) + ' → R$ ' + depois.taxaFixa.toFixed(2));
+    if (depois.acrescimoPct !== atual.acrescimoPct) mudou.push('acréscimo % ' + atual.acrescimoPct + ' → ' + depois.acrescimoPct);
+    if (depois.acrescimoFixo !== atual.acrescimoFixo) mudou.push('acréscimo fixo R$ ' + atual.acrescimoFixo.toFixed(2) + ' → R$ ' + depois.acrescimoFixo.toFixed(2));
     if (depois.prazoDias !== atual.prazoDias) mudou.push('prazo ' + atual.prazoDias + 'd → ' + depois.prazoDias + 'd');
     if (depois.permiteTroco !== atual.permiteTroco) mudou.push('troco ' + (atual.permiteTroco ? 'sim' : 'não') + ' → ' + (depois.permiteTroco ? 'sim' : 'não'));
     if (depois.ativa !== atual.ativa) mudou.push(depois.ativa ? 'reativada' : 'desativada');
@@ -4150,6 +4205,20 @@ function iniciarVenda(itens, clienteNome, clienteTelefone, pagamentos, tipoEntre
   if (Math.abs(somaPagamentos - valorTotal) > 0.02) {
     return { ok: false, message: 'A soma dos pagamentos (R$ ' + somaPagamentos.toFixed(2) + ') não bate com o total da venda (R$ ' + valorTotal.toFixed(2) + ').' };
   }
+  /* Acréscimo da forma de pagamento (ex.: iFood): o cliente manda cada pagamento SEM acréscimo; o servidor soma por pagamento
+     (parte x % + valor fixo, uma vez por forma usada). Não vale em mesa ("A Receber") — a mesa só paga o acréscimo ao fechar a conta. */
+  const semAcrescimo = tipo === 'Mesa' || pagamentos.some(p => p.forma === 'A Receber (Mesa)');
+  const fatorSemTaxa = valorTotal > 0 ? Math.max(0, (valorTotal - taxaEntrega) / valorTotal) : 1;
+  let acrescimoForma = 0;
+  const pagamentosGravar = pagamentos.map(p => {
+    const parte = Math.round(Number(p.valor) * 100) / 100;
+    const acr = semAcrescimo ? 0 : calcularAcrescimoPagamento_(p.forma, Math.round(parte * fatorSemTaxa * 100) / 100); // o % não incide sobre a taxa de entrega
+    acrescimoForma += acr;
+    return { forma: p.forma, valor: Math.round((parte + acr) * 100) / 100 };
+  });
+  acrescimoForma = Math.round(acrescimoForma * 100) / 100;
+  const valorTotalBase = valorTotal;
+  const valorTotalFinal = Math.round((valorTotalBase + acrescimoForma) * 100) / 100;
 
   linhasItens.forEach(l => shItens.appendRow(l));
   const statusPag = statusPagamento === 'A Receber' ? 'A Receber' : 'Pago';
@@ -4158,18 +4227,19 @@ function iniciarVenda(itens, clienteNome, clienteTelefone, pagamentos, tipoEntre
   const statusPedidoInicial = origemFinal === 'Cardápio' ? 'Recebido' : 'Em preparo';
   const numeroPedido = proximoNumeroPedido_(shVendas); // número amigável sequencial (já estamos dentro do lock)
   shVendas.appendRow([
-    vendaId, dataVenda, clienteNome || '', clienteTelefone || '', formaPagamentoResumo, valorTotal, custoTotal, 'Confirmada', '',
+    vendaId, dataVenda, clienteNome || '', clienteTelefone || '', formaPagamentoResumo, valorTotalFinal, custoTotal, 'Confirmada', '',
     tipo, statusPedidoInicial, tipo === 'Entrega' ? (de.endereco || '') : '', tipo === 'Entrega' ? (de.complemento || '') : '', tipo === 'Entrega' ? (de.referencia || '') : '', de.observacoes || '', '', '',
     statusPag, statusPag === 'Pago' ? dataVenda : '',
     valorOriginal, valorDesconto, descontoDetalhe, '', '', origemFinal,
     tipo === 'Mesa' ? mesaId : '', taxaEntrega, '', USUARIO_ATUAL || '', numeroPedido
   ]);
+  if (acrescimoForma > 0) { try { prepararAcrescimoForma_(); shVendas.getRange(shVendas.getLastRow(), COL_VENDA_ACRESCIMO_).setValue(acrescimoForma); } catch (eAcr) { registrarLog('Falha ao gravar acréscimo da forma', '', eAcr.message); } }
   if (origemContingenciaTs) { // marca "veio da contingência" (Vendas!AG = quando foi gravada de verdade)
     try { prepararContingenciaTimestamp_(); shVendas.getRange(shVendas.getLastRow(), COL_VENDA_REGISTRADA_EM_).setValue(new Date()); }
     catch (e) { registrarLog('Falha ao marcar venda de contingência', '', e.message); }
   }
   if (chaveReq) requisicaoRegistrar_(chaveReq, 'iniciarVenda', vendaId); // registra logo após gravar a venda: janela mínima contra duplicação
-  pagamentos.forEach(p => { shPagamentos.appendRow([Utilities.getUuid(), vendaId, p.forma, Number(p.valor) || 0, calcularTaxaPagamento_(p.forma, Number(p.valor) || 0)]); });
+  pagamentosGravar.forEach(p => { shPagamentos.appendRow([Utilities.getUuid(), vendaId, p.forma, Number(p.valor) || 0, calcularTaxaPagamento_(p.forma, Number(p.valor) || 0)]); });
   if (tipo === 'Mesa') {
     const mesaAtual = readMesas().find(m => m.id === mesaId);
     if (mesaAtual && mesaAtual.status === 'Livre') editarStatusMesa(mesaId, 'Ocupada');
@@ -4192,10 +4262,10 @@ function iniciarVenda(itens, clienteNome, clienteTelefone, pagamentos, tipoEntre
       mensagemExtra = ' Marca de fidelidade adicionada para ' + clienteNome + '.';
     }
   }
-  registrarLog('Venda registrada', clienteTelefone || '', 'Total R$ ' + valorTotal.toFixed(2) + ' via ' + formaPagamentoResumo + ' (' + tipo + ', ' + statusPag + ')' + (origemContingenciaTs ? ' | origem: contingência, hora original ' + Utilities.formatDate(dataVenda, FUSO, 'dd/MM/yyyy HH:mm') : ''));
+  registrarLog('Venda registrada', clienteTelefone || '', 'Total R$ ' + valorTotalFinal.toFixed(2) + (acrescimoForma > 0 ? ' (inclui acréscimo da forma R$ ' + acrescimoForma.toFixed(2) + ')' : '') + ' via ' + formaPagamentoResumo + ' (' + tipo + ', ' + statusPag + ')' + (origemContingenciaTs ? ' | origem: contingência, hora original ' + Utilities.formatDate(dataVenda, FUSO, 'dd/MM/yyyy HH:mm') : ''));
 
   return {
-    ok: true, message: 'Venda registrada: R$ ' + valorTotal.toFixed(2) + '.' + mensagemExtra, id: vendaId, numero: numeroPedido, valorTotal: valorTotal, timestampAplicado: origemContingenciaTs ? dataVenda.getTime() : undefined,
+    ok: true, message: 'Venda registrada: R$ ' + valorTotalFinal.toFixed(2) + '.' + mensagemExtra, id: vendaId, numero: numeroPedido, valorTotal: valorTotalFinal, acrescimoForma: acrescimoForma, timestampAplicado: origemContingenciaTs ? dataVenda.getTime() : undefined,
     vendas: readVendasResposta_(), itensVenda: readItensVendaResposta_(), pagamentosVenda: readPagamentosVendaResposta_(),
     fidelidade: readFidelidadeResposta_(), clientes: readClientesResposta_(), estoque: readEstoqueResposta_()
   };
@@ -4405,6 +4475,11 @@ function editarVenda(id, itens, motivo, senhaAdminConfirmacao) {
       for (let p = 2; p <= shPag.getLastRow(); p++) { if (shPag.getRange(p, 2).getValue() === id) linhasPag.push(p); }
       if (linhasPag.length > 1) return { ok: false, message: 'Venda com pagamento dividido não pode ser editada. Cancele e lance novamente.' };
       const totalAntes = numPlanilha_(shVendas.getRange(i, 6).getValue()) || 0;
+      /* Acréscimo da forma de pagamento: venda de uma forma só é recalculada com o novo total; "A Receber (Mesa)" nunca tem. */
+      const formaUnica = linhasPag.length === 1 ? String(shPag.getRange(linhasPag[0], 3).getValue() || '') : '';
+      const taxaEntregaVenda = numPlanilha_(shVendas.getRange(i, 27).getValue()) || 0;
+      const acrNovo = (formaUnica && formaUnica !== 'A Receber (Mesa)' && String(shVendas.getRange(i, 10).getValue()) !== 'Mesa') ? calcularAcrescimoPagamento_(formaUnica, totalNovo) : 0;
+      const totalNovoComAcr = Math.round((totalNovo + taxaEntregaVenda + acrNovo) * 100) / 100;
 
       const lastItens = shItens.getLastRow();
       for (let j = lastItens; j >= 2; j--) { if (shItens.getRange(j, 2).getValue() === id) shItens.deleteRow(j); }
@@ -4422,19 +4497,20 @@ function editarVenda(id, itens, motivo, senhaAdminConfirmacao) {
       valorTotal = Math.round(valorTotal * 100) / 100;
       custoTotal = Math.round(custoTotal * 100) / 100;
 
-      valorTotal = totalNovo;
-      shVendas.getRange(i, 6).setValue(totalNovo);
+      valorTotal = totalNovoComAcr;
+      shVendas.getRange(i, 6).setValue(totalNovoComAcr);
+      try { prepararAcrescimoForma_(); shVendas.getRange(i, COL_VENDA_ACRESCIMO_).setValue(acrNovo > 0 ? acrNovo : ''); } catch (eAc) {}
       shVendas.getRange(i, 7).setValue(custoTotal);
       shVendas.getRange(i, 20).setValue(somaNova);
-      if (linhasPag.length === 1) { shPag.getRange(linhasPag[0], 4).setValue(totalNovo); shPag.getRange(linhasPag[0], 5).setValue(calcularTaxaPagamento_(shPag.getRange(linhasPag[0], 3).getValue(), totalNovo)); }
+      if (linhasPag.length === 1) { shPag.getRange(linhasPag[0], 4).setValue(totalNovoComAcr); shPag.getRange(linhasPag[0], 5).setValue(calcularTaxaPagamento_(shPag.getRange(linhasPag[0], 3).getValue(), totalNovoComAcr)); }
       ajustarEstoquePorVenda(itensAntigos, -1, id);
       ajustarEstoquePorVenda(itens, 1, id);
       registrarLog('Venda editada', clienteTelefone, (antesDoAceite ? '[edição antes do aceite] ' : '') + 'Autorizado por ' + (AUTORIZADOR_ATUAL || USUARIO_ATUAL) + ' | Motivo: ' + motivo + ' | Total: R$ ' + totalAntes.toFixed(2) + ' → R$ ' + valorTotal.toFixed(2));
       // Pedido do cardápio já com pagamento registrado e valor alterado: o cliente precisa refazer/ajustar a cobrança (não bloqueia, só avisa).
       let avisoPag = '';
       try {
-        if (antesDoAceite && String(shVendas.getRange(i, 25).getValue()) === 'Cardápio' && String(shVendas.getRange(i, 18).getValue()) === 'Pago' && Math.abs(totalNovo - totalAntes) >= 0.01) {
-          avisoPag = ' ATENÇÃO: o valor mudou (R$ ' + totalAntes.toFixed(2) + ' → R$ ' + totalNovo.toFixed(2) + ') e este pedido já consta como pago — acerte a diferença com o cliente.';
+        if (antesDoAceite && String(shVendas.getRange(i, 25).getValue()) === 'Cardápio' && String(shVendas.getRange(i, 18).getValue()) === 'Pago' && Math.abs(totalNovoComAcr - totalAntes) >= 0.01) {
+          avisoPag = ' ATENÇÃO: o valor mudou (R$ ' + totalAntes.toFixed(2) + ' → R$ ' + totalNovoComAcr.toFixed(2) + ') e este pedido já consta como pago — acerte a diferença com o cliente.';
         }
       } catch (ePag) {}
       return { ok: true, message: 'Venda atualizada. Novo total: R$ ' + valorTotal.toFixed(2) + '.' + avisoPag, aviso: !!avisoPag, vendas: readVendasResposta_(), itensVenda: readItensVendaResposta_() };
@@ -5933,6 +6009,24 @@ function sbLerAba_(nome) {
     const o = {}; for (let i = 1; i < cab.length; i++) if (cab[i]) o[cab[i]] = r[i]; return o;
   }).filter(function (o) { return o.id !== undefined && String(o.id) !== ''; });
 }
+/* Cardápio fechado à mão ou em período programado (chaves CardapioFechadoManual / CardapioPeriodosFechado da tabela sistema). Devolve a mensagem ao cliente ou '' se está liberado. */
+function sbJson_(v, padrao) { if (v && typeof v === 'object') return v; try { const o = JSON.parse(String(v || '').replace(/^'/, '')); return o === null ? padrao : o; } catch (e) { return padrao; } }
+function sbBloqueioDeFechamento_(manual, periodos) {
+  if (manual && typeof manual === 'object' && String(manual.ativo) === 'true') return String(manual.mensagem || '').trim() || 'Estamos fechados no momento. Voltamos em breve!';
+  const hoje = Utilities.formatDate(new Date(), FUSO, 'yyyy-MM-dd');
+  const lista = Array.isArray(periodos) ? periodos : [];
+  for (let i = 0; i < lista.length; i++) {
+    const ini = String(lista[i] && lista[i].inicio || '').slice(0, 10), fim = String(lista[i] && lista[i].fim || '').slice(0, 10);
+    if (ini && fim && ini <= hoje && hoje <= fim) return String(lista[i].mensagem || '').trim() || 'Estamos fechados neste período. Voltamos em breve!';
+  }
+  return '';
+}
+function cardapioBloqueioReserva_() {
+  try {
+    const cfg = {}; sbLerAba_('SB_sistema').forEach(function (r) { cfg[String(r.chave)] = r.valor; });
+    return sbBloqueioDeFechamento_(sbJson_(cfg['CardapioFechadoManual'], null), sbJson_(cfg['CardapioPeriodosFechado'], []));
+  } catch (e) { return ''; }
+}
 function sbBool_(v) { return v === true || String(v).toLowerCase() === 'true'; }
 function sbNum_(v) { const n = Number(v); return isFinite(n) ? n : 0; }
 function sbUrlFoto_(id) { return id ? ('https://drive.google.com/uc?export=view&id=' + id) : ''; }
@@ -5989,7 +6083,8 @@ function sbSincronizarContingencia_(rapido) {
   const txt = function (k, pad) { const v = cfg[k]; return (v === undefined || v === null || v === '') ? pad : String(v); };
   const formas = (precisaPublico || precisaInterno ? sbLerAba_('SB_formas_pagamento') : []).map(function (f, i) {
     return { id: f.id, nome: f.nome, ativa: sbBool_(f.ativa), visivelCardapio: sbBool_(f.visivel_cardapio), taxaPct: sbNum_(f.taxa_percentual), taxaFixa: sbNum_(f.taxa_fixa),
-             prazoDias: sbNum_(f.prazo_dias), permiteTroco: sbBool_(f.permite_troco), ordem: sbNum_(f.ordem) || (i + 1) };
+             prazoDias: sbNum_(f.prazo_dias), permiteTroco: sbBool_(f.permite_troco), ordem: sbNum_(f.ordem) || (i + 1),
+             acrescimoPct: sbNum_(f.acrescimo_percentual), acrescimoFixo: sbNum_(f.acrescimo_fixo) };
   }).sort(function (a, b) { return a.ordem - b.ordem; });
   const dados = {};
   if (precisaPublico) dados.publico = {
@@ -6001,10 +6096,12 @@ function sbSincronizarContingencia_(rapido) {
       adicionais: sbLerAba_('SB_adicionais').map(function (a) { return { id: a.id, nome: a.nome, preco: sbNum_(a.preco), ativo: sbBool_(a.ativo) }; }),
       produtoAdicionais: sbLerAba_('SB_produto_adicionais').map(function (x) { return { id: x.id, produtoId: x.produto_id, adicionalId: x.adicional_id }; }),
       comboItens: sbLerAba_('SB_combo_itens').map(function (x) { return { comboId: x.combo_id, produtoId: x.produto_id }; }),
-      formasPagamento: formas.map(function (f) { return { id: f.id, nome: f.nome, ativa: f.ativa, visivelCardapio: f.visivelCardapio, permiteTroco: f.permiteTroco, ordem: f.ordem }; }),
+      formasPagamento: formas.map(function (f) { return { id: f.id, nome: f.nome, ativa: f.ativa, visivelCardapio: f.visivelCardapio, permiteTroco: f.permiteTroco, ordem: f.ordem, acrescimoPct: f.acrescimoPct, acrescimoFixo: f.acrescimoFixo }; }),
       configCardapio: { kicker: txt('CardapioKicker', 'DELIVERY · SABOR QUE CONQUISTA'), frase: txt('CardapioFrase', 'Peça pelo cardápio — rápido, sem complicação.'),
         tempoEntrega: txt('CardapioTempoEntrega', '40-60 min'), tempoRetirada: txt('CardapioTempoRetirada', '20-30 min'), tempoMesa: txt('CardapioTempoMesa', '20-30 min'),
-        taxaEntrega: sbNum_(cfg['TaxaEntregaPadrao']) }
+        taxaEntrega: sbNum_(cfg['TaxaEntregaPadrao']),
+        fechamento: { manual: sbJson_(cfg['CardapioFechadoManual'], null), periodos: sbJson_(cfg['CardapioPeriodosFechado'], []) },
+        restaurante: { nome: txt('RestauranteNome', ''), endereco: txt('RestauranteEndereco', ''), telefone: txt('RestauranteTelefone', ''), horario: txt('RestauranteHorario', ''), redes: txt('RestauranteRedes', '') } }
   };
   if (precisaInterno) dados.interno = {
       clientes: sbLerAba_('SB_clientes').map(function (c) { return { id: c.id, nome: c.nome, telefone: c.telefone }; }),
