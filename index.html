@@ -1838,25 +1838,6 @@ body:has(.cd-fab-carrinho.show) .balao-ia{bottom:84px;}
   <!-- =========================== CARDÁPIO DIGITAL (ADMIN) — ITEM 93 =========================== -->
   <section class="tab" id="tab-cardapiodigital">
         <div class="admin-subnav" data-admin-nav="1"></div>
-    <div class="card" id="cardFechamentoCardapio">
-      <h2>Abrir ou fechar o cardápio</h2>
-      <p class="sub">Normalmente o cardápio abre e fecha junto com o caixa. Aqui você pode fechá-lo por conta própria (manutenção, muito movimento) sem fechar o caixa, ou programar períodos (férias, feriados). O pedido feito dentro do restaurante pelo QR da mesa continua funcionando.</p>
-      <label style="display:flex;align-items:center;gap:8px;"><input type="checkbox" id="fcManual" style="width:auto;margin:0;"> Fechar o cardápio agora (até eu reabrir)</label>
-      <label>Mensagem para o cliente (opcional)</label>
-      <input type="text" id="fcMensagem" placeholder="Ex: Voltamos amanhã às 18h" maxlength="150">
-      <div id="fcPeriodosBox">
-        <h3 style="margin-top:14px;">Períodos programados</h3>
-        <div id="fcPeriodos"></div>
-        <div class="row2">
-          <div><label>De</label><input type="date" id="fcNovoInicio"></div>
-          <div><label>Até (inclusive)</label><input type="date" id="fcNovoFim"></div>
-        </div>
-        <input type="text" id="fcNovoMsg" placeholder="Mensagem do período (ex: Férias coletivas, voltamos dia 02/01)" maxlength="150">
-        <button class="ghost" onclick="adicionarPeriodoFechamento()">+ Adicionar período</button>
-      </div>
-      <button class="primary" onclick="salvarFechamentoCardapioUI()">Salvar</button>
-      <div class="msg" id="fcMsg"></div>
-    </div>
 
     <div class="card" id="cardDadosRestaurante">
       <h2>Dados do restaurante</h2>
@@ -3010,6 +2991,8 @@ const APP_NOVIDADES = {
       'O Assistente guarda a conversa; "Nova conversa" começa do zero.',
       'Acréscimo por forma de pagamento: em Pagamentos, cada forma pode cobrar % ou valor fixo a mais (ex.: iFood). O preço do produto agora é um só. O cliente é avisado no cardápio, e o Caixa e o fechamento de mesa somam o acréscimo sozinhos.',
       'Novo: Compras e fornecedores (Catálogo): registre compras, atualize estoque e custo e gere a despesa. No Assistente, "comprei 30kg de picanha por R$ 900" vira um cartão para você confirmar; a IA nunca grava sozinha.',
+      'Novo: menu fixo embaixo no celular (Início, Caixa, Pedidos e "Mais"), com bolinha vermelha nos avisos. No computador continua no topo.',
+      'Novo visual do cardápio do cliente: cabeçalho menor com a situação (aberto/fechado), produtos em grade com botão "+" e Atendimento como ícone redondo.',
       'Novo: botão discreto "🌐 Cardápio aberto" em Início e no Caixa para fechar e reabrir o cardápio dos clientes em um toque. Correção: o cardápio podia aparecer "fechado" com o caixa aberto.',
       'Novo: modo reserva mais claro (a faixa laranja diz o que funciona e o que espera) e cartão "Saúde do sistema" em Visão geral, com backup, conferência diária de vendas e tarefas automáticas.',
       'Novo: avisos com o app fechado. No 🔔 do topo, toque em "Ligar avisos com o app fechado": o celular passa a avisar "Novo pedido" do cardápio e "Cliente no atendimento", mesmo com o app fechado. No iPhone, instale o app na tela inicial antes.',
@@ -3017,7 +3000,6 @@ const APP_NOVIDADES = {
       'Novo em Relatórios: margem por forma de pagamento, vendas por dia da semana, comparação com o ano passado e períodos de 90 dias e 12 meses.',
       'Novo: cupom progressivo (desconto maior por faixa de valor do pedido), CEP que preenche rua e bairro e filtros no histórico do cliente.',
       'Novo: busca 🔍 no topo (clientes, pedidos e produtos). A busca de cliente por nome voltou a funcionar, sem precisar de acento.',
-      'Novo: fechar o cardápio na hora ou programar períodos (férias, feriado) em Cardápio Digital, com mensagem para o cliente.',
       'Novo: "Dados do restaurante" (nome, endereço, telefone, horário, redes) aparecem no rodapé do cardápio.',
       'Novo: Linha do tempo do pedido (em "ver pedido completo") e botões para baixar relatórios e dados em CSV para o Excel.',
       'Cupom não é aceito no Caixa: use o desconto por porcentagem.'
@@ -3025,6 +3007,8 @@ const APP_NOVIDADES = {
   ],
   Operador: [
     { v:'1.0', em:'09/10/2026', itens:[
+      'Novo: menu fixo embaixo no celular (Início, Caixa, Pedidos e "Mais"), com bolinha vermelha nos avisos. No computador continua no topo.',
+      'Novo visual do cardápio do cliente: cabeçalho menor, produtos em grade com botão "+" e Atendimento como ícone redondo.',
       'Novo: botão discreto "🌐 Cardápio aberto" em Início e no Caixa para fechar e reabrir o cardápio dos clientes em um toque.',
       'Novo: modo reserva mais claro. A faixa laranja no topo diz o que funciona (Caixa e pedidos do cardápio) e o que espera a volta do sistema.',
       'Novo: avisos com o app fechado. No 🔔 do topo, toque em "Ligar avisos com o app fechado" para o celular avisar "Novo pedido" e "Cliente no atendimento" mesmo com o app fechado. No iPhone, instale o app na tela inicial antes.',
@@ -8950,6 +8934,12 @@ Admin:{ nome:'Administrador', secoes:[
     'Se alguém espalhar o QR, use "🔄 Gerar novo código" e imprima o QR novo daquela mesa.' ],
     comuns:['O endereço do site está fixo nos QR: https://texasburguer.github.io/apptexasburguer/ — se mudar, é preciso imprimir de novo.'] },
 
+  { t:'Menu de baixo (celular)', itens:[
+    'No celular, o menu fica fixo na parte de baixo da tela: Início, Caixa, Pedidos e as outras telas do seu perfil. A aba aberta fica em dourado.',
+    'Quando há mais telas do que cabem, aparece "Mais" com as demais. Uma bolinha vermelha avisa que há algo novo naquela aba.',
+    'No computador o menu continua no topo.' ],
+    comuns:['O botão do Assistente sobe um pouco para não ficar em cima do menu.'] },
+
   { t:'Modo reserva e Saúde do sistema', itens:[
     'Se o Supabase cair, aparece uma faixa laranja "Modo reserva" no topo. Ela diz o que funciona, o que fica na fila e o que espera a volta.',
     'Funciona: venda do Caixa (retirada ou entrega, sem desconto e sem cupom) e pedido do cardápio, pela contingência; consulta dos pedidos em Pedidos.',
@@ -8984,12 +8974,12 @@ Admin:{ nome:'Administrador', secoes:[
   { t:'Cardápio Digital, promoções e eventos', itens:[
     'Cardápio Digital: escolha o que aparece para o cliente, destaques, ordem e frase de abertura. "Mais Pedidos" é automático.',
     'Se o cliente pedir mais de 1 lanche com adicionais, os adicionais valem para todos — o cardápio avisa.',
-    'Abrir ou fechar o cardápio: no topo do Cardápio Digital, marque "Fechar o cardápio agora" (com uma mensagem para o cliente) para parar os pedidos sem fechar o caixa, ou programe períodos (férias, feriado) com data de início, fim e mensagem. Pedido de mesa por QR Code continua valendo. Atalho: o botão discreto "🌐 Cardápio aberto" em Início e no Caixa faz o mesmo em um toque (Admin, Operador e Desenvolvedor).',
+    'Abrir ou fechar o cardápio: use o botão "🌐 Cardápio aberto" em Início ou no Caixa. Um toque fecha (com uma mensagem opcional para o cliente) e outro reabre, sem fechar o caixa. Pedido de mesa por QR Code continua valendo. O cardápio só recebe pedidos com o caixa aberto.',
     'Cupom progressivo: em Promoções → novo cupom, escolha o tipo "Progressivo (por faixa)" e escreva uma faixa por linha (ex.: "50 5" e "100 10" = R$ 5 de desconto a partir de R$ 50 e R$ 10 a partir de R$ 100). Vale a maior faixa que o pedido alcança, contando só os itens (sem a taxa de entrega).',
     'Dados do restaurante: nome, endereço, telefone, horário e redes sociais (texto livre) aparecem no rodapé do cardápio do cliente e nas mensagens de WhatsApp e relatórios.',
     'O cliente pode escrever uma observação em cada item; ela aparece na comanda da cozinha e no pedido.',
     'Item "Esgotado": se "bloquear venda sem estoque" estiver ligado (Catálogo → Estoque), o cardápio mostra "Esgotado" no que o estoque não cobre.',
-    'No celular, cada seção tem rolagem lateral (inclusive "Mais pedidos"). O cliente toca na foto para ver o item ampliado, com o botão Adicionar.',
+    'No celular, "Mais pedidos" e "Destaques" rolam para o lado e as categorias ficam em grade de 2 colunas. O cliente toca no botão vermelho "+" para adicionar e na foto para ver o item ampliado. O botão "💬" redondo abre o Atendimento.',
     'Na entrega, o endereço vem com rua e bairro preenchidos pela localização do cliente (só se ele permitir). O número da casa é sempre digitado por ele e o pedido não segue sem ele.',
     'O cardápio abre rápido porque guarda cópia no aparelho do cliente. Mudanças suas aparecem em instantes.',
     'O cardápio só recebe pedidos com o caixa aberto; fechado, aparece "Estamos fechados no momento".',
@@ -9119,6 +9109,12 @@ Admin:{ nome:'Administrador', secoes:[
  ]},
 
 Operador:{ nome:'Caixa', secoes:[
+  { t:'Menu de baixo (celular)', itens:[
+    'No celular, o menu fica fixo na parte de baixo da tela: Início, Caixa, Pedidos e as outras telas do seu perfil. A aba aberta fica em dourado.',
+    'Quando há mais telas do que cabem, aparece "Mais" com as demais. Uma bolinha vermelha avisa que há algo novo naquela aba.',
+    'No computador o menu continua no topo.' ],
+    comuns:['O botão do Assistente sobe um pouco para não ficar em cima do menu.'] },
+
   { t:'Modo reserva (quando o sistema cai)', itens:[
     'Uma faixa laranja "Modo reserva" no topo avisa que o servidor principal está fora.',
     'Você continua vendendo no Caixa (retirada ou entrega, sem desconto e sem cupom) e vendo os pedidos em Pedidos. Pedidos do cardápio também entram.',
@@ -12054,8 +12050,8 @@ function cdCardHTML(tipo, item){
     <div class="cd-info">
       <div class="cd-nome">${escH(item.nome)}</div>
       ${item.descricao?`<div class="cd-desc">${escH(item.descricao)}</div>`:''}
-      <div class="cd-preco">${cdFormatarPreco(preco)}</div>
-      ${esg?'<button disabled style="opacity:.6;cursor:not-allowed;">Esgotado</button>':`<button onclick="abrirCdItemModal('${tipo}','${item.id}')">Adicionar</button>`}
+      <div class="cd-linha"><div class="cd-preco">${cdFormatarPreco(preco)}</div>
+      ${esg?'<button class="cd-add esg" disabled>Esgotado</button>':`<button class="cd-add" aria-label="Adicionar ${escH(item.nome)}" onclick="abrirCdItemModal('${tipo}','${item.id}')">+</button>`}</div>
     </div>
   </div>`;
 }
@@ -12115,7 +12111,7 @@ function renderCdSecoes(){
     if(!prods.length && !cbos.length) return;
     total += prods.length + cbos.length;
     html += `<section class="cd-cat-bloco"><div class="cd-secao-titulo">${escH(cat.nome)}</div>`
-          + `<div class="cd-grid cd-cat-lista">`
+          + `<div class="cd-grid">`
           + prods.map(p=>cdCardHTML('produto',p)).join('')
           + cbos.map(c=>cdCardHTML('combo',c)).join('')
           + `</div></section>`;
@@ -12124,7 +12120,7 @@ function renderCdSecoes(){
   const orfC = (cdDados.combos||[]).filter(c => !c.categoria && !jaMostrados.has('combo:'+c.id));
   if(orfP.length || orfC.length){
     total += orfP.length + orfC.length;
-    html += `<section class="cd-cat-bloco"><div class="cd-secao-titulo">Outros</div><div class="cd-grid cd-cat-lista">`
+    html += `<section class="cd-cat-bloco"><div class="cd-secao-titulo">Outros</div><div class="cd-grid">`
           + orfP.map(p=>cdCardHTML('produto',p)).join('')
           + orfC.map(c=>cdCardHTML('combo',c)).join('')
           + `</div></section>`;
@@ -14267,6 +14263,36 @@ async function sb5SairReserva_(){
 /* campo de hora igual aos demais */
 input[type=time]{width:100%;background:#0b0705;border:1.5px solid #4a3414;border-radius:10px;color:var(--cream);padding:10px 11px;font-size:16px;font-family:inherit;color-scheme:dark;}
 </style>
+<style id="cdLayoutA">
+/* ===== Layout A do cardápio do cliente (celular): cabeçalho enxuto, cards com "+", Atendimento só ícone ===== */
+@media (max-width:899px){
+  #cardapioPublico .cd-banner{ display:grid; grid-template-columns:104px 1fr; column-gap:12px; align-items:center; text-align:left; padding:10px 12px; margin:10px 4px 8px; border-width:1.5px; border-radius:16px; }
+  #cardapioPublico .cd-banner .hero-logo{ grid-row:1 / span 3; width:104px; margin:0; }
+  #cardapioPublico .cd-banner .kicker{ justify-self:start; padding:3px 9px; font-size:9.5px; border-width:1.5px; letter-spacing:.08em; }
+  #cardapioPublico .cd-banner .frase{ margin-top:6px; font-size:12.5px; line-height:1.3; }
+  #cardapioPublico .cd-banner .status{ margin-top:8px !important; justify-self:start; display:inline-flex; align-items:center; padding:5px 12px; border-radius:999px; background:var(--panel); border:1px solid var(--line); font-size:12.5px; font-weight:700; color:var(--cream); }
+  #cardapioPublico .cd-secao-titulo{ margin:16px 2px 8px; font-size:17px; }
+}
+@media (min-width:900px){ .cd-banner .hero-logo{ width:260px !important; } }
+.cd-card .cd-linha{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:auto; }
+.cd-card .cd-linha .cd-preco{ margin-top:0; white-space:nowrap; }
+.cd-card .cd-linha .cd-add{ flex:0 0 auto; width:38px; height:38px; margin:0 !important; padding:0 !important; border-radius:50%; font-size:24px; font-weight:700; line-height:1; display:flex; align-items:center; justify-content:center;
+  background:linear-gradient(180deg,var(--red-hi),var(--red) 55%,var(--red-dim)); color:var(--cream); border:1.5px solid var(--gold); box-shadow:0 2px 6px rgba(0,0,0,.5); }
+.cd-card .cd-linha .cd-add:not(:disabled):active{ background:var(--gold); color:#241a10; }
+.cd-card .cd-linha .cd-add.esg{ width:auto; height:28px; border-radius:10px; padding:0 8px !important; font-size:10.5px; letter-spacing:0; font-weight:700; background:var(--panel-2); color:var(--muted); border:1.5px solid var(--line); box-shadow:none; opacity:.9; }
+@media (max-width:899px){
+  .cd-cat-lista .cd-card .cd-linha .cd-add{ width:34px; height:34px; font-size:22px; padding:0 !important; margin:0 !important; }
+  .cd-cat-lista .cd-card .cd-linha .cd-add.esg{ width:auto; height:28px; }
+  #cardapioPublico .cd-grid:not(.cd-cat-lista){ gap:10px; }
+  #cardapioPublico .cd-grid:not(.cd-cat-lista) .cd-nome{ font-size:13.5px; line-height:1.2; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; min-height:2.4em; }
+  #cardapioPublico .cd-grid:not(.cd-cat-lista) .cd-desc{ font-size:11px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  #cardapioPublico .cd-grid:not(.cd-cat-lista) .cd-card img{ aspect-ratio:4/3; }
+}
+/* Atendimento do cliente: só o ícone, redondo e menor */
+.balao-ia.so-icone button{ width:46px; height:46px; padding:0 !important; border-radius:50% !important; justify-content:center; }
+.balao-ia.so-icone #balaoIaRot{ display:none; }
+.balao-ia.so-icone #balaoIaIcone{ font-size:21px; }
+</style>
 <style id="iaPublicaCss">
 .ia-acoes{flex:0 0 auto;}
 .ia-acoes:empty{display:none;}
@@ -14724,6 +14750,7 @@ input[type=time]{width:100%;background:#0b0705;border:1.5px solid #4a3414;border
     fab.style.opacity = mostrar ? '1' : '0';
     fab.style.pointerEvents = mostrar ? 'auto' : 'none';
     const rot = $('balaoIaRot'); if(rot) rot.textContent = interno ? 'Assistente' : 'Atendimento';
+    const balao = $('balaoIa'); if(balao) balao.classList.toggle('so-icone', !interno);
     const bav = $('balaoIaAvisos'); if(bav){ bav.hidden = !(interno && mostrar && IN.avTotal > 0); }
     const ic = $('balaoIaIcone'); if(ic) ic.textContent = interno ? '✨' : '💬';
     aviso_();
@@ -14973,6 +15000,83 @@ window.abrirMapaEntrega_ = function(vendaId){
 })();
 </script>
 
+<style id="navInfCss">
+/* ===== Navegação fixa embaixo (celular, só equipe). No computador continua a barra de cima. ===== */
+#navInf{display:none;}
+@media (max-width:899px){
+  body.nav-inf nav.tabs{display:none !important;}
+  body.nav-inf #mainWrap{padding-bottom:92px;}
+  body.nav-inf .balao-ia{bottom:88px;}
+  body.nav-inf #navInf{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:60;background:#120c07;border-top:1px solid var(--line);padding:6px 6px calc(10px + env(safe-area-inset-bottom,0px));box-shadow:0 -6px 18px rgba(0,0,0,.5);}
+  #navInf button{position:relative;flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;color:var(--muted);padding:6px 2px;font-family:inherit;font-size:11.5px;font-weight:500;cursor:pointer;min-height:48px;}
+  #navInf button svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+  #navInf button span.t{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  #navInf button.ativo{color:var(--gold);font-weight:700;}
+  #navInf button.ativo::before{content:'';position:absolute;top:0;left:30%;right:30%;height:3px;border-radius:0 0 3px 3px;background:var(--gold);}
+  #navInf button .pt{position:absolute;top:4px;left:calc(50% + 8px);width:9px;height:9px;border-radius:50%;background:var(--red-hi);box-shadow:0 0 0 2px #120c07;}
+}
+#navInfMais{display:none;position:fixed;inset:0;z-index:70;background:rgba(0,0,0,.6);}
+#navInfMais.on{display:block;}
+#navInfMais .nm-box{position:absolute;left:0;right:0;bottom:0;background:var(--panel);border-top:2px solid var(--gold-dim);border-radius:18px 18px 0 0;padding:14px 14px calc(18px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:8px;}
+#navInfMais .nm-box button{position:relative;display:flex;align-items:center;gap:12px;min-height:52px;padding:0 14px;border-radius:14px;background:var(--panel-2);border:1px solid var(--gold-dim);color:var(--cream);font-size:15px;font-weight:700;font-family:inherit;text-align:left;cursor:pointer;}
+#navInfMais .nm-box button svg{width:22px;height:22px;stroke:var(--gold);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+#navInfMais .nm-box button .pt{margin-left:auto;width:10px;height:10px;border-radius:50%;background:var(--red-hi);}
+</style>
+<nav id="navInf" aria-label="Navegação principal"></nav>
+<div id="navInfMais" onclick="if(event.target===this)navInfFechar_()"><div class="nm-box" id="navInfMaisBox"></div></div>
+<script id="navInfJs">
+(function(){
+  'use strict';
+  const IC = {
+    inicio:'M3 11l9-8 9 8M5 10v10h5v-6h4v6h5V10',
+    caixa:'M4 7h16v12H4zM4 11h16M8 15h3',
+    pedidos:'M6 3h12v18H6zM9 8h6M9 12h6M9 16h4',
+    meusganhos:'M12 3v18M16 7h-6a3 3 0 0 0 0 6h4a3 3 0 0 1 0 6H8',
+    clientes:'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21a8 8 0 0 1 16 0',
+    notificacoes:'M6 9a6 6 0 0 1 12 0c0 6 2 7 2 7H4s2-1 2-7zM10 20a2 2 0 0 0 4 0',
+    administrador:'M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6',
+    mais:'M5 12h.01M12 12h.01M19 12h.01'
+  };
+  const svg = k => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="' + (IC[k] || IC.mais) + '"/></svg>';
+  const rot = b => (b.dataset.tab === 'administrador') ? 'Admin' : String((b.childNodes[0] && b.childNodes[0].textContent) || b.dataset.tab || '').trim();
+  const esc = t => String(t).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  let ultima = '';
+  function visiveis(){ return Array.prototype.slice.call(document.querySelectorAll('nav.tabs .tab-btn')).filter(b => !b.classList.contains('hidden-tab')); }
+  function ligado(){
+    const w = document.getElementById('mainWrap');
+    return !!(w && w.classList.contains('unlocked')) && window.innerWidth < 900 && !(window.currentUser && window.currentUser.emergencia);
+  }
+  window.navInfFechar_ = function(){ const m = document.getElementById('navInfMais'); if(m) m.classList.remove('on'); };
+  window.navInfIr_ = function(tab){ navInfFechar_(); const b = document.querySelector('nav.tabs .tab-btn[data-tab="' + tab + '"]'); if(b) b.click(); setTimeout(()=>window.scrollTo(0,0), 30); };
+  window.navInfMais_ = function(){
+    const lista = visiveis(), cab = lista.slice(0,4).map(b=>b.dataset.tab), resto = lista.filter(b => cab.indexOf(b.dataset.tab) === -1);
+    document.getElementById('navInfMaisBox').innerHTML = resto.map(b => '<button type="button" onclick="navInfIr_(\'' + b.dataset.tab + '\')">' + svg(b.dataset.tab) + esc(rot(b)) + (b.classList.contains('has-alert') ? '<span class="pt"></span>' : '') + '</button>').join('');
+    document.getElementById('navInfMais').classList.add('on');
+  };
+  function montar(){
+    const nav = document.getElementById('navInf'); if(!nav) return;
+    const on = ligado();
+    document.body.classList.toggle('nav-inf', on);
+    if(!on){ ultima = ''; return; }
+    const lista = visiveis();
+    const ativa = (document.querySelector('nav.tabs .tab-btn.active') || {dataset:{}}).dataset.tab || '';
+    const usaMais = lista.length > 5;
+    const slots = usaMais ? lista.slice(0,4) : lista;
+    const resto = usaMais ? lista.slice(4) : [];
+    const sig = slots.map(b => b.dataset.tab + (b.classList.contains('has-alert') ? '!' : '')).join(',') + '|' + ativa + '|' + resto.map(b => b.dataset.tab + (b.classList.contains('has-alert') ? '!' : '')).join(',');
+    if(sig === ultima) return; ultima = sig;
+    let h = slots.map(b => '<button type="button" class="' + (b.dataset.tab === ativa ? 'ativo' : '') + '" onclick="navInfIr_(\'' + b.dataset.tab + '\')" aria-label="' + esc(rot(b)) + '">' + svg(b.dataset.tab) + '<span class="t">' + esc(rot(b)) + '</span>' + (b.classList.contains('has-alert') ? '<span class="pt"></span>' : '') + '</button>').join('');
+    if(usaMais){
+      const maisAtivo = resto.some(b => b.dataset.tab === ativa), maisAlerta = resto.some(b => b.classList.contains('has-alert'));
+      h += '<button type="button" class="' + (maisAtivo ? 'ativo' : '') + '" onclick="navInfMais_()" aria-label="Mais">' + svg('mais') + '<span class="t">Mais</span>' + (maisAlerta ? '<span class="pt"></span>' : '') + '</button>';
+    }
+    nav.innerHTML = h;
+  }
+  setInterval(montar, 700);
+  window.addEventListener('resize', ()=>{ ultima = ''; montar(); });
+  document.addEventListener('click', ()=>setTimeout(montar, 60), true);
+})();
+</script>
 <div id="balaoIa" class="balao-ia" style="display:none">
     <button type="button" onclick="balaoIaAbrir_()" aria-label="Balão de atendimento e assistente Texas Burger"><span id="balaoIaIcone">💬</span><span id="balaoIaRot">Atendimento</span><span class="balao-ia-cont" id="balaoIaContador" hidden>0</span><span class="balao-ia-avisos" id="balaoIaAvisos" hidden title="Avisos">🔔 0</span></button>
   </div>
