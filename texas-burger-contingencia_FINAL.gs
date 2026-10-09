@@ -35,6 +35,7 @@ const PERMISSOES = {
   leitura:  ['getEspelhoReserva', 'listarFilaInterna']   // RESERVA DE LEITURA: só consulta (Cozinha/Garçom/Entregador também usam); sem dados de contato nem de pagamento
 };
 
+let _ssMemo_ = null; // abre a planilha UMA vez por execução
 function ss_() {
   const props = PropertiesService.getScriptProperties();
   let id = props.getProperty('SPREADSHEET_ID');
@@ -44,7 +45,8 @@ function ss_() {
     id = ativa.getId();
     props.setProperty('SPREADSHEET_ID', id);
   }
-  return SpreadsheetApp.openById(id);
+  if (!_ssMemo_) _ssMemo_ = SpreadsheetApp.openById(id);
+  return _ssMemo_;
 }
 
 function setup() {
@@ -114,9 +116,7 @@ function responder(obj) {
 /* Health check (abrir a URL /exec no navegador). Só números — nada de dados de pedido. */
 function doGet(e) {
   try {
-    const pendentes = readFilaPendente().length;
-    const esp = lerEspelho_();
-    return responder({ ok: true, servico: 'Texas Burger - Contingência', pendentes: pendentes, espelhoAtualizadoEm: esp._atualizadoEm || null });
+    return responder({ ok: true, servico: 'Texas Burger - Contingência', pendentes: contarPendentes_(), espelhoAtualizadoEm: espelhoAtualizadoEm_() });
   } catch (err) {
     return responder({ ok: false, message: 'Erro: ' + err.message });
   }
@@ -129,8 +129,11 @@ function doPost(e) {
   if (!perfil) return responder({ ok: false, message: 'Chave inválida.' });
   if (PERMISSOES[perfil].indexOf(body.action) === -1) return responder({ ok: false, message: 'Esta chave não tem permissão para esta ação.' });
 
+  /* OTIMIZAÇÃO (Etapa A): ações só de leitura NÃO esperam a trava. Antes, o cardápio público e a Cozinha ficavam na fila atrás de uma gravação. */
+  const SEM_TRAVA = ['listarPendentes', 'getEspelho', 'getEspelhoPublico', 'getEspelhoInterno', 'getEspelhoReserva', 'listarFilaInterna', 'listarFotos', 'getArmazenamento'];
   const lock = LockService.getScriptLock();
-  try { lock.waitLock(20000); } catch (err) { return responder({ ok: false, ocupado: true, message: 'Contingência ocupada, tente de novo.' }); }
+  const usaTrava = SEM_TRAVA.indexOf(body.action) === -1;
+  if (usaTrava) { try { lock.waitLock(20000); } catch (err) { return responder({ ok: false, ocupado: true, message: 'Contingência ocupada, tente de novo.' }); } }
   try {
     let r;
     switch (body.action) {
@@ -139,8 +142,8 @@ function doPost(e) {
       case 'marcarSincronizado': r = marcarSincronizado(body.id); break;
       case 'atualizarEspelho': r = atualizarEspelho(body.dados); break;
       case 'getEspelho': r = { ok: true, espelho: lerEspelho_() }; break;
-      case 'getEspelhoPublico': { const esp = lerEspelho_(); r = { ok: true, espelho: Object.assign({}, esp.publico || {}, { _atualizadoEm: esp._atualizadoEm }) }; break; }
-      case 'getEspelhoInterno': { const esp = lerEspelho_(); r = { ok: true, espelho: Object.assign({}, esp.publico || {}, esp.interno || {}, { _atualizadoEm: esp._atualizadoEm }) }; break; }
+      case 'getEspelhoPublico': { const esp = lerEspelho_(['publico']); r = { ok: true, espelho: Object.assign({}, esp.publico || {}, { _atualizadoEm: esp._atualizadoEm }) }; break; }
+      case 'getEspelhoInterno': { const esp = lerEspelho_(['publico', 'interno']); r = { ok: true, espelho: Object.assign({}, esp.publico || {}, esp.interno || {}, { _atualizadoEm: esp._atualizadoEm }) }; break; }
       case 'guardarBackup': r = guardarBackup(body.nome, body.base64); break;
       case 'getArmazenamento': r = getArmazenamentoCont_(); break;
       case 'listarFotos': r = listarFotos_(); break;
@@ -149,14 +152,14 @@ function doPost(e) {
       case 'syncLote': r = ctSyncLote_(body.itens); break;
       case 'gerarChaveLeitura': r = gerarChaveLeitura_(); break;
       case 'listarFilaInterna': r = { ok: true, fila: filaInternaResumo_() }; break;
-      case 'getEspelhoReserva': { const esp = lerEspelho_(); r = { ok: true, reserva: esp.reserva || null, atualizadoEm: esp._atualizadoEm }; break; }   // ETAPA 4 — espelho das tabelas do Supabase (abas SB_<tabela>)
+      case 'getEspelhoReserva': { const esp = lerEspelho_(['reserva']); r = { ok: true, reserva: esp.reserva || null, atualizadoEm: esp._atualizadoEm }; break; }   // ETAPA 4 — espelho das tabelas do Supabase (abas SB_<tabela>)
       default: r = { ok: false, message: 'Ação desconhecida.' };
     }
     return responder(r);
   } catch (err) {
     return responder({ ok: false, message: 'Erro: ' + err.message });
   } finally {
-    lock.releaseLock();
+    if (usaTrava) lock.releaseLock();
   }
 }
 
@@ -194,21 +197,38 @@ function enfileirar(id, tipo, dados, perfil) {
   const sh = ss_().getSheetByName('Fila');
   const last = sh.getLastRow();
   if (last >= 2) {
-    const linhas = sh.getRange(2, 1, last - 1, 7).getValues();
-    if (linhas.some(r => r[0] === id)) return { ok: true, message: 'Já estava na fila (não duplicado).', duplicado: true };
-    const pendentes = linhas.filter(r => r[0] && r[4] === 'Pendente');
-    if (pendentes.length >= FILA_MAX_PENDENTES) return { ok: false, message: 'Fila cheia. Ligue para o restaurante.' };
-    if (perfil === 'publica' && pendentes.filter(r => r[6] === 'publica').length >= FILA_MAX_PUBLICA) return { ok: false, message: 'Fila de pedidos online cheia. Ligue para o restaurante.' };
+    /* OTIMIZAÇÃO (Etapa A): lê só as colunas id, status e origem (a coluna C guarda o pedido inteiro, até 30 mil caracteres por linha). */
+    const n = last - 1;
+    const ids = sh.getRange(2, 1, n, 1).getValues(), sts = sh.getRange(2, 5, n, 1).getValues(), ori = sh.getRange(2, 7, n, 1).getValues();
+    let pend = 0, pendPub = 0;
+    for (let i = 0; i < n; i++) {
+      if (ids[i][0] === id) return { ok: true, message: 'Já estava na fila (não duplicado).', duplicado: true };
+      if (ids[i][0] && sts[i][0] === 'Pendente') { pend++; if (ori[i][0] === 'publica') pendPub++; }
+    }
+    if (pend >= FILA_MAX_PENDENTES) return { ok: false, message: 'Fila cheia. Ligue para o restaurante.' };
+    if (perfil === 'publica' && pendPub >= FILA_MAX_PUBLICA) return { ok: false, message: 'Fila de pedidos online cheia. Ligue para o restaurante.' };
   }
   sh.appendRow([id, 'venda', json, new Date(), 'Pendente', '', perfil || '']);
   return { ok: true, message: 'Guardado na fila de contingência.' };
 }
 
+function contarPendentes_() {
+  const sh = ss_().getSheetByName('Fila');
+  const last = sh.getLastRow();
+  if (last < 2) return 0;
+  return sh.getRange(2, 5, last - 1, 1).getValues().filter(r => r[0] === 'Pendente').length;
+}
 function readFilaPendente() {
+  /* OTIMIZAÇÃO (Etapa A): descobre pela coluna de status onde estão os pendentes e lê o pedido (coluna C) só dessa faixa. */
   const sh = ss_().getSheetByName('Fila');
   const last = sh.getLastRow();
   if (last < 2) return [];
-  return sh.getRange(2, 1, last - 1, 6).getValues()
+  const sts = sh.getRange(2, 5, last - 1, 1).getValues();
+  let primeira = -1;
+  for (let i = 0; i < sts.length; i++) if (sts[i][0] === 'Pendente') { primeira = i; break; }
+  if (primeira < 0) return [];
+  const ini = primeira + 2;
+  return sh.getRange(ini, 1, last - ini + 1, 6).getValues()
     .filter(r => r[0] && r[4] === 'Pendente')
     .map(r => { let d = {}, corrompido = false; try { d = JSON.parse(r[2] || '{}'); } catch (e) { corrompido = true; } return { id: r[0], tipo: r[1], dados: d, corrompido: corrompido, recebidoEm: r[3] }; });
 }
@@ -247,23 +267,46 @@ function atualizarEspelho(dados) {
     } else sh.appendRow([chave, json, agora, h]);
     gravadas++;
   });
+  if (gravadas) limparCacheEspelho_();
   return { ok: true, message: 'Espelho atualizado (' + gravadas + ' de ' + chaves.length + ' tabelas gravadas' + (iguais ? ', ' + iguais + ' já estavam iguais' : '') + ').', atualizadoEm: agora };
 }
 
-function lerEspelho_() {
+function espelhoAtualizadoEm_() {
+  const sh = ss_().getSheetByName('Espelho');
+  const last = sh.getLastRow();
+  if (last < 2) return null;
+  let m = null;
+  sh.getRange(2, 3, last - 1, 1).getValues().forEach(r => { if (r[0] && (!m || new Date(r[0]) > m)) m = new Date(r[0]); });
+  return m;
+}
+/* OTIMIZAÇÃO (Etapa A): "chaves" limita o que é lido e convertido (o cardápio público não precisa baixar a lista de clientes).
+   Resultado guardado 60 s em cache (cada chave até ~90 mil caracteres); atualizarEspelho() limpa o cache na hora. */
+const ESP_CACHE_SEG = 60;
+function lerEspelho_(chaves) {
+  const cache = CacheService.getScriptCache();
+  const ck = 'esp:' + (chaves ? chaves.slice().sort().join(',') : '*');
+  try { const c = cache.get(ck); if (c) { const o = JSON.parse(c); if (o._atualizadoEm) o._atualizadoEm = new Date(o._atualizadoEm); return o; } } catch (e) {}
   const sh = ss_().getSheetByName('Espelho');
   const last = sh.getLastRow();
   const resultado = {};
   let maisRecente = null;
   if (last >= 2) {
-    sh.getRange(2, 1, last - 1, 3).getValues().forEach(linha => {
-      if (!linha[0]) return;
-      try { resultado[linha[0]] = JSON.parse(linha[1]); } catch (e) { resultado[linha[0]] = null; }
-      if (linha[2] && (!maisRecente || new Date(linha[2]) > maisRecente)) maisRecente = new Date(linha[2]);
+    // OTIMIZAÇÃO: lê só chave e data de todas as linhas; o JSON (coluna B, pode ter dezenas de milhares de caracteres) só das linhas pedidas
+    const chavesCol = sh.getRange(2, 1, last - 1, 1).getValues(), datasCol = sh.getRange(2, 3, last - 1, 1).getValues();
+    chavesCol.forEach((l, i) => {
+      const chave = l[0]; if (!chave) return;
+      const d = datasCol[i][0];
+      if (d && (!maisRecente || new Date(d) > maisRecente)) maisRecente = new Date(d);
+      if (chaves && chaves.indexOf(chave) === -1) return;
+      try { resultado[chave] = JSON.parse(sh.getRange(i + 2, 2).getValue()); } catch (e) { resultado[chave] = null; }
     });
   }
   resultado._atualizadoEm = maisRecente;
+  try { const j = JSON.stringify(resultado); if (j.length < 90000) cache.put(ck, j, ESP_CACHE_SEG); } catch (e) {}
   return resultado;
+}
+function limparCacheEspelho_() {
+  try { CacheService.getScriptCache().removeAll(['esp:*', 'esp:publico', 'esp:publico,interno', 'esp:reserva']); } catch (e) {}
 }
 
 /* =====================================================================
@@ -494,4 +537,35 @@ function filaInternaResumo_() {
     return { id: x.id, recebidoEm: x.recebidoEm, origem: d.origem || '', cliente: d.clienteNome || '', tipoEntrega: d.tipoEntrega || '', itens: itens,
              total: Math.round(total * 100) / 100, obs: (d.dadosEntrega && d.dadosEntrega.observacoes) ? String(d.dadosEntrega.observacoes) : '' };
   });
+}
+
+
+/* =====================================================================
+   ETAPA A (OTIMIZAÇÃO) — LIMPEZA DA FILA
+   A aba Fila só crescia: cada pedido sincronizado continuava ali e todo envio relia tudo. Agora as linhas SINCRONIZADAS com mais
+   de FILA_RETENCAO_DIAS dias são apagadas (em faixas, de baixo para cima). Pendentes e corrompidos NUNCA são apagados.
+   Rode `garantirLimpezaFila` UMA vez no editor para criar o gatilho diário (4h).
+   ===================================================================== */
+const FILA_RETENCAO_DIAS = 7;
+function limparFilaSincronizada() {
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(20000)) return 'Ocupado; tente depois.';
+  try {
+    const sh = ss_().getSheetByName('Fila');
+    const last = sh ? sh.getLastRow() : 0;
+    if (last < 2) return 'Fila vazia.';
+    const dados = sh.getRange(2, 5, last - 1, 2).getValues();   // status, sincronizadoEm
+    const corte = Date.now() - FILA_RETENCAO_DIAS * 86400000;
+    const apagar = [];
+    dados.forEach((r, i) => { if (r[0] === 'Sincronizado' && r[1] && new Date(r[1]).getTime() < corte) apagar.push(i + 2); });
+    const faixas = [];
+    apagar.forEach(n => { const u = faixas[faixas.length - 1]; if (u && n === u[0] + u[1]) u[1]++; else faixas.push([n, 1]); });
+    for (let f = faixas.length - 1; f >= 0; f--) sh.deleteRows(faixas[f][0], faixas[f][1]);
+    return 'Fila: ' + apagar.length + ' linha(s) sincronizada(s) antiga(s) apagada(s).';
+  } finally { lock.releaseLock(); }
+}
+function garantirLimpezaFila() {
+  const tem = ScriptApp.getProjectTriggers().some(t => t.getHandlerFunction() === 'limparFilaSincronizada');
+  if (!tem) ScriptApp.newTrigger('limparFilaSincronizada').timeBased().everyDays(1).atHour(4).create();
+  return 'Limpeza diária da Fila ativada (4h).';
 }

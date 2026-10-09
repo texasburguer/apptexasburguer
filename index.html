@@ -2587,6 +2587,37 @@ body:has(.cd-fab-carrinho.show) .balao-ia{bottom:84px;}
   </div>
 </div>
 
+<!-- POP-UP: Editar ingrediente -->
+<div class="modal-overlay" id="ingredienteEditModal">
+  <div class="modal-box">
+    <div class="modal-header"><h2>Editar ingrediente</h2><button class="close-btn" onclick="fecharFormModal('ingredienteEditModal')" aria-label="Fechar">✕</button></div>
+      <input type="hidden" id="eeId">
+      <label for="eeNome">Nome do ingrediente</label>
+      <input type="text" id="eeNome" maxlength="80">
+      <div class="row2">
+        <div><label for="eeQtd">Quantidade atual</label><input type="number" id="eeQtd" step="0.01"></div>
+        <div><label for="eeMin">Quantidade mínima (alerta)</label><input type="number" id="eeMin" step="0.01"></div>
+      </div>
+      <div class="row2">
+        <div>
+          <label for="eeUnidade">Unidade</label>
+          <select id="eeUnidade">
+            <option value="un">Unidade (un)</option>
+            <option value="g">Grama (g)</option>
+            <option value="kg">Quilo (kg)</option>
+            <option value="ml">Mililitro (ml)</option>
+            <option value="l">Litro (l)</option>
+          </select>
+        </div>
+        <div><label for="eeCusto">Custo por unidade (R$)</label><input type="number" id="eeCusto" step="0.01"></div>
+      </div>
+      <label style="display:flex;align-items:center;gap:8px;margin-top:6px;"><input type="checkbox" id="eeAtivo" style="width:auto;"> Ingrediente ativo (desmarcado some das fichas técnicas, sem excluir)</label>
+      <p class="sub" style="margin:6px 0;">Se mudar a quantidade aqui, fica registrado como ajuste. Para reposição ou perda, use "+ entrada" e "- perda".</p>
+      <button class="primary" id="eeBtn" onclick="salvarEdicaoIngrediente()">Salvar alterações</button>
+      <div class="msg" id="eeMsg"></div>
+  </div>
+</div>
+
 <!-- POP-UP: Novo acesso -->
 <div class="modal-overlay" id="usuarioNovoModal">
   <div class="modal-box">
@@ -2834,8 +2865,8 @@ const API_URL = "https://script.google.com/macros/s/AKfycbwCftUm-1pxhA8XLNqMB7dM
 const CONTINGENCIA_API_URL = "https://script.google.com/macros/s/AKfycby3WljBnr7gpJrHdkbTvBCh5uIXqS4KCS6wkBYB5idxf5gI04efoDumQj264kR_smoW/exec";
 
 /* ===================== VERSÃO DO APP ===================== */
-const APP_VERSAO = 'v-etapa-11';
-const APP_ATUALIZADO_EM = '07/10/2026';
+const APP_VERSAO = 'v-etapa-12';
+const APP_ATUALIZADO_EM = '08/10/2026';
 window.APP_VERSAO = APP_VERSAO;
 
 /* ===================== NOVIDADES POR PERFIL =====================
@@ -2846,6 +2877,11 @@ window.APP_VERSAO = APP_VERSAO;
    A seção "🆕 O que mudou" do manual é gerada daqui. */
 const APP_NOVIDADES = {
   Admin: [
+    { v:'v-etapa-12', em:'08/10/2026', itens:[
+      'Assistente de IA agora consulta mais dados do sistema, só para ler (nunca altera nada).',
+      'Se a IA estiver desligada, sem cota ou fora do ar, uma faixa no topo do balão avisa e o balão continua mostrando os números do sistema.',
+      'Também lê caixas e sangrias antigos guardados na planilha, além das vendas antigas.'
+    ]},
     { v:'v-etapa-11', em:'07/10/2026', itens:[
       'Aviso de pedido novo chega em segundos com o app aberto (antes, até 3 min).',
       'Se o servidor ficar lento (2 falhas seguidas), a próxima venda de retirada/entrega sem desconto vai direto para a contingência, com sua confirmação.',
@@ -2871,6 +2907,11 @@ const APP_NOVIDADES = {
     ]}
   ],
   Operador: [
+    { v:'v-etapa-12', em:'08/10/2026', itens:[
+      'Assistente de IA agora consulta mais dados do sistema, só para ler (nunca altera nada).',
+      'Se a IA estiver desligada, sem cota ou fora do ar, uma faixa no topo do balão avisa e o balão continua mostrando os números do sistema.',
+      'O assistente mostra só o que é da sua função: sem faturamento, custos, despesas nem dados de clientes.'
+    ]},
     { v:'v-etapa-11', em:'07/10/2026', itens:[
       'Aviso de pedido novo em segundos com o app aberto.',
       'Modo reserva automático quando o Supabase cai (faixa laranja + cartão "Pedidos na reserva" em Pedidos).',
@@ -2886,6 +2927,9 @@ const APP_NOVIDADES = {
     ]}
   ],
   'Garçom': [
+    { v:'v-etapa-12', em:'08/10/2026', itens:[
+      'O balão do assistente não aparece mais neste perfil. Use o botão Ajuda para o passo a passo da sua tela.'
+    ]},
     { v:'v-etapa-11', em:'07/10/2026', itens:[
       'Aviso de pedido pronto na SUA mesa chega em segundos com o app aberto.',
       'Quando a mesa pede a conta pelo QR, ela aparece em Mesas com pontinho de aviso e som.',
@@ -2898,6 +2942,9 @@ const APP_NOVIDADES = {
     ]}
   ],
   Cozinha: [
+    { v:'v-etapa-12', em:'08/10/2026', itens:[
+      'O balão do assistente não aparece mais neste perfil. Use o botão Ajuda para o passo a passo da sua tela.'
+    ]},
     { v:'v-etapa-11', em:'07/10/2026', itens:[
       'A comanda pergunta "Saiu no papel?" (✅ Saiu / 🔁 Não saiu). Sem resposta em 30 s, o aviso fica vermelho.',
       'Se um pedido for alterado depois de impresso, o cartão ganha faixa vermelha "PEDIDO ALTERADO" e dois bipes.',
@@ -2910,6 +2957,9 @@ const APP_NOVIDADES = {
     ]}
   ],
   Entregador: [
+    { v:'v-etapa-12', em:'08/10/2026', itens:[
+      'O balão do assistente não aparece mais neste perfil. Use o botão Ajuda para o passo a passo da sua tela.'
+    ]},
     { v:'v-etapa-11', em:'07/10/2026', itens:[
       'Aviso de entrega nova chega em segundos com o app aberto.',
       'Enquanto você tem entrega "Saiu para entrega", o app envia sua localização a cada ~18 s (só nesse período, sem histórico).',
@@ -5238,21 +5288,34 @@ async function registrarIngrediente(){
   } catch(e){ showMsg('eMsg','Não foi possível cadastrar.','warn'); }
   finally { setBotoesOcupados(false); }
 }
-async function editarEstoquePrompt(id){
+function editarEstoquePrompt(id){
   const i = estoque.find(x=>x.id===id); if(!i) return;
-  const novaQtd = prompt('Nova quantidade de "'+i.nome+'" ('+(i.unidade||'un')+'):', i.quantidade); if(novaQtd===null) return;
-  const novoMin = prompt('Novo mínimo de alerta:', i.minimo); if(novoMin===null) return;
-  const unidadesValidas = ['un','g','kg','ml','l'];
-  let novaUnidade = prompt('Unidade (un, g, kg, ml ou l):', i.unidade||'un'); if(novaUnidade===null) return;
-  novaUnidade = novaUnidade.trim().toLowerCase();
-  if(!unidadesValidas.includes(novaUnidade)) novaUnidade = i.unidade||'un';
-  const novoCusto = prompt('Custo por unidade (R$):', i.custo||0); if(novoCusto===null) return;
-  const manterAtivo = confirm('Manter este ingrediente ATIVO? Cancelar = desativar (some das listas de ficha técnica, mas não é excluído).');
+  document.getElementById('eeId').value = i.id;
+  document.getElementById('eeNome').value = i.nome || '';
+  document.getElementById('eeQtd').value = i.quantidade;
+  document.getElementById('eeMin').value = i.minimo;
+  document.getElementById('eeUnidade').value = ['un','g','kg','ml','l'].includes(i.unidade) ? i.unidade : 'un';
+  document.getElementById('eeCusto').value = i.custo || 0;
+  document.getElementById('eeAtivo').checked = i.ativo !== false;
+  showMsg('eeMsg','','');
+  abrirFormModal('ingredienteEditModal');
+}
+async function salvarEdicaoIngrediente(){
+  const id = document.getElementById('eeId').value;
+  const nome = document.getElementById('eeNome').value.trim();
+  if(!nome){ showMsg('eeMsg','Informe o nome do ingrediente.','warn'); return; }
+  if(estoque.some(x=>x.id!==id && String(x.nome).trim().toLowerCase()===nome.toLowerCase())){ showMsg('eeMsg','Já existe um ingrediente com esse nome.','warn'); return; }
+  const unidade = document.getElementById('eeUnidade').value;
+  setBotoesOcupados(true);
   try{
-    const r = await apiCall('editarIngrediente', { id, nome:i.nome, quantidade:Number(novaQtd)||0, minimo:Number(novoMin)||0, unidade: novaUnidade, custo: Number(novoCusto)||0, ativo: manterAtivo });
-    estoque = r.estoque || estoque; movimentacoesEstoque = r.movimentacoesEstoque || movimentacoesEstoque; salvarCache(); renderEstoque(); renderMovimentacoesEstoque(); renderNotificacoes();
-  }
-  catch(e){ showMsg('eMsg','Não foi possível editar.','warn'); }
+    const r = await apiCall('editarIngrediente', { id, nome, quantidade:Number(document.getElementById('eeQtd').value)||0, minimo:Number(document.getElementById('eeMin').value)||0, unidade, custo:Number(document.getElementById('eeCusto').value)||0, ativo: document.getElementById('eeAtivo').checked });
+    estoque = r.estoque || estoque; movimentacoesEstoque = r.movimentacoesEstoque || movimentacoesEstoque; salvarCache();
+    if(r.ok){
+      fecharFormModal('ingredienteEditModal'); showMsg('eMsgLista', r.message || 'Ingrediente atualizado.', 'ok');
+      renderEstoque(); renderMovimentacoesEstoque(); renderNotificacoes(); popularSelectIngredientes('pIngredienteSelect'); popularSelectIngredientes('ppIngredienteSelect'); popularSelectAdicionalIngrediente();
+    } else { showMsg('eeMsg', r.message || 'Não foi possível salvar.', 'warn'); }
+  }catch(e){ showMsg('eeMsg','Não foi possível salvar.','warn'); }
+  finally{ setBotoesOcupados(false); }
 }
 async function excluirEstoqueConfirm(id){
   if(!confirm('Excluir este ingrediente do estoque?')) return;
@@ -13205,6 +13268,8 @@ function sb6Parar(){ _sb6Parado_ = true; clearTimeout(_sb6Retry_); clearInterval
 #chatPublicoModal .chat-envio{flex:0 0 auto;padding-top:6px;}
 #iaStatusModal{z-index:70;}
 #balaoIaHdrExtra{margin-left:auto;margin-right:8px;display:inline-flex;}
+.bi-modo{flex:0 0 auto;margin:0 0 8px;padding:8px 10px;border-radius:10px;font-size:12.5px;line-height:1.35;background:var(--panel-2);border:1px solid var(--line);}
+.bi-modo[hidden]{display:none;}
 </style>
 <!-- =====================================================================
    BALÃO ÚNICO — parte da EQUIPE (Fase 3/4): só texto. O roteador do ai-gateway escolhe o robô; a fila de clientes aparece como aviso.
@@ -13217,6 +13282,8 @@ function sb6Parar(){ _sb6Parado_ = true; clearTimeout(_sb6Retry_); clearInterval
   const esc = s => escH(s);
   const logado = () => !!(typeof currentUser !== 'undefined' && currentUser && currentUser.login);
   const equipe_ = () => logado() && (currentUser.nivel === 'Admin' || currentUser.nivel === 'Operador');
+  /* Quem vê o balão do assistente: Desenvolvedor, Admin e Operador (e o cliente público, sem login). Garçom, Cozinha e Entregador usam o botão Ajuda. */
+  const perfilBalaoPermitido_ = () => logado() && ['Desenvolvedor', 'Admin', 'Operador'].indexOf(currentUser.nivel) !== -1;
   const verComo_ = () => (logado() && currentUser.nivelReal === 'Desenvolvedor' && currentUser.verComo) ? currentUser.nivel : '';
   const IN = { aberto:false, conv:null, depois:0, timer:null, fila:[], aguard:0, ocupado:false, pedindoSol:false, ultAguard:0, ultNL:0 };
 
@@ -13447,11 +13514,14 @@ function sb6Parar(){ _sb6Parado_ = true; clearTimeout(_sb6Retry_); clearInterval
       const r = await resp.json().catch(() => ({ ok:false, codigo:'resposta_invalida' }));
       rm_(esp); esp = null;
       if(!r || !r.ok){
-        const m = { sem_permissao:'Seu perfil não tem acesso ao assistente.', sessao_invalida:'Sua sessão expirou. Entre de novo.', sem_login:'Sua sessão expirou. Entre de novo.', pergunta_vazia:'Escreva uma pergunta.' };
+        const m = { sem_permissao:'Seu perfil não tem acesso ao assistente.', sessao_invalida:'Sua sessão expirou. Entre de novo.', sem_login:'Sua sessão expirou. Entre de novo.', pergunta_vazia:'Escreva uma pergunta.', interno:'O assistente teve um problema agora. Tente de novo em instantes.', corpo_grande:'Pergunta grande demais. Escreva algo mais curto.' };
         bolha_('ia', 'Assistente', (r && (m[r.codigo] || r.message)) || 'Não consegui falar com o assistente agora. O restante do sistema funciona normal.'); return;
       }
+      const MODO_RESERVA_ = ['desligada', 'recurso_desligado', 'cota_global', 'cota_usuario', 'cota', 'indisponivel', 'limite', 'falha', 'sem_chave', 'rede_ou_timeout'];
+      const modoReserva = r.ia === false && MODO_RESERVA_.indexOf(String(r.codigo || '')) !== -1;
+      mostrarModoChat_(modoReserva ? (r.aviso || 'Assistente em modo reserva: só os números do sistema.') : '');
       let h = '';
-      if(r.aviso) h += '<p class="sub">⚠️ ' + escH(r.aviso) + '</p>';
+      if(r.aviso && !modoReserva) h += '<p class="sub">⚠️ ' + escH(r.aviso) + '</p>';
       if(r.texto) h += '<div>' + escH(r.texto).replace(/\n/g, '<br>') + '</div>';
       if(r.ia) h += '<p class="sub">✨ Texto gerado por IA. Fatos vêm dos dados do sistema; sugestões e estimativas são opinião da IA — confira antes de decidir.</p>';
       if(!h) h = '<div>Não consegui responder agora.</div>';
@@ -13469,9 +13539,15 @@ function sb6Parar(){ _sb6Parado_ = true; clearTimeout(_sb6Retry_); clearInterval
   }
 
   /* ---------- abrir / fechar ---------- */
+  /* faixa fixa no topo do balão quando a IA está desligada, sem cota ou fora do ar: o balão continua respondendo com os números do sistema */
+  function mostrarModoChat_(msg){
+    const el = $('iaModoChatAviso'); if(!el) return;
+    if(!msg){ el.hidden = true; el.textContent = ''; return; }
+    el.textContent = '⚠️ ' + msg; el.hidden = false;
+  }
   function montar_(){
     const c = $('chatPublicoConteudo');
-    c.innerHTML = '<div class="bi-aviso" id="biAviso" data-bi="fila" hidden></div><div class="bi-ctrl" id="biCtrl" hidden></div><div class="chat-msgs bi-msgs" id="biMsgs"></div>' +
+    c.innerHTML = '<div class="bi-aviso" id="biAviso" data-bi="fila" hidden></div><div class="bi-modo" id="iaModoChatAviso" role="status" hidden></div><div class="bi-ctrl" id="biCtrl" hidden></div><div class="chat-msgs bi-msgs" id="biMsgs"></div>' +
       '<div class="chat-envio"><input type="text" id="biTexto" maxlength="600" autocomplete="off" placeholder="Escreva o que precisa…"><button type="button" class="primary" data-bi="enviar">Enviar</button></div>';
     const tt = $('balaoIaTitulo'); if(tt) tt.textContent = '✨ Assistente';
     const ex = $('balaoIaHdrExtra');
@@ -13514,18 +13590,20 @@ function sb6Parar(){ _sb6Parado_ = true; clearTimeout(_sb6Retry_); clearInterval
   function atualizarFab_(){
     const fab = $('balaoIa'); if(!fab) return;
     const interno = logado(), ligado = window.chatPublicoLigado_ === true;
-    fab.style.display = (interno || ligado) ? 'block' : 'none';
-    fab.hidden = !(interno || ligado);
-    fab.style.visibility = (interno || ligado) ? 'visible' : 'hidden';
-    fab.style.opacity = (interno || ligado) ? '1' : '0';
-    fab.style.pointerEvents = (interno || ligado) ? 'auto' : 'none';
+    const mostrar = interno ? perfilBalaoPermitido_() : ligado;   // logado: só os perfis permitidos; sem login: o atendimento público, se estiver ligado
+    if(interno && !mostrar && IN.aberto) fechar_();
+    fab.style.display = mostrar ? 'block' : 'none';
+    fab.hidden = !mostrar;
+    fab.style.visibility = mostrar ? 'visible' : 'hidden';
+    fab.style.opacity = mostrar ? '1' : '0';
+    fab.style.pointerEvents = mostrar ? 'auto' : 'none';
     const rot = $('balaoIaRot'); if(rot) rot.textContent = interno ? 'Assistente' : 'Atendimento';
     const ic = $('balaoIaIcone'); if(ic) ic.textContent = interno ? '✨' : '💬';
     aviso_();
   }
   window.balaoIaAtualizar_ = atualizarFab_;
   window.balaoIaAbrir_ = function(){
-    if(logado()) return abrir_();
+    if(logado()) return perfilBalaoPermitido_() ? abrir_() : undefined;
     const ex = $('balaoIaHdrExtra'); if(ex) ex.innerHTML = '';
     const tt = $('balaoIaTitulo'); if(tt) tt.textContent = '💬 Atendimento';
     if(window.abrirChatPublico_) window.abrirChatPublico_();

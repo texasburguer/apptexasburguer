@@ -987,6 +987,7 @@ function numPlanilha_(v, padrao) {
 }
 function normTel(t) { return (t || '').toString().replace(/\D/g, ''); }
 function agora() { return Utilities.formatDate(new Date(), FUSO, 'dd/MM/yyyy HH:mm'); }
+let _ssMemo_ = null; // OTIMIZAÇÃO: abre a planilha UMA vez por execução (antes, cada leitura chamava openById de novo)
 function ss_() {
   const props = PropertiesService.getScriptProperties();
   let id = props.getProperty('SPREADSHEET_ID');
@@ -1000,7 +1001,8 @@ function ss_() {
     id = ativa.getId();
     props.setProperty('SPREADSHEET_ID', id);
   }
-  return SpreadsheetApp.openById(id);
+  if (!_ssMemo_) _ssMemo_ = SpreadsheetApp.openById(id);
+  return _ssMemo_;
 }
 /* Rode esta função uma vez pelo editor do Apps Script (aberto a partir da
    própria planilha) se por algum motivo o ID precisar ser (re)configurado. */
@@ -5747,7 +5749,7 @@ function sbAba_(nome) {
 /* ETAPA 2 (OTIMIZAÇÃO) — marcas de "o que mudou": cada aba SB_ alterada recebe a hora da última alteração.
    O espelho da contingência usa essas marcas para reler e reenviar SÓ o que mudou. Gravadas UMA vez por chamada (sbGravarStamps_). */
 let _sbStamps_ = {};
-function sbMarcarAlterada_(aba) { if (/^SB_/.test(aba)) _sbStamps_[aba] = Date.now(); }
+function sbMarcarAlterada_(aba) { if (/^(SB_|Arquivo_)/.test(aba)) _sbStamps_[aba] = Date.now(); }   // Arquivo_* também: o cache de leitura do arquivo usa a marca
 function sbLerStamps_() { try { return JSON.parse(PropertiesService.getScriptProperties().getProperty('SB_STAMPS') || '{}') || {}; } catch (e) { return {}; } }
 function sbGravarStamps_() {
   const ks = Object.keys(_sbStamps_); if (!ks.length) return;
@@ -6009,7 +6011,10 @@ function sbSincronizarContingencia_(rapido) {
       formasPagamentoCompleto: formas
   };
   // Reserva de leitura: pedidos em andamento (sem telefone, endereço nem pagamento)
-  try {
+  // OTIMIZAÇÃO: no modo rápido, só relê as abas de vendas se algo mudou nelas desde o último envio (ou se passaram 25 min, para o espelho não parecer parado).
+  const sigRes = sbAssinatura_(['SB_vendas', 'SB_itens_venda'], stamps);
+  const reservaParada = rapido === true && sigAnt.reserva === sigRes && (Date.now() - (Number(sigAnt.reservaEm) || 0)) < 25 * 60000;
+  if (!reservaParada) try {
     const ATIVOS = { 'Recebido': 1, 'Em preparo': 1, 'Pronta': 1, 'Saiu para entrega': 1 };
     const vs = sbLerAbaUltimas_('SB_vendas', 500).filter(function (v) { return v.status === 'Confirmada' && ATIVOS[v.status_pedido]; });
     const idv = {}; vs.forEach(function (v) { idv[String(v.id)] = true; });
@@ -6030,6 +6035,7 @@ function sbSincronizarContingencia_(rapido) {
       const novaSig = { publico: sigAnt.publico || '', interno: sigAnt.interno || '' };
       if (dados.publico) novaSig.publico = sigPub + '|' + sbHashMapa_(fotos.mapa || {});
       if (dados.interno) novaSig.interno = sigInt;
+      if (dados.reserva) { novaSig.reserva = sigRes; novaSig.reservaEm = Date.now(); } else { novaSig.reserva = sigAnt.reserva || ''; novaSig.reservaEm = sigAnt.reservaEm || 0; }
       sbGravarAssinaturasEspelho_(novaSig);
     }
     const nota = (rapido === true ? ' Modo rápido: enviado só o que mudou (' + Object.keys(dados).join(', ') + ').' : '') + ' Fotos: ' + fotos.enviadas + ' copiada(s) agora' + (fotos.faltam ? ', faltam ' + fotos.faltam + ' (sincronize de novo)' : '') + (fotos.falhas.length ? ', ' + fotos.falhas.length + ' com falha (veja o Log)' : '') + '.';
@@ -6164,7 +6170,41 @@ function sbLerColuna_(nome, col) {
   return a.sh.getRange(2, ci + 1, a.ultima - 1, 1).getValues().map(function (r) { return r[0]; });
 }
 function sbMs_(v) { return (v instanceof Date) ? v.getTime() : Date.parse(String(v)); }
+/* ETAPA (OTIMIZAÇÃO IA) — cache da leitura de um mês arquivado. A chave inclui a marca de alteração das abas Arquivo_*:
+   se o Supabase arquivar mais linhas, a marca muda e o cache antigo deixa de valer sozinho (nada fica desatualizado).
+   Só leitura: não mexe na gravação nem na trava. Resultado grande é dividido em partes; se não couber, simplesmente não guarda. */
+function sbCacheArq_(chave, abas, calcular) {
+  const st = sbLerStamps_(), k = 'arq|' + chave + '|' + abas.map(function (a) { return String(st[a] || 0); }).join('.');
+  let cache = null; try { cache = CacheService.getScriptCache(); } catch (e) {}
+  if (cache) {
+    try {
+      const n = Number(cache.get(k + '|n') || 0);
+      if (n > 0) {
+        const chaves = []; for (let i = 0; i < n; i++) chaves.push(k + '|' + i);
+        const got = cache.getAll(chaves), partes = [];
+        for (let i = 0; i < n; i++) { if (got[chaves[i]] == null) { partes.length = 0; break; } partes.push(got[chaves[i]]); }
+        if (partes.length === n) return JSON.parse(partes.join(''));
+      }
+    } catch (e) { /* cache é só acelerador */ }
+  }
+  const r = calcular();
+  if (cache && r && r.ok) {
+    try {
+      const txt = JSON.stringify(r), T = 30000, n = Math.ceil(txt.length / T);
+      if (n > 0 && n <= 30) {
+        const obj = {}; obj[k + '|n'] = String(n);
+        for (let i = 0; i < n; i++) obj[k + '|' + i] = txt.slice(i * T, (i + 1) * T);
+        cache.putAll(obj, 1800);
+      }
+    } catch (e) { /* sem cache: segue normal */ }
+  }
+  return r;
+}
 function sbLerArquivo_(mes) {
+  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(String(mes || ''))) return { ok: false, message: 'Mês inválido.' };
+  return sbCacheArq_('v|' + mes, ['Arquivo_Vendas', 'Arquivo_Itens', 'Arquivo_Pagamentos'], function () { return sbLerArquivoCalc_(mes); });
+}
+function sbLerArquivoCalc_(mes) {
   if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(String(mes || ''))) return { ok: false, message: 'Mês inválido.' };
   const a = String(mes).split('-'), ini = new Date(Number(a[0]), Number(a[1]) - 1, 1).getTime(), fim = new Date(Number(a[0]), Number(a[1]), 1).getTime();
   const pick = function (o, cols) { const r = {}; cols.forEach(function (c) { r[c] = (o[c] instanceof Date) ? o[c].toISOString() : o[c]; }); return r; };
@@ -6182,6 +6222,10 @@ function sbLerArquivo_(mes) {
 /* D17 (Fase 8) — caixas fechados e sangrias de um mês arquivado (Arquivo_Caixa / Arquivo_Sangrias). Só leitura.
    Chamado pela Edge Function "planilha-admin" (acao arquivoCaixa). */
 function sbLerArquivoCaixa_(mes) {
+  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(String(mes || ''))) return { ok: false, message: 'Mês inválido.' };
+  return sbCacheArq_('c|' + mes, ['Arquivo_Caixa', 'Arquivo_Sangrias'], function () { return sbLerArquivoCaixaCalc_(mes); });
+}
+function sbLerArquivoCaixaCalc_(mes) {
   if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(String(mes || ''))) return { ok: false, message: 'Mês inválido.' };
   const a = String(mes).split('-'), ini = new Date(Number(a[0]), Number(a[1]) - 1, 1).getTime(), fim = new Date(Number(a[0]), Number(a[1]), 1).getTime();
   const lim = function (o) { const r = {}; Object.keys(o).forEach(function (k) { r[k] = (o[k] instanceof Date) ? o[k].toISOString() : o[k]; }); return r; };
