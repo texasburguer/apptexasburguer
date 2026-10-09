@@ -2743,8 +2743,8 @@ body:has(.cd-fab-carrinho.show) .balao-ia{bottom:84px;}
       <div id="cupFaixasBox" style="display:none;"><label>Faixas (uma por linha: pedido mínimo e desconto, em R$)</label><textarea id="cupFaixas" rows="4" placeholder="50 5&#10;100 10"></textarea><div class="obs-line">Ex.: "50 5" = R$ 5 de desconto em pedidos a partir de R$ 50. Vale a maior faixa que o pedido alcança (itens, sem a taxa de entrega).</div></div>
       <div class="row2"><div><label>Início</label><input type="date" id="cupInicio"></div><div><label>Fim</label><input type="date" id="cupFim"></div></div>
       <div class="row2"><div><label>Limite total (0 = ilimitado)</label><input type="number" id="cupLimite" min="0" step="1" value="0"></div><div><label>Limite por cliente</label><input type="number" id="cupLimiteCliente" min="0" step="1" value="1"></div></div>
-      <div class="row2"><div><label>Pedido mínimo (R$)</label><input type="number" id="cupMinimo" min="0" step="0.01" value="0"></div><div><label style="display:flex;gap:8px;align-items:center;margin-top:26px;"><input type="checkbox" id="cupFrete" style="width:auto;"> Frete grátis</label></div></div>
-      <div class="row2"><label style="display:flex;gap:8px;align-items:center;"><input type="checkbox" id="cupAtiva" checked style="width:auto;"> Ativa</label><span class="sub">Acúmulo com outros cupons ficará reservado para uma futura extensão.</span></div>
+      <div class="row2"><div><label>Pedido mínimo (R$)</label><input type="number" id="cupMinimo" min="0" step="0.01" value="0"></div><div><label style="margin-top:28px;min-height:46px;"><input type="checkbox" id="cupFrete"> Frete grátis</label></div></div>
+      <div class="row2"><label><input type="checkbox" id="cupAtiva" checked> Ativa</label><span class="sub">Acúmulo com outros cupons ficará reservado para uma futura extensão.</span></div>
       <button class="primary" onclick="salvarCupomUI()">Criar cupom</button><div class="msg" id="cupMsg"></div>
   </div>
 </div>
@@ -2992,7 +2992,7 @@ const APP_NOVIDADES = {
       'Acréscimo por forma de pagamento: em Pagamentos, cada forma pode cobrar % ou valor fixo a mais (ex.: iFood). O preço do produto agora é um só. O cliente é avisado no cardápio, e o Caixa e o fechamento de mesa somam o acréscimo sozinhos.',
       'Novo: Compras e fornecedores (Catálogo): registre compras, atualize estoque e custo e gere a despesa. No Assistente, "comprei 30kg de picanha por R$ 900" vira um cartão para você confirmar; a IA nunca grava sozinha.',
       'Novo: menu fixo embaixo no celular (Início, Caixa, Pedidos e "Mais"), com bolinha vermelha nos avisos. No computador continua no topo.',
-      'Novo visual do cardápio do cliente: cabeçalho menor com a situação (aberto/fechado), produtos em grade com botão "+" e Atendimento como ícone redondo.',
+      'Novo visual do cardápio do cliente: cabeçalho menor com a situação (aberto/fechado), produtos rolando para o lado com botão "+", fotos mais baixas e Atendimento como ícone redondo. Pop-ups sem corte no fim da tela.',
       'Novo: botão discreto "🌐 Cardápio aberto" em Início e no Caixa para fechar e reabrir o cardápio dos clientes em um toque. Correção: o cardápio podia aparecer "fechado" com o caixa aberto.',
       'Novo: modo reserva mais claro (a faixa laranja diz o que funciona e o que espera) e cartão "Saúde do sistema" em Visão geral, com backup, conferência diária de vendas e tarefas automáticas.',
       'Novo: avisos com o app fechado. No 🔔 do topo, toque em "Ligar avisos com o app fechado": o celular passa a avisar "Novo pedido" do cardápio e "Cliente no atendimento", mesmo com o app fechado. No iPhone, instale o app na tela inicial antes.',
@@ -3008,7 +3008,7 @@ const APP_NOVIDADES = {
   Operador: [
     { v:'1.0', em:'09/10/2026', itens:[
       'Novo: menu fixo embaixo no celular (Início, Caixa, Pedidos e "Mais"), com bolinha vermelha nos avisos. No computador continua no topo.',
-      'Novo visual do cardápio do cliente: cabeçalho menor, produtos em grade com botão "+" e Atendimento como ícone redondo.',
+      'Novo visual do cardápio do cliente: cabeçalho menor, produtos rolando para o lado com botão "+", fotos mais baixas e Atendimento como ícone redondo. Pop-ups sem corte no fim da tela.',
       'Novo: botão discreto "🌐 Cardápio aberto" em Início e no Caixa para fechar e reabrir o cardápio dos clientes em um toque.',
       'Novo: modo reserva mais claro. A faixa laranja no topo diz o que funciona (Caixa e pedidos do cardápio) e o que espera a volta do sistema.',
       'Novo: avisos com o app fechado. No 🔔 do topo, toque em "Ligar avisos com o app fechado" para o celular avisar "Novo pedido" e "Cliente no atendimento" mesmo com o app fechado. No iPhone, instale o app na tela inicial antes.',
@@ -8979,7 +8979,7 @@ Admin:{ nome:'Administrador', secoes:[
     'Dados do restaurante: nome, endereço, telefone, horário e redes sociais (texto livre) aparecem no rodapé do cardápio do cliente e nas mensagens de WhatsApp e relatórios.',
     'O cliente pode escrever uma observação em cada item; ela aparece na comanda da cozinha e no pedido.',
     'Item "Esgotado": se "bloquear venda sem estoque" estiver ligado (Catálogo → Estoque), o cardápio mostra "Esgotado" no que o estoque não cobre.',
-    'No celular, "Mais pedidos" e "Destaques" rolam para o lado e as categorias ficam em grade de 2 colunas. O cliente toca no botão vermelho "+" para adicionar e na foto para ver o item ampliado. O botão "💬" redondo abre o Atendimento.',
+    'No celular, "Mais pedidos", "Destaques" e cada categoria rolam para o lado. O cliente toca no botão vermelho "+" para adicionar e na foto para ver o item ampliado. O botão "💬" redondo abre o Atendimento.',
     'Na entrega, o endereço vem com rua e bairro preenchidos pela localização do cliente (só se ele permitir). O número da casa é sempre digitado por ele e o pedido não segue sem ele.',
     'O cardápio abre rápido porque guarda cópia no aparelho do cliente. Mudanças suas aparecem em instantes.',
     'O cardápio só recebe pedidos com o caixa aberto; fechado, aparece "Estamos fechados no momento".',
@@ -12111,7 +12111,7 @@ function renderCdSecoes(){
     if(!prods.length && !cbos.length) return;
     total += prods.length + cbos.length;
     html += `<section class="cd-cat-bloco"><div class="cd-secao-titulo">${escH(cat.nome)}</div>`
-          + `<div class="cd-grid">`
+          + `<div class="cd-grid cd-cat-lista">`
           + prods.map(p=>cdCardHTML('produto',p)).join('')
           + cbos.map(c=>cdCardHTML('combo',c)).join('')
           + `</div></section>`;
@@ -12120,7 +12120,7 @@ function renderCdSecoes(){
   const orfC = (cdDados.combos||[]).filter(c => !c.categoria && !jaMostrados.has('combo:'+c.id));
   if(orfP.length || orfC.length){
     total += orfP.length + orfC.length;
-    html += `<section class="cd-cat-bloco"><div class="cd-secao-titulo">Outros</div><div class="cd-grid">`
+    html += `<section class="cd-cat-bloco"><div class="cd-secao-titulo">Outros</div><div class="cd-grid cd-cat-lista">`
           + orfP.map(p=>cdCardHTML('produto',p)).join('')
           + orfC.map(c=>cdCardHTML('combo',c)).join('')
           + `</div></section>`;
@@ -14282,12 +14282,13 @@ input[type=time]{width:100%;background:#0b0705;border:1.5px solid #4a3414;border
 .cd-card .cd-linha .cd-add.esg{ width:auto; height:28px; border-radius:10px; padding:0 8px !important; font-size:10.5px; letter-spacing:0; font-weight:700; background:var(--panel-2); color:var(--muted); border:1.5px solid var(--line); box-shadow:none; opacity:.9; }
 @media (max-width:899px){
   .cd-cat-lista .cd-card .cd-linha .cd-add{ width:34px; height:34px; font-size:22px; padding:0 !important; margin:0 !important; }
+  #cardapioPublico .cd-secao-titulo{ margin-top:14px; }
   .cd-cat-lista .cd-card .cd-linha .cd-add.esg{ width:auto; height:28px; }
   #cardapioPublico .cd-grid:not(.cd-cat-lista){ gap:10px; }
   #cardapioPublico .cd-grid:not(.cd-cat-lista) .cd-nome{ font-size:13.5px; line-height:1.2; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; min-height:2.4em; }
   #cardapioPublico .cd-grid:not(.cd-cat-lista) .cd-desc{ font-size:11px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
-  #cardapioPublico .cd-grid:not(.cd-cat-lista) .cd-card img{ aspect-ratio:4/3; }
 }
+#cardapioPublico .cd-card img{ aspect-ratio:4/3; }
 /* Atendimento do cliente: só o ícone, redondo e menor */
 .balao-ia.so-icone button{ width:46px; height:46px; padding:0 !important; border-radius:50% !important; justify-content:center; }
 .balao-ia.so-icone #balaoIaRot{ display:none; }
@@ -15021,6 +15022,33 @@ window.abrirMapaEntrega_ = function(vendaId){
 #navInfMais .nm-box button{position:relative;display:flex;align-items:center;gap:12px;min-height:52px;padding:0 14px;border-radius:14px;background:var(--panel-2);border:1px solid var(--gold-dim);color:var(--cream);font-size:15px;font-weight:700;font-family:inherit;text-align:left;cursor:pointer;}
 #navInfMais .nm-box button svg{width:22px;height:22px;stroke:var(--gold);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
 #navInfMais .nm-box button .pt{margin-left:auto;width:10px;height:10px;border-radius:50%;background:var(--red-hi);}
+</style>
+<style id="polimentoPro">
+/* ===== Acabamento profissional (celular): pop-ups sem corte, formulários alinhados, toques confortáveis ===== */
+.modal-overlay{ z-index:80; padding:20px 14px calc(40px + env(safe-area-inset-bottom,0px)); overscroll-behavior:contain; -webkit-overflow-scrolling:touch; }
+#chatPublicoModal{ z-index:85; }
+#iaStatusModal{ z-index:90; }
+.modal-box{ margin-top:12px; margin-bottom:24px; }
+@supports (height:100dvh){ .modal-overlay{ bottom:auto; height:100dvh; } }
+.row2>div{ min-width:0; }
+input[type=checkbox],input[type=radio]{ accent-color:var(--gold); }
+input[type=checkbox]{ width:22px !important; height:22px !important; margin:0; flex:0 0 22px; }
+label:has(>input[type=checkbox]){ display:flex; gap:10px; align-items:center; font-size:14px; color:var(--cream); }
+.modal-box .msg:empty{ display:none; }
+@media (max-width:899px){
+  .modal-overlay{ padding:10px 10px calc(36px + env(safe-area-inset-bottom,0px)); }
+  .modal-box{ padding:16px 14px; border-radius:16px; }
+  .row2>div{ flex:1 1 calc(50% - 5px); }
+  input[type=text],input[type=tel],input[type=number],input[type=date],input[type=month],input[type=time],input[type=password],input[type=email],input:not([type]),select{ min-height:46px; }
+  input[type=date],input[type=month],input[type=time]{ min-width:0; max-width:100%; -webkit-appearance:none; appearance:none; }
+  label{ font-size:12.5px; margin:12px 0 5px; }
+  button.primary{ min-height:50px; }
+  button.ghost,button.small-gold{ min-height:42px; }
+  .card{ border-radius:14px; }
+  h1,h2,h3{ overflow-wrap:anywhere; }
+  table{ max-width:100%; }
+  .modal-box .modal-header{ position:sticky; top:0; z-index:2; background:var(--panel); padding-top:4px; }
+}
 </style>
 <nav id="navInf" aria-label="Navegação principal"></nav>
 <div id="navInfMais" onclick="if(event.target===this)navInfFechar_()"><div class="nm-box" id="navInfMaisBox"></div></div>
