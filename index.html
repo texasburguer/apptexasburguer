@@ -1469,7 +1469,7 @@ body:has(.cd-fab-carrinho.show) .balao-ia{bottom:84px;}
         <h2 style="margin:0;">Entregas em andamento</h2>
       </div>
       <p class="sub">Fluxo: Em preparo → Pronta → Saiu para entrega → Entregue.</p>
-      <div id="entFmtBox" class="btnrow" style="margin:0 0 8px;align-items:center;"><label for="entFmt" style="margin:0;font-size:12px;">🖨️ Papel da impressão do entregador</label><select id="entFmt" style="width:auto;" onchange="salvarFormato('entrega', this.value)"><option value="80mm">80mm</option><option value="58mm">58mm</option><option value="A4">A4</option></select></div>
+      <div id="entFmtBox" class="btnrow" style="margin:0 0 8px;align-items:center;"><label for="entFmt" style="margin:0;font-size:12px;">🖨️ Papel da impressão (entrega, retirada e mesa)</label><select id="entFmt" style="width:auto;" onchange="salvarFormato('entrega', this.value)"><option value="80mm">80mm</option><option value="58mm">58mm</option><option value="A4">A4</option></select></div>
       <div class="btnrow" style="margin:0 0 8px;align-items:center;"><button type="button" class="ghost" onclick="atualizarAgora_()">🔄 Atualizar</button><span class="sub" style="margin:0 0 0 8px;" data-ultima-sync>Atualiza ao entrar nesta tela.</span></div>
       <div id="entregasLista"></div>
     </div>
@@ -2878,10 +2878,13 @@ window.APP_VERSAO = APP_VERSAO;
 const APP_NOVIDADES = {
   Admin: [
     { v:'v-etapa-13', em:'09/10/2026', itens:[
+      'Comanda única: cozinha, retirada, mesa e entrega agora imprimem o mesmo modelo (cliente, endereço na entrega, itens, total e se é para cobrar).',
       'Prêmios: no cadastro do produto marque "🎁 Este produto é um prêmio" (fidelidade e/ou indicação). O resgate é feito no cadastro do cliente e baixa o estoque.',
       'Backup: botão "Excluir" (pede a sua senha), "Restaurar" também pede a senha e "Enviar ao Drive" quando o backup ficou sem cópia no Drive.',
       'Sincronização e contingência: mostra o uso da planilha de contingência e tem o interruptor da sincronização automática (todo dia às 3h).',
       'Espaço e fotos: "Proteção de espaço" manda para a planilha o que já foi encerrado quando o Supabase chega a 90%, 95% ou 98% do limite.',
+      'Impressão: agora também dá para imprimir o pedido da Retirada e da Mesa (botão "🖨️ Imprimir pedido…" no cartão), além da entrega. O papel escolhido em Pedidos → Entregas vale para as três.',
+      'Corrigido: a comanda impressa pela Cozinha saía com "MESA ?"; agora mostra o número da mesa.',
       'Notificações agora ficam dentro do Assistente, na aba "🔔 Avisos": só aparece o que precisa de você, em grupos que abrem ao toque. A aba Notificações saiu do menu (continua só para a Cozinha).',
       'Cardápio público: atendente virtual com IA (dúvidas, preços e status do pedido pelo celular), cards menores, foto ampliada ao toque e endereço de entrega preenchido pela localização.',
       'Cozinha: lista "Concluídos neste turno". Entregador não marca mais "Pronta".',
@@ -2918,6 +2921,9 @@ const APP_NOVIDADES = {
   ],
   Operador: [
     { v:'v-etapa-13', em:'09/10/2026', itens:[
+      'Comanda única: cozinha, retirada, mesa e entrega agora imprimem o mesmo modelo.',
+      'Impressão: agora também dá para imprimir o pedido da Retirada e da Mesa (botão "🖨️ Imprimir pedido…" no cartão), além da entrega.',
+      'Corrigido: a comanda da Cozinha saía com "MESA ?"; agora mostra o número da mesa.',
       'Notificações agora ficam dentro do Assistente, na aba "🔔 Avisos" (a aba Notificações saiu do menu).',
       'Prêmios: no cadastro do cliente, o cartão cheio e a indicação pendente têm o botão "🎁 Resgatar" (precisa do caixa aberto).',
       'Cardápio público com atendente virtual (IA) e endereço de entrega preenchido pela localização do cliente.',
@@ -2944,6 +2950,7 @@ const APP_NOVIDADES = {
   ],
   'Garçom': [
     { v:'v-etapa-13', em:'09/10/2026', itens:[
+      'Novo: botão "🖨️ Imprimir pedido da mesa" no cartão do pedido (depois de aceito).',
       'Cardápio público com atendente virtual (IA). Para você, nada mudou no fluxo das mesas.'
     ]},
     { v:'v-etapa-12', em:'08/10/2026', itens:[
@@ -2962,6 +2969,8 @@ const APP_NOVIDADES = {
   ],
   Cozinha: [
     { v:'v-etapa-13', em:'09/10/2026', itens:[
+      'A comanda agora é única e traz o endereço do cliente nas entregas: imprima, grampeie no pedido e ele já segue para o entregador.',
+      'Corrigido: a comanda impressa saía com "MESA ?"; agora mostra o número da mesa.',
       'Novo: "📜 Concluídos neste turno" no fim da tela de pedidos. Zera quando o caixa fecha.'
     ]},
     { v:'v-etapa-12', em:'08/10/2026', itens:[
@@ -3445,7 +3454,7 @@ async function sbMontarDados_(nivel, chaves){
       timestampPronta:v.pronta_em?Date.parse(v.pronta_em):null, timestampConcluida:v.concluida_em?Date.parse(v.concluida_em):null,
       statusPagamento:v.status_pagamento||'Pago', timestampRecebimento:v.recebido_em?Date.parse(v.recebido_em):null,
       valorOriginal:Number(v.valor_original)||Number(v.valor_total)||0, valorDesconto:Number(v.valor_desconto)||0, descontoDetalhe:v.desconto_detalhe||'', entregador:v.entregador||'',
-      timestampSaiu:v.saiu_em?Date.parse(v.saiu_em):null, origem:v.origem||'Balcão', mesaId:v.mesa_id||'', taxaEntrega:Number(v.taxa_entrega)||0, fechamentoEntregaId:v.fechamento_entrega_id||'',
+      timestampSaiu:v.saiu_em?Date.parse(v.saiu_em):null, origem:v.origem||'Balcão', mesaId:v.mesa_id||'', mesaNumero:(v.mesa_numero!=null?String(v.mesa_numero):''), taxaEntrega:Number(v.taxa_entrega)||0, fechamentoEntregaId:v.fechamento_entrega_id||'',
       registradoPor:v.registrado_por||'', numero:Number(v.numero)||0, timestampInicioPreparo:v.inicio_preparo_em?Date.parse(v.inicio_preparo_em):null }))
       .map(v=>{ if(nivel==='Entregador'||nivel==='Garçom'||nivel==='Cozinha') delete v.custoTotal; if(nivel==='Cozinha'){ delete v.clienteTelefone; delete v.endereco; delete v.complemento; delete v.referencia; } return v; }),
     itensVenda: itensDb.map(i=>{ const y = { id:i.id, vendaId:i.venda_id, produtoId:i.produto_id||'', comboId:i.combo_id||'', descricao:i.descricao||'', quantidade:Number(i.quantidade), valorUnitario:Number(i.valor_unitario), custoUnitario:Number(i.custo_unitario)||0, valorTotalItem:Number(i.valor_total_item), adicionaisIds:i.adicionais_ids||[] }; if(!gestor) delete y.custoUnitario; return y; }),
@@ -5434,7 +5443,12 @@ function rotuloPedidoId(id){ const v = (vendas||[]).find(x=>x.id===id); return v
 function itensDoPedido(vendaId){
   return itensVenda.filter(it=>it.vendaId===vendaId).map(it=>`${it.quantidade}x ${escH(it.descricao)}`).join(', ');
 }
-function nomeMesa(mesaId){ const m = mesas.find(x=>x.id===mesaId); return m ? m.numero : '?'; }
+function nomeMesa(mesaId){
+  const m = mesas.find(x=>x.id===mesaId); if(m) return m.numero;
+  /* Cozinha/Entregador não leem a lista de mesas: o número vem junto do pedido (v_vendas.mesa_numero) */
+  const v = (vendas||[]).find(x=>x.mesaId===mesaId && x.mesaNumero);
+  return v ? v.mesaNumero : '?';
+}
 function proximoStatusPedido(v){
   if(v.tipoEntrega==='Retirada'){
     if(v.statusPedido==='Em preparo') return 'Pronta';
@@ -5661,34 +5675,17 @@ function botaoImprimirEntrega_(v){
   if(!podeEnviarEntregador_() || v.tipoEntrega!=='Entrega' || v.statusPedido==='Recebido') return '';
   return '<div class="btnrow" style="margin-top:6px;"><button type="button" class="ghost" onclick="imprimirEntregaPedido(\''+v.id+'\')">🖨️ Imprimir para o entregador</button></div>';
 }
-function entregaImpressaoHtml_(v){
-  const end = [v.endereco, v.complemento].filter(Boolean).join(', ');
-  const hora = new Date(v.timestamp).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
-  const itens = itensVenda.filter(it=>it.vendaId===v.id).map(it=>{
-    const d = String(it.descricao||''), k = d.indexOf(' — Obs: ');
-    const nome = k<0 ? d : d.slice(0,k), obs = k<0 ? '' : d.slice(k+8);
-    const ad = (it.adicionaisIds||[]).map(id=>{ const a = adicionais.find(x=>x.id===id); return a ? a.nome : ''; }).filter(Boolean);
-    return `<div style="margin-top:3px;"><b>${escR(Number(it.quantidade)||1)}x</b> ${escR(nome)}</div>` + (ad.length ? `<div>&nbsp;&nbsp;+ ${escR(ad.join(', '))}</div>` : '') + (obs ? `<div>&nbsp;&nbsp;OBS: ${escR(obs)}</div>` : '');
-  }).join('') || '<div>(itens não carregados — confira na tela)</div>';
-  const receber = v.statusPagamento==='A Receber';
-  const taxa = Number(v.taxaEntrega)||0;
-  const entregador = v.entregador ? pdEntregadorNome_(v.entregador) : '';
-  let h = `<h4>ENTREGA #${escR(rotuloPedido(v))}</h4><div class="sub-c">Texas Burger · pedido às ${escR(hora)}</div>`;
-  h += `<hr><div><b>CLIENTE:</b> ${escR(v.clienteNome||'Sem cadastro')}</div>`;
-  if(v.clienteTelefone) h += `<div><b>TEL:</b> ${escR(v.clienteTelefone)}</div>`;
-  h += `<div style="margin-top:4px;"><b>ENDEREÇO:</b><br><span style="font-size:1.15em;">${escR(end||'(não informado)')}</span></div>`;
-  if(v.referencia) h += `<div><b>REFERÊNCIA:</b> ${escR(v.referencia)}</div>`;
-  h += `<hr><div><b>PEDIDO:</b></div>${itens}`;
-  if(v.observacoesEntrega) h += `<hr><div><b>OBS:</b> ${escR(v.observacoesEntrega)}</div>`;
-  h += '<hr>';
-  if(taxa>0) h += `<div class="linha"><span>Taxa de entrega</span><span>${escR(formatarMoeda(taxa))}</span></div>`;
-  h += `<div class="linha total"><span>TOTAL</span><span>${escR(formatarMoeda(v.valorTotal))}</span></div>`;
-  h += receber
-    ? `<div style="margin-top:6px;font-size:1.2em;"><b>COBRAR DO CLIENTE: ${escR(formatarMoeda(v.valorTotal))}</b>${v.formaPagamento?'<br>('+escR(v.formaPagamento)+')':''}</div>`
-    : `<div style="margin-top:6px;font-size:1.1em;"><b>JÁ PAGO — NÃO COBRAR</b>${v.formaPagamento?'<br>('+escR(v.formaPagamento)+')':''}</div>`;
-  if(entregador) h += `<hr><div>Entregador: ${escR(entregador)}</div>`;
-  h += '<div class="foot">Ao entregar, toque em "Já entreguei" no sistema.</div>';
-  return h;
+function entregaImpressaoHtml_(v){ return comandaHtml_(v); }   /* modelo único de comanda */
+/* ---------- IMPRIMIR RETIRADA / MESA (mesmo estilo da impressão da entrega) ---------- */
+function podeImprimirPedido_(){ return !!(currentUser && (currentUser.nivel==='Admin' || currentUser.nivel==='Operador' || currentUser.nivel==='Garçom')); }
+function botaoImprimirPedido_(v){
+  if(!podeImprimirPedido_() || (v.tipoEntrega!=='Retirada' && v.tipoEntrega!=='Mesa') || v.statusPedido==='Recebido') return '';
+  return '<div class="btnrow" style="margin-top:6px;"><button type="button" class="ghost" onclick="imprimirPedidoRetMesa(\''+v.id+'\')">🖨️ Imprimir '+(v.tipoEntrega==='Mesa'?'pedido da mesa':'pedido da retirada')+'</button></div>';
+}
+function pedidoRetMesaImpressaoHtml_(v){ return comandaHtml_(v); }   /* modelo único de comanda */
+function imprimirPedidoRetMesa(vendaId){
+  const v = vendas.find(x=>x.id===vendaId); if(!v || (v.tipoEntrega!=='Retirada' && v.tipoEntrega!=='Mesa')) return;
+  imprimirDocumento(pedidoRetMesaImpressaoHtml_(v), (v.tipoEntrega==='Mesa'?'Mesa ':'Retirada ')+'#'+rotuloPedido(v), lerFormato('entrega','80mm'));
 }
 function imprimirEntregaPedido(vendaId){
   const v = vendas.find(x=>x.id===vendaId); if(!v || v.tipoEntrega!=='Entrega') return;
@@ -5714,6 +5711,7 @@ function cartaoPedidoMesa_(v){
     <div class="obs-line">Status: <b>${escH(v.statusPedido||'—')}</b> — há ${tempoDecorridoDesde(v.timestamp)}</div>
     ${botoesAceite}
     ${(jaFinalizado || aguardandoAceite) ? '' : botoesSuspensao(v)}
+    ${botaoImprimirPedido_(v)}
     ${(!aguardandoAceite && !jaFinalizado && prox) ? `<button class="small-gold" style="margin-top:6px;" onclick="avancarPedido('${v.id}','${prox}')">Marcar como "${prox}"</button>` : ''}
   </div>`;
 }
@@ -5888,6 +5886,7 @@ function renderPedidos(){
         ${aReceber}
         ${botoesAceite}
         ${jaFinalizado ? '' : botoesSuspensao(v)}
+        ${botaoImprimirPedido_(v)}
         ${(!aguardandoAceite && !jaFinalizado && prox) ? `<button class="small-gold" style="margin-top:6px;" onclick="avancarPedido('${v.id}','${prox}')">Marcar como "${prox}"</button>` : ''}
       </div>`;
     }).join('') : ('<div class="notif-empty">'+(souGarcom_()?'Nenhum pedido de mesa em andamento.':'Nenhuma retirada em andamento.')+'</div>');
@@ -6017,14 +6016,37 @@ function impConfirmarNao(){
 }
 setInterval(()=>{ if(_impPend_) impConfirmarRender_(); }, 5000);
 function comandaHtml_(v){
+  /* MODELO ÚNICO DE COMANDA: serve para cozinha, retirada, mesa e entrega (a cozinha imprime, grampeia no pedido e ela segue para o entregador). */
   const itens = itensVenda.filter(it=>it.vendaId===v.id).map(it=>{
     const ad = (it.adicionaisIds||[]).map(id=>{ const a = adicionais.find(x=>x.id===id); return a ? a.nome : ''; }).filter(Boolean);
     return `<div style="font-size:1.25em;margin-top:5px;"><b>${escR(it.quantidade)}x</b> ${escR(it.descricao).replace(' — Obs: ','<br>&nbsp;&nbsp;📝 ')}</div>` + (ad.length ? `<div>&nbsp;&nbsp;+ ${escR(ad.join(', '))}</div>` : '');
   }).join('') || '<div>(itens não carregados — confira na tela)</div>';
-  const destino = v.tipoEntrega==='Mesa' ? 'MESA '+nomeMesa(v.mesaId) : (v.tipoEntrega==='Entrega' ? 'ENTREGA' : 'RETIRADA'+(v.clienteNome ? ' · '+v.clienteNome : ''));
+  const ehMesa = v.tipoEntrega==='Mesa', ehEnt = v.tipoEntrega==='Entrega';
+  const destino = ehMesa ? 'MESA '+nomeMesa(v.mesaId) : (ehEnt ? 'ENTREGA' : 'RETIRADA');
   const hora = new Date(v.timestamp).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
-  return `<h4>COMANDA #${escR(rotuloPedido(v))}</h4><div class="sub-c"><b>${escR(destino)}</b></div><div class="sub-c">${escR(hora)} · ${escR(v.origem||'Balcão')}</div>${quemFezPedido_(v)?`<div class="sub-c">${escR(quemFezPedido_(v))}</div>`:''}<hr>${itens}` +
-    (v.observacoesEntrega ? `<hr><div><b>OBS:</b> ${escR(v.observacoesEntrega)}</div>` : '') + '<hr>';
+  let h = `<h4>COMANDA #${escR(rotuloPedido(v))}</h4><div class="sub-c" style="font-size:1.3em;"><b>${escR(destino)}</b></div><div class="sub-c">${escR(hora)} · ${escR(v.origem||'Balcão')}</div>${quemFezPedido_(v)?`<div class="sub-c">${escR(quemFezPedido_(v))}</div>`:''}`;
+  if(!ehMesa){
+    h += `<hr><div><b>CLIENTE:</b> ${escR(v.clienteNome||'Sem cadastro')}</div>`;
+    if(v.clienteTelefone) h += `<div><b>TEL:</b> ${escR(v.clienteTelefone)}</div>`;
+    if(ehEnt){
+      const end = [v.endereco, v.complemento].filter(Boolean).join(', ');
+      h += `<div style="margin-top:4px;"><b>ENDEREÇO:</b><br><span style="font-size:1.15em;">${escR(end||'(não informado)')}</span></div>`;
+      if(v.referencia) h += `<div><b>REFERÊNCIA:</b> ${escR(v.referencia)}</div>`;
+    }
+  }
+  h += `<hr>${itens}`;
+  if(v.observacoesEntrega) h += `<hr><div><b>OBS:</b> ${escR(v.observacoesEntrega)}</div>`;
+  h += '<hr>';
+  const taxa = Number(v.taxaEntrega)||0;
+  if(ehEnt && taxa>0) h += `<div class="linha"><span>Taxa de entrega</span><span>${escR(formatarMoeda(taxa))}</span></div>`;
+  h += `<div class="linha total"><span>TOTAL</span><span>${escR(formatarMoeda(v.valorTotal))}</span></div>`;
+  const receber = v.statusPagamento==='A Receber';
+  h += receber
+    ? (ehMesa ? `<div style="margin-top:6px;font-size:1.1em;"><b>CONTA EM ABERTO — PAGAR NO CAIXA</b></div>`
+              : `<div style="margin-top:6px;font-size:1.2em;"><b>COBRAR DO CLIENTE: ${escR(formatarMoeda(v.valorTotal))}</b>${v.formaPagamento?'<br>('+escR(v.formaPagamento)+')':''}</div>`)
+    : `<div style="margin-top:6px;font-size:1.1em;"><b>JÁ PAGO${ehEnt?' — NÃO COBRAR':''}</b>${v.formaPagamento?'<br>('+escR(v.formaPagamento)+')':''}</div>`;
+  if(ehEnt && v.entregador) h += `<hr><div>Entregador: ${escR(pdEntregadorNome_(v.entregador))}</div>`;
+  return h + '<hr>';
 }
 function imprimirComandas_(lista){
   lista.forEach(v=>{ comandaFotoAtualizar_(v); _comandaAlteradaAvisada_.delete(v.id); }); // ITEM 2.4: a comanda impressa passa a ser a "foto" do pedido
@@ -8755,7 +8777,8 @@ Admin:{ nome:'Administrador', secoes:[
     'Depois escolha 58mm, 80mm ou A4 e toque em Imprimir, Copiar ou WhatsApp.',
     'Para encerrar, feche o caixa, informe o dinheiro contado e confira a diferença.',
     'Mesas: o botão "🍽️ Mesas" mostra todas as mesas e quem pediu a conta.',
-    'Pedido de mesa no Caixa: "Pagar ao sair" deixa na conta; "Pagar agora" cobra na hora.' ],
+    'Pedido de mesa no Caixa: "Pagar ao sair" deixa na conta; "Pagar agora" cobra na hora.',
+    'Imprimir o pedido: em Pedidos, nos cartões de Retirada e de Mesa, o botão "🖨️ Imprimir pedido da retirada" (ou "da mesa") imprime o cliente, os itens, o total e se já está pago ou se é para cobrar. Todas usam o mesmo modelo de comanda (a da cozinha também); nas entregas ela traz o endereço, a referência e o valor a cobrar. O botão só aparece depois que o pedido foi aceito. O tamanho do papel dessas três impressões se escolhe em Pedidos → Entregas ("Papel da impressão").' ],
     comuns:['"Abra o caixa antes de registrar uma venda".',
       '"A soma dos pagamentos precisa bater com o total".',
       'Desconto nunca pode zerar a venda; no Caixa pede a sua senha.'] },
@@ -8891,6 +8914,7 @@ Operador:{ nome:'Caixa', secoes:[
     'Quando ficar "Pronta" (retirada ou entrega) ou "Saiu para entrega", e o cliente tiver telefone, toque em "📲 Avisar cliente".',
     'Avance com "Marcar como…": Em preparo → Pronta → Retirada (Servida, se for mesa).',
     'Em Entregas, escolha o entregador no campo "Entregador".',
+    'Para imprimir (o modelo da comanda é o mesmo em todas): nas Entregas toque em "🖨️ Imprimir para o entregador"; nas Retiradas e nas Mesas, em "🖨️ Imprimir pedido da retirada" (ou "da mesa"). O botão aparece depois que o pedido é aceito. Papel (58mm, 80mm ou A4) em Pedidos → Entregas.',
     'Venda "A Receber": quando o cliente pagar, toque em "marcar como recebido".',
     '"⏸ Suspender" pausa o pedido (pede motivo) e "▶️ Retomar" volta.' ],
     comuns:['Só dá para editar os itens com o pedido "Em preparo".',
@@ -8999,7 +9023,7 @@ Operador:{ nome:'Caixa', secoes:[
     comuns:['"O caixa está fechado": peça ao caixa para abrir.',
       '"Esta mesa não está sob a sua responsabilidade": só quem abriu a mesa recebe.'] },
 
-  { t:'Acompanhar e servir', passos:['Aba Pedidos: veja o andamento de cada pedido.','Quando estiver "Pronta", leve à mesa e toque em "Marcar como “Servida”".'] },
+  { t:'Acompanhar e servir', passos:['Aba Pedidos: veja o andamento de cada pedido. Para imprimir o pedido, toque em "🖨️ Imprimir pedido da mesa" no cartão (aparece depois que o pedido é aceito).','Quando estiver "Pronta", leve à mesa e toque em "Marcar como “Servida”".'] },
 
   { t:'Aviso de pedido pronto', itens:[
     'Na primeira vez, toque em "🔔 Ativar avisos e som".',
@@ -9027,6 +9051,7 @@ Cozinha:{ nome:'Cozinha', secoes:[
     'Pedido novo chega com beep e piscada (o sistema confere a cada poucos segundos com o app aberto e online).',
     'Toque em "▶️ Iniciar preparo" (no pedido do Cardápio: "Aceitar e iniciar preparo").',
     'Terminou? Toque em "✅ Pronto".',
+    'A comanda impressa é única: nas entregas traz o endereço, a referência, o telefone e o valor a cobrar. Grampeie no pedido e ele já segue para o entregador.',
     'No fim da tela, "📜 Concluídos neste turno" mostra o que já saiu (retirado, entregue ou servido), com o horário. A lista zera quando o caixa fecha.' ],
     comuns:['Sem beep: toque em "🔊 Testar som" no Início, aumente o volume de mídia e tire o modo silencioso.',
       'O sistema mantém a tela ligada enquanto o app está aberto. Se aparecer "⚠️ A tela NÃO está sendo mantida ligada", toque em "📱 Manter a tela ligada".'] },
