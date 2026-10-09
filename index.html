@@ -1811,13 +1811,13 @@ body:has(.cd-fab-carrinho.show) .balao-ia{bottom:84px;}
   <section class="tab" id="tab-custosprecificacao">
     <div class="admin-subnav" data-admin-nav="1"></div>
     <div class="card"><h2>🧮 Calculadora de Custos e Precificação</h2><p class="sub">A simulação usa a ficha técnica e os custos oficiais. Nada é alterado até você aplicar.</p>
-      <label>Produto</label><select id="calcProduto" onchange="calcularCustoUI()"></select>
-      <label>Forma de pagamento</label><select id="calcForma" onchange="calcularCustoUI()"></select>
+      <label>Produto</label><select id="calcProduto" onchange="calcTrocarProduto_()"></select>
+      <label>Forma de pagamento (só para a taxa na simulação)</label><select id="calcForma" onchange="calcularCustoUI()"></select>
       <div class="stat-row"><div class="stat-box"><b id="calcCusto">R$ 0,00</b><span>CUSTO TÉCNICO</span></div><div class="stat-box"><b id="calcPrecoAtual">R$ 0,00</b><span>PREÇO ATUAL</span></div></div>
       <div class="row2"><div><label>Embalagem (simulação)</label><input type="number" id="calcEmbalagem" min="0" step="0.01" value="0" oninput="calcularCustoUI()"></div><div><label>Outros custos (simulação)</label><input type="number" id="calcOutros" min="0" step="0.01" value="0" oninput="calcularCustoUI()"></div></div>
       <label>Taxa marketplace (%) — simulação</label><input type="number" id="calcMarketplace" min="0" step="0.01" value="0" oninput="calcularCustoUI()">
-      <label>Preço simulado (R$)</label><input type="number" id="calcPrecoSimulado" min="0" step="0.01" oninput="calcularCustoUI()">
-      <div id="calcResultado" class="info-line"></div><button class="primary" onclick="aplicarPrecoCalculadoraUI()">Aplicar preço simulado</button><div class="msg" id="calcMsg"></div>
+      <label>Preço base simulado (R$) — vale para todas as formas</label><input type="number" id="calcPrecoSimulado" min="0" step="0.01" oninput="calcularCustoUI()">
+      <div id="calcResultado" class="info-line"></div><button class="primary" onclick="aplicarPrecoCalculadoraUI()">Aplicar como preço base</button><div class="msg" id="calcMsg"></div>
     </div>
   </section>
 
@@ -2044,7 +2044,7 @@ body:has(.cd-fab-carrinho.show) .balao-ia{bottom:84px;}
     <div class="admin-subnav" data-admin-nav="1"></div>
     <div class="card">
       <h2>Avisos (configuração)</h2>
-      <p class="sub">Escolha quais avisos aparecem no mural <b>Notificações</b> e para quais perfis. Só Administrador, Operador e Cozinha abrem esse mural. Um aviso só mostra dados que o perfil já pode ver (ex.: despesas só o Administrador enxerga).</p>
+      <p class="sub">Escolha quais avisos ligam e para quais perfis. Administrador e Operador veem os avisos no Assistente (aba 🔔 Avisos); a Cozinha vê no mural <b>Notificações</b>. Um aviso só mostra dados que o perfil já pode ver (ex.: despesas só o Administrador enxerga).</p>
       <div id="notifCfgLista"></div>
       <button class="primary" onclick="salvarConfigNotificacoesUI()">Salvar</button>
       <div class="msg" id="notifCfgMsg"></div>
@@ -2058,7 +2058,7 @@ body:has(.cd-fab-carrinho.show) .balao-ia{bottom:84px;}
       <label for="relPeriodo">Período</label>
       <select id="relPeriodo" onchange="renderRelatorio()"></select>
       <div id="relMesArqBox" style="display:none;margin-top:6px;"><label for="relMesArq">Mês</label><input type="month" id="relMesArq" onchange="renderRelatorio()">
-        <div class="obs-line">Vendas com mais de 90 dias ficam arquivadas na planilha; este relatório as busca de lá.</div></div>
+        <div class="obs-line">Vendas antigas já arquivadas na planilha (prazo definido em Sistema → Espaço e fotos) são buscadas de lá por este relatório.</div></div>
       <label for="relTipo">Relatório</label>
       <select id="relTipo" onchange="renderRelatorio()"></select>
       <div id="relResultado"></div>
@@ -2215,7 +2215,7 @@ body:has(.cd-fab-carrinho.show) .balao-ia{bottom:84px;}
       <div><label for="ppPreco">Preço</label><input type="number" id="ppPreco" step="0.01"></div>
       <div><label for="ppCusto">Custo</label><input type="number" id="ppCusto" step="0.01"></div>
     </div>
-    <p class="sub" style="margin-top:6px;">Esse preço vale pra todas as formas de pagamento, exceto as que tiverem exceção nas opções avançadas.</p>
+    <p class="sub" style="margin-top:6px;">Esse é o preço base: vale para todas as formas de pagamento. Se uma forma cobra a mais (ex: iFood, Alelo), cadastre o acréscimo na própria forma, em Pagamentos.</p>
 
     <label style="display:flex;align-items:center;gap:8px;margin-top:12px;"><input type="checkbox" id="ppAtivo" style="width:auto;"><span style="font-size:13px;">Produto ativo (aparece pra venda)</span></label>
 
@@ -2297,7 +2297,7 @@ body:has(.cd-fab-carrinho.show) .balao-ia{bottom:84px;}
       <div><label for="kkPreco">Preço</label><input type="number" id="kkPreco" step="0.01"></div>
       <div><label for="kkCusto">Custo</label><input type="number" id="kkCusto" step="0.01"></div>
     </div>
-    <p class="sub" style="margin-top:6px;">Esse preço vale pra todas as formas de pagamento, exceto as que tiverem exceção nas opções avançadas.</p>
+    <p class="sub" style="margin-top:6px;">Esse é o preço base: vale para todas as formas de pagamento. Se uma forma cobra a mais (ex: iFood, Alelo), cadastre o acréscimo na própria forma, em Pagamentos.</p>
     <label style="display:flex;align-items:center;gap:8px;margin-top:12px;"><input type="checkbox" id="kkAtivo" style="width:auto;"><span style="font-size:13px;">Combo ativo (aparece pra venda)</span></label>
 
     <button type="button" class="ghost" style="width:100%;margin-top:14px;" onclick="toggleAvancado('kk')">⚙️ Opções avançadas <span id="kkAvancadoSeta">▸</span></button>
@@ -2766,7 +2766,7 @@ body:has(.cd-fab-carrinho.show) .balao-ia{bottom:84px;}
         <h3>Movimentações do evento</h3>
         <p class="sub">Salve o evento (ou toque em Gerenciar numa lista) para lançar custo ou recebimento.</p>
       <input type="hidden" id="evMovId"><div class="row2"><div><label>Descrição do custo</label><input id="evCustoDesc"></div><div><label>Categoria</label><input id="evCustoCat" placeholder="Equipe, transporte..."></div></div><div class="row2"><div><label>Valor do custo</label><input type="number" id="evCustoValor" min="0" step="0.01"></div><div><label>Data</label><input type="date" id="evCustoData"></div></div><button class="small-gold" onclick="lancarCustoEventoUI()">Lançar custo</button>
-      <hr><div class="row2"><div><label>Recebimento</label><input type="number" id="evRecValor" min="0" step="0.01"></div><div><label>Forma</label><input id="evRecForma" placeholder="Pix, dinheiro..."></div></div><button class="small-gold" onclick="lancarRecebimentoEventoUI()">Lançar recebimento</button><div class="msg" id="evMovMsg"></div>
+      <hr><div class="row2"><div><label>Recebimento</label><input type="number" id="evRecValor" min="0" step="0.01"></div><div><label>Forma</label><select id="evRecForma"></select></div></div><button class="small-gold" onclick="lancarRecebimentoEventoUI()">Lançar recebimento</button><div class="msg" id="evMovMsg"></div>
       </div>
   </div>
 </div>
@@ -2991,6 +2991,7 @@ const APP_NOVIDADES = {
       'O Assistente guarda a conversa; "Nova conversa" começa do zero.',
       'Acréscimo por forma de pagamento: em Pagamentos, cada forma pode cobrar % ou valor fixo a mais (ex.: iFood). O preço do produto agora é um só. O cliente é avisado no cardápio, e o Caixa e o fechamento de mesa somam o acréscimo sozinhos.',
       'Novo: Compras e fornecedores (Catálogo): registre compras, atualize estoque e custo e gere a despesa. No Assistente, "comprei 30kg de picanha por R$ 900" vira um cartão para você confirmar; a IA nunca grava sozinha.',
+      'Correções: pop-ups não ficam mais cortados no fim da tela nem atrás do menu de baixo. Preço base único: todo produto e combo tem um só preço; iFood/Alelo cobram a mais pelo acréscimo da forma em Pagamentos. A senha de administrador agora é conferida de verdade ao criar, excluir ou mudar perfil/senha de usuário. Corrigidos: mensagem de erro falsa ao registrar ajuste pós-venda, cortesia fora do lucro, ordem dos feedbacks, exclusão de ingrediente e status da contingência.',
       'Novo: menu fixo embaixo no celular (Início, Caixa, Pedidos e "Mais"), com bolinha vermelha nos avisos. No computador continua no topo.',
       'Novo visual do cardápio do cliente: cabeçalho menor com a situação (aberto/fechado), produtos rolando para o lado com botão "+", fotos mais baixas e Atendimento como ícone redondo. Pop-ups sem corte no fim da tela.',
       'Novo: botão discreto "🌐 Cardápio aberto" em Início e no Caixa para fechar e reabrir o cardápio dos clientes em um toque. Correção: o cardápio podia aparecer "fechado" com o caixa aberto.',
@@ -4403,15 +4404,17 @@ function renderCuponsUI(){const box=document.getElementById('cupLista');if(!box)
 async function salvarCupomUI(){const p={codigo:cupCodigo.value,nome:cupNome.value,tipo:cupTipo.value,valor:cupValor.value,faixas:cupTipo.value==='progressivo'?faixasDoTexto_(cupFaixas.value):[],freteGratis:cupFrete.checked,dataInicio:cupInicio.value,dataFim:cupFim.value,horaInicio:'',horaFim:'',limiteTotal:cupLimite.value,limitePorCliente:cupLimiteCliente.value,valorMinimo:cupMinimo.value,ativa:cupAtiva.checked,acumula:false};try{const r=await apiCall('salvarCupom',p);showMsg('cupMsg',r.message,r.ok?'ok':'warn');if(r.ok){cupons=r.cupons||[];renderCuponsUI();fecharFormModal('cupomNovoModal');showMsg('cupMsgLista',r.message,'ok');['cupCodigo','cupNome','cupValor','cupInicio','cupFim'].forEach(id=>{document.getElementById(id).value='';});cupLimite.value='0';cupLimiteCliente.value='1';cupMinimo.value='0';cupFrete.checked=false;cupAtiva.checked=true;cupTipo.value='percentual';cupFaixas.value='';onMudarTipoCupom_();}}catch(e){showMsg('cupMsg','Erro ao salvar cupom.','warn');}}
 async function alternarCupomUI(id,ativo){try{const r=await apiCall('alternarCupom',{id,ativo});if(r.ok){cupons=r.cupons||[];renderCuponsUI();}else alert(r.message);}catch(e){alert('Não foi possível alterar o cupom.');}}
 function limparEventoUI(){['evId','evNome','evTipo','evData','evHoraInicio','evHoraFim','evLocal','evContratante','evTelefone','evValor','evObs'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});document.getElementById('evStatus').value='Orçamento';document.getElementById('evMovId').value='';}
-function renderEventosUI(){const box=document.getElementById('evLista');if(!box)return;box.innerHTML=(eventos||[]).length?(eventos||[]).slice().reverse().map(e=>`<div class="notif-card"><b>${escH(e.nome)}</b> · ${escH(e.data)} · ${escH(e.status)}<div class="obs-line">Contratante: ${escH(e.contratante||'—')} · Contratado: ${formatarMoeda(e.valorContratado)} · Recebido: ${formatarMoeda(e.valorRecebido)} · A receber: ${formatarMoeda(e.valorAReceber)} · Custos: ${formatarMoeda(e.custoTotal)} · Resultado: ${formatarMoeda(e.resultado)}</div><button class="small-gold" onclick="selecionarEventoUI('${e.id}')">Gerenciar</button>${e.status!=='Cancelado'?` <button class="ghost" onclick="cancelarEventoUI('${e.id}')">Cancelar</button>`:''}</div>`).join(''):'<div class="notif-empty">Nenhum evento.</div>';}
+function evPreencherFormas_(){ const sel=document.getElementById('evRecForma'); if(!sel) return; const atual=sel.value; sel.innerHTML=(formasPagamento||[]).filter(f=>f.ativa!==false).map(f=>`<option value="${escH(f.nome)}">${escH(f.nome)}</option>`).join(''); if(atual) sel.value=atual; }
+function renderEventosUI(){evPreencherFormas_();const box=document.getElementById('evLista');if(!box)return;box.innerHTML=(eventos||[]).length?(eventos||[]).slice().reverse().map(e=>`<div class="notif-card"><b>${escH(e.nome)}</b> · ${escH(e.data)} · ${escH(e.status)}<div class="obs-line">Contratante: ${escH(e.contratante||'—')} · Contratado: ${formatarMoeda(e.valorContratado)} · Recebido: ${formatarMoeda(e.valorRecebido)} · A receber: ${formatarMoeda(e.valorAReceber)} · Custos: ${formatarMoeda(e.custoTotal)} · Resultado: ${formatarMoeda(e.resultado)}</div><button class="small-gold" onclick="selecionarEventoUI('${e.id}')">Gerenciar</button>${e.status!=='Cancelado'?` <button class="ghost" onclick="cancelarEventoUI('${e.id}')">Cancelar</button>`:''}</div>`).join(''):'<div class="notif-empty">Nenhum evento.</div>';}
 function selecionarEventoUI(id){const e=(eventos||[]).find(x=>x.id===id);if(!e)return;document.getElementById('evId').value=e.id;document.getElementById('evNome').value=e.nome;document.getElementById('evTipo').value=e.tipo||'';document.getElementById('evData').value=e.data instanceof Date?'':String(e.data||'').slice(0,10);document.getElementById('evHoraInicio').value=e.horaInicio||'';document.getElementById('evHoraFim').value=e.horaFim||'';document.getElementById('evLocal').value=e.local||'';document.getElementById('evContratante').value=e.contratante||'';document.getElementById('evTelefone').value=e.telefone||'';document.getElementById('evStatus').value=e.status||'Orçamento';document.getElementById('evValor').value=e.valorContratado||0;document.getElementById('evObs').value=e.observacoes||'';document.getElementById('evMovId').value=e.id;abrirFormModal('eventoModal');}
 async function salvarEventoUI(){const p={id:evId.value,nome:evNome.value,tipo:evTipo.value,data:evData.value,horaInicio:evHoraInicio.value,horaFim:evHoraFim.value,local:evLocal.value,contratante:evContratante.value,telefone:evTelefone.value,status:evStatus.value,valorContratado:evValor.value,observacoes:evObs.value};try{const r=await apiCall('salvarEvento',p);showMsg('evMsg',r.message,r.ok?'ok':'warn');if(r.ok){eventos=r.eventos||[];renderEventosUI();selecionarEventoUI(r.evento.id);}}catch(e){showMsg('evMsg','Erro ao salvar evento.','warn');}}
 async function cancelarEventoUI(id){const motivo=prompt('Motivo do cancelamento (opcional):','');if(motivo===null)return;try{const r=await apiCall('cancelarEvento',{id,motivo});if(r.ok){eventos=r.eventos||[];renderEventosUI();}else alert(r.message);}catch(e){alert('Erro ao cancelar.');}}
-async function lancarCustoEventoUI(){const id=document.getElementById('evMovId').value;if(!id)return showMsg('evMovMsg','Selecione um evento.','warn');const p={eventoId:id,descricao:evCustoDesc.value,categoria:evCustoCat.value,valor:evCustoValor.value,data:evCustoData.value,observacao:'' ,requisicaoId:novaRequisicao_()};try{const r=await apiCall('adicionarCustoEvento',p);showMsg('evMovMsg',r.message,r.ok?'ok':'warn');if(r.ok){const i=eventos.findIndex(e=>e.id===id);if(i>=0)eventos[i]=r.evento;renderEventosUI();}}catch(e){showMsg('evMovMsg','Erro ao lançar custo.','warn');}}
-async function lancarRecebimentoEventoUI(){const id=document.getElementById('evMovId').value;if(!id)return showMsg('evMovMsg','Selecione um evento.','warn');const p={eventoId:id,valor:evRecValor.value,forma:evRecForma.value,data:'',observacao:'',requisicaoId:novaRequisicao_()};try{const r=await apiCall('adicionarRecebimentoEvento',p);showMsg('evMovMsg',r.message,r.ok?'ok':'warn');if(r.ok){const i=eventos.findIndex(e=>e.id===id);if(i>=0)eventos[i]=r.evento;renderEventosUI();}}catch(e){showMsg('evMovMsg','Erro ao lançar recebimento.','warn');}}
+async function lancarCustoEventoUI(){const id=document.getElementById('evMovId').value;if(!id)return showMsg('evMovMsg','Selecione um evento.','warn');const p={eventoId:id,descricao:evCustoDesc.value,categoria:evCustoCat.value,valor:evCustoValor.value,data:evCustoData.value,observacao:'' ,requisicaoId:novaRequisicao_()};try{const r=await apiCall('adicionarCustoEvento',p);showMsg('evMovMsg',r.message,r.ok?'ok':'warn');if(r.ok){const i=eventos.findIndex(e=>e.id===id);if(i>=0)eventos[i]=r.evento;renderEventosUI();evCustoDesc.value='';evCustoCat.value='';evCustoValor.value='';evCustoData.value='';}}catch(e){showMsg('evMovMsg','Erro ao lançar custo.','warn');}}
+async function lancarRecebimentoEventoUI(){const id=document.getElementById('evMovId').value;if(!id)return showMsg('evMovMsg','Selecione um evento.','warn');const p={eventoId:id,valor:evRecValor.value,forma:evRecForma.value,data:'',observacao:'',requisicaoId:novaRequisicao_()};try{const r=await apiCall('adicionarRecebimentoEvento',p);showMsg('evMovMsg',r.message,r.ok?'ok':'warn');if(r.ok){const i=eventos.findIndex(e=>e.id===id);if(i>=0)eventos[i]=r.evento;renderEventosUI();evRecValor.value='';}}catch(e){showMsg('evMovMsg','Erro ao lançar recebimento.','warn');}}
+function calcTrocarProduto_(){ const e=document.getElementById('calcPrecoSimulado'); if(e) e.value=''; calcularCustoUI(); }
 async function calcularCustoUI(){const p=document.getElementById('calcProduto').value,f=document.getElementById('calcForma').value;if(!p||!f)return;const prec=(produtoPrecos||[]).find(x=>x.produtoId===p&&x.formaPagamentoId===f);document.getElementById('calcCusto').textContent=formatarMoeda(prec?prec.custo:0);document.getElementById('calcPrecoAtual').textContent=formatarMoeda(prec?prec.preco:0);if(!document.getElementById('calcPrecoSimulado').value)document.getElementById('calcPrecoSimulado').value=prec?prec.preco:'';if(!apiConfigurada())return;try{const r=await apiCall('simularPrecificacao',{produtoId:p,formaPagamentoId:f,precoSimulado:document.getElementById('calcPrecoSimulado').value,embalagem:document.getElementById('calcEmbalagem').value,outrosCustos:document.getElementById('calcOutros').value,taxaMarketplace:document.getElementById('calcMarketplace').value});if(r.ok){document.getElementById('calcCusto').textContent=formatarMoeda(r.custoTecnico);document.getElementById('calcResultado').textContent='Custo total: '+formatarMoeda(r.custoTotal)+' · taxa pagamento: '+formatarMoeda(r.taxaPagamento)+' · resultado: '+formatarMoeda(r.resultado)+' · margem: '+r.margem.toFixed(2).replace('.',',')+'% · markup: '+r.markup.toFixed(2)+'x';}else document.getElementById('calcResultado').textContent=r.message;}catch(e){document.getElementById('calcResultado').textContent='Não foi possível simular agora.';}}
 function prepararCalculadoraUI(){const sp=document.getElementById('calcProduto'),sf=document.getElementById('calcForma');if(!sp||!sf)return;sp.innerHTML=(produtos||[]).filter(p=>p.ativo).map(p=>`<option value="${p.id}">${escH(p.nome)}</option>`).join('');sf.innerHTML=(formasPagamento||[]).filter(f=>f.ativa).map(f=>`<option value="${f.id}">${escH(f.nome)}</option>`).join('');calcularCustoUI();}
-async function aplicarPrecoCalculadoraUI(){const p=document.getElementById('calcProduto').value,f=document.getElementById('calcForma').value,v=document.getElementById('calcPrecoSimulado').value;try{const r=await apiCall('aplicarPrecoCalculadora',{produtoId:p,formaPagamentoId:f,novoPreco:v});showMsg('calcMsg',r.message,r.ok?'ok':'warn');if(r.ok){produtoPrecos=r.produtoPrecos||produtoPrecos;calcularCustoUI();}}catch(e){showMsg('calcMsg','Erro ao aplicar preço.','warn');}}
+async function aplicarPrecoCalculadoraUI(){const p=document.getElementById('calcProduto').value,f=document.getElementById('calcForma').value,v=document.getElementById('calcPrecoSimulado').value;try{if(!(Number(v)>0)){showMsg('calcMsg','Informe o preço base simulado.','warn');return;}if(!confirm('Aplicar R$ '+Number(v).toFixed(2).replace('.',',')+' como preço base deste produto? Vale para todas as formas de pagamento (o acréscimo de cada forma é somado na venda).'))return;const r=await apiCall('aplicarPrecoCalculadora',{produtoId:p,formaPagamentoId:f,novoPreco:v});showMsg('calcMsg',r.message,r.ok?'ok':'warn');if(r.ok){produtoPrecos=r.produtoPrecos||produtoPrecos;document.getElementById('calcPrecoSimulado').value='';calcularCustoUI();}}catch(e){showMsg('calcMsg','Erro ao aplicar preço.','warn');}}
 function renderClientes(){
   const filtro = document.getElementById('cSearch').value.toLowerCase();
   const modoInativos = document.getElementById('filtroInativosBtn').classList.contains('active');
@@ -4519,7 +4522,7 @@ function abrirPerfilCliente(clienteId){
       const feedbacksDoCliente = feedbacks.filter(f=>normTel(f.telefone)===tel).sort((a,b)=>(b.data||'').localeCompare(a.data||''));
       let htmlFb = '<div class="modal-section"><h3>Feedbacks enviados</h3>';
       htmlFb += feedbacksDoCliente.length ? feedbacksDoCliente.map(f=>`<div class="notif-card">
-          <div>${'★'.repeat(f.nota)}${'☆'.repeat(5-f.nota)} <span class="obs-line">${f.data}</span></div>
+          <div>${'★'.repeat(Math.max(0,Math.min(5,f.nota||0)))}${'☆'.repeat(5-Math.max(0,Math.min(5,f.nota||0)))} <span class="obs-line">${f.data}</span></div>
           ${f.comentario?`<div style="margin-top:4px;">${escH(f.comentario)}</div>`:''}
         </div>`).join('') : '<div class="notif-empty">Nenhum feedback enviado ainda.</div>';
       htmlFb += '</div>';
@@ -5405,7 +5408,7 @@ async function salvarEdicaoIngrediente(){
 }
 async function excluirEstoqueConfirm(id){
   if(!confirm('Excluir este ingrediente do estoque?')) return;
-  try{ const r = await apiCall('excluirIngrediente', { id }); estoque = r.estoque || estoque; salvarCache(); renderEstoque(); popularSelectIngredientes('pIngredienteSelect'); popularSelectIngredientes('ppIngredienteSelect'); }
+  try{ const r = await apiCall('excluirIngrediente', { id }); if(!r || !r.ok){ showMsg('eMsg', (r && r.message ? r.message : 'Não foi possível excluir.') + ' Se ele já foi usado, deixe-o inativo em vez de excluir.', 'warn'); return; } estoque = r.estoque || estoque; salvarCache(); renderEstoque(); popularSelectIngredientes('pIngredienteSelect'); popularSelectIngredientes('ppIngredienteSelect'); }
   catch(e){ showMsg('eMsg','Não foi possível excluir.','warn'); }
 }
 async function salvarBloqueioEstoque(ligado){
@@ -5462,8 +5465,9 @@ async function perdaEstoquePrompt(id){
 async function inventarioEstoquePrompt(id){
   const i = estoque.find(x=>x.id===id); if(!i) return;
   const nova = prompt('Quantidade contada fisicamente de "'+i.nome+'" ('+(i.unidade||'un')+'):', i.quantidade); if(nova===null) return;
+  if(String(nova).trim()==='' || isNaN(Number(String(nova).replace(',','.'))) || Number(String(nova).replace(',','.'))<0){ showMsg('eMsg','Informe a quantidade contada (um número, zero ou mais).','warn'); return; }
   const motivo = prompt('Observação (opcional):', 'Contagem de inventário') || 'Contagem de inventário';
-  try{ const r = await apiCall('registrarInventarioEstoque', { ingredienteId:id, novaQuantidade:Number(nova), motivo }); estoque = r.estoque||estoque; movimentacoesEstoque = r.movimentacoesEstoque||movimentacoesEstoque; salvarCache(); renderEstoque(); renderMovimentacoesEstoque(); showMsg('eMsg', r.message, r.ok?'ok':'warn'); }
+  try{ const r = await apiCall('registrarInventarioEstoque', { ingredienteId:id, novaQuantidade:Number(String(nova).replace(',','.')), motivo }); estoque = r.estoque||estoque; movimentacoesEstoque = r.movimentacoesEstoque||movimentacoesEstoque; salvarCache(); renderEstoque(); renderMovimentacoesEstoque(); showMsg('eMsg', r.message, r.ok?'ok':'warn'); }
   catch(e){ showMsg('eMsg','Não foi possível registrar o inventário.','warn'); }
 }
 
@@ -8753,7 +8757,7 @@ async function registrarAjusteUI(){
     if(r && r.ok){
       ajustesPosVenda = r.ajustesPosVenda || ajustesPosVenda; despesas = r.despesas || despesas; salvarCache();
       document.getElementById('ajValor').value = ''; document.getElementById('ajDetalhe').value = '';
-      renderAjustes(); renderDespesas(); renderContasPagar(); atualizarResumoHoje(); renderStatusCaixa(); if(_secAtiva==='tab-relatorios') gerarRelatorio();
+      renderAjustes(); renderDespesas(); renderContasPagar(); atualizarResumoHoje(); renderStatusCaixa(); if(((document.querySelector('section.tab.active')||{}).id||'')==='tab-relatorios') gerarRelatorio();
       showMsg('ajMsg', r.message, 'ok');
     } else showMsg('ajMsg', (r && r.message) || 'Não foi possível registrar o ajuste.', 'warn');
   } catch(e){ showMsg('ajMsg','Sem conexão com o servidor. Confira se o ajuste entrou antes de tentar de novo.','warn'); }
@@ -8764,7 +8768,7 @@ async function cancelarAjusteUI(id){
   if(!motivo) return;
   try{
     const r = await apiCall('cancelarAjustePosVenda', { id, motivo });
-    if(r && r.ok){ ajustesPosVenda = r.ajustesPosVenda || ajustesPosVenda; despesas = r.despesas || despesas; salvarCache(); renderAjustes(); renderDespesas(); atualizarResumoHoje(); renderStatusCaixa(); if(_secAtiva==='tab-relatorios') gerarRelatorio(); showMsg('ajMsg', r.message, 'ok'); }
+    if(r && r.ok){ ajustesPosVenda = r.ajustesPosVenda || ajustesPosVenda; despesas = r.despesas || despesas; salvarCache(); renderAjustes(); renderDespesas(); atualizarResumoHoje(); renderStatusCaixa(); if(((document.querySelector('section.tab.active')||{}).id||'')==='tab-relatorios') gerarRelatorio(); showMsg('ajMsg', r.message, 'ok'); }
     else showMsg('ajMsg', (r && r.message) || 'Não foi possível cancelar.', 'warn');
   } catch(e){ showMsg('ajMsg','Sem conexão com o servidor.','warn'); }
 }
@@ -8907,14 +8911,14 @@ Admin:{ nome:'Administrador', secoes:[
     'Em "Criar acesso", preencha Login e Senha e escolha o perfil (Operador, Garçom, Cozinha, Entregador, Admin ou Desenvolvedor).',
     'Digite "Sua senha de administrador" e toque em "Criar acesso".',
     'Perfil Desenvolvedor: você cria como qualquer outro, mas depois de criado fica travado — só o próprio Desenvolvedor edita ou troca a senha. Nem você nem ele excluem esse acesso.',
-    'Para mudar nome, telefone, perfil, situação ou redefinir a senha de alguém, toque em "editar" na lista "Usuários cadastrados". No seu próprio acesso o perfil fica travado e a senha se troca em "🔑 Senha".' ],
+    'Para mudar nome, telefone, perfil, situação ou redefinir a senha de alguém, toque em "editar" na lista "Usuários cadastrados". Mudar perfil, situação, senha, ativar, desativar ou excluir pede a SUA senha de administrador (conferida de verdade). No seu próprio acesso o perfil fica travado e a senha se troca em "🔑 Senha".' ],
     comuns:['Entregador não aparece na escolha de entregas: usuário inativo ou sem o perfil Entregador.',
       'Funcionário esqueceu a senha: só você troca — não existe "esqueci minha senha".',
       'Você esqueceu a sua: rode redefinirSenhaAdminEmergencia no editor do Apps Script.'] },
 
   { t:'Cadastrar produtos e estoque', passos:[
     'Administrador → Catálogo → Produtos → "Cadastrar produto".',
-    'Informe nome, categoria, preço e custo (a margem aparece sozinha). O preço vale para todas as formas de pagamento.',
+    'Informe nome, categoria, preço e custo (a margem aparece sozinha). O preço vale para todas as formas de pagamento (é o preço base). Editar o produto nunca cria preços diferentes por forma: quem cobra a mais é o acréscimo da forma.',
     'Só abra "⚙️ Opções avançadas" para a ficha técnica (ingredientes). Se uma forma de pagamento cobra a mais (ex.: iFood), cadastre o acréscimo (% ou valor fixo) na própria forma, em Pagamentos.',
     'Se o item tem estoque próprio (bebida), marque a opção e informe quantidade e mínimo.',
     'Para usar o produto como brinde, abra "⚙️ Opções avançadas" e marque "🎁 Este produto é um prêmio": prêmio do cartão fidelidade e/ou prêmio de indicação. Quando você quiser mudar a campanha, é só trocar a marca de produto.' ],
@@ -8983,7 +8987,7 @@ Admin:{ nome:'Administrador', secoes:[
     'Na entrega, o endereço vem com rua e bairro preenchidos pela localização do cliente (só se ele permitir). O número da casa é sempre digitado por ele e o pedido não segue sem ele.',
     'O cardápio abre rápido porque guarda cópia no aparelho do cliente. Mudanças suas aparecem em instantes.',
     'O cardápio só recebe pedidos com o caixa aberto; fechado, aparece "Estamos fechados no momento".',
-    'Promoções: cupons. Eventos: custos e recebimentos por evento. Custos e Precificação: simulador de preço.' ]},
+    'Promoções: cupons. Eventos: custos e recebimentos por evento. Custos e Precificação: simulador de preço; "Aplicar como preço base" vale para todas as formas de pagamento.' ]},
 
   { t:'Caixa: abrir, vender e fechar', passos:[
     'Aba Caixa → "Abrir caixa" e informe o fundo de troco.',
@@ -9061,13 +9065,13 @@ Admin:{ nome:'Administrador', secoes:[
 
   { t:'Backup e armazenamento', passos:[
     'Administrador → Sistema → Backup → "Fazer backup agora".',
-    'Ative o backup automático e escolha a frequência e a retenção.',
+    'Ative o backup automático e escolha o horário e a retenção (por quantos dias guardar).',
     'Para restaurar, escolha o backup no histórico e confirme com sua senha de administrador.',
     'Para apagar um backup, toque em "Excluir" no histórico e confirme com a sua senha de administrador.',
     'Se o backup ficou sem cópia no Drive, aparece o motivo e o botão "Enviar ao Drive" para tentar de novo. O backup tenta até 3 vezes sozinho.',
     'Confira o uso do Drive: até 70% normal, 70–90% atenção, acima de 90% crítico.' ],
     comuns:['Drive cheio: backups e fotos podem falhar.',
-      'A conferência de integridade aponta duplicidades, estoque negativo, caixa esquecido aberto e vendas paradas na contingência.'] },
+      'A conferência de integridade compara, todo dia às 9h10, as vendas do dia anterior no Supabase e na planilha e avisa se o número não bate.'] },
 
   { t:'Ocorrências', itens:[
     'Você trata direto pelo Assistente: aba "🔔 Avisos" → "⚠️ Ocorrências abertas" → botão "Tratar".',
@@ -9756,10 +9760,15 @@ async function carregarStatusContingencia(){
   const box = document.getElementById('contingenciaStatus');
   if(!box) return;
   try{
-    const r = await fetchContingencia_({}, TIMEOUT_CONT_LEITURA_MS_, 0);
+    const r = await fetchContingencia_(_connOptsContingencia_(), TIMEOUT_CONT_LEITURA_MS_, 0);
     if(r.ok){
-      const idade = r.espelhoAtualizadoEm ? formatarDataHoraISO(r.espelhoAtualizadoEm) : 'nunca sincronizado';
-      box.innerHTML = `🟢 Contingência acessível — espelho atualizado em: <b>${idade}</b> · ${r.pendentes} venda(s) pendente(s) de reconciliar`;
+      if(r.pendentes === undefined && r.espelhoAtualizadoEm === undefined){
+        box.innerHTML = '🟢 Contingência acessível. Para ver a data do espelho e as vendas pendentes, a chave da contingência precisa estar neste aparelho (ela é carregada quando o Administrador entra; saia e entre de novo).';
+      } else {
+        const idade = r.espelhoAtualizadoEm ? formatarDataHoraISO(r.espelhoAtualizadoEm) : 'nunca sincronizado';
+        const pend = (typeof r.pendentes === 'number') ? r.pendentes : (Array.isArray(r.pendentes) ? r.pendentes.length : 0);
+        box.innerHTML = `🟢 Contingência acessível — espelho atualizado em: <b>${idade}</b> · ${pend} venda(s) pendente(s) de reconciliar`;
+      }
       carregarArmazenamentoContingencia();
     } else box.innerHTML = '🔴 Contingência respondeu com erro.';
   } catch(e){ box.innerHTML = '🔴 Não foi possível falar com a API de contingência agora.'; }
@@ -9925,7 +9934,9 @@ async function editarMeta(tipo){
   const atual = tipo==='MetaMensal' ? metas.mensal : metas.diaria;
   const novaMeta = prompt('Nova ' + (tipo==='MetaMensal'?'meta mensal':'meta diária') + ' (R$):', atual);
   if(novaMeta === null) return;
-  try{ const r = await apiCall('salvarMeta', { tipo, valor: Number(novaMeta.replace(',','.'))||0 }); metas = r.metas || metas; salvarCache(); atualizarMetaUI(); } catch(e){}
+  const valorMeta = Number(String(novaMeta).replace(',','.'));
+  if(!(valorMeta > 0)){ alert('Informe um valor maior que zero (ex.: 15000 ou 15000,50).'); return; }
+  try{ const r = await apiCall('salvarMeta', { tipo, valor: valorMeta }); if(!r || !r.ok){ alert((r && r.message) || 'Não foi possível salvar a meta.'); return; } metas = r.metas || metas; salvarCache(); atualizarMetaUI(); } catch(e){ alert('Não foi possível salvar a meta agora.'); }
 }
 function atualizarMetaUI(){
   document.getElementById('metaMensalTexto').textContent = formatarMoeda(metas.mensal);
@@ -10331,6 +10342,14 @@ async function confirmarEditarUsuario(){
   if(senha) payload.novaSenha = senha;
   if(Object.keys(payload).length===1){ erro('Nada foi alterado.'); return; }
   if(payload.novoNivel==='Admin' && !confirm('Dar acesso de ADMINISTRADOR a "'+uEditLogin+'"? Essa pessoa poderá ver e alterar tudo, inclusive o financeiro.')) return;
+  const sensivel = ('novaSenha' in payload) || ('novoNivel' in payload) || ('novoAtivo' in payload);
+  if(sensivel){
+    abrirModalSenhaAdmin(function(senhaAdm){ payload.senhaAdminConfirmacao = senhaAdm; enviarEdicaoUsuario_(payload, msg, btn, erro); });
+    return;
+  }
+  enviarEdicaoUsuario_(payload, msg, btn, erro);
+}
+async function enviarEdicaoUsuario_(payload, msg, btn, erro){
   uEditOcupado = true; btn.disabled = true; msg.textContent = 'Salvando...'; msg.className = 'msg';
   try{
     const r = await apiCall('editarUsuario', payload);
@@ -10340,12 +10359,12 @@ async function confirmarEditarUsuario(){
   } catch(e){ erro('Sem conexão com o servidor. Tente de novo.'); uEditOcupado = false; btn.disabled = false; }
 }
 function toggleAtivoUsuario(login, ativoAtual){
-  const senha = prompt('Senha do administrador para confirmar:');
-  if(senha===null) return;
-  apiCall('editarUsuario', { loginAlvo: login, novoAtivo: !ativoAtual, senhaAdminConfirmacao: senha }).then(r=>{
-    usuarios = r.usuarios || usuarios; salvarCache();
-    if(r.ok) renderUsuarios(); else alert(r.message);
-  }).catch(()=>alert('Não foi possível atualizar.'));
+  abrirModalSenhaAdmin(function(senha){
+    apiCall('editarUsuario', { loginAlvo: login, novoAtivo: !ativoAtual, senhaAdminConfirmacao: senha }).then(r=>{
+      usuarios = r.usuarios || usuarios; salvarCache();
+      if(r.ok) renderUsuarios(); else alert(r.message);
+    }).catch(()=>alert('Não foi possível atualizar.'));
+  });
 }
 function excluirUsuarioPrompt(login){
   const alvo = usuarios.find(x=>x.login===login);
@@ -10354,12 +10373,12 @@ function excluirUsuarioPrompt(login){
     return;
   }
   if(!confirm('Excluir o usuário "'+login+'"?')) return;
-  const senha = prompt('Senha do administrador para confirmar:');
-  if(senha===null) return;
-  apiCall('excluirUsuario', { loginAlvo: login, senhaAdminConfirmacao: senha }).then(r=>{
-    usuarios = r.usuarios || usuarios; salvarCache();
-    if(r.ok) renderUsuarios(); else alert(r.message);
-  }).catch(()=>alert('Não foi possível excluir.'));
+  abrirModalSenhaAdmin(function(senha){
+    apiCall('excluirUsuario', { loginAlvo: login, senhaAdminConfirmacao: senha }).then(r=>{
+      usuarios = r.usuarios || usuarios; salvarCache();
+      if(r.ok) renderUsuarios(); else alert(r.message);
+    }).catch(()=>alert('Não foi possível excluir.'));
+  });
 }
 /* ---------- MESAS (ITEM 55) ---------- */
 function renderMesas(){
@@ -10477,6 +10496,7 @@ async function carregarAuditoria_(){
     if(!r || !r.ok){ box.innerHTML = '<div class="notif-empty">' + escH((r && r.message) || 'Não foi possível carregar agora.') + '</div>'; return; }
     logRecentes = (r.itens||[]).map(x=>({ data:x.data, usuario:x.usuario, perfil:x.perfil, acao:escH(x.acao), detalhes:x.detalhes, autorizador:escH(x.autorizador||''), aparelho:x.aparelho, ip:x.ip }));
     renderLog();
+    if((r.itens||[]).length>=300) box.insertAdjacentHTML('beforeend','<div class="obs-line">Mostrando os 300 registros mais recentes. Use a busca ou um período menor para ver os mais antigos.</div>');
   }catch(e){ box.innerHTML = '<div class="notif-empty">Sem conexão para carregar a auditoria.</div>'; }
 }
 function renderLog(){
@@ -10493,16 +10513,17 @@ function setFiltroFeedbacks(modo){
   document.getElementById('fbFiltroNovosBtn').classList.toggle('active', modo==='Novo');
   renderFeedbacks();
 }
+function dataBrNum_(t){ const m = String(t||'').match(/(\d{2})\/(\d{2})\/(\d{4})(?:\s+(\d{2}):(\d{2}))?/); return m ? Number(m[3]+m[2]+m[1]+(m[4]||'00')+(m[5]||'00')) : 0; }
 function renderFeedbacks(){
   const box = document.getElementById('fbLista');
   if(!box) return;
   const lista = (filtroFeedbacksAtual==='todos' ? feedbacks : feedbacks.filter(f=>f.status===filtroFeedbacksAtual))
-    .slice().sort((a,b)=> (b.data||'').localeCompare(a.data||''));
+    .slice().sort((a,b)=> dataBrNum_(b.data) - dataBrNum_(a.data));
   box.innerHTML = lista.length ? lista.map(f=>`<div class="notif-card">
-      <div>${'★'.repeat(f.nota)}${'☆'.repeat(5-f.nota)} <span class="obs-line">${f.data}${escH(f.telefone?' · '+f.telefone:'')}${f.vendaId?' · pedido #'+rotuloPedidoId(f.vendaId):''}</span></div>
+      <div>${'★'.repeat(Math.max(0,Math.min(5,f.nota||0)))}${'☆'.repeat(5-Math.max(0,Math.min(5,f.nota||0)))} <span class="obs-line">${f.data}${escH(f.telefone?' · '+f.telefone:'')}${f.vendaId?' · pedido #'+rotuloPedidoId(f.vendaId):''}</span></div>
       ${f.comentario?`<div style="margin-top:4px;">${escH(f.comentario)}</div>`:''}
       <div class="btnrow" style="margin-top:8px;">
-        <button class="ghost ${f.status==='Novo'?'':'small-gold'}" onclick="alterarStatusFeedback('${f.id}','${f.status==='Novo'?'Visto':'Novo'}')">${f.status==='Novo'?'Marcar como visto':'Visto'}</button>
+        <button class="ghost ${f.status==='Visto'?'small-gold':''}" onclick="alterarStatusFeedback('${f.id}','${f.status==='Novo'?'Visto':(f.status==='Visto'?'Novo':'Visto')}')">${f.status==='Novo'?'Marcar como visto':(f.status==='Visto'?'✓ Visto (tocar volta a Novo)':'Voltar para visto')}</button>
         <button class="ghost ${f.status==='Respondido'?'small-gold':''}" onclick="alterarStatusFeedback('${f.id}','Respondido')">Respondido</button>
       </div>
     </div>`).join('') : '<div class="notif-empty">Nenhum feedback recebido ainda.</div>';
@@ -10703,7 +10724,7 @@ async function registrarCompraUI(){
   }catch(e){ showMsg('cpMsg','Não foi possível registrar agora. Confira em "Compras recentes" antes de tentar de novo.','warn'); }
 }
 async function receberCompraUI(id){
-  const pg = confirm('Esta compra já foi paga?\nOK = paga · Cancelar = fica como conta a pagar') ? 'Pago' : 'A pagar';
+  const pg = confirm('Marcar esta compra como RECEBIDA (entra no estoque).\n\nEla já foi paga?\n• OK = já paga\n• Cancelar = ainda a pagar (peço o vencimento em seguida)') ? 'Pago' : 'A pagar';
   let venc = '';
   if(pg==='A pagar'){ venc = prompt('Vencimento (AAAA-MM-DD):', cpHoje_()) || ''; if(!venc) return; }
   try{
@@ -11341,8 +11362,10 @@ function resumoPeriodo(p){
   const dsp = despesas.filter(d=>despesaEfetiva(d) && d.timestamp>=p.ini && d.timestamp<p.fim);
   const evs = (eventos||[]).filter(e=>{ const t=new Date(e.data).getTime(); return !isNaN(t) && t>=p.ini && t<p.fim && e.status!=='Orçamento' && e.status!=='Cancelado'; });
   const receitaEventos = somaR(evs,e=>e.valorContratado), custosEventos = somaR(evs,e=>e.custoTotal);
-  const despTot = somaR(dsp, d=>d.valor), lucroBruto = arred2c(liq + receitaEventos - taxas - cmv - custosEventos), resultado = arred2c(lucroBruto - perdas - despTot);
-  return { vs, its, pgs, evs, perdasL, dsp, liq, receitaEventos, custosEventos, taxas, cmv, perdas, despTot, lucroBruto, resultado,
+  /* Ajustes pós-venda (reembolso, desconto, cortesia) contam pela lista de ajustes — mesma regra do DRE mensal; a despesa espelho 'Ajuste pós-venda' não entra de novo. Crédito para a próxima compra não é custo agora. */
+  const ajustesTotal = arred2c((ajustesPosVenda||[]).filter(a=>a.status==='Ativo' && a.timestamp>=p.ini && a.timestamp<p.fim && a.tipo!=='Crédito para próxima compra').reduce((s,a)=>s+(Number(a.valor)||0),0));
+  const despTot = arred2c(somaR(dsp.filter(d=>d.categoria!=='Ajuste pós-venda'), d=>d.valor) + ajustesTotal), lucroBruto = arred2c(liq + receitaEventos - taxas - cmv - custosEventos), resultado = arred2c(lucroBruto - perdas - despTot);
+  return { vs, its, pgs, evs, perdasL, dsp, ajustesTotal, liq, receitaEventos, custosEventos, taxas, cmv, perdas, despTot, lucroBruto, resultado,
     bruta: somaR(vs, v=>v.valorOriginal||v.valorTotal), desc: somaR(vs, v=>v.valorDesconto),
     margem: pctDe(resultado, liq+receitaEventos), ticket: vs.length ? liq/vs.length : 0, faturamentoTotal: arred2c(liq+receitaEventos),
     aReceber: somaR(vs.filter(v=>v.statusPagamento==='A Receber'), v=>v.valorTotal) + somaR(evs,e=>e.valorAReceber) };
@@ -13168,7 +13191,7 @@ function sb410Montar_(){
     <button class="ghost" style="width:100%;padding:10px;" onclick="sb410FotoSync()">Copiar fotos antigas para a contingência</button>
     <div class="msg" id="sb410FotoMsg"></div></div>
   <div class="card" id="sb410Integ"><h2>Conferência de integridade</h2>
-    <p class="sub">Compara as vendas de hoje no Supabase com a planilha.</p>
+    <p class="sub">Compara as vendas de hoje no Supabase com a planilha (a conferência automática, às 9h10, confere o dia anterior).</p>
     <button class="ghost" style="width:100%;padding:10px;" onclick="sb410Integ()">Conferir agora</button><div class="msg" id="sb410IntegMsg"></div></div>`);
   const mover = (id, destino) => { const c = document.getElementById(id), d = document.getElementById('tab-'+destino); if(c && d && c.parentNode !== d) d.appendChild(c); };
   mover('sb410Sync','integridade'); mover('sb410Integ','integridade');
@@ -13206,8 +13229,8 @@ async function sb410SyncStatus(){
       <div class="stat-box"><b>${j.pendentes_principal}</b>Pendentes (principal)</div>
       <div class="stat-box"><b>${j.pendentes_contingencia}</b>Pendentes (contingência)</div>
       <div class="stat-box"><b>${j.erros_principal}</b>Com erro</div></div>
-      <span class="obs-line">Principal: último envio ${sb410Fmt_(j.principal_ultimo_ok)}${j.principal_ultimo_erro_msg?' · último erro: '+escH(j.principal_ultimo_erro_msg):''}</span>
-      <span class="obs-line">Contingência: último envio ${sb410Fmt_(j.contingencia_ultimo_ok)}${j.contingencia_ultimo_erro_msg?' · último erro: '+escH(j.contingencia_ultimo_erro_msg):''}</span>
+      <span class="obs-line">Principal: último envio ${sb410Fmt_(j.principal_ultimo_ok)}${(j.principal_ultimo_erro && (!j.principal_ultimo_ok || new Date(j.principal_ultimo_erro) > new Date(j.principal_ultimo_ok)))?' · <b>com erro agora</b>: '+escH(j.principal_ultimo_erro_msg||'sem detalhe'):''}</span>
+      <span class="obs-line">Contingência: último envio ${sb410Fmt_(j.contingencia_ultimo_ok)}${(j.contingencia_ultimo_erro && (!j.contingencia_ultimo_ok || new Date(j.contingencia_ultimo_erro) > new Date(j.contingencia_ultimo_ok)))?' · <b>com erro agora</b>: '+escH(j.contingencia_ultimo_erro_msg||'sem detalhe'):''}</span>
       ${travada?'<span class="obs-line" style="color:#ffb3ab;">⚠️ Fila parada — confira o acesso às planilhas e a cota do Apps Script.</span>':''}`;
   }catch(e){ box.textContent = 'Não foi possível carregar.'; }
 }
@@ -13243,9 +13266,9 @@ async function sb410VerificarAlertaBackup_(){
     const ok = l.find(b=>b.status==='Sucesso'), ult = l[0];
     const limiteH = auto ? 30 : 72;
     let msg = '';
-    if(!ok) msg = 'Nenhum backup com sucesso foi encontrado. Faça um em Administrador → Armazenamento → Backup do Supabase.';
+    if(!ok) msg = 'Nenhum backup com sucesso foi encontrado. Faça um em Administrador → Sistema → Backup.';
     else if(ult && ult.status === 'Erro') msg = 'O último backup falhou em ' + sb410Fmt_(ult.data_hora) + (ult.erro ? ' (' + String(ult.erro).slice(0,120) + ')' : '') + '. Último com sucesso: ' + sb410Fmt_(ok.data_hora) + '.';
-    else if(Date.now() - Date.parse(ok.data_hora) > limiteH*3600*1000) msg = 'Faz mais de ' + limiteH + ' horas sem backup com sucesso (último: ' + sb410Fmt_(ok.data_hora) + '). Confira em Administrador → Armazenamento.';
+    else if(Date.now() - Date.parse(ok.data_hora) > limiteH*3600*1000) msg = 'Faz mais de ' + limiteH + ' horas sem backup com sucesso (último: ' + sb410Fmt_(ok.data_hora) + '). Confira em Administrador → Sistema → Backup.';
     sistemaAlertas_.backup = msg;
     if(msg) marcarAlertaAdmin_(true);
     renderNotificacoes();
@@ -13438,7 +13461,7 @@ async function sb410Integ(){
   catch(e){ if(m) m.textContent = 'Sem conexão.'; }
 }
 
-/* ---------- gancho: ao abrir Administrador → Armazenamento ---------- */
+/* ---------- gancho: ao abrir Administrador → Sistema → Backup ---------- */
 (function(){
   const orig = window.abrirAdministrador;
   if(typeof orig !== 'function') return;
