@@ -13004,6 +13004,8 @@ function sb6Parar(){ _sb6Parado_ = true; clearTimeout(_sb6Retry_); clearInterval
   const S = { conversaId:null, token:null, estado:null, tipo:null, intencao:null, temPedido:false, pendente:null, chamadasIa:0, depois:0, tela:'texto', desc:'', resp:'', pergunta:'', resumo:'', ligado:false, aberto:false, ocupado:false, timer:null, codigo:'', numero:'', faq:null, buscaT:null };
   const $ = id => document.getElementById(id);
   const corpo = () => $('chatPublicoConteudo');
+  /* IA do cardápio público (só em memória: o celular digitado nunca vai para o localStorage) */
+  const QA = { msgs:[], tel:'', ultima:'', enc:null, busy:false };
 
   /* ---------- sessão (só conversa + token; nunca telefone, endereço ou dados do pedido) ---------- */
   function salvar_(){ try{ localStorage.setItem(KEY, JSON.stringify({ conversaId:S.conversaId, token:S.token })); }catch(e){} }
@@ -13028,6 +13030,7 @@ function sb6Parar(){ _sb6Parado_ = true; clearTimeout(_sb6Retry_); clearInterval
   function render_(){
     parar_();
     let t = S.tela;
+    if(t === 'ia') return renderIa_();
     if(t === 'off') return pintar_('<p class="sub">O atendimento por chat está indisponível no momento. Ligue para o restaurante.</p><button type="button" class="primary" data-a="fechar">Fechar</button>');
     if(t === 'menu' || t === 'tipo' || t === 'desc') t = 'texto';
     if(t === 'texto') return pintar_('<p class="sub">Como podemos ajudar?</p><textarea id="chatDescricao" rows="4" maxlength="300" placeholder="Escreva em poucas palavras o que você precisa"></textarea><div class="chat-cont" id="chatCont">0/300</div><button type="button" class="primary" data-a="enviarDesc">Enviar</button>', '#chatDescricao');
@@ -13056,7 +13059,7 @@ function sb6Parar(){ _sb6Parado_ = true; clearTimeout(_sb6Retry_); clearInterval
     const d = document.createElement('div');
     const a = m.autor === 'cliente' ? 'eu' : (m.autor === 'sistema' ? 'sis' : (m.autor === 'ia' ? 'ia' : 'eq'));
     d.className = 'chat-balao ' + a;
-    const rot = m.autor === 'cliente' ? 'Você' : (m.autor === 'atendente' ? 'Equipe' : (m.autor === 'ia' ? 'Recepção' : ''));
+    const rot = m.autor === 'cliente' ? 'Você' : (m.autor === 'atendente' ? 'Equipe' : (m.autor === 'ia' ? (S.tela === 'ia' ? 'Atendente' : 'Recepção') : ''));
     if(rot){ const r = document.createElement('small'); r.textContent = rot; d.appendChild(r); }
     const t = document.createElement('span'); t.textContent = m.texto; d.appendChild(t);
     box.appendChild(d); box.scrollTop = box.scrollHeight;
@@ -13085,6 +13088,91 @@ function sb6Parar(){ _sb6Parado_ = true; clearTimeout(_sb6Retry_); clearInterval
     ocupado_(false);
     if(r && r.ok){ if(el){ el.value = ''; el.focus(); } clearTimeout(S.timer); lerChat_(false); }
     else msg_((r && r.message) || 'Não foi possível enviar agora.');
+  }
+
+  /* ---------- ATENDENTE VIRTUAL (IA do cardápio): dúvidas, preços, status do pedido (pelo celular) e encaminhamento ---------- */
+  const PARECE_STATUS = /pedid|status|entreg|a caminho|saiu|demor|atras|chegou|quanto tempo|previs|andamento/i;
+  const BOAS_VINDAS = 'Oi! Sou o atendente virtual da Texas Burger 🍔\nPosso tirar dúvidas do cardápio, preços, promoções e formas de pagamento, ver o andamento do seu pedido ou chamar a equipe.';
+  function renderIa_(){
+    pintar_('<div class="chat-msgs" id="chatMsgs"></div><div class="ia-acoes" id="iaAcoes"></div>' +
+      '<div class="chat-envio" id="iaEnvio"><input type="text" id="iaTexto" maxlength="400" placeholder="Pergunte sobre cardápio, preços, pedido…" autocomplete="off"><button type="button" class="primary" data-a="iaEnviar">Enviar</button></div>' +
+      '<div class="ia-rodape">' + (S.ligado ? '<button type="button" class="link-btn" data-a="equipe">👤 Falar com a equipe</button>' : '<span class="sub">Chat com a equipe indisponível no momento.</span>') + '</div>');
+    addMsg_({ autor:'ia', texto:BOAS_VINDAS });
+    QA.msgs.forEach(m=>addMsg_({ autor:m.autor, texto:m.texto }));
+    if(!QA.msgs.length) chipsIa_();
+    if(QA.enc || QA.falhou) cartaoEquipe_();
+  }
+  function acoesIa_(html){ const a = $('iaAcoes'); if(a) a.innerHTML = html || ''; }
+  function chipsIa_(){
+    acoesIa_('<div class="ia-chips">' +
+      '<button type="button" class="ghost" data-a="iaChip" data-t="O que você recomenda para hoje?">🍔 O que recomenda?</button>' +
+      '<button type="button" class="ghost" data-a="iaChip" data-t="Quais são as promoções?">🏷️ Promoções</button>' +
+      '<button type="button" class="ghost" data-a="iaChip" data-t="Como está o meu pedido?">📦 Meu pedido</button></div>');
+  }
+  function cartaoEquipe_(){
+    if(!S.ligado){ acoesIa_('<div class="ia-card"><p>O chat com a equipe está indisponível agora. Fale com o restaurante pelo telefone.</p></div>'); return; }
+    acoesIa_('<div class="ia-card"><p>' + (QA.enc ? 'Posso chamar alguém da equipe para resolver isso.' : 'Quer falar direto com a equipe?') + '</p><button type="button" class="primary" data-a="iaEquipe">➡️ Falar com a equipe</button></div>');
+  }
+  function pedirTelIa_(){
+    acoesIa_('<div class="ia-card"><p>Seu celular é usado só para localizar o pedido.</p><div class="chat-envio"><input type="tel" id="iaTel" inputmode="tel" maxlength="16" placeholder="Celular com DDD" autocomplete="tel"><button type="button" class="primary" data-a="iaTel">Consultar</button></div></div>');
+    const e = $('iaTel'); if(e) setTimeout(()=>{ try{ e.focus(); }catch(x){} }, 50);
+  }
+  function digitando_(on){
+    const box = $('chatMsgs'); if(!box) return;
+    const ant = $('iaDig'); if(ant) ant.remove();
+    if(!on) return;
+    const d = document.createElement('div'); d.className = 'chat-balao ia'; d.id = 'iaDig'; d.textContent = 'Digitando…'; box.appendChild(d); box.scrollTop = box.scrollHeight;
+  }
+  function guardarIa_(autor, texto){ QA.msgs.push({ autor, texto }); if(QA.msgs.length > 30) QA.msgs.shift(); addMsg_({ autor, texto }); }
+  async function enviarIa_(textoFixo, reenvioComTel){
+    if(QA.busy) return;
+    const el = $('iaTexto');
+    const texto = String(textoFixo != null ? textoFixo : (el && el.value) || '').trim().slice(0, 400);
+    if(texto.length < 2) return;
+    QA.busy = true; QA.enc = null; QA.falhou = false; msg_('');
+    const historico = QA.msgs.slice(-4).map(m=>({ quem: m.autor === 'ia' ? 'ia' : 'cliente', texto: m.texto }));
+    if(!reenvioComTel){ if(el) el.value = ''; guardarIa_('cliente', texto); QA.ultima = texto; }
+    acoesIa_(''); digitando_(true);
+    const mandarTel = QA.tel && (reenvioComTel || PARECE_STATUS.test(texto));
+    let j = null;
+    try{
+      const r = await sbJson_(SUPABASE_URL_ + '/functions/v1/ai-publico-atendente', { method:'POST', headers:{ apikey:SUPABASE_CHAVE_, Authorization:'Bearer ' + SUPABASE_CHAVE_, 'Content-Type':'application/json' },
+        body: JSON.stringify({ texto, historico, telefone: mandarTel ? QA.tel : '' }) }, 40000);
+      j = await r.json().catch(()=>null);
+    }catch(e){ j = null; }
+    digitando_(false); QA.busy = false;
+    if(!S.aberto || S.tela !== 'ia') return;
+    if(!j || !j.ok || !j.resposta){
+      QA.falhou = true;
+      guardarIa_('ia', j && j.codigo === 'limite_ip' ? 'Você fez muitas perguntas seguidas. Aguarde alguns minutos ou fale com a equipe.' : 'Não consegui responder automaticamente agora, mas a equipe pode te ajudar.');
+      cartaoEquipe_(); return;
+    }
+    guardarIa_('ia', j.resposta);
+    if(j.acao === 'pedir_telefone'){ QA.tel = ''; pedirTelIa_(); }
+    else if(j.acao === 'encaminhar'){ QA.enc = { tipo:j.tipo || 'outro', resumo:String(j.resumo || QA.ultima || '').slice(0, 300) }; cartaoEquipe_(); }
+    else if($('iaTexto')) $('iaTexto').focus();
+  }
+  function consultarTelIa_(){
+    const tel = String(($('iaTel') || {}).value || '').replace(/\D/g, '').slice(-11);
+    if(tel.length < 10){ msg_('Informe o celular com DDD.'); return; }
+    QA.tel = tel; msg_('');
+    guardarIa_('sistema', '📱 Celular informado. Consultando seu pedido…');
+    enviarIa_(QA.ultima || 'Como está meu pedido?', true);
+  }
+  /* problema/pedido de falar com a equipe: reaproveita o fluxo de triagem existente (conversa + nome/telefone + resumo + transferir) */
+  async function iaParaEquipe_(){
+    if(!S.ligado){ msg_('O chat com a equipe está indisponível agora.'); return; }
+    const enc = QA.enc;
+    S.desc = String(enc ? enc.resumo : QA.ultima || '').slice(0, 300); S.resp = ''; S.resumo = enc ? enc.resumo : ''; S.tipo = enc ? enc.tipo : null;
+    ocupado_(true);
+    if(!S.conversaId || S.estado !== 'recepcao'){ const ok = await triagemAbrir_(); if(!ok){ ocupado_(false); return; } }
+    ocupado_(false);
+    if(!enc){ S.tela = 'texto'; render_(); const t = $('chatDescricao'); if(t && S.desc){ t.value = S.desc; const c = $('chatCont'); if(c) c.textContent = S.desc.length + '/300'; } return; }
+    const comPedido = ['atraso','item_errado','item_faltando','cobranca','qualidade'].includes(enc.tipo);
+    S.intencao = comPedido ? 'pedido_feito' : 'antes_de_pedir';
+    const j = { ok:true, acao:'resumir', intencao:S.intencao, resumo:enc.resumo, tipo:enc.tipo };
+    if(comPedido && !S.temPedido){ S.pendente = j; S.tela = 'dados'; render_(); const t = $('chatTel'); if(t && QA.tel) t.value = QA.tel; return; }
+    mostrarSaidaIa_(j);
   }
 
   /* ---------- abrir conversa (o banco valida pedido, 4 dígitos, janela, limites e token) ---------- */
@@ -13184,7 +13272,8 @@ function sb6Parar(){ _sb6Parado_ = true; clearTimeout(_sb6Retry_); clearInterval
     S.aberto = true; $('chatPublicoModal').classList.add('open');
     corpo().innerHTML = '<p class="sub">Carregando...</p>';
     const ligado = await atualizarStatus_();
-    if(!ligado){ S.tela = 'off'; render_(); return; }
+    if(!ligado && S.codigo){ S.tela = 'off'; render_(); return; }
+    if(!ligado){ S.tela = 'ia'; render_(); return; }
     const salva = lerSalva_();
     if(salva && !S.conversaId){ S.conversaId = salva.conversaId; S.token = salva.token; }
     if(S.conversaId){
@@ -13192,14 +13281,14 @@ function sb6Parar(){ _sb6Parado_ = true; clearTimeout(_sb6Retry_); clearInterval
       if(r && r.ok){
         S.estado = r.estado;
         S.chamadasIa = (r.mensagens || []).filter(m=>m.autor === 'ia').length;
-        if(r.estado === 'encerrada'){ limparSessao_(); S.tela = 'texto'; }
-        else if(r.estado === 'recepcao'){ limparSessao_(); S.tela = S.codigo ? 'pedido' : 'texto'; }   // triagem abandonada: recomeça
+        if(r.estado === 'encerrada'){ limparSessao_(); S.tela = 'ia'; }
+        else if(r.estado === 'recepcao'){ limparSessao_(); S.tela = S.codigo ? 'pedido' : 'ia'; }   // triagem abandonada: recomeça
         else S.tela = 'chat';
         render_(); return;
       }
       limparSessao_();
     }
-    S.tela = S.codigo ? 'pedido' : 'texto'; render_();
+    S.tela = S.codigo ? 'pedido' : 'ia'; render_();
   }
   function fechar_(){ S.aberto = false; parar_(); S.codigo = ''; S.numero = ''; $('chatPublicoModal').classList.remove('open'); }
 
@@ -13216,7 +13305,12 @@ function sb6Parar(){ _sb6Parado_ = true; clearTimeout(_sb6Retry_); clearInterval
     else if(a === 'pularPergunta'){ S.tela = 'fallback'; S.resumo = ''; transferir_(); }
     else if(a === 'transferir') transferir_();
     else if(a === 'enviarChat') enviarChat_();
-    else if(a === 'novo'){ limparSessao_(); S.desc = ''; S.resp = ''; S.codigo = ''; S.numero = ''; S.tela = 'texto'; render_(); }
+    else if(a === 'novo'){ limparSessao_(); S.desc = ''; S.resp = ''; S.codigo = ''; S.numero = ''; QA.enc = null; QA.falhou = false; S.tela = 'ia'; render_(); }
+    else if(a === 'iaEnviar') enviarIa_();
+    else if(a === 'iaChip') enviarIa_(el.getAttribute('data-t'));
+    else if(a === 'iaTel') consultarTelIa_();
+    else if(a === 'iaEquipe') iaParaEquipe_();
+    else if(a === 'equipe'){ QA.enc = null; iaParaEquipe_(); }
     else if(a === 'fechar') fechar_();
   });
   document.addEventListener('input', ev=>{
@@ -13227,6 +13321,8 @@ function sb6Parar(){ _sb6Parado_ = true; clearTimeout(_sb6Retry_); clearInterval
     if(ev.key === 'Escape' && S.aberto){ fechar_(); return; }
     if(ev.key === 'Enter' && ev.target && ev.target.id){
       if(ev.target.id === 'chatTexto'){ ev.preventDefault(); enviarChat_(); }
+      else if(ev.target.id === 'iaTexto'){ ev.preventDefault(); enviarIa_(); }
+      else if(ev.target.id === 'iaTel'){ ev.preventDefault(); consultarTelIa_(); }
       else if(ev.target.id === 'chatTelefone4'){ ev.preventDefault(); abrirConversa_(); }
     }
   });
@@ -13257,6 +13353,17 @@ function sb6Parar(){ _sb6Parado_ = true; clearTimeout(_sb6Retry_); clearInterval
 })();
 
 </script>
+<style id="iaPublicaCss">
+.ia-acoes{flex:0 0 auto;}
+.ia-acoes:empty{display:none;}
+.ia-chips{display:flex;flex-wrap:wrap;gap:6px;padding:4px 0 8px;}
+.ia-chips .ghost{width:auto;margin:0;padding:6px 10px;font-size:12px;}
+.ia-card{background:var(--panel-2);border:1px solid var(--gold-dim);border-radius:12px;padding:10px;margin:4px 0 8px;font-size:13px;}
+.ia-card p{margin:0 0 8px;}
+.ia-card .primary{margin:0;}
+.ia-rodape{flex:0 0 auto;text-align:center;padding-top:4px;}
+#chatPublicoModal .chat-balao.ia,#chatPublicoModal .chat-balao.eu{max-width:90%;}
+</style>
 <style id="balaoInternoCss">
 .bi-aviso{background:rgba(224,68,58,.15);border:1px solid #e0443a;border-radius:10px;padding:8px 10px;font-size:13px;margin:0 0 8px;cursor:pointer;flex:0 0 auto;}
 .bi-aviso[hidden],.bi-ctrl[hidden]{display:none;}
@@ -13590,7 +13697,7 @@ function sb6Parar(){ _sb6Parado_ = true; clearTimeout(_sb6Retry_); clearInterval
   function atualizarFab_(){
     const fab = $('balaoIa'); if(!fab) return;
     const interno = logado(), ligado = window.chatPublicoLigado_ === true;
-    const mostrar = interno ? perfilBalaoPermitido_() : ligado;   // logado: só os perfis permitidos; sem login: o atendimento público, se estiver ligado
+    const mostrar = interno ? perfilBalaoPermitido_() : true;   // logado: só os perfis permitidos; sem login: o atendimento público, se estiver ligado
     if(interno && !mostrar && IN.aberto) fechar_();
     fab.style.display = mostrar ? 'block' : 'none';
     fab.hidden = !mostrar;
