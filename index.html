@@ -2035,7 +2035,7 @@ body:has(.cd-fab-carrinho.show) .balao-ia{bottom:84px;}
 
     <div class="card">
       <h2>Contingência</h2>
-      <p class="sub">Uma segunda planilha, numa conta Google separada, que mantém o Cardápio Digital funcionando (cliente continua pedindo) se esta aqui ficar fora do ar. Ela guarda uma cópia dos produtos/preços/clientes e enfileira as vendas feitas nesse meio tempo.</p>
+      <p class="sub">Uma segunda planilha, numa conta Google separada, que mantém o Cardápio Digital funcionando (cliente continua pedindo) se o Supabase e a planilha principal ficarem fora do ar. Ela guarda uma cópia dos produtos/preços/clientes e enfileira as vendas feitas nesse meio tempo.</p>
       <div id="contingenciaStatus" style="font-size:13px;margin-bottom:10px;">Carregando status...</div>
       <div id="contingenciaArmazenamento" style="font-size:13px;margin-bottom:10px;"></div>
       <button class="small-gold" style="width:100%;padding:10px;" onclick="sincronizarContingenciaUI()">🔄 Sincronizar espelho agora</button>
@@ -2911,7 +2911,7 @@ const APP_NOVIDADES = {
       'Aviso de pedido novo chega em segundos com o app aberto (antes, até 3 min).',
       'Se o servidor ficar lento (2 falhas seguidas), a próxima venda de retirada/entrega sem desconto vai direto para a contingência, com sua confirmação.',
       'Modo reserva automático quando o Supabase cai: faixa laranja no topo e cartão "Pedidos na reserva" em Pedidos (somente consulta).',
-      'Modo emergência no login quando a planilha principal está fora do ar: só retirada/entrega na contingência, sem mesa, sem desconto.',
+      'Modo emergência no login quando o servidor (Supabase) está fora do ar: só retirada/entrega na contingência, sem mesa, sem desconto.',
       'Botão "na fila" no topo: mostra cadastros/feedbacks/ocorrências pendentes. Tentar de novo ou descartar.',
       'Confirmação de impressão da comanda ("Saiu no papel?") e alerta "PEDIDO ALTERADO" quando um pedido é editado depois de impresso.',
       '"📍 Ver localização" no cartão da entrega enquanto o entregador está na rua.',
@@ -2957,7 +2957,7 @@ const APP_NOVIDADES = {
     { v:'v-etapa-11', em:'07/10/2026', itens:[
       'Aviso de pedido novo em segundos com o app aberto.',
       'Modo reserva automático quando o Supabase cai (faixa laranja + cartão "Pedidos na reserva" em Pedidos).',
-      'Modo emergência no login quando a planilha principal está fora do ar.',
+      'Modo emergência no login quando o servidor (Supabase) está fora do ar.',
       'Botão "na fila" no topo para ver e reenviar cadastros pendentes.',
       '"📍 Ver localização" no cartão da entrega enquanto o entregador está na rua.',
       'Balão de atendimento com assistente.',
@@ -3931,7 +3931,7 @@ async function emergenciaTentarEntrar_(login, senha){
     return 'senha';
   }
   try{ localStorage.removeItem(EMERGENCIA_FALHAS_KEY_); }catch(e){}
-  if(!confirm('A planilha principal está fora do ar.\n\nEntrar em MODO EMERGÊNCIA como ' + rec.login + '?\n\n• Só dá para registrar vendas do Caixa (retirada/entrega, sem desconto), pela contingência.\n• Preços e produtos são os da última vez que este aparelho falou com a planilha.\n• Quando a planilha voltar, o app pede seu login de novo.')) return 'cancelou';
+  if(!confirm('O servidor (Supabase) está fora do ar.\n\nEntrar em MODO EMERGÊNCIA como ' + rec.login + '?\n\n• Só dá para registrar vendas do Caixa (retirada/entrega, sem desconto), pela contingência.\n• Preços e produtos são os da última vez que este aparelho falou com o servidor.\n• Quando o servidor voltar, o app pede seu login de novo.')) return 'cancelou';
   localStorage.setItem(CONTINGENCIA_CHAVE_KEY, o.chave);
   currentUser = { login: rec.login, nivel: rec.nivel, token: '', emergencia: true }; // nunca vai para o SESSAO_KEY: recarregar a página exige entrar de novo
   entrarNoApp();
@@ -3949,7 +3949,7 @@ function emergenciaBanner_(txt){
 function emergenciaEncerrar_(){
   try{ localStorage.removeItem(CONTINGENCIA_CHAVE_KEY); }catch(e){}
   currentUser = null;
-  alert('A planilha principal voltou. Por segurança, entre de novo com seu login e senha.');
+  alert('O servidor voltou. Por segurança, entre de novo com seu login e senha.');
   location.reload();
 }
 /* a cada 30 s pergunta à planilha (ação pública, sem sessão) se ela voltou; com carrinho em andamento só avisa e espera a venda terminar */
@@ -3962,7 +3962,7 @@ function emergenciaVigiar_(){
       const j = await postApi_('getCardapio', {}, 8000);
       if(!j || j.ok === false || j.manutencao) return;
     }catch(e){ return; }
-    if(carrinhoAtual.length){ emergenciaBanner_('🟢 A planilha voltou — termine esta venda; depois o app pedirá seu login de novo'); return; }
+    if(carrinhoAtual.length){ emergenciaBanner_('🟢 O servidor voltou — termine esta venda; depois o app pedirá seu login de novo'); return; }
     emergenciaEncerrar_();
   }, 30000);
 }
@@ -3981,9 +3981,9 @@ async function tentarLogin(){
   if(semPlanilha){ // BLOCO 1.3: planilha fora do ar -> tenta a credencial de emergência guardada neste aparelho
     const res = await emergenciaTentarEntrar_(login, senha);
     if(res === 'ok' || res === 'cancelou') return;
-    erroLogin_(res === 'senha' ? 'Planilha fora do ar e a senha não confere com a guardada neste aparelho.'
+    erroLogin_(res === 'senha' ? 'Servidor fora do ar e a senha não confere com a guardada neste aparelho.'
       : res === 'bloqueado' ? 'Muitas tentativas erradas. Aguarde 5 minutos.'
-      : 'Não foi possível conectar à planilha.');
+      : 'Não foi possível conectar ao servidor.');
     return;
   }
   if(r.ok){
@@ -4010,7 +4010,7 @@ function entrarNoApp(){
     document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('hidden-tab', b.dataset.tab !== 'caixa'));
     document.querySelectorAll('.atalho-btn').forEach(b=>{ b.style.display = 'none'; });
     const bc = document.querySelector('.tab-btn[data-tab="caixa"]'); if(bc) bc.click();
-    emergenciaBanner_('🟠 MODO EMERGÊNCIA — planilha fora do ar. Só vendas do Caixa, pela contingência.');
+    emergenciaBanner_('🟠 MODO EMERGÊNCIA — servidor fora do ar. Só vendas do Caixa, pela contingência.');
   }
   sbFaixa_();
   init();
@@ -4148,7 +4148,7 @@ async function confirmarTrocarSenha(){
       ['spAtual','spNova','spConfirma'].forEach(id=>{ document.getElementById(id).value=''; });
       setTimeout(fecharModalTrocarSenha, 1500);
     } else { erro((r && r.message) || 'Não foi possível trocar a senha.'); spOcupado = false; btn.disabled = false; }
-  } catch(e){ erro('Sem conexão com a planilha. Tente de novo.'); spOcupado = false; btn.disabled = false; }
+  } catch(e){ erro('Sem conexão com o servidor. Tente de novo.'); spOcupado = false; btn.disabled = false; }
 }
 async function sair(){
   if(sessaoCaixa){
@@ -6147,7 +6147,7 @@ function atualizarStatusDetector_(erro){
   const el = document.getElementById('czStatus'); const btn = document.getElementById('czSomBtn');
   if(btn) btn.textContent = cozinhaSomLigado ? '🔊 Som: ligado' : '🔇 Som: desligado';
   if(!el) return;
-  el.textContent = erro ? '⚠️ Sem conexão com a planilha — tentando de novo em 3 min. Toque em “Verificar agora”.' : (cozinhaUltimaChecagem ? '🔔 Detector ligado · última verificação às '+cozinhaUltimaChecagem.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',second:'2-digit'})+' · '+vendas.length+' pedidos carregados' : 'Detector iniciando…');
+  el.textContent = erro ? '⚠️ Sem conexão com o servidor — tentando de novo em 3 min. Toque em “Verificar agora”.' : (cozinhaUltimaChecagem ? '🔔 Detector ligado · última verificação às '+cozinhaUltimaChecagem.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',second:'2-digit'})+' · '+vendas.length+' pedidos carregados' : 'Detector iniciando…');
   if(el && !erro && typeof _rt_ !== 'undefined' && _rt_.ativo) el.textContent = '⚡ Tempo real ligado — os pedidos aparecem na hora.';
   atualizarTelaLigadaUI_();
 }
@@ -8006,7 +8006,7 @@ function podeVenderContingencia_(){
   catch(e){ return false; }
 }
 async function venderEmContingencia_(ctx){
-  if(!podeVenderContingencia_()){ showMsg('vMsg','🔴 Sem conexão com a planilha e sem contingência disponível para esta venda (desconto e mesa não são aceitos).','warn'); return; }
+  if(!podeVenderContingencia_()){ showMsg('vMsg','🔴 Sem conexão com o servidor e sem contingência disponível para esta venda (desconto e mesa não são aceitos).','warn'); return; }
   if(!confirm((ctx.preventivo ? 'O servidor está muito lento (2 falhas seguidas).' : 'O servidor não respondeu.') + '\n\nRegistrar esta venda na CONTINGÊNCIA?\n• Ela fica guardada e entra no sistema quando o servidor voltar (o Admin recebe sozinho ao reabrir o app).\n• Estoque, fidelidade e o total do caixa só atualizam depois disso.\n• Não confirme se a venda já apareceu em Vendas.')) return 'recusou';
   const idRequisicao = ctx.reqConteudo ? reqIdPersist_('venda', ctx.reqConteudo) : novaRequisicao_(); // o MESMO id da tentativa ao servidor: se a venda já tinha entrado, a reconciliação não duplica
   const idFila = 'cx-' + idRequisicao.replace(/[^A-Za-z0-9_-]/g,'');
@@ -8620,7 +8620,7 @@ async function registrarAjusteUI(){
       renderAjustes(); renderDespesas(); renderContasPagar(); atualizarResumoHoje(); renderStatusCaixa(); if(_secAtiva==='tab-relatorios') gerarRelatorio();
       showMsg('ajMsg', r.message, 'ok');
     } else showMsg('ajMsg', (r && r.message) || 'Não foi possível registrar o ajuste.', 'warn');
-  } catch(e){ showMsg('ajMsg','Sem conexão com a planilha. Confira se o ajuste entrou antes de tentar de novo.','warn'); }
+  } catch(e){ showMsg('ajMsg','Sem conexão com o servidor. Confira se o ajuste entrou antes de tentar de novo.','warn'); }
   finally{ _ajOcupado_ = false; btn.disabled = false; }
 }
 async function cancelarAjusteUI(id){
@@ -8630,7 +8630,7 @@ async function cancelarAjusteUI(id){
     const r = await apiCall('cancelarAjustePosVenda', { id, motivo });
     if(r && r.ok){ ajustesPosVenda = r.ajustesPosVenda || ajustesPosVenda; despesas = r.despesas || despesas; salvarCache(); renderAjustes(); renderDespesas(); atualizarResumoHoje(); renderStatusCaixa(); if(_secAtiva==='tab-relatorios') gerarRelatorio(); showMsg('ajMsg', r.message, 'ok'); }
     else showMsg('ajMsg', (r && r.message) || 'Não foi possível cancelar.', 'warn');
-  } catch(e){ showMsg('ajMsg','Sem conexão com a planilha.','warn'); }
+  } catch(e){ showMsg('ajMsg','Sem conexão com o servidor.','warn'); }
 }
 
 /* ---------- CANCELAMENTO ---------- */
@@ -8691,7 +8691,7 @@ async function confirmarCancelamento(){
 const _aj = {
   entrar: (abas)=>({ t:'Entrar, sair e status', passos:[
     'Digite Login e Senha e toque em “Entrar”.',
-    'Olhe o status no topo: 🟢 Online = tudo certo · 🟡 Sincronizando = aguarde · 🔴 Sem conexão = veja “E se der errado?” · 🟠 Contingência = a planilha principal está fora do ar.',
+    'Olhe o status no topo: 🟢 Online = tudo certo · 🟡 Sincronizando = aguarde · 🔴 Sem conexão = veja “E se der errado?” · 🟠 Contingência = o servidor está lento ou fora do ar e o app usa a reserva. Toque na bolinha colorida do topo para ver o estado do Supabase, da planilha principal e da contingência.',
     'Para sair, toque em “Sair” no topo. Para trocar a sua senha, toque em “🔑 Senha” (precisa da senha atual e de ao menos 8 caracteres).' ],
     itens:['Suas abas: '+abas+'. Um ponto dourado numa aba avisa que há algo novo.'],
     comuns:['“Login ou senha incorretos”: confira os dados. Se esqueceu a senha, só o Administrador pode redefinir.','“Sua sessão expirou”: entre de novo; o que você estava digitando pode se perder.','“Muitas tentativas erradas”: depois de 5 erros o login fica bloqueado por 10 minutos, contados a partir do primeiro erro. Espere e tente de novo, sem insistir.'] }),
@@ -8818,16 +8818,16 @@ Admin:{ nome:'Administrador', secoes:[
       '"A soma dos pagamentos precisa bater com o total".',
       'Desconto nunca pode zerar a venda; no Caixa pede a sua senha.'] },
 
-  { t:'Modo emergência (planilha fora do ar)', itens:[
+  { t:'Modo emergência (servidor fora do ar)', itens:[
     'Só funciona no mesmo aparelho em que você já fez login normal ao menos uma vez nos últimos 30 dias. Cada login novo renova o prazo.',
-    'Quando o sistema não consegue falar com a planilha, aparece a pergunta: "Entrar em MODO EMERGÊNCIA como [seu login]?". A senha é conferida no aparelho.',
+    'Quando o sistema não consegue falar com o servidor (Supabase), aparece a pergunta: "Entrar em MODO EMERGÊNCIA como [seu login]?". A senha é conferida no aparelho.',
     'O que dá: registrar venda de retirada/entrega pela contingência, usando o catálogo da última sincronização. Sem mesa, sem desconto.',
     'O que NÃO dá: abrir/fechar caixa, cancelar, receber pagamento, mexer em estoque, ver financeiro.',
-    'Um aviso laranja fixo no topo mostra "MODO EMERGÊNCIA". Um vigia testa a planilha a cada 30 s. Assim que ela responde, o app pede login de novo.',
+    'Um aviso laranja fixo no topo mostra "MODO EMERGÊNCIA". Um vigia testa o servidor a cada 30 s. Assim que ele responde, o app pede login de novo.',
     'Errar a senha 5 vezes no modo emergência bloqueia por 5 minutos.' ]},
 
   { t:'Contingência e modo reserva', itens:[
-    'Contingência segura o cardápio se a planilha principal cair. Modo reserva segura o app quando o Supabase cai.',
+    'O Supabase é o servidor principal; a planilha principal é a reserva e a planilha de contingência é o último recurso. Se o Supabase cai, o modo reserva segura o app e a contingência segura o cardápio e as vendas.',
     'No modo reserva: faixa laranja no topo e cartão "Pedidos na reserva (somente consulta)" em Pedidos. Mostra o que estava em andamento no último espelho e o que entrou na fila da contingência.',
     'Ao voltar, o Admin recebe sozinho as vendas da contingência. Falhas ficam na tela de Contingência.',
     'Tempo real (WebSocket) e modo reserva são automáticos.',
@@ -8912,7 +8912,7 @@ Admin:{ nome:'Administrador', secoes:[
   { t:'ℹ️ Sobre o sistema', itens:[
     'Versão em uso neste aparelho: ' + APP_VERSAO + ' — publicada em ' + APP_ATUALIZADO_EM + '.',
     'A Ajuda é atualizada junto com o sistema. Se algum passo aqui não bater com a tela, recarregue a página (Ctrl+Shift+R no computador, ou feche e reabra o app no celular).',
-    'Esta versão inclui: aviso de pedido novo em segundos, modo reserva automático (Supabase), modo emergência (planilha), fila de envio para cadastros, confirmação de impressão da comanda + alerta "PEDIDO ALTERADO", localização do entregador, balão único com IA, arquivamento automático (por idade e por espaço), prêmios de fidelidade e indicação, atendente virtual no cardápio e backup com exclusão e reenvio ao Drive.',
+    'Esta versão inclui: aviso de pedido novo em segundos, modo reserva automático (Supabase), modo emergência (servidor fora do ar), fila de envio para cadastros, confirmação de impressão da comanda + alerta "PEDIDO ALTERADO", localização do entregador, balão único com IA, arquivamento automático (por idade e por espaço), prêmios de fidelidade e indicação, atendente virtual no cardápio e backup com exclusão e reenvio ao Drive.',
     'Para dúvida ou problema: use o balão de atendimento (canto da tela) ou fale com o responsável técnico.',
     'O app registra erros de JavaScript deste aparelho e envia para o Supabase (com o login de quem estava usando). Nada de dado pessoal de cliente sai por esse caminho.' ]}
  ],
@@ -8986,12 +8986,12 @@ Operador:{ nome:'Caixa', secoes:[
     'Confira o total por forma, despesas, sangrias e a diferença.' ],
     comuns:['Ao tocar em "Sair" com o caixa aberto, o sistema pergunta se você quer mesmo sair.'] },
 
-  { t:'Modo emergência (planilha fora do ar)', itens:[
+  { t:'Modo emergência (servidor fora do ar)', itens:[
     'Só funciona no mesmo aparelho em que você já fez login normal nos últimos 30 dias.',
-    'Quando o sistema não conseguir falar com a planilha, oferece "Entrar em MODO EMERGÊNCIA como [seu login]".',
+    'Quando o sistema não conseguir falar com o servidor (Supabase), oferece "Entrar em MODO EMERGÊNCIA como [seu login]".',
     'Dá para: registrar venda de retirada/entrega pela contingência.',
     'Não dá para: abrir/fechar caixa, cancelar, receber pagamento, mexer em estoque, ver financeiro.',
-    'Quando a planilha voltar, o app avisa e pede login de novo.' ]},
+    'Quando o servidor voltar, o app avisa e pede login de novo.' ]},
 
   { t:'Fila de envio', itens:[
     'Cadastro de cliente, fidelidade, feedback e ocorrência podem ficar guardados no aparelho quando a internet cai. Aparece "na fila" no topo.',
@@ -9106,7 +9106,7 @@ Cozinha:{ nome:'Cozinha', secoes:[
   { t:'Notificações', itens:['Mural de avisos. Você só vê os que o Administrador liberou para a Cozinha.'] }
  ],
  erros:[
-  { q:'A internet caiu', a:'O topo mostra "⚠️ Sem conexão com a planilha — tentando de novo em 3 min." Continue os pedidos já visíveis. Se tocar em "Iniciar preparo" e aparecer "Sem conexão — o preparo não foi registrado", repita quando voltar o 🟢.' },
+  { q:'A internet caiu', a:'O topo mostra "⚠️ Sem conexão com o servidor — tentando de novo em 3 min." Continue os pedidos já visíveis. Se tocar em "Iniciar preparo" e aparecer "Sem conexão — o preparo não foi registrado", repita quando voltar o 🟢.' },
   { q:'Não chega nenhum pedido', a:'Confira o status no topo (🟢). Com o caixa fechado, o Cardápio Digital não recebe pedidos; avise o Caixa. Toque em "↻ Verificar agora".' },
   { q:'Pedido duplicado', a:'Se aparecerem dois iguais, faça só um e avise o Caixa para cancelar o repetido. Você também pode registrar uma Ocorrência no pedido.' },
   { q:'Não sei se a comanda saiu', a:'Sem resposta em 30 s o aviso fica vermelho. Toque em ✅ Saiu ou 🔁 Não saiu.' }
@@ -10024,7 +10024,7 @@ async function salvarConfigNotificacoesUI(){
     const r = await apiCall('salvarConfigNotificacoes', { eventos });
     if(r.ok){ configNotificacoes = r.config || configNotificacoes; salvarCache(); renderConfigNotificacoes(); renderNotificacoes(); showMsg('notifCfgMsg', r.message, 'ok'); }
     else showMsg('notifCfgMsg', r.message || 'Não foi possível salvar.', 'warn');
-  } catch(e){ showMsg('notifCfgMsg', 'Sem conexão com a planilha. Tente novamente.', 'warn'); }
+  } catch(e){ showMsg('notifCfgMsg', 'Sem conexão com o servidor. Tente novamente.', 'warn'); }
 }
 function abrirPerfilClientePorTelefone(tel){
   const c = clientes.find(x=>normTel(x.telefone)===normTel(tel));
@@ -10104,7 +10104,7 @@ async function confirmarEditarUsuario(){
     if(r && r.usuarios){ usuarios = r.usuarios; salvarCache(); }
     if(r && r.ok){ renderUsuarios(); fecharModalEditarUsuario(); showMsg('uMsg', r.message || 'Usuário atualizado.', 'ok'); }
     else { erro((r && r.message) || 'Não foi possível salvar.'); uEditOcupado = false; btn.disabled = false; }
-  } catch(e){ erro('Sem conexão com a planilha. Tente de novo.'); uEditOcupado = false; btn.disabled = false; }
+  } catch(e){ erro('Sem conexão com o servidor. Tente de novo.'); uEditOcupado = false; btn.disabled = false; }
 }
 function toggleAtivoUsuario(login, ativoAtual){
   const senha = prompt('Senha do administrador para confirmar:');
