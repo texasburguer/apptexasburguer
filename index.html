@@ -2877,6 +2877,14 @@ window.APP_VERSAO = APP_VERSAO;
    A seção "🆕 O que mudou" do manual é gerada daqui. */
 const APP_NOVIDADES = {
   Admin: [
+    { v:'v-etapa-15', em:'09/10/2026', itens:[
+      'Assistente: a conversa fica ao fechar e reabrir o balão (some ao recarregar o app, ao sair da conta ou após 2 h parada). Botão "🗑️ Nova conversa" para começar do zero.'
+    ]},
+    { v:'v-etapa-14', em:'09/10/2026', itens:[
+      'Entregador automático: com só um entregador ativo, toda entrega já fica no nome dele (inclusive as pendentes). Com mais de um, escolha no campo "Entregador".',
+      'Estoque baixo só avisa para ingrediente com mínimo maior que 0. Itens com mínimo 0 não aparecem mais.',
+      'Impressão: não pergunta mais "Saiu no papel?" a cada comanda. Fica um botão "🔁 Não saiu? Reimprimir" por 10 min.'
+    ]},
     { v:'v-etapa-13', em:'09/10/2026', itens:[
       'Comanda única: cozinha, retirada, mesa e entrega agora imprimem o mesmo modelo (cliente, endereço na entrega, itens, total e se é para cobrar).',
       'Prêmios: no cadastro do produto marque "🎁 Este produto é um prêmio" (fidelidade e/ou indicação). O resgate é feito no cadastro do cliente e baixa o estoque.',
@@ -2920,6 +2928,14 @@ const APP_NOVIDADES = {
     ]}
   ],
   Operador: [
+    { v:'v-etapa-15', em:'09/10/2026', itens:[
+      'Assistente: a conversa fica ao fechar e reabrir o balão (some ao recarregar o app, ao sair da conta ou após 2 h parada). Botão "🗑️ Nova conversa" para começar do zero.'
+    ]},
+    { v:'v-etapa-14', em:'09/10/2026', itens:[
+      'Entregador automático: com só um entregador ativo, toda entrega já fica no nome dele (inclusive as pendentes). Com mais de um, escolha no campo "Entregador".',
+      'Estoque baixo só avisa para ingrediente com mínimo maior que 0. Itens com mínimo 0 não aparecem mais.',
+      'Impressão: não pergunta mais "Saiu no papel?" a cada comanda. Fica um botão "🔁 Não saiu? Reimprimir" por 10 min.'
+    ]},
     { v:'v-etapa-13', em:'09/10/2026', itens:[
       'Comanda única: cozinha, retirada, mesa e entrega agora imprimem o mesmo modelo.',
       'Impressão: agora também dá para imprimir o pedido da Retirada e da Mesa (botão "🖨️ Imprimir pedido…" no cartão), além da entrega.',
@@ -2968,6 +2984,9 @@ const APP_NOVIDADES = {
     ]}
   ],
   Cozinha: [
+    { v:'v-etapa-14', em:'09/10/2026', itens:[
+      'Impressão: não pergunta mais "Saiu no papel?" a cada comanda. Se não saiu, toque em "🔁 Não saiu? Reimprimir" (fica 10 min).'
+    ]},
     { v:'v-etapa-13', em:'09/10/2026', itens:[
       'A comanda agora é única e traz o endereço do cliente nas entregas: imprima, grampeie no pedido e ele já segue para o entregador.',
       'Corrigido: a comanda impressa saía com "MESA ?"; agora mostra o número da mesa.',
@@ -2977,7 +2996,7 @@ const APP_NOVIDADES = {
       'O balão do assistente não aparece mais neste perfil. Use o botão Ajuda para o passo a passo da sua tela.'
     ]},
     { v:'v-etapa-11', em:'07/10/2026', itens:[
-      'A comanda pergunta "Saiu no papel?" (✅ Saiu / 🔁 Não saiu). Sem resposta em 30 s, o aviso fica vermelho.',
+      'A comanda pergunta "Saiu no papel?" (✅ Saiu / 🔁 Não saiu). Sem resposta em 30 s, o aviso fica vermelho. (Mudou na v-etapa-14: agora é só o botão "Não saiu? Reimprimir".)',
       'Se um pedido for alterado depois de impresso, o cartão ganha faixa vermelha "PEDIDO ALTERADO" e dois bipes.',
       'Pedido novo chega em segundos com o app aberto (antes, até 3 min).',
       'Aviso na tela quando o sistema NÃO está conseguindo manter a tela ligada.'
@@ -5376,7 +5395,7 @@ function renderEstoque(){
   const tbody = document.getElementById('eTable');
   if(estoque.length===0){ tbody.innerHTML = '<tr class="empty-row"><td colspan="4">Nenhum ingrediente cadastrado ainda.</td></tr>'; return; }
   tbody.innerHTML = estoque.map(i=>{
-    const baixo = i.quantidade <= i.minimo;
+    const baixo = Number(i.minimo)>0 && i.quantidade <= i.minimo;
     return `<tr>
       <td>${escH(i.nome)}${i.ativo===false?' <span class="badge">inativo</span>':''}</td>
       <td>${i.quantidade} ${i.unidade||'un'}</td>
@@ -5996,14 +6015,12 @@ function impConfirmarRender_(){
   const ref = document.getElementById('czComandaMsg');
   if(!box && ref && ref.parentNode){ box = document.createElement('div'); box.id = 'czImpConfirma'; ref.parentNode.insertBefore(box, ref.nextSibling); }
   if(!box) return;
+  if(_impPend_ && Date.now() - _impPend_.em > 600000) _impPend_ = null; // some sozinho depois de 10 min
   if(!_impPend_){ box.innerHTML = ''; box.style.display = 'none'; return; }
-  const atrasado = Date.now() - _impPend_.em >= 30000;
   box.style.display = 'block';
-  box.style.cssText += ';margin:6px 0;padding:8px 10px;border-radius:8px;font-size:13px;border:1px solid ' + (atrasado ? '#c0392b' : 'var(--line, #444)') + ';background:' + (atrasado ? 'rgba(192,57,43,.18)' : 'transparent') + ';';
-  const n = _impPend_.ids.length;
-  box.innerHTML = (atrasado ? '⚠️ <b>Impressão não confirmada</b> — ' : '🖨️ ') + 'Saiu no papel ' + (n>1 ? 'as ' + n + ' comandas' : 'a comanda') + '? ' +
-    '<button type="button" class="small-gold" style="margin-left:6px;" onclick="impConfirmarSim()">✅ Saiu</button> ' +
-    '<button type="button" class="ghost" onclick="impConfirmarNao()">🔁 Não saiu, reimprimir</button>';
+  box.style.cssText += ';margin:6px 0;font-size:12px;opacity:.85;';
+  box.innerHTML = '<button type="button" class="ghost" style="padding:4px 10px;font-size:12px;" onclick="impConfirmarNao()">🔁 Não saiu? Reimprimir</button> ' +
+    '<button type="button" class="ghost" style="padding:4px 10px;font-size:12px;" onclick="impConfirmarSim()">✖ Saiu, ocultar</button>';
 }
 function impConfirmarSim(){ _impPend_ = null; impConfirmarRender_(); avisoComanda_('✅ Impressão confirmada às '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})+'.'); }
 function impConfirmarNao(){
@@ -6426,7 +6443,21 @@ async function garcomEnviarPedido(){
   await finalizarVendaConfirmada(totalCarrinho(), null, '');
   if(!carrinhoAtual.length){ setTipoEntrega('Mesa'); setModoCliente('sem'); }
 }
+let _autoEntBusy_ = false;
+function entregadorUnico_(){ const a = (usuarios||[]).filter(u=>u.nivel==='Entregador' && u.ativo); return a.length===1 ? a[0] : null; }
+async function autoAtribuirEntregador_(){
+  if(_autoEntBusy_ || !podeEnviarEntregador_()) return;
+  const e = entregadorUnico_(); if(!e) return;
+  const sem = vendas.filter(v=>v.status==='Confirmada' && v.tipoEntrega==='Entrega' && v.statusPedido && v.statusPedido!=='Entregue' && !v.entregador);
+  if(!sem.length) return;
+  _autoEntBusy_ = true;
+  try{
+    for(const v of sem){ const r = await apiCall('atribuirEntregador', { vendaId:v.id, entregador:e.login }); if(r && r.ok){ vendas = r.vendas || vendas; } else break; }
+    salvarCache(); renderEntregas();
+  }catch(err){} finally{ _autoEntBusy_ = false; }
+}
 function renderEntregas(){
+  try{ setTimeout(autoAtribuirEntregador_, 0); }catch(e){}
   const souEntregador = currentUser && currentUser.nivel === 'Entregador';
   const _ef = document.getElementById('entFmt'); if(_ef) _ef.value = lerFormato('entrega','80mm');
   let pendentes = vendas.filter(v=>v.status==='Confirmada' && v.tipoEntrega==='Entrega' && v.statusPedido && !(v.statusPedido==='Entregue' && v.statusPagamento!=='A Receber')).sort((a,b)=>a.timestamp-b.timestamp);
@@ -6721,7 +6752,7 @@ function renderInicio(){
   }
   if(staff){
     const alertas = [];
-    const baixos = estoque.filter(e=>e.quantidade<=e.minimo).length; if(baixos) alertas.push(`📦 ${baixos} item(ns) de estoque no mínimo`);
+    const baixos = estoque.filter(e=>Number(e.minimo)>0 && e.quantidade<=e.minimo).length; if(baixos) alertas.push(`📦 ${baixos} item(ns) de estoque no mínimo`);
     const ocs = ocorrenciasAbertas_().length; if(ocs) alertas.push(`⚠️ ${ocs} ocorrência(s) aberta(s)`);
     const hojeISO = dataLocalISO(new Date());
     const venc = despesas.filter(d=>d.status!=='Cancelada' && d.situacao==='A pagar' && d.vencimento && d.vencimento<hojeISO).length; if(venc) alertas.push(`💸 ${venc} conta(s) vencida(s)`);
@@ -7674,7 +7705,7 @@ function verificarEstoqueCarrinho(){
     const ing = estoque.find(e=>e.id===ingId);
     if(!ing) return;
     const restante = ing.quantidade - consumo[ingId];
-    if(restante <= ing.minimo) avisos.push(ing.nome + ' ficaria com ' + restante + ' ' + (ing.unidade||'un'));
+    if(Number(ing.minimo)>0 && restante <= ing.minimo) avisos.push(ing.nome + ' ficaria com ' + restante + ' ' + (ing.unidade||'un'));
   });
   if(avisos.length){ el.textContent = '⚠ Estoque baixo depois desta venda: ' + avisos.join(', ') + '.'; el.className = 'msg warn'; }
   else { el.className = 'msg'; }
@@ -8745,7 +8776,7 @@ Admin:{ nome:'Administrador', secoes:[
     'Se o item tem estoque próprio (bebida), marque a opção e informe quantidade e mínimo.',
     'Para usar o produto como brinde, abra "⚙️ Opções avançadas" e marque "🎁 Este produto é um prêmio": prêmio do cartão fidelidade e/ou prêmio de indicação. Quando você quiser mudar a campanha, é só trocar a marca de produto.' ],
     comuns:['"Importar cardápio inicial" só precisa rodar uma vez; o que já existe pelo nome não é duplicado.',
-      'Cada venda baixa o estoque pela ficha técnica. Ingrediente no mínimo gera aviso em 🔔 Avisos (no Assistente), sem bloquear a venda.'] },
+      'Cada venda baixa o estoque pela ficha técnica. Ingrediente no mínimo gera aviso em 🔔 Avisos (no Assistente), sem bloquear a venda. Ingrediente com mínimo 0 não avisa; para ser avisado, defina um mínimo maior que 0.'] },
 
   { t:'Prêmios: fidelidade e indicação', passos:[
     'Marque os produtos que podem ser prêmio em Catálogo → Produtos → Editar → "🎁 Este produto é um prêmio".',
@@ -8773,7 +8804,7 @@ Admin:{ nome:'Administrador', secoes:[
 
   { t:'Caixa: abrir, vender e fechar', passos:[
     'Aba Caixa → "Abrir caixa" e informe o fundo de troco.',
-    'Em "Iniciar venda": 1. Cliente → 2. Itens → 3. Pagamento → 4. Finalizar.',
+    'Em "Iniciar venda": 1. Cliente → 2. Itens → 3. Pagamento e finalizar.',
     'Depois escolha 58mm, 80mm ou A4 e toque em Imprimir, Copiar ou WhatsApp.',
     'Para encerrar, feche o caixa, informe o dinheiro contado e confira a diferença.',
     'Mesas: o botão "🍽️ Mesas" mostra todas as mesas e quem pediu a conta.',
@@ -8813,6 +8844,7 @@ Admin:{ nome:'Administrador', secoes:[
 
   { t:'Balão de atendimento e assistente de IA', itens:[
     'No canto da tela tem um botão único. Para o cliente, é o atendimento. Para funcionário logado, é o assistente.',
+    'A conversa com o assistente continua ao fechar e reabrir o botão ✨. Ela some ao recarregar o app, ao sair da conta ou depois de 2 horas parada. Para começar do zero, toque em "🗑️ Nova conversa".',
     'Dentro do assistente há duas abas: "✨ Conversa" (perguntas à IA e atendimento de clientes) e "🔔 Avisos" (o que antes ficava em Notificações). O botão do canto mostra "🔔 n" quando há aviso.',
     'Em Avisos aparecem só os itens que precisam de você, em grupos que se abrem ao toque: pedidos aguardando aceite, ocorrências, entregas com problema, contas vencidas, falhas do sistema, estoque baixo, cartão fidelidade quase completo, indicações pendentes, aniversariantes do mês e clientes inativos. O que está em dia fica numa linha só ("✅ Em dia: …").',
     'Quais avisos aparecem para cada perfil se escolhe em Administrador → Operação → Configurar notificações. Botões como "Tratar" abrem a tela da ocorrência por cima.',
@@ -8898,8 +8930,7 @@ Operador:{ nome:'Caixa', secoes:[
   { t:'Fazer uma venda', passos:[
     '1. Cliente: busque por nome ou telefone, ou "Venda sem cadastro". Escolha Retirada, Entrega ou Mesa.',
     '2. Itens: toque nos produtos; adicionais abrem numa janela.',
-    '3. Pagamento: escolha a forma. Em dinheiro, informe o recebido e veja o troco. Para dividir, marque "Dividir pagamento".',
-    '4. Finalizar: confira o total. Escolha 58mm, 80mm ou A4 e toque em Imprimir, Copiar ou WhatsApp.',
+    '3. Pagamento e finalizar: escolha a forma. Em dinheiro, informe o recebido e veja o troco. Para dividir, marque "Dividir pagamento". Confira o total, escolha 58mm, 80mm ou A4 e toque em Imprimir, Copiar ou WhatsApp.',
     '"↺ Repetir última venda" recarrega o carrinho anterior.' ],
     comuns:['"Abra o caixa antes de registrar uma venda."',
       '"A soma dos pagamentos precisa bater com o total".',
@@ -8913,7 +8944,7 @@ Operador:{ nome:'Caixa', secoes:[
     'Pedido do Cardápio chega como "novo — aguardando aceite": toque em "✅ Aceitar" ou "❌ Rejeitar".',
     'Quando ficar "Pronta" (retirada ou entrega) ou "Saiu para entrega", e o cliente tiver telefone, toque em "📲 Avisar cliente".',
     'Avance com "Marcar como…": Em preparo → Pronta → Retirada (Servida, se for mesa).',
-    'Em Entregas, escolha o entregador no campo "Entregador".',
+    'Em Entregas, o entregador já vem preenchido quando só existe um cadastrado. Com mais de um, escolha no campo "Entregador".',
     'Para imprimir (o modelo da comanda é o mesmo em todas): nas Entregas toque em "🖨️ Imprimir para o entregador"; nas Retiradas e nas Mesas, em "🖨️ Imprimir pedido da retirada" (ou "da mesa"). O botão aparece depois que o pedido é aceito. Papel (58mm, 80mm ou A4) em Pedidos → Entregas.',
     'Venda "A Receber": quando o cliente pagar, toque em "marcar como recebido".',
     '"⏸ Suspender" pausa o pedido (pede motivo) e "▶️ Retomar" volta.' ],
@@ -9057,10 +9088,9 @@ Cozinha:{ nome:'Cozinha', secoes:[
       'O sistema mantém a tela ligada enquanto o app está aberto. Se aparecer "⚠️ A tela NÃO está sendo mantida ligada", toque em "📱 Manter a tela ligada".'] },
 
   { t:'Confirmar impressão da comanda', itens:[
-    'Depois de mandar imprimir, aparece "Saiu no papel?" com ✅ Saiu e 🔁 Não saiu.',
-    '✅ Saiu: está tudo certo.',
-    '🔁 Não saiu: o sistema tira o pedido de "impressos" e manda de novo.',
-    'Sem resposta em 30 s, o aviso fica vermelho até alguém tocar.' ]},
+    'Depois de mandar imprimir, fica um botão discreto "🔁 Não saiu? Reimprimir" (some sozinho em 10 min). Ninguém precisa confirmar quando saiu certo.',
+    '🔁 Não saiu? Reimprimir: o sistema tira o pedido de "impressos" e manda de novo.',
+    '✖ Saiu, ocultar: esconde o botão.' ]},
 
   { t:'Pedido alterado depois de impresso', itens:[
     'O aparelho guarda uma "foto" da comanda quando você imprime ou quando o pedido aparece na tela.',
@@ -9891,7 +9921,7 @@ function renderNotificacoes(){
   indBox.innerHTML = pendentes.length ? pendentes.map(i=>`<div class="notif-card"><b>${escH(i.nomeIndicador)}</b> — ${i.telIndicador} — indicou ${escH(i.nomeIndicado)} e ainda não recebeu o prêmio.<br><button class="ghost" style="margin-top:6px;" onclick="abrirPerfilClientePorTelefone('${i.telIndicador}')">abrir cadastro do cliente</button></div>`).join('') : '<div class="notif-empty">Nenhuma indicação pendente.</div>';
 
   const estBox = document.getElementById('notifEstoque');
-  const baixos = estoque.filter(e=>e.quantidade<=e.minimo);
+  const baixos = estoque.filter(e=>e.ativo!==false && Number(e.minimo)>0 && e.quantidade<=e.minimo);
   estBox.innerHTML = baixos.length ? baixos.map(e=>`<div class="notif-card"><b>${escH(e.nome)}</b> — restam ${e.quantidade} ${e.unidade||'un'} (mínimo ${e.minimo} ${e.unidade||'un'})</div>`).join('') : '<div class="notif-empty">Estoque em dia.</div>';
 
   /* MELHORIA 4.4 — estes dois cartões percorrem todos os clientes e NÃO entram na contagem do alerta: só são montados com a aba aberta. */
@@ -13677,7 +13707,11 @@ input[type=time]{width:100%;background:#0b0705;border:1.5px solid #4a3414;border
   function ph_(){ const t = $('biTexto'); if(t) t.placeholder = IN.conv ? (IN.pedindoSol ? 'Escreva a solução para encerrar…' : 'Mensagem para o cliente…') : 'Escreva o que precisa…'; }
   function ctrl_(){
     const c = $('biCtrl'); if(!c) return;
-    if(!IN.conv){ c.hidden = true; c.innerHTML = ''; ph_(); return; }
+    if(!IN.conv){
+      if(IN.log && IN.log.length){ c.hidden = false; c.innerHTML = '<button type="button" class="ghost" data-bi="novaia">🗑️ Nova conversa</button>'; }
+      else { c.hidden = true; c.innerHTML = ''; }
+      ph_(); return;
+    }
     c.hidden = false;
     c.innerHTML = (IN.conv.estado === 'aguardando' ? '<button type="button" class="primary" data-bi="assumir">Assumir</button>' : '') +
       (IN.conv.estado === 'em_atendimento' ? '<button type="button" class="ghost" data-bi="encerrar">Encerrar</button>' : '') +
@@ -13726,6 +13760,7 @@ input[type=time]{width:100%;background:#0b0705;border:1.5px solid #4a3414;border
   function sairConv_(){
     IN.conv = null; IN.pedindoSol = false; clearTimeout(IN.timer);
     const box = $('biMsgs'); if(box) box.innerHTML = '';
+    if(IN.log && IN.log.length) IN.log.forEach(m => bolha_(m.cls, m.rot, m.cont, m.rico));
     ctrl_(); bolha_('ia', 'Assistente', 'Voltei para o assistente. O cliente continua na fila.');
     carregarFila_();
   }
@@ -13784,8 +13819,13 @@ input[type=time]{width:100%;background:#0b0705;border:1.5px solid #4a3414;border
   }
   /* Assistente (Admin, Operador e demais perfis): conversa livre pelo ai-assistente. A IA raciocina sobre os dados do sistema e pede consultas extras sozinha. */
   IN.hist = IN.hist || [];
+  /* Memória da conversa com o assistente: fica só em memória (some ao recarregar) e limpa sozinha após 2 h parada ou em "Nova conversa". */
+  IN.log = IN.log || []; IN.logTs = IN.logTs || 0;
+  function logIa_(cls, rot, cont, rico){ IN.log.push({ cls, rot, cont, rico:!!rico }); IN.log = IN.log.slice(-30); IN.logTs = Date.now(); }
+  function novaConversaIa_(){ IN.log = []; IN.hist = []; IN.logTs = 0; const b = $('biMsgs'); if(b) b.innerHTML = ''; mostrarModoChat_(''); bolha_('ia', 'Assistente', 'Conversa nova. Escreva o que precisa.'); ctrl_(); }
   async function perguntarIa_(t){
-    IN.ocupado = true; bolha_('eu', 'Você', t);
+    if(IN.logTs && Date.now() - IN.logTs > 7200000){ IN.log = []; IN.hist = []; }
+    IN.ocupado = true; bolha_('eu', 'Você', t); logIa_('eu', 'Você', t, false); ctrl_();
     let esp = bolha_('ia', 'Assistente', '⏳ Pensando…');
     try{
       const tk = await tokenSb_();
@@ -13796,7 +13836,7 @@ input[type=time]{width:100%;background:#0b0705;border:1.5px solid #4a3414;border
       rm_(esp); esp = null;
       if(!r || !r.ok){
         const m = { sem_permissao:'Seu perfil não tem acesso ao assistente.', sessao_invalida:'Sua sessão expirou. Entre de novo.', sem_login:'Sua sessão expirou. Entre de novo.', pergunta_vazia:'Escreva uma pergunta.', interno:'O assistente teve um problema agora. Tente de novo em instantes.', corpo_grande:'Pergunta grande demais. Escreva algo mais curto.' };
-        bolha_('ia', 'Assistente', (r && (m[r.codigo] || r.message)) || 'Não consegui falar com o assistente agora. O restante do sistema funciona normal.'); return;
+        { const tx = (r && (m[r.codigo] || r.message)) || 'Não consegui falar com o assistente agora. O restante do sistema funciona normal.'; bolha_('ia', 'Assistente', tx); logIa_('ia', 'Assistente', tx, false); } return;
       }
       const MODO_RESERVA_ = ['desligada', 'recurso_desligado', 'cota_global', 'cota_usuario', 'cota', 'indisponivel', 'limite', 'falha', 'sem_chave', 'rede_ou_timeout'];
       const modoReserva = r.ia === false && MODO_RESERVA_.indexOf(String(r.codigo || '')) !== -1;
@@ -13806,10 +13846,10 @@ input[type=time]{width:100%;background:#0b0705;border:1.5px solid #4a3414;border
       if(r.texto) h += '<div>' + escH(r.texto).replace(/\n/g, '<br>') + '</div>';
       if(r.ia) h += '<p class="sub">✨ Texto gerado por IA. Fatos vêm dos dados do sistema; sugestões e estimativas são opinião da IA — confira antes de decidir.</p>';
       if(!h) h = '<div>Não consegui responder agora.</div>';
-      bolha_('ia', 'Assistente', h, true);
+      bolha_('ia', 'Assistente', h, true); logIa_('ia', 'Assistente', h, true);
       if(r.texto && r.ia){ IN.hist.push({ quem:'eu', texto:t }, { quem:'ia', texto:r.texto }); IN.hist = IN.hist.slice(-6); }
       if(r.abrir_fila && equipe_()){ await carregarFila_(); mostrarFila_(); }
-    }catch(e){ rm_(esp); bolha_('ia', 'Assistente', 'Não consegui concluir agora. O restante do sistema funciona normal.'); }
+    }catch(e){ rm_(esp); bolha_('ia', 'Assistente', 'Não consegui concluir agora. O restante do sistema funciona normal.'); logIa_('ia', 'Assistente', 'Não consegui concluir agora. O restante do sistema funciona normal.', false); }
     finally{ IN.ocupado = false; }
   }
   function enviar_(){
@@ -13913,6 +13953,13 @@ input[type=time]{width:100%;background:#0b0705;border:1.5px solid #4a3414;border
     }
     IN.conv = null; IN.pedindoSol = false;
     $('chatPublicoModal').classList.add('open'); montar_();
+    if(IN.log && IN.log.length && Date.now() - IN.logTs > 7200000){ IN.log = []; IN.hist = []; }
+    if(IN.log && IN.log.length){
+      IN.log.forEach(m => bolha_(m.cls, m.rot, m.cont, m.rico)); ctrl_();
+      carregarFila_(); if(window.IA && IA.atualizarStatus) IA.atualizarStatus();
+      setTimeout(() => { const t = $('biTexto'); if(t) t.focus(); }, 60);
+      return;
+    }
     bolha_('ia', 'Assistente', 'Escreva o que precisa. Exemplos: "como faço uma venda?"' + (equipe_() ? ', "quanto tem de pão no estoque?", "tem cliente aguardando?"' : '') + '.');
     carregarFila_(); if(window.IA && IA.atualizarStatus) IA.atualizarStatus();
     setTimeout(() => { const t = $('biTexto'); if(t) t.focus(); }, 60);
@@ -13961,6 +14008,7 @@ input[type=time]{width:100%;background:#0b0705;border:1.5px solid #4a3414;border
     else if(a === 'abrir') abrirConv_(el.getAttribute('data-id'));
     else if(a === 'assumir') assumir_();
     else if(a === 'encerrar') pedirSolucao_();
+    else if(a === 'novaia') novaConversaIa_();
     else if(a === 'sair') sairConv_();
   });
   document.addEventListener('keydown', ev => {
@@ -13980,7 +14028,7 @@ input[type=time]{width:100%;background:#0b0705;border:1.5px solid #4a3414;border
   envolver('aplicarPermissoesNivel', () => { atualizarFab_(); });
   if(typeof window.sair === 'function' && !window.sair.__bi){
     const so = window.sair;
-    window.sair = async function(){ fechar_(); IN.conv = null; IN.pedindoSol = false; IN.aguard = 0; IN.fila = []; IN.ultAguard = 0; IN.ultNL = 0; IN.vistos = {}; IN.nlMap = {}; IN.notifId = 0; const r = await so.apply(this, arguments); setTimeout(atualizarFab_, 300); return r; };
+    window.sair = async function(){ fechar_(); IN.log = []; IN.hist = []; IN.logTs = 0; IN.conv = null; IN.pedindoSol = false; IN.aguard = 0; IN.fila = []; IN.ultAguard = 0; IN.ultNL = 0; IN.vistos = {}; IN.nlMap = {}; IN.notifId = 0; const r = await so.apply(this, arguments); setTimeout(atualizarFab_, 300); return r; };
     window.sair.__bi = true;
   }
   /* fila a cada 10 s (antes 30 s) e, com o pop-up fechado, vigia a conversa em andamento para avisar mensagem nova do cliente */
