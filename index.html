@@ -2865,8 +2865,8 @@ const API_URL = "https://script.google.com/macros/s/AKfycbwCftUm-1pxhA8XLNqMB7dM
 const CONTINGENCIA_API_URL = "https://script.google.com/macros/s/AKfycby3WljBnr7gpJrHdkbTvBCh5uIXqS4KCS6wkBYB5idxf5gI04efoDumQj264kR_smoW/exec";
 
 /* ===================== VERSÃO DO APP ===================== */
-const APP_VERSAO = 'v-etapa-12';
-const APP_ATUALIZADO_EM = '08/10/2026';
+const APP_VERSAO = 'v-etapa-13';
+const APP_ATUALIZADO_EM = '09/10/2026';
 window.APP_VERSAO = APP_VERSAO;
 
 /* ===================== NOVIDADES POR PERFIL =====================
@@ -2877,6 +2877,16 @@ window.APP_VERSAO = APP_VERSAO;
    A seção "🆕 O que mudou" do manual é gerada daqui. */
 const APP_NOVIDADES = {
   Admin: [
+    { v:'v-etapa-13', em:'09/10/2026', itens:[
+      'Prêmios: no cadastro do produto marque "🎁 Este produto é um prêmio" (fidelidade e/ou indicação). O resgate é feito no cadastro do cliente e baixa o estoque.',
+      'Backup: botão "Excluir" (pede a sua senha), "Restaurar" também pede a senha e "Enviar ao Drive" quando o backup ficou sem cópia no Drive.',
+      'Sincronização e contingência: mostra o uso da planilha de contingência e tem o interruptor da sincronização automática (todo dia às 3h).',
+      'Espaço e fotos: "Proteção de espaço" manda para a planilha o que já foi encerrado quando o Supabase chega a 90%, 95% ou 98% do limite.',
+      'Notificações agora ficam dentro do Assistente, na aba "🔔 Avisos": só aparece o que precisa de você, em grupos que abrem ao toque. A aba Notificações saiu do menu (continua só para a Cozinha).',
+      'Cardápio público: atendente virtual com IA (dúvidas, preços e status do pedido pelo celular), cards menores, foto ampliada ao toque e endereço de entrega preenchido pela localização.',
+      'Cozinha: lista "Concluídos neste turno". Entregador não marca mais "Pronta".',
+      'A IA do Desenvolvedor foi retirada; o assistente do balão ficou só para Administrador e Operador.'
+    ]},
     { v:'v-etapa-12', em:'08/10/2026', itens:[
       'Assistente de IA agora consulta mais dados do sistema, só para ler (nunca altera nada).',
       'Se a IA estiver desligada, sem cota ou fora do ar, uma faixa no topo do balão avisa e o balão continua mostrando os números do sistema.',
@@ -2907,6 +2917,12 @@ const APP_NOVIDADES = {
     ]}
   ],
   Operador: [
+    { v:'v-etapa-13', em:'09/10/2026', itens:[
+      'Notificações agora ficam dentro do Assistente, na aba "🔔 Avisos" (a aba Notificações saiu do menu).',
+      'Prêmios: no cadastro do cliente, o cartão cheio e a indicação pendente têm o botão "🎁 Resgatar" (precisa do caixa aberto).',
+      'Cardápio público com atendente virtual (IA) e endereço de entrega preenchido pela localização do cliente.',
+      'Na Cozinha aparece "Concluídos neste turno".'
+    ]},
     { v:'v-etapa-12', em:'08/10/2026', itens:[
       'Assistente de IA agora consulta mais dados do sistema, só para ler (nunca altera nada).',
       'Se a IA estiver desligada, sem cota ou fora do ar, uma faixa no topo do balão avisa e o balão continua mostrando os números do sistema.',
@@ -2927,6 +2943,9 @@ const APP_NOVIDADES = {
     ]}
   ],
   'Garçom': [
+    { v:'v-etapa-13', em:'09/10/2026', itens:[
+      'Cardápio público com atendente virtual (IA). Para você, nada mudou no fluxo das mesas.'
+    ]},
     { v:'v-etapa-12', em:'08/10/2026', itens:[
       'O balão do assistente não aparece mais neste perfil. Use o botão Ajuda para o passo a passo da sua tela.'
     ]},
@@ -2942,6 +2961,9 @@ const APP_NOVIDADES = {
     ]}
   ],
   Cozinha: [
+    { v:'v-etapa-13', em:'09/10/2026', itens:[
+      'Novo: "📜 Concluídos neste turno" no fim da tela de pedidos. Zera quando o caixa fecha.'
+    ]},
     { v:'v-etapa-12', em:'08/10/2026', itens:[
       'O balão do assistente não aparece mais neste perfil. Use o botão Ajuda para o passo a passo da sua tela.'
     ]},
@@ -2957,6 +2979,10 @@ const APP_NOVIDADES = {
     ]}
   ],
   Entregador: [
+    { v:'v-etapa-13', em:'09/10/2026', itens:[
+      'O botão "Marcar como Pronta" saiu da sua tela: quem marca é a Cozinha.',
+      'Quando o cliente compartilha a localização ao pedir, o restaurante vê onde entregar.'
+    ]},
     { v:'v-etapa-12', em:'08/10/2026', itens:[
       'O balão do assistente não aparece mais neste perfil. Use o botão Ajuda para o passo a passo da sua tela.'
     ]},
@@ -2972,6 +2998,11 @@ const APP_NOVIDADES = {
     ]}
   ],
   Cliente: [
+    { v:'v-etapa-13', em:'09/10/2026', itens:[
+      'Atendente virtual no balão "💬 Atendimento": tira dúvidas do cardápio, preços e promoções, e mostra o andamento do seu pedido pelo seu celular.',
+      'Cards menores e rolagem lateral também em "Mais pedidos". Toque na foto para ver ampliada.',
+      'Na entrega, o endereço vem com rua e bairro preenchidos pela sua localização. Você confere e digita o número.'
+    ]},
     { v:'v-etapa-11', em:'07/10/2026', itens:[
       'Novo botão "❓ Como pedir / Ajuda" no rodapé, com guia rápido.',
       'Novo botão "💬 Falar com o restaurante" no rodapé (atendimento no site).',
@@ -3972,6 +4003,7 @@ function aplicarPermissoesNivel(){
     else if(entregador) visivel = btn.dataset.entregadorOk === '1';
     else { const restrito = btn.dataset.admin === '1'; visivel = !restrito || admin || (nivelAtual==='Operador' && btn.dataset.tab==='administrador'); }
     if(btn.dataset.tab === 'meusganhos') visivel = (nivelAtual === 'Entregador');
+    if(btn.dataset.tab === 'notificacoes') visivel = (nivelAtual === 'Cozinha');   /* Admin/Operador/Dev: os avisos ficam dentro do Assistente (aba "🔔 Avisos") */
     btn.classList.toggle('hidden-tab', !visivel);
     if(visivel && !primeiroVisivel) primeiroVisivel = btn;
   });
@@ -6673,7 +6705,7 @@ function renderInicio(){
     const venc = despesas.filter(d=>d.status!=='Cancelada' && d.situacao==='A pagar' && d.vencimento && d.vencimento<hojeISO).length; if(venc) alertas.push(`💸 ${venc} conta(s) vencida(s)`);
     alertasDeEntregas().forEach(a=>alertas.push('🛵 '+a.replace(/<[^>]+>/g,'')));
     const errosFila = (typeof _fila!=='undefined' ? _fila : []).filter(i=>i.estado==='erro').length; if(errosFila) alertas.push(`📡 ${errosFila} envio(s) com erro na fila`);
-    blocos.push(`<button type="button" class="resumo-box largo ${alertas.length?'atencao':''}" ${clique("document.querySelector('[data-tab=notificacoes]').click()")}><span class="rot">Alertas</span>${alertas.length ? alertas.slice(0,5).map(a=>`<div class="resumo-alerta">${escH(a)}</div>`).join('')+(alertas.length>5?`<small>+ ${alertas.length-5} outro(s)</small>`:'') : '<div class="resumo-alerta">✅ Tudo em ordem.</div>'}</button>`);
+    blocos.push(`<button type="button" class="resumo-box largo ${alertas.length?'atencao':''}" ${clique("(window.balaoIaPode_&&balaoIaPode_())?balaoIaAbrir_('avisos'):document.querySelector('[data-tab=notificacoes]').click()")}><span class="rot">Alertas</span>${alertas.length ? alertas.slice(0,5).map(a=>`<div class="resumo-alerta">${escH(a)}</div>`).join('')+(alertas.length>5?`<small>+ ${alertas.length-5} outro(s)</small>`:'') : '<div class="resumo-alerta">✅ Tudo em ordem.</div>'}</button>`);
   }
   box.innerHTML = '<div class="resumo-grid">'+blocos.join('')+'</div>';
 }
@@ -8668,7 +8700,7 @@ function novidadesHtml_(perfil){
 
 const MANUAL_AJUDA_ = {
 Admin:{ nome:'Administrador', secoes:[
-  _aj.entrar('Início, Caixa, Pedidos (com Retiradas, Entregas e Mesas), Clientes, Notificações e Administrador'),
+  _aj.entrar('Início, Caixa, Pedidos (com Retiradas, Entregas e Mesas), Clientes e Administrador. Os avisos ficam no botão ✨ Assistente, na aba 🔔 Avisos'),
 
   { t:'Onde fica cada coisa', itens:[
     'A aba Administrador tem uma barra dividida em 6 grupos: Painel (Visão Geral, Ocorrências, Feedbacks, Relatórios); Financeiro (Contas e despesas, Análise, Ajustes pós-venda, Histórico); Catálogo (Produtos, Estoque, Custos e Precificação, Cardápio Digital); Campanhas (Promoções, Eventos); Operação (Mesas e QR Codes, Pagamentos, Entregadores e taxas, Configurar notificações); Sistema (Usuários e Permissões, Auditoria, Backup, Espaço e fotos, Sincronização e contingência).',
@@ -8688,9 +8720,16 @@ Admin:{ nome:'Administrador', secoes:[
     'Administrador → Catálogo → Produtos → "Cadastrar produto".',
     'Informe nome, categoria, preço e custo (a margem aparece sozinha). O preço vale para todas as formas de pagamento.',
     'Só abra "⚙️ Opções avançadas" para preço diferente numa forma (ex.: iFood) ou para a ficha técnica (ingredientes).',
-    'Se o item tem estoque próprio (bebida), marque a opção e informe quantidade e mínimo.' ],
+    'Se o item tem estoque próprio (bebida), marque a opção e informe quantidade e mínimo.',
+    'Para usar o produto como brinde, abra "⚙️ Opções avançadas" e marque "🎁 Este produto é um prêmio": prêmio do cartão fidelidade e/ou prêmio de indicação. Quando você quiser mudar a campanha, é só trocar a marca de produto.' ],
     comuns:['"Importar cardápio inicial" só precisa rodar uma vez; o que já existe pelo nome não é duplicado.',
-      'Cada venda baixa o estoque pela ficha técnica. Ingrediente no mínimo gera aviso em Notificações, sem bloquear a venda.'] },
+      'Cada venda baixa o estoque pela ficha técnica. Ingrediente no mínimo gera aviso em 🔔 Avisos (no Assistente), sem bloquear a venda.'] },
+
+  { t:'Prêmios: fidelidade e indicação', passos:[
+    'Marque os produtos que podem ser prêmio em Catálogo → Produtos → Editar → "🎁 Este produto é um prêmio".',
+    'Clientes → toque no cliente. Com as 10 marcas do cartão, ou com uma indicação pendente, aparece o prêmio para escolher e o botão "🎁 Resgatar prêmio" (ou "Resgatar indicação").',
+    'Confirme. O cartão zera (ou a indicação é marcada), o estoque do produto baixa e o custo entra no financeiro. O cliente não paga nada.' ],
+    comuns:['O caixa precisa estar aberto: o prêmio fica registrado no turno.','"Nenhum prêmio cadastrado": nenhum produto ativo está marcado como prêmio daquele tipo.','As indicações pendentes também aparecem em 🔔 Avisos (no Assistente).'] },
 
   { t:'QR Code das mesas', passos:[
     'Administrador → Operação → Mesas e QR Codes → "📲 QR Codes das mesas".',
@@ -8704,6 +8743,8 @@ Admin:{ nome:'Administrador', secoes:[
     'Se o cliente pedir mais de 1 lanche com adicionais, os adicionais valem para todos — o cardápio avisa.',
     'O cliente pode escrever uma observação em cada item; ela aparece na comanda da cozinha e no pedido.',
     'Item "Esgotado": se "bloquear venda sem estoque" estiver ligado (Catálogo → Estoque), o cardápio mostra "Esgotado" no que o estoque não cobre.',
+    'No celular, cada seção tem rolagem lateral (inclusive "Mais pedidos"). O cliente toca na foto para ver o item ampliado, com o botão Adicionar.',
+    'Na entrega, o endereço vem com rua e bairro preenchidos pela localização do cliente (só se ele permitir). O número da casa é sempre digitado por ele e o pedido não segue sem ele.',
     'O cardápio abre rápido porque guarda cópia no aparelho do cliente. Mudanças suas aparecem em instantes.',
     'O cardápio só recebe pedidos com o caixa aberto; fechado, aparece "Estamos fechados no momento".',
     'Promoções: cupons. Eventos: custos e recebimentos por evento. Custos e Precificação: simulador de preço.' ]},
@@ -8731,7 +8772,9 @@ Admin:{ nome:'Administrador', secoes:[
     'Contingência segura o cardápio se a planilha principal cair. Modo reserva segura o app quando o Supabase cai.',
     'No modo reserva: faixa laranja no topo e cartão "Pedidos na reserva (somente consulta)" em Pedidos. Mostra o que estava em andamento no último espelho e o que entrou na fila da contingência.',
     'Ao voltar, o Admin recebe sozinho as vendas da contingência. Falhas ficam na tela de Contingência.',
-    'Tempo real (WebSocket) e modo reserva são automáticos.' ]},
+    'Tempo real (WebSocket) e modo reserva são automáticos.',
+    'Administrador → Sistema → Sincronização e contingência: mostra o uso de espaço da planilha de contingência, "🔄 Sincronizar espelho agora" e "⬇️ Trazer vendas pendentes da contingência".',
+    'O interruptor "Sincronização automática do espelho (todo dia às 3h)" liga e desliga a cópia diária do cardápio e dos cadastros para a contingência.' ]},
 
   { t:'Fila de envio e erros de sincronização', itens:[
     'Itens como cadastro de cliente, fidelidade, feedback e ocorrência podem ficar guardados no aparelho quando a internet cai. Aparece o botão "na fila" no topo.',
@@ -8747,14 +8790,20 @@ Admin:{ nome:'Administrador', secoes:[
 
   { t:'Balão de atendimento e assistente de IA', itens:[
     'No canto da tela tem um botão único. Para o cliente, é o atendimento. Para funcionário logado, é o assistente.',
-    'Assistente (Admin e Operador): escreva em português. Exemplos: "como faço uma venda?", "quanto tem de pão no estoque?", "tem cliente aguardando?", "qual produto vendeu mais hoje?".',
+    'Dentro do assistente há duas abas: "✨ Conversa" (perguntas à IA e atendimento de clientes) e "🔔 Avisos" (o que antes ficava em Notificações). O botão do canto mostra "🔔 n" quando há aviso.',
+    'Em Avisos aparecem só os itens que precisam de você, em grupos que se abrem ao toque: pedidos aguardando aceite, ocorrências, entregas com problema, contas vencidas, falhas do sistema, estoque baixo, cartão fidelidade quase completo, indicações pendentes, aniversariantes do mês e clientes inativos. O que está em dia fica numa linha só ("✅ Em dia: …").',
+    'Quais avisos aparecem para cada perfil se escolhe em Administrador → Operação → Configurar notificações. Botões como "Tratar" abrem a tela da ocorrência por cima.',
+    'Assistente (Admin e Operador, só leitura): escreva em português. Exemplos: "como faço uma venda?", "quanto tem de pão no estoque?", "tem cliente aguardando?", "qual produto vendeu mais hoje?".',
     'Período: reconhece "hoje", "ontem", "7 dias", "30 dias", "mês". Pergunta de mês anterior avisa que os dados estão arquivados (veja Relatórios).',
-    'A IA é somente leitura. Não altera preço, não cancela, não muda status.',
+    'A IA é somente leitura. Não altera preço, não cancela, não muda status. Ela só responde assuntos do restaurante e nunca mostra senha nem dados de contato de clientes. O Operador recebe só o que é da função de Caixa.',
+    'Para o cliente, o balão é o atendente virtual: responde cardápio, preços, promoções, formas de pagamento e andamento do pedido (pelo celular dele). Se for problema, oferece "Falar com a equipe"; aí o chamado aparece para você no balão (aba Conversa).',
+    'Se a IA ficar sem cota ou fora do ar, o cliente continua vendo o botão para falar com a equipe, que não depende da IA.',
     'Quando o Supabase cai (ou a IA falha seguidas vezes), o balão avisa e o sistema segue normal.' ]},
 
   { t:'Arquivamento e uso do banco', itens:[
     'Administrador → Sistema → Espaço e fotos → bloco "Uso do Supabase".',
     'Por padrão, vendas e caixas fechados com mais de 90 dias saem do Supabase e vão para a planilha (abas Arquivo_*), de madrugada. Você pode mudar a regra (90/60/30 dias) e forçar "Mandar para a planilha agora".',
+    '"Proteção de espaço": se o uso chegar a 90%, 95% ou 98% do limite (você escolhe), o sistema manda para a planilha as vendas e caixas já encerrados, mesmo com menos de 30 dias. O que tem menos de 1 dia, os pedidos em andamento e o caixa aberto nunca saem; só apaga o que a planilha confirmou. Verifica de hora em hora.',
     'Relatórios e Visão Geral buscam esse arquivo automaticamente quando o período pedido é antigo.',
     'Fotos: só no Google Drive. Administrador → Espaço e fotos → "Copiar fotos antigas para a contingência".' ]},
 
@@ -8771,12 +8820,14 @@ Admin:{ nome:'Administrador', secoes:[
     'Administrador → Sistema → Backup → "Fazer backup agora".',
     'Ative o backup automático e escolha a frequência e a retenção.',
     'Para restaurar, escolha o backup no histórico e confirme com sua senha de administrador.',
+    'Para apagar um backup, toque em "Excluir" no histórico e confirme com a sua senha de administrador.',
+    'Se o backup ficou sem cópia no Drive, aparece o motivo e o botão "Enviar ao Drive" para tentar de novo. O backup tenta até 3 vezes sozinho.',
     'Confira o uso do Drive: até 70% normal, 70–90% atenção, acima de 90% crítico.' ],
     comuns:['Drive cheio: backups e fotos podem falhar.',
       'A conferência de integridade aponta duplicidades, estoque negativo, caixa esquecido aberto e vendas paradas na contingência.'] },
 
   { t:'Ocorrências', itens:[
-    'Você trata direto pelo mural Notificações, no cartão "⚠️ Ocorrências abertas" → botão "Tratar".',
+    'Você trata direto pelo Assistente: aba "🔔 Avisos" → "⚠️ Ocorrências abertas" → botão "Tratar".',
     'A tela completa (com filtro Abertas/Todas) continua em Administrador → Painel → Ocorrências.' ]},
 
   { t:'Ajustes pós-venda (reembolso, crédito, cortesia)', passos:[
@@ -8793,16 +8844,16 @@ Admin:{ nome:'Administrador', secoes:[
     'Esta seção só aparece para quem entrou com acesso de nível Desenvolvedor (e sem "Ver como"). Ninguém mais vê.',
     'Barra "Modo Desenvolvedor — vendo o sistema como:". Escolha um perfil (Operador, Garçom, Cozinha, Entregador) ou uma PESSOA específica e a tela muda para a dela. Suas ações continuam com acesso total.',
     'Voltar para a visão normal: selecione "Admin (visão normal)".',
-    'Auto-teste da Ajuda (também no console): testarAjuda_() — valida os 6 manuais em sequência e devolve o resultado.',
-    'Painel de uso da IA: dentro do balão de status (✨) → "Uso da IA".',
+    'Auto-teste da Ajuda (também no console): testarAjuda_() — valida os 7 manuais em sequência e devolve o resultado.',
+    'Painel de uso da IA (custo, erros e cota): dentro do balão (✨) → "Uso da IA". A IA de análise de código do Desenvolvedor foi retirada.',
     'Diagnóstico do sistema: Administrador → Sistema → Sincronização e contingência → "Conferência de integridade". Somente leitura.',
     'Ao criar/editar usuário Desenvolvedor: você cria como qualquer outro, mas depois de criado o acesso fica travado. Nem você nem ele excluem. Só o próprio Desenvolvedor edita a senha.',
-    'Se um funcionário comum tentar um comando de Dev no balão, o servidor recusa (checagem dupla).' ]},
+    'O servidor sempre confere o nível de quem pede; não adianta forçar "Ver como" para ganhar acesso.' ]},
 
   { t:'ℹ️ Sobre o sistema', itens:[
     'Versão em uso neste aparelho: ' + APP_VERSAO + ' — publicada em ' + APP_ATUALIZADO_EM + '.',
     'A Ajuda é atualizada junto com o sistema. Se algum passo aqui não bater com a tela, recarregue a página (Ctrl+Shift+R no computador, ou feche e reabra o app no celular).',
-    'Esta versão inclui: aviso de pedido novo em segundos, modo reserva automático (Supabase), modo emergência (planilha), fila de envio para cadastros, confirmação de impressão da comanda + alerta "PEDIDO ALTERADO", localização do entregador, balão único com IA, arquivamento automático de vendas com mais de 90 dias.',
+    'Esta versão inclui: aviso de pedido novo em segundos, modo reserva automático (Supabase), modo emergência (planilha), fila de envio para cadastros, confirmação de impressão da comanda + alerta "PEDIDO ALTERADO", localização do entregador, balão único com IA, arquivamento automático (por idade e por espaço), prêmios de fidelidade e indicação, atendente virtual no cardápio e backup com exclusão e reenvio ao Drive.',
     'Para dúvida ou problema: use o balão de atendimento (canto da tela) ou fale com o responsável técnico.',
     'O app registra erros de JavaScript deste aparelho e envia para o Supabase (com o login de quem estava usando). Nada de dado pessoal de cliente sai por esse caminho.' ]}
  ],
@@ -8815,7 +8866,7 @@ Admin:{ nome:'Administrador', secoes:[
  ]},
 
 Operador:{ nome:'Caixa', secoes:[
-  _aj.entrar('Início, Caixa, Pedidos (com Retiradas, Entregas e Mesas), Clientes e Notificações'),
+  _aj.entrar('Início, Caixa, Pedidos (com Retiradas, Entregas e Mesas), Clientes e Operação (Ocorrências e Feedbacks). Os avisos ficam no botão ✨ Assistente, na aba 🔔 Avisos'),
 
   { t:'Abrir o caixa', passos:['Aba Caixa → "Abrir caixa".','Informe o fundo de troco e confirme.'],
     comuns:['Sem caixa aberto não há venda, despesa nem sangria, e o Cardápio Digital não recebe pedidos.',
@@ -8889,7 +8940,7 @@ Operador:{ nome:'Caixa', secoes:[
     'Venda, pagamento, sangria, cancelamento e estoque NUNCA ficam na fila.' ]},
 
   { t:'Balão de atendimento', itens:[
-    'O botão no canto é o atendimento quando você está logado.',
+    'O botão no canto é o assistente quando você está logado. Para o cliente ele é o atendente virtual (IA); quando o problema é com a equipe, o chamado chega aqui.',
     'Escreva perguntas como: "como faço uma venda?", "quanto tem de pão no estoque?", "tem cliente aguardando?".',
     'Se houver cliente esperando, o botão mostra um contador vermelho. Toque para ver a fila e assumir um atendimento.' ]},
 
@@ -8898,15 +8949,16 @@ Operador:{ nome:'Caixa', secoes:[
     'Abre um mapa com a última posição (o entregador envia a cada ~18 s, só enquanto estiver na rua).' ]},
 
   { t:'O que você tem em Administrador', itens:[
-    'Sua barra do Administrador é reduzida: só o grupo "💬 Atendimento", com duas telas — Ocorrências e Feedbacks.',
+    'A aba aparece com o nome "Operação". A barra é reduzida: só o grupo "💬 Atendimento", com duas telas — Ocorrências e Feedbacks.',
     'Ocorrências: filtro Abertas/Todas e botão "Tratar". Você pode mudar status (Aberta → Em andamento → Resolvida), anotar responsável e descrever a solução.',
     'Feedbacks: tudo o que os clientes enviaram. Você pode marcar como Visto ou Respondido.',
-    'Atalho mais rápido no dia a dia: o mural Notificações também mostra esses itens no topo, com botão "Tratar" direto.',
+    'Atalho mais rápido no dia a dia: no Assistente, a aba "🔔 Avisos" mostra as ocorrências abertas, com botão "Tratar" direto.',
     'Você NÃO tem acesso às outras telas do Administrador (financeiro, usuários, backup, catálogo etc.).' ]},
 
-  { t:'Clientes e fidelidade', passos:['Clientes → "+ Novo cliente": só nome e telefone são obrigatórios.','Toque no cliente para ver histórico, total gasto, indicação e cartão fidelidade.'] },
+  { t:'Clientes e fidelidade', passos:['Clientes → "+ Novo cliente": só nome e telefone são obrigatórios.','Toque no cliente para ver histórico, total gasto, indicação e cartão fidelidade.','Com as 10 marcas, ou com uma indicação pendente, escolha o prêmio e toque em "🎁 Resgatar". Precisa do caixa aberto; o estoque baixa e o cliente não paga.'],
+    comuns:['"Nenhum prêmio cadastrado": peça ao Administrador para marcar um produto como prêmio.'] },
 
-  _aj.ocorr('Ela aparece no mural Notificações e você pode tratar direto pelo botão "Tratar".')
+  _aj.ocorr('Ela aparece na aba "🔔 Avisos" do Assistente e você pode tratar direto pelo botão "Tratar".')
  ],
  erros:[
   { q:'A internet caiu', a:'O botão de finalizar trava com "Sem conexão". Se você já entrou neste aparelho, o sistema oferece guardar a venda na CONTINGÊNCIA (só retirada ou entrega, sem desconto, sem mesa): ela entra sozinha quando voltar. Fechar caixa, cancelar, pagar e lançar despesa exigem conexão.' },
@@ -8954,11 +9006,6 @@ Operador:{ nome:'Caixa', secoes:[
     'Quando um pedido das SUAS mesas ficar "Pronta", o aparelho toca, vibra e o título da aba mostra "Pedido pronto".',
     'A checagem roda mesmo com o app em segundo plano.' ]},
 
-  { t:'Balão de atendimento', itens:[
-    'Toque no botão do canto para perguntar ao assistente.',
-    'Exemplos: "como abro uma mesa?", "como pedir a conta?", "tem cliente aguardando?".',
-    'Se houver cliente esperando, aparece um contador vermelho no botão.' ]},
-
   { t:'Clientes', passos:['Aba Clientes → "+ Novo cliente".','Só nome e telefone são obrigatórios.'] },
 
   _aj.ocorr('O Administrador e o Operador são avisados e resolvem.')
@@ -8970,7 +9017,7 @@ Operador:{ nome:'Caixa', secoes:[
  ]},
 
 Cozinha:{ nome:'Cozinha', secoes:[
-  _aj.entrar('Início, Pedidos e Notificações'),
+  _aj.entrar('Início, Cozinha (os pedidos) e Notificações'),
 
   { t:'Preparar os pedidos', passos:[
     'Aba Pedidos: três colunas (Novos, Em preparo, Prontos) com itens, adicionais e observações.',
@@ -8979,7 +9026,8 @@ Cozinha:{ nome:'Cozinha', secoes:[
     'No Início, "🔊 Testar som" confere se o celular toca e "🔔 Ativar avisos" libera notificações.',
     'Pedido novo chega com beep e piscada (o sistema confere a cada poucos segundos com o app aberto e online).',
     'Toque em "▶️ Iniciar preparo" (no pedido do Cardápio: "Aceitar e iniciar preparo").',
-    'Terminou? Toque em "✅ Pronto".' ],
+    'Terminou? Toque em "✅ Pronto".',
+    'No fim da tela, "📜 Concluídos neste turno" mostra o que já saiu (retirado, entregue ou servido), com o horário. A lista zera quando o caixa fecha.' ],
     comuns:['Sem beep: toque em "🔊 Testar som" no Início, aumente o volume de mídia e tire o modo silencioso.',
       'O sistema mantém a tela ligada enquanto o app está aberto. Se aparecer "⚠️ A tela NÃO está sendo mantida ligada", toque em "📱 Manter a tela ligada".'] },
 
@@ -9011,7 +9059,7 @@ Entregador:{ nome:'Entregador', secoes:[
   { t:'Fazer uma entrega', passos:[
     'Aba Minhas entregas: aparecem só as suas. Uma nova toca um aviso sonoro.',
     'O cartão mostra itens, endereço, referência, telefone, total, taxa e "📍 Ver no Maps".',
-    'Quando pegar o pedido (status "Pronta"), toque em "Marcar como “Saiu para entrega”". Nesse momento o app começa a enviar sua localização.',
+    'Quem marca o pedido como "Pronta" é a Cozinha. Quando pegar o pedido (status "Pronta"), toque em "Marcar como “Saiu para entrega”". Nesse momento o app começa a enviar sua localização.',
     'Ao entregar, toque em "✅ Já entreguei". O envio de localização para sozinho.',
     'Se o cartão diz "A receber", cobre o valor do cliente; quem registra o recebimento é o Caixa.' ],
     comuns:['Não aparece nada: ainda não atribuíram entrega a você. Avise o Caixa.',
@@ -9032,11 +9080,6 @@ Entregador:{ nome:'Entregador', secoes:[
     'Em Minhas entregas, "💰 Meu dia" mostra suas entregas de hoje, as taxas e a ajuda diária.',
     'O total previsto é taxas + ajuda diária (uma vez por dia). O acerto oficial é feito pelo Administrador.' ]},
 
-  { t:'Balão de atendimento', itens:[
-    'Toque no botão do canto para perguntar ao assistente.',
-    'Exemplos: "quantas entregas fiz hoje?", "como marco que saiu para entrega?".',
-    'Se houver cliente esperando atendimento, aparece um contador vermelho no botão.' ]},
-
   _aj.ocorr('O Administrador e o Operador são avisados. Use para cliente ausente, endereço errado ou problema na entrega.')
  ],
  erros:[
@@ -9053,10 +9096,10 @@ const MANUAL_AJUDA_CLIENTE_ = {
   secoes:[
     { t:'🍔 Como fazer um pedido', passos:[
       'Escolha a categoria lá em cima (Lanches, Combos, Bebidas…) ou role a tela para ver "Mais pedidos" e "Destaques".',
-      'Toque em "Adicionar" no item. Se ele tiver adicionais, aparece uma janela. Você também pode escrever uma observação (ex.: "sem cebola").',
+      'Role para o lado em cada seção para ver mais itens. Toque na foto para ver o item ampliado. Toque em "Adicionar" no item. Se ele tiver adicionais, aparece uma janela. Você também pode escrever uma observação (ex.: "sem cebola").',
       'Ajuste a quantidade e toque em "Adicionar ao carrinho".',
       'Quando terminar, toque na barra dourada que aparece embaixo ("X itens — R$ …") para abrir o carrinho.',
-      'No carrinho, informe nome, telefone e escolha Retirar no balcão ou Entrega. Se for entrega, preencha o endereço.',
+      'No carrinho, informe nome, telefone e escolha Retirar no balcão ou Entrega. Se for entrega, o app pode pedir a sua localização para preencher rua e bairro: confira e digite o número da casa (ou "s/n").',
       'Confira o total e toque em "Enviar pedido". O restaurante vai confirmar antes de preparar.' ]},
 
     { t:'🎟️ Cupom de desconto', itens:[
@@ -9092,9 +9135,10 @@ const MANUAL_AJUDA_CLIENTE_ = {
 
     { t:'💬 Balão de atendimento', itens:[
       'No canto da tela tem um botão (💬 Atendimento). Toque para conversar.',
-      'A recepção automática responde dúvidas rápidas (horário, formas de pagamento, status do pedido).',
-      'Se precisar, você fala com a equipe do restaurante pela mesma conversa.',
-      'A conversa fica salva no navegador.' ]},
+      'O atendente virtual (IA) responde dúvidas do cardápio, ingredientes, preços, combos, promoções e formas de pagamento, e sugere o que pedir.',
+      'Para saber do seu pedido, ele pede o seu celular (o mesmo do pedido) e mostra o andamento. O número não fica salvo.',
+      'Se for um problema (atraso, item errado ou faltando, cobrança), ou se você preferir uma pessoa, toque em "Falar com a equipe".',
+      'Ele só fala da Texas Burger e não faz o pedido por você: monte o pedido no cardápio. Se a IA ficar indisponível, o botão da equipe continua funcionando.' ]},
 
     { t:'💬 Deixar um feedback', itens:[
       'No rodapé, toque em "💬 Deixar um feedback".',
@@ -9826,7 +9870,7 @@ function renderNotificacoes(){
   estBox.innerHTML = baixos.length ? baixos.map(e=>`<div class="notif-card"><b>${escH(e.nome)}</b> — restam ${e.quantidade} ${e.unidade||'un'} (mínimo ${e.minimo} ${e.unidade||'un'})</div>`).join('') : '<div class="notif-empty">Estoque em dia.</div>';
 
   /* MELHORIA 4.4 — estes dois cartões percorrem todos os clientes e NÃO entram na contagem do alerta: só são montados com a aba aberta. */
-  const _notifAtiva = ((document.querySelector('section.tab.active')||{}).id === 'tab-notificacoes');
+  const _notifAtiva = ((document.querySelector('section.tab.active')||{}).id === 'tab-notificacoes') || window.__avisosAberto_ === true;
   const agora = Date.now();
   if(_notifAtiva){
   const aniBox = document.getElementById('notifAniversario');
@@ -9871,6 +9915,7 @@ function renderNotificacoes(){
     if(visivel) totalAlertas += contagem[ev] || 0;
   });
   document.getElementById('notifDot').parentElement.classList.toggle('has-alert', totalAlertas>0);
+  try{ if(window.balaoAvisosRender_) window.balaoAvisosRender_(totalAlertas); }catch(e){}
 }
 /* ---------- NOTIFICAÇÕES ADMINISTRATIVAS: catálogo, filtro por perfil e tela de configuração (ITENS 64/65) ---------- */
 const NOTIF_CARDS_ = { pedido:'notifPedidos', entrega:'notifEntregas', estoque:'notifEstoque', financeiro:'notifFinanceiro', ocorrencia:'notifOcorrencias', sistema:'notifSistema', fidelidade:'notifFidelidade', indicacao:'notifIndicacoes', aniversario:'notifAniversario', inativos:'notifInativos' };
@@ -9892,7 +9937,8 @@ function notifConfigDe_(ev){
   return c ? { ativo:c.ativo!==false, perfis:(c.perfis||[]) } : { ativo:true, perfis:ev.padrao };
 }
 function notifAtivoParaMim_(evId){
-  const nivel = currentUser && currentUser.nivel; if(!nivel) return false;
+  let nivel = currentUser && currentUser.nivel; if(!nivel) return false;
+  if(nivel === 'Desenvolvedor') nivel = 'Admin';
   const ev = NOTIF_EVENTOS_UI_.find(e=>e.id===evId); if(!ev) return false;
   const c = notifConfigDe_(ev);
   return c.ativo && c.perfis.indexOf(nivel) !== -1;
@@ -13449,6 +13495,37 @@ input[type=time]{width:100%;background:#0b0705;border:1.5px solid #4a3414;border
 #balaoIaHdrExtra{margin-left:auto;margin-right:8px;display:inline-flex;}
 .bi-modo{flex:0 0 auto;margin:0 0 8px;padding:8px 10px;border-radius:10px;font-size:12.5px;line-height:1.35;background:var(--panel-2);border:1px solid var(--line);}
 .bi-modo[hidden]{display:none;}
+.bi-seg{flex:0 0 auto;display:flex;gap:4px;background:var(--panel-2);border:1px solid var(--line);border-radius:999px;padding:3px;margin:0 0 10px;}
+.bi-seg button{flex:1;width:auto;margin:0;padding:8px 10px;font-size:13px;font-weight:700;border-radius:999px;border:0;background:transparent;color:var(--cream);cursor:pointer;min-height:36px;}
+.bi-seg button.on{background:var(--gold);color:#241a10;}
+.bi-seg i{font-style:normal;margin-left:6px;background:#e0443a;color:#fff;border-radius:9px;padding:1px 7px;font-size:11px;}
+.bi-seg i[hidden]{display:none;}
+#chatPublicoConteudo.mostrando-avisos>:not(.bi-seg):not(.bi-avisos){display:none!important;}
+.bi-avisos{flex:1 1 auto;min-height:0;overflow-y:auto;padding-bottom:6px;}
+.bi-avisos[hidden]{display:none!important;}
+.av-sec{background:var(--panel-2);border:1px solid var(--line);border-radius:12px;margin:0 0 8px;overflow:hidden;}
+.av-sec[open]{border-color:var(--gold-dim);}
+.av-sec summary{list-style:none;display:flex;align-items:center;gap:10px;padding:10px 12px;cursor:pointer;min-height:46px;font-weight:600;font-size:14px;}
+.av-sec summary::-webkit-details-marker{display:none;}
+.av-ic{font-size:18px;flex:0 0 auto;}
+.av-tt{flex:1;min-width:0;}
+.av-n{min-width:24px;text-align:center;padding:1px 8px;border-radius:999px;font-size:12px;font-weight:700;background:rgba(217,162,27,.2);color:var(--gold);}
+.av-n.urg{background:#e0443a;color:#fff;}
+.av-seta{opacity:.5;font-size:18px;transition:transform .15s;}
+.av-sec[open] .av-seta{transform:rotate(90deg);}
+.av-corpo{padding:0 10px 10px;}
+.av-corpo .notif-card{margin:6px 0 0;font-size:13px;line-height:1.35;padding:8px 10px;background:rgba(0,0,0,.25);border:1px solid var(--line);border-left:3px solid var(--gold-dim);border-radius:8px;}
+.av-corpo .notif-card button{width:auto;margin:6px 0 0;padding:6px 12px;font-size:12px;}
+.av-corpo .notif-empty{font-size:12px;}
+.av-extra{display:none;}
+.av-corpo.mais .av-extra{display:block;}
+.av-corpo>.av-mais{width:100%;margin:8px 0 0;padding:7px;font-size:12px;}
+.av-corpo.mais>.av-mais{display:none;}
+.av-ok{text-align:center;font-size:12px;color:var(--muted);padding:8px 6px;line-height:1.5;}
+.av-vazio{text-align:center;padding:36px 12px;color:var(--muted);font-size:13px;}
+.av-vazio b{display:block;font-size:34px;margin-bottom:6px;}
+.balao-ia-avisos{position:absolute;top:-8px;left:-4px;min-width:20px;height:20px;border-radius:10px;background:#241a10;color:var(--gold);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 6px;border:2px solid var(--gold);}
+.balao-ia-avisos[hidden]{display:none;}
 </style>
 <!-- =====================================================================
    BALÃO ÚNICO — parte da EQUIPE (Fase 3/4): só texto. O roteador do ai-gateway escolhe o robô; a fila de clientes aparece como aviso.
@@ -13726,7 +13803,7 @@ input[type=time]{width:100%;background:#0b0705;border:1.5px solid #4a3414;border
   }
   function montar_(){
     const c = $('chatPublicoConteudo');
-    c.innerHTML = '<div class="bi-aviso" id="biAviso" data-bi="fila" hidden></div><div class="bi-modo" id="iaModoChatAviso" role="status" hidden></div><div class="bi-ctrl" id="biCtrl" hidden></div><div class="chat-msgs bi-msgs" id="biMsgs"></div>' +
+    c.innerHTML = '<div class="bi-seg" id="biSeg"><button type="button" data-bi="vista" data-v="conversa" class="on">✨ Conversa</button><button type="button" data-bi="vista" data-v="avisos">🔔 Avisos<i id="biSegN" hidden>0</i></button></div><div class="bi-avisos" id="biAvisos" hidden></div><div class="bi-aviso" id="biAviso" data-bi="fila" hidden></div><div class="bi-modo" id="iaModoChatAviso" role="status" hidden></div><div class="bi-ctrl" id="biCtrl" hidden></div><div class="chat-msgs bi-msgs" id="biMsgs"></div>' +
       '<div class="chat-envio"><input type="text" id="biTexto" maxlength="600" autocomplete="off" placeholder="Escreva o que precisa…"><button type="button" class="primary" data-bi="enviar">Enviar</button></div>';
     const tt = $('balaoIaTitulo'); if(tt) tt.textContent = '✨ Assistente';
     const ex = $('balaoIaHdrExtra');
@@ -13738,8 +13815,64 @@ input[type=time]{width:100%;background:#0b0705;border:1.5px solid #4a3414;border
       }
     }
   }
+  /* ---------- AVISOS (antiga aba Notificações): vive dentro do assistente ---------- */
+  const AV_ORDEM_ = [['pedido','🧾','Pedidos aguardando aceite',1],['ocorrencia','⚠️','Ocorrências abertas',1],['entrega','🛵','Entregas',1],['financeiro','💰','Contas vencidas',1],['sistema','🛠️','Sistema',1],['estoque','📦','Estoque baixo',0],['fidelidade','🎯','Cartão fidelidade quase completo',0],['indicacao','🎁','Indicações pendentes de resgate',0],['aniversario','🎂','Aniversariantes do mês',0],['inativos','💤','Clientes inativos',0]];
+  IN.vista = 'conversa'; IN.avAberto = {}; IN.avMais = {}; IN.avAssin = ''; IN.avTotal = 0;
+  function desenharAvisos_(forcar){
+    const box = $('biAvisos'); if(!box || typeof NOTIF_CARDS_ === 'undefined' || typeof notifAtivoParaMim_ !== 'function') return;
+    const com = [], sem = [];
+    AV_ORDEM_.forEach(([ev, ic, tit, urg]) => {
+      if(!notifAtivoParaMim_(ev)) return;
+      const src = document.getElementById(NOTIF_CARDS_[ev]); if(!src) return;
+      const tmp = document.createElement('div'); tmp.innerHTML = src.innerHTML;
+      const cards = tmp.querySelectorAll(':scope > .notif-card');
+      if(!cards.length){ sem.push(tit); return; }
+      const LIM = 6; let mais = '';
+      if(cards.length > LIM){
+        cards.forEach((c, i) => { if(i >= LIM) c.classList.add('av-extra'); });
+        mais = '<button type="button" class="ghost av-mais" data-bi="avmais" data-ev="' + ev + '">Ver todos (' + cards.length + ')</button>';
+      }
+      com.push({ ev, ic, tit, urg, n:cards.length, html: tmp.innerHTML + mais });
+    });
+    const assin = com.map(x => x.ev + x.n + x.html.length).join('|') + '#' + sem.join(',');
+    if(!forcar && assin === IN.avAssin) return;
+    IN.avAssin = assin;
+    const unica = com.length <= 2;
+    let h = com.map(x => '<details class="av-sec" data-ev="' + x.ev + '"' + ((IN.avAberto[x.ev] !== undefined ? IN.avAberto[x.ev] : unica) ? ' open' : '') + '><summary><span class="av-ic">' + x.ic + '</span><span class="av-tt">' + esc(x.tit) + '</span><b class="av-n' + (x.urg ? ' urg' : '') + '">' + x.n + '</b><span class="av-seta">›</span></summary><div class="av-corpo' + (IN.avMais[x.ev] ? ' mais' : '') + '">' + x.html + '</div></details>').join('');
+    if(!com.length) h = '<div class="av-vazio"><b>✅</b>Tudo em ordem.<br>Nenhum aviso no momento.</div>';
+    else if(sem.length) h += '<div class="av-ok">✅ Em dia: ' + sem.map(esc).join(' · ') + '</div>';
+    box.innerHTML = h;
+  }
+  /* chamada no fim de renderNotificacoes(): atualiza o selo do botão e, se estiver aberto, o painel */
+  window.balaoAvisosRender_ = function(total){
+    IN.avTotal = total || 0;
+    const b = $('balaoIaAvisos'); const interno = logado() && perfilBalaoPermitido_();
+    if(b){ b.hidden = !(interno && IN.avTotal > 0); b.textContent = '🔔 ' + IN.avTotal; }
+    const sn = $('biSegN'); if(sn){ sn.hidden = !IN.avTotal; sn.textContent = String(IN.avTotal); }
+    if(IN.aberto && IN.vista === 'avisos') desenharAvisos_(false);
+  };
+  function vista_(v){
+    IN.vista = (v === 'avisos') ? 'avisos' : 'conversa';
+    window.__avisosAberto_ = IN.aberto && IN.vista === 'avisos';
+    const c = $('chatPublicoConteudo'); if(!c) return;
+    c.classList.toggle('mostrando-avisos', IN.vista === 'avisos');
+    const av = $('biAvisos'); if(av) av.hidden = IN.vista !== 'avisos';
+    c.querySelectorAll('#biSeg button').forEach(b => b.classList.toggle('on', b.getAttribute('data-v') === IN.vista));
+    const sn = $('biSegN'); if(sn){ sn.hidden = !IN.avTotal; sn.textContent = String(IN.avTotal); }
+    if(IN.vista === 'avisos'){ try{ renderNotificacoes(); }catch(e){} desenharAvisos_(true); }
+    else setTimeout(() => { const t = $('biTexto'); if(t) t.focus(); }, 60);
+  }
+  document.addEventListener('toggle', ev => {
+    const d = ev.target; if(!d || !d.classList || !d.classList.contains('av-sec')) return;
+    IN.avAberto[d.getAttribute('data-ev')] = d.open;
+  }, true);
+  /* tocar num botão de um aviso (Tratar, Ver cliente…) abre outra janela: fecha o assistente para ela aparecer por cima */
+  document.addEventListener('click', ev => {
+    const bt = ev.target && ev.target.closest && ev.target.closest('#biAvisos .av-corpo button:not(.av-mais)');
+    if(bt && IN.aberto) setTimeout(fechar_, 0);
+  });
   function abrir_(){
-    IN.aberto = true;
+    IN.aberto = true; IN.vista = 'conversa'; window.__avisosAberto_ = false;
     /* conversa em andamento continua ao reabrir o pop-up (só "Sair da conversa" ou "Encerrar" limpam) */
     if(IN.conv){
       const conv = IN.conv; IN.depois = 0;
@@ -13761,7 +13894,7 @@ input[type=time]{width:100%;background:#0b0705;border:1.5px solid #4a3414;border
   }
   function fechar_(){
     /* fechar o pop-up NÃO encerra nem abandona a conversa: IN.conv e IN.pedindoSol são mantidos */
-    IN.aberto = false; clearTimeout(IN.timer); IN.notifId = IN.depois;
+    IN.aberto = false; window.__avisosAberto_ = false; clearTimeout(IN.timer); IN.notifId = IN.depois;
     $('chatPublicoModal').classList.remove('open');
     const tt = $('balaoIaTitulo'); if(tt) tt.textContent = '💬 Atendimento';
     const ex = $('balaoIaHdrExtra'); if(ex) ex.innerHTML = '';
@@ -13777,12 +13910,14 @@ input[type=time]{width:100%;background:#0b0705;border:1.5px solid #4a3414;border
     fab.style.opacity = mostrar ? '1' : '0';
     fab.style.pointerEvents = mostrar ? 'auto' : 'none';
     const rot = $('balaoIaRot'); if(rot) rot.textContent = interno ? 'Assistente' : 'Atendimento';
+    const bav = $('balaoIaAvisos'); if(bav){ bav.hidden = !(interno && mostrar && IN.avTotal > 0); }
     const ic = $('balaoIaIcone'); if(ic) ic.textContent = interno ? '✨' : '💬';
     aviso_();
   }
   window.balaoIaAtualizar_ = atualizarFab_;
-  window.balaoIaAbrir_ = function(){
-    if(logado()) return perfilBalaoPermitido_() ? abrir_() : undefined;
+  window.balaoIaPode_ = () => perfilBalaoPermitido_();
+  window.balaoIaAbrir_ = function(vista){
+    if(logado()){ if(!perfilBalaoPermitido_()) return; abrir_(); if(vista === 'avisos') vista_('avisos'); return; }
     const ex = $('balaoIaHdrExtra'); if(ex) ex.innerHTML = '';
     const tt = $('balaoIaTitulo'); if(tt) tt.textContent = '💬 Atendimento';
     if(window.abrirChatPublico_) window.abrirChatPublico_();
@@ -13796,6 +13931,8 @@ input[type=time]{width:100%;background:#0b0705;border:1.5px solid #4a3414;border
     const a = el.getAttribute('data-bi');
     if(a === 'enviar') enviar_();
     else if(a === 'fila'){ carregarFila_().then(mostrarFila_); }
+    else if(a === 'vista') vista_(el.getAttribute('data-v'));
+    else if(a === 'avmais'){ const ev2 = el.getAttribute('data-ev'); IN.avMais[ev2] = true; const cp = el.parentElement; if(cp) cp.classList.add('mais'); }
     else if(a === 'abrir') abrirConv_(el.getAttribute('data-id'));
     else if(a === 'assumir') assumir_();
     else if(a === 'encerrar') pedirSolucao_();
@@ -14022,7 +14159,7 @@ window.abrirMapaEntrega_ = function(vendaId){
 </script>
 
 <div id="balaoIa" class="balao-ia" style="display:none">
-    <button type="button" onclick="balaoIaAbrir_()" aria-label="Balão de atendimento e assistente Texas Burger"><span id="balaoIaIcone">💬</span><span id="balaoIaRot">Atendimento</span><span class="balao-ia-cont" id="balaoIaContador" hidden>0</span></button>
+    <button type="button" onclick="balaoIaAbrir_()" aria-label="Balão de atendimento e assistente Texas Burger"><span id="balaoIaIcone">💬</span><span id="balaoIaRot">Atendimento</span><span class="balao-ia-cont" id="balaoIaContador" hidden>0</span><span class="balao-ia-avisos" id="balaoIaAvisos" hidden title="Avisos">🔔 0</span></button>
   </div>
 </body>
 </html>
