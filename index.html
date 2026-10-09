@@ -852,9 +852,13 @@ body.perfil-garcom #btnFecharContaItens{display:none !important;}
       <select id="cdTipoEntrega" onchange="onMudarTipoCdEntrega()"><option value="Retirada">Retirar no balcão</option><option value="Entrega">Entrega</option></select>
       <p class="sub" id="cdTempoEstimado" style="margin-top:4px;"></p></div>
       <div id="cdEnderecoBox" class="cd-hide-mesa" style="display:none;">
-        <label>CEP (opcional — preenche rua e bairro)</label><input type="text" id="cdCep" inputmode="numeric" placeholder="00000-000" maxlength="9" oninput="onDigitarCep_(this,'cdEndereco','cdCepAviso')">
+        <label for="cdCep">CEP (opcional — preenche rua, bairro e cidade)</label><input type="text" id="cdCep" inputmode="numeric" placeholder="00000-000" maxlength="9" oninput="onDigitarCep_(this,'cdEndereco','cdCepAviso')">
         <div id="cdCepAviso" class="sub" style="display:none;font-size:11.5px;margin:4px 0 0;"></div>
-        <label>Endereço *</label><input type="text" id="cdEndereco" placeholder="Rua, número, bairro"><div id="cdEnderecoAviso" class="sub" style="display:none;font-size:11.5px;margin:4px 0 0;"></div>
+        <label for="cdEndereco">Rua e bairro *</label><input type="text" id="cdEndereco" placeholder="Rua e bairro" autocomplete="street-address"><div id="cdEnderecoAviso" class="sub" style="display:none;font-size:11.5px;margin:4px 0 0;"></div>
+        <div class="row2 cd-num-cidade">
+          <div style="flex:0 1 34%;"><label for="cdNumero">Número *</label><input type="text" id="cdNumero" placeholder="123 ou s/n" maxlength="20" inputmode="text" autocomplete="off"></div>
+          <div style="flex:1 1 60%;"><label for="cdCidade">Cidade *</label><input type="text" id="cdCidade" placeholder="Cidade" maxlength="80" autocomplete="address-level2"></div>
+        </div>
         <label>Complemento</label><input type="text" id="cdComplemento" placeholder="Apto, bloco...">
         <label>Ponto de referência</label><input type="text" id="cdReferencia" placeholder="Referência">
       </div>
@@ -2870,6 +2874,7 @@ const APP_NOVIDADES = {
       'O Assistente guarda a conversa; "Nova conversa" começa do zero.',
       'Acréscimo por forma de pagamento: em Pagamentos, cada forma pode cobrar % ou valor fixo a mais (ex.: iFood). O preço do produto agora é um só. O cliente é avisado no cardápio, e o Caixa e o fechamento de mesa somam o acréscimo sozinhos.',
       'Novo: Compras e fornecedores (Catálogo): registre compras, atualize estoque e custo e gere a despesa. No Assistente, "comprei 30kg de picanha por R$ 900" vira um cartão para você confirmar; a IA nunca grava sozinha.',
+      'Novo: no cardápio, número da casa e cidade em campos separados e obrigatórios na entrega; a cidade chega junto com o endereço do pedido.',
       'Correções: pop-ups não ficam mais cortados no fim da tela nem atrás do menu de baixo. Preço base único: todo produto e combo tem um só preço; iFood/Alelo cobram a mais pelo acréscimo da forma em Pagamentos. A senha de administrador agora é conferida de verdade ao criar, excluir ou mudar perfil/senha de usuário. Corrigidos: mensagem de erro falsa ao registrar ajuste pós-venda, cortesia fora do lucro, ordem dos feedbacks, exclusão de ingrediente e status da contingência. O cliente do cardápio não vê mais a faixa interna do modo reserva nem tem a página recarregada quando a internet oscila; o chat do cliente não trava sem internet; toque repetido em sangria, estoque e prêmios não grava duas vezes.',
       'Novo: menu fixo embaixo no celular (Início, Caixa, Pedidos e "Mais"), com bolinha vermelha nos avisos. No computador continua no topo.',
       'Novo visual do cardápio do cliente: cabeçalho menor com a situação (aberto/fechado), produtos rolando para o lado com botão "+", fotos mais baixas e Atendimento como ícone redondo. Pop-ups sem corte no fim da tela.',
@@ -8857,6 +8862,7 @@ Admin:{ nome:'Administrador', secoes:[
   { t:'Cardápio Digital, promoções e eventos', itens:[
     'Cardápio Digital: escolha o que aparece para o cliente, destaques, ordem e frase de abertura. "Mais Pedidos" é automático.',
     'Se o cliente pedir mais de 1 lanche com adicionais, os adicionais valem para todos — o cardápio avisa.',
+    'Endereço de entrega: o cliente preenche Rua e bairro, NÚMERO e CIDADE (a localização do celular e o CEP já preenchem rua, bairro e cidade). Sem o número o pedido não é enviado. No pedido, o endereço chega como "Rua, Bairro, nº 123 — Cidade".',
     'Abrir ou fechar o cardápio: use o botão "🌐 Cardápio aberto" em Início ou no Caixa. Um toque fecha (com uma mensagem opcional para o cliente) e outro reabre, sem fechar o caixa. Pedido de mesa por QR Code continua valendo. O cardápio só recebe pedidos com o caixa aberto.',
     'Cupom progressivo: em Promoções → novo cupom, escolha o tipo "Progressivo (por faixa)" e escreva uma faixa por linha (ex.: "50 5" e "100 10" = R$ 5 de desconto a partir de R$ 50 e R$ 10 a partir de R$ 100). Vale a maior faixa que o pedido alcança, contando só os itens (sem a taxa de entrega).',
     'Dados do restaurante: nome, endereço, telefone, horário e redes sociais (texto livre) aparecem no rodapé do cardápio do cliente e nas mensagens de WhatsApp e relatórios.',
@@ -12200,13 +12206,15 @@ async function onDigitarCep_(inp, idEnd, idAviso){
     const txt = [j.logradouro, j.bairro].filter(Boolean).join(', ').replace(/[<>]/g,'').slice(0,120);
     const atual = campo.value.trim();
     if(txt && (!atual || atual === _cepUltimo_[idEnd] || (typeof cdEndAuto_ !== 'undefined' && cdEndAuto_ && idEnd==='cdEndereco'))){
-      campo.value = txt + ', '; _cepUltimo_[idEnd] = campo.value.trim(); if(idEnd==='cdEndereco') cdEndAuto_ = false;
+      campo.value = (idEnd==='cdEndereco') ? txt : txt + ', '; _cepUltimo_[idEnd] = campo.value.trim(); if(idEnd==='cdEndereco') cdEndAuto_ = false;
       try{ campo.dispatchEvent(new Event('input', {bubbles:true})); }catch(e){}
     }
+    if(idEnd==='cdEndereco' && j.localidade){ const cc = document.getElementById('cdCidade'); if(cc) cc.value = [j.localidade, j.uf].filter(Boolean).join(' - '); }
     if(aviso){ aviso.style.display = 'block'; aviso.textContent = '📍 ' + [j.localidade, j.uf].filter(Boolean).join(' - ') + (txt ? ' — confira e digite o número da casa.' : ' — este CEP não tem rua; digite o endereço.'); }
   }catch(e){ /* sem internet ou ViaCEP fora do ar: o cliente digita normalmente */ }
 }
 var cdEndAuto_ = false, cdEndTentou_ = false;
+
 /* Endereço pré-preenchido pela localização (OpenStreetMap). Só rua e bairro: o número é sempre do cliente. */
 async function cdPreencherEnderecoPorLocal_(){
   const campo = document.getElementById('cdEndereco'), aviso = document.getElementById('cdEnderecoAviso');
@@ -12226,10 +12234,14 @@ async function cdPreencherEnderecoPorLocal_(){
     const j = await r.json(); const a = (j && j.address) || {};
     const rua = a.road || a.pedestrian || a.residential || '';
     const bairro = a.suburb || a.neighbourhood || a.quarter || a.city_district || '';
+    const cidade = String(a.city || a.town || a.village || a.municipality || '').replace(/[<>]/g, '').slice(0, 60);
+    const uf = String(a['ISO3166-2-lvl4'] || '').replace(/^BR-/, '');
+    if(cidade){ const cc = document.getElementById('cdCidade'); if(cc && !cc.value.trim()) cc.value = cidade + (uf ? ' - ' + uf : ''); }
     const txt = [rua, bairro].filter(Boolean).join(', ').replace(/[<>]/g, '').slice(0, 120);
     if(!txt || campo.value.trim()) return;   /* não sobrescreve o que o cliente já digitou */
-    campo.value = txt + ', '; cdEndAuto_ = true;
-    if(aviso){ aviso.style.display = 'block'; aviso.textContent = '📍 Preenchemos rua e bairro pela sua localização. Confira e digite o número da casa.'; }
+    campo.value = txt; cdEndAuto_ = true;
+    if(aviso){ aviso.style.display = 'block'; aviso.textContent = '📍 Preenchemos rua, bairro e cidade pela sua localização. Confira e digite o NÚMERO da casa.'; }
+    try{ const n = document.getElementById('cdNumero'); if(n && !n.value.trim()) n.focus({ preventScroll:true }); }catch(e){}
   }catch(e){ /* silencioso: o cliente digita normalmente */ }
 }
 function onMudarTipoCdEntrega(){
@@ -12262,12 +12274,15 @@ async function finalizarPedidoPublico(){
   if(!nome || !telefone) return showMsg('cdCheckoutMsg','Informe nome e telefone.','warn');
   if(!cdCarrinho.length) return showMsg('cdCheckoutMsg','Seu carrinho está vazio.','warn');
   const dadosEntrega = tipoEntrega==='Entrega' ? {
-    endereco: document.getElementById('cdEndereco').value.trim(),
+    endereco: document.getElementById('cdEndereco').value.trim().replace(/[,\s]+$/,''),
+    numero: (document.getElementById('cdNumero')||{value:''}).value.trim(),
+    cidade: (document.getElementById('cdCidade')||{value:''}).value.trim(),
     complemento: document.getElementById('cdComplemento').value.trim(),
     referencia: document.getElementById('cdReferencia').value.trim(), observacoes: (document.getElementById('cdObservacoes')||{}).value.trim()
   } : null;
   if(tipoEntrega==='Entrega' && !dadosEntrega.endereco) return showMsg('cdCheckoutMsg','Informe o endereço de entrega.','warn');
-  if(tipoEntrega==='Entrega' && cdEndAuto_ && !/\d|s\s*\/?\s*n/i.test(dadosEntrega.endereco)) return showMsg('cdCheckoutMsg','Confira o endereço e informe o número da casa (ou "s/n").','warn');
+  if(tipoEntrega==='Entrega' && !dadosEntrega.numero){ try{ document.getElementById('cdNumero').focus(); }catch(e){} return showMsg('cdCheckoutMsg','Informe o NÚMERO da casa (ou "s/n" se não tiver). Sem o número o pedido não é enviado.','warn'); }
+  if(tipoEntrega==='Entrega' && !dadosEntrega.cidade){ try{ document.getElementById('cdCidade').focus(); }catch(e){} return showMsg('cdCheckoutMsg','Informe a cidade da entrega.','warn'); }
   const formaEscolhida = (cdDados.formasPagamento||[]).find(f=>f.id===formaPagamentoId);
   const precisaTrocoBox = document.getElementById('cdPrecisaTroco');
   const ehDinheiro = formaEscolhida && formaEscolhida.nome.toLowerCase()==='dinheiro';
@@ -12296,7 +12311,9 @@ async function finalizarPedidoPublico(){
       const dados = {
         itens, clienteNome: nome, clienteTelefone: telefone,
         pagamentos: [{ forma: forma?forma.nome:'', valor: total }],
-        tipoEntrega, dadosEntrega, statusPagamento: 'A Receber', desconto: null, senhaAdminConfirmacao: '', origem: 'Cardápio'
+        tipoEntrega, statusPagamento: 'A Receber', desconto: null, senhaAdminConfirmacao: '', origem: 'Cardápio',
+        /* na contingência o endereço vai completo num campo só (número e cidade junto) */
+        dadosEntrega: dadosEntrega ? Object.assign({}, dadosEntrega, { endereco: [dadosEntrega.endereco + (dadosEntrega.numero ? ', nº ' + dadosEntrega.numero : ''), dadosEntrega.cidade].filter(Boolean).join(' — ') }) : null
       };
       const r = await fetchContingencia_({
         method: 'post', body: JSON.stringify({ action: 'enfileirar', chave: CONTINGENCIA_CHAVE_PUBLICA, id: idFila, tipo: 'venda', dados })
@@ -12348,11 +12365,15 @@ async function aplicarCupomPublicoUI(){
   const telefone=document.getElementById('cdTelefone').value.trim(); const subtotal=subtotalCarrinhoCd(); const tipo=document.getElementById('cdTipoEntrega').value;
   try{const r=await apiCall('validarCupomCardapio',{codigo,telefone,subtotal,tipoEntrega:tipo,itens:cdCarrinho}); if(r.ok){cdCupomAplicado=r;msg.textContent='Cupom aplicado: '+r.codigo;msg.className='msg ok';document.getElementById('cdCupomResumo').textContent=(r.desconto>0?'Desconto: -R$ '+Number(r.desconto).toFixed(2).replace('.',',')+' · ':'')+(r.freteGratis?'Frete grátis':'');document.getElementById('cdCarrinhoTotal').textContent=cdFormatarPreco(Math.max(0.01,totalCarrinhoCd()));onMudarTipoCdEntrega();}else{cdCupomAplicado=null;msg.textContent=r.message;msg.className='msg warn';document.getElementById('cdCupomResumo').textContent='';}}catch(e){msg.textContent='Não foi possível validar o cupom agora.';msg.className='msg warn';}
 }
+function cdEnderecoTexto_(){
+  const v = id => ((document.getElementById(id)||{}).value||'').trim();
+  return [v('cdEndereco').replace(/[,\s]+$/,'') + (v('cdNumero') ? ', nº ' + v('cdNumero') : ''), v('cdCidade'), v('cdComplemento'), v('cdReferencia') ? 'Ref.: ' + v('cdReferencia') : ''].filter(Boolean).join(' — ');
+}
 function mostrarBotaoWhatsappPedido(r){
   const box=document.getElementById('cdCheckoutMsg'); if(!box||!r||!r.id)return;
   const numero=r.numero||String(r.id).slice(-8).toUpperCase(); const itens=cdCarrinho.map(it=>`${it.qtd}x ${it.nome}${it.adicionais.length?' + '+it.adicionais.map(a=>a.nome).join(', '):''}`).join('\n');
   const nome=document.getElementById('cdNome').value.trim(); const tel=document.getElementById('cdTelefone').value.trim(); const tipo=document.getElementById('cdTipoEntrega').value; const total=Number(r.valorTotal||0);
-  const endereco=tipo==='Entrega' ? document.getElementById('cdEndereco').value.trim()+' '+document.getElementById('cdComplemento').value.trim()+' '+document.getElementById('cdReferencia').value.trim() : 'Retirada no balcão';
+  const endereco=tipo==='Entrega' ? cdEnderecoTexto_() : 'Retirada no balcão';
   const obs=(document.getElementById('cdObservacoes')||{}).value || '';
   const forma=(document.getElementById('cdFormaPagamento')||{}).selectedOptions ? ((document.getElementById('cdFormaPagamento').selectedOptions[0]||{}).textContent||'') : '';
   const cup=r.cupom?`\nCupom: ${r.cupom} (-R$ ${Number(r.valorDesconto||0).toFixed(2).replace('.',',')})`:'';
@@ -12451,7 +12472,7 @@ function mostrarBotaoWhatsappContingencia(r){
   const box=document.getElementById('cdCheckoutMsg'); if(!box||!r||!r.id)return;
   const itens=cdCarrinho.map(it=>`${it.qtd}x ${it.nome}${it.adicionais.length?' + '+it.adicionais.map(a=>a.nome).join(', '):''}`).join('\n');
   const nome=document.getElementById('cdNome').value.trim(); const tel=document.getElementById('cdTelefone').value.trim(); const tipo=document.getElementById('cdTipoEntrega').value; const total=Number(r.valorTotal||0);
-  const endereco=tipo==='Entrega' ? document.getElementById('cdEndereco').value.trim()+' '+document.getElementById('cdComplemento').value.trim()+' '+document.getElementById('cdReferencia').value.trim() : 'Retirada no balcão';
+  const endereco=tipo==='Entrega' ? cdEnderecoTexto_() : 'Retirada no balcão';
   const obs=(document.getElementById('cdObservacoes')||{}).value || '';
   const msg=`🍔 TEXAS BURGER\nPEDIDO EM CONTINGÊNCIA\nCódigo: ${r.numero||String(r.id).slice(-6).toUpperCase()}\nCliente: ${nome}\nWhatsApp: ${tel}\n\n${itens}\n\nModalidade: ${tipo}\n${endereco}${obs?'\nObservações: '+obs:''}\nTotal informado: R$ ${total.toFixed(2).replace('.',',')}`;
   cdMostrarConfirmacaoPedido_('https://wa.me/5517988323473?text='+encodeURIComponent(msg), r.numero||String(r.id).slice(-6).toUpperCase(), true);
