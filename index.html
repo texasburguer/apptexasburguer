@@ -1832,9 +1832,6 @@ body:has(.cd-fab-carrinho.show) .balao-ia{bottom:84px;}
   </section>
   <section class="tab" id="tab-visaogeral">
     <div class="admin-subnav" data-admin-nav="1"></div>
-    <button class="card" id="saudeCard" type="button" onclick="abrirModalConexao_()" style="display:none;width:100%;text-align:left;cursor:pointer;padding:12px 14px;min-height:48px;" aria-label="Saúde do sistema: abrir Conexão e servidores">
-      <span style="display:flex;align-items:center;gap:10px;"><span id="saudeDot" style="width:14px;height:14px;border-radius:50%;background:#888;display:inline-block;flex:0 0 auto;"></span><span style="flex:1 1 auto;"><b>Saúde do sistema</b><span class="obs-line" id="saudeResumo" style="display:block;">Verificando…</span></span><span style="flex:0 0 auto;opacity:.7;">›</span></span>
-    </button>
     <div class="card">
       <h2>Visão Geral</h2>
       <label for="vgPeriodo">Período</label>
@@ -2940,7 +2937,7 @@ window.APP_VERSAO = APP_VERSAO;
 const APP_NOVIDADES = {
   Admin: [
     { v:'1.0', em:'09/10/2026', itens:[
-      'Mudou: a "Saúde do sistema" saiu do Painel e agora fica dentro de "Conexão e servidores" (toque na bolinha colorida do topo), junto com os servidores. No Painel ficou só uma linha com a bolinha e o resumo; toque nela para abrir.',
+      'Mudou: a "Saúde do sistema" saiu do Painel e agora fica só dentro de "Conexão e servidores" (toque na bolinha colorida do topo), junto com os servidores.',
       'Novo: o cliente pode receber no celular os avisos do pedido (confirmado, pronto, saiu para entrega, entregue) e, 30 min depois da entrega, "Como foi seu pedido?". Saem sozinhos quando a equipe muda o status. Em Feedbacks aparece se veio pelo aviso ou pelo chat.',
       'Nada abre sozinho: a Ajuda e os avisos do Assistente vêm fechados (toque no título para abrir) e, ao entrar no Admin, aparecem só os grupos — toque no grupo e depois na tela.',
       'Cardápio do cliente: no fim da página aparecem nome, cidade, telefone e Instagram (edite em Cardápio Digital → Dados do restaurante) e o versículo 1 Coríntios 10:31.',
@@ -8956,7 +8953,7 @@ Admin:{ nome:'Administrador', secoes:[
     'Funciona: venda do Caixa (retirada ou entrega, sem desconto e sem cupom) e pedido do cardápio, pela contingência; consulta dos pedidos em Pedidos.',
     'Na fila (seguem sozinhos na volta): cadastro de cliente, fidelidade, feedback e ocorrência.',
     'Espera a volta (aparece "indisponível até o Supabase voltar" e nada é gravado): mudar status, estoque, compras, relatórios, avisos e Assistente. Anote à mão o que precisar.',
-    'A "Saúde do sistema" fica dentro de "Conexão e servidores" (toque na bolinha colorida do topo, ou na linha "Saúde do sistema" em Visão geral): bolinha verde, amarela ou vermelha e cada item: cópia para a planilha, backup (diário às 04:00), cópia no Drive, conferência diária de vendas, tarefas automáticas e Assistente.',
+    'A "Saúde do sistema" fica dentro de "Conexão e servidores" (toque na bolinha colorida do topo): bolinha verde, amarela ou vermelha e cada item: cópia para a planilha, backup (diário às 04:00), cópia no Drive, conferência diária de vendas, tarefas automáticas e Assistente.',
     'Desenvolvedor: o botão "🧪 Simular queda (treino)" em "Conexão e servidores" finge a queda só neste aparelho, para treinar a equipe. "Encerrar simulação" volta ao normal.' ],
     comuns:['O Guia de operação tem o passo a passo de queda, volta e restauração.'] },
 
