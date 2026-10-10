@@ -1,4 +1,4 @@
-/* Texas Burger — service worker v3: notificações + abertura instantânea + casca/ícones/logo guardados.
+/* Texas Burger — service worker v5: avisos com o app fechado (push da equipe e do cliente) + notificações + abertura instantânea + casca/ícones/logo guardados.
    Precisa ficar na MESMA pasta do HTML, em endereço https.
    - Página: mostra a cópia guardada NA HORA e confere a rede em segundo plano. Se a página mudou, avisa o app ("Nova versão disponível").
    - Ícones, logo e manifest: guardados (cache primeiro).
@@ -6,7 +6,7 @@
    - BACKEND: NADA de Apps Script (script.google.com) nem de Supabase (*.supabase.co) é guardado aqui.
      Dados, pedidos, login e RPCs nunca passam pelo cache do service worker — sempre vão direto para a rede.
    - O único cache de dados é o de fotos (FOTOS) e o da casca/ícones (SHELL/ASSETS). Não adicionar outros. */
-const SHELL = 'texas-shell-v11';
+const SHELL = 'texas-shell-v12';
 const ASSETS = 'texas-assets-v6';   // trocou ícone/logo/manifest/leaflet? suba para v5
 const FOTOS = 'texas-fotos-v1';
 const FOTOS_MAX = 150;
@@ -92,10 +92,26 @@ self.addEventListener('fetch', e => {
   /* tudo o mais (inclusive script.google.com) passa direto, sem cache */
 });
 
+/* Toque no aviso: abre o app. Aviso do cliente traz um endereço ./?pedido=XXXXXXXX ou ./?feedback=XXXXXXXX:
+   com o app aberto, manda a mensagem "abrir-url" para a página abrir a tela certa; fechado, abre direto nesse endereço. */
 self.addEventListener('notificationclick', e => {
   e.notification.close();
+  const d = e.notification.data || {};
+  const url = /^\.\/\?(pedido|feedback)=[0-9a-f]{8}$/.test(String(d.url || '')) ? d.url : './';
   e.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
-    for (const c of list) { if ('focus' in c) return c.focus(); }
-    if (self.clients.openWindow) return self.clients.openWindow('./');
+    for (const c of list) { if ('focus' in c) { if (url !== './') c.postMessage({ tipo: 'abrir-url', url }); return c.focus(); } }
+    if (self.clients.openWindow) return self.clients.openWindow(url);
+  }));
+});
+
+/* Push (app fechado): o servidor manda { titulo, texto, tag, tipo, url }. Sem dados pessoais do cliente. */
+self.addEventListener('push', e => {
+  let d = {};
+  try { d = e.data ? e.data.json() : {}; } catch (err) { d = { titulo: 'Texas Burger', texto: e.data ? e.data.text() : '' }; }
+  const titulo = String(d.titulo || 'Texas Burger').slice(0, 80);
+  e.waitUntil(self.registration.showNotification(titulo, {
+    body: String(d.texto || '').slice(0, 140), tag: String(d.tag || 'texas'), renotify: true,
+    icon: 'icon-192.png', badge: 'icon-192.png', vibrate: [250, 120, 250, 120, 400], requireInteraction: d.tipo === 'pedido',
+    data: { url: String(d.url || './') }
   }));
 });

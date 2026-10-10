@@ -613,6 +613,9 @@ input:focus,select:focus,textarea:focus{outline-offset:1px;outline:none;border-c
 .pd-det summary{ cursor:pointer; color:var(--gold); font-size:13px; margin-top:6px; }
 /* ===================== FIM PEDIDO DETALHADO ===================== */
 /* ===== ITEM 7 — INSTALAR APP ===== */
+.cd-instalar#cdAvisosPedido[style*="flex"] ~ #cdInstalarApp{display:none !important;}
+.cd-conf-avisos{margin-top:10px;padding:10px 12px;border:1px solid var(--gold-dim);border-radius:12px;background:var(--panel-2);font-size:13px;color:var(--cream);}
+.cd-conf-avisos button{margin-top:8px;}
 .cd-instalar{display:none;align-items:center;gap:10px;background:var(--panel-2);border:1px solid var(--gold-dim);border-radius:12px;padding:10px 12px;margin:10px 0;}
 .cd-instalar img{width:40px;height:40px;border-radius:10px;flex:0 0 auto;}
 .cd-instalar .cd-inst-txt{flex:1;min-width:0;font-size:12px;color:var(--cream);line-height:1.3;}
@@ -722,6 +725,13 @@ body.perfil-garcom #btnFecharContaItens{display:none !important;}
     <div class="status" id="cdStatusCaixa" style="margin-top:8px;"></div>
   </div>
 
+  <div class="cd-instalar" id="cdAvisosPedido" role="region" aria-label="Avisos do pedido">
+    <div class="cd-inst-txt" id="cdAvisosTxt"><b>🔔 Avisos do seu pedido</b>Receba no celular quando o pedido for confirmado, ficar pronto e sair para entrega.</div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
+      <button class="cd-inst-btn" id="cdAvisosSim" onclick="cdAvisosAceitar_()">Quero receber</button>
+      <button class="cd-inst-x" id="cdAvisosNao" onclick="cdAvisosRecusar_()">Agora não</button>
+    </div>
+  </div>
   <div class="cd-instalar" id="cdInstalarApp">
     <img src="icon-192.png" alt="" width="40" height="40">
     <div class="cd-inst-txt"><b>Instale o app Texas Burger</b>Peça mais rápido, direto da tela inicial.</div>
@@ -1716,7 +1726,7 @@ body:has(.cd-fab-carrinho.show) .balao-ia{bottom:84px;}
         <div class="admin-subnav" data-admin-nav="1"></div>
     <div class="card">
       <h2>Feedbacks dos clientes</h2>
-      <p class="sub">Enviados pelo Cardápio Digital — a qualquer momento, com ou sem pedido.</p>
+      <p class="sub">Enviados pelo Cardápio Digital: pelo rodapé, pelo aviso "Como foi seu pedido?" ou pelo atendente do chat.</p>
       <div class="btnrow">
         <button class="toggle-mode active" id="fbFiltroTodosBtn" onclick="setFiltroFeedbacks('todos')">Todos</button>
         <button class="toggle-mode" id="fbFiltroNovosBtn" onclick="setFiltroFeedbacks('Novo')">Novos</button>
@@ -2062,6 +2072,12 @@ body:has(.cd-fab-carrinho.show) .balao-ia{bottom:84px;}
       <button class="small-gold" onclick="abrirContaModal_('')">+ Nova conta</button>
       <div id="contasLista" style="margin-top:10px;"><div class="notif-empty">Carregando…</div></div>
       <div class="msg" id="contasMsg"></div>
+    </div>
+    <div class="card">
+      <h2>🤖 Chaves das IAs</h2>
+      <p class="sub">Chaves que os assistentes de IA usam. Para ver ou trocar, o app pede a sua senha de administrador. A chave nova vale na hora.</p>
+      <div id="chavesIaLista"><div class="notif-empty">Carregando…</div></div>
+      <div class="msg" id="chavesIaMsg"></div>
     </div>
   </section>
 
@@ -2696,6 +2712,17 @@ body:has(.cd-fab-carrinho.show) .balao-ia{bottom:84px;}
     <div class="msg" id="ctMsg"></div>
   </div>
 </div>
+<!-- POP-UP: Trocar chave de IA (Contas e acessos) -->
+<div class="modal-overlay" id="chaveIaModal">
+  <div class="modal-box">
+    <div class="modal-header"><h2 id="chaveIaTitulo">Trocar chave</h2><button class="close-btn" onclick="fecharFormModal('chaveIaModal')" aria-label="Fechar">✕</button></div>
+    <input type="hidden" id="ciProvedor">
+    <p class="sub" id="ciAjuda"></p>
+    <label for="ciChave">Chave nova</label><input type="password" id="ciChave" maxlength="300" autocomplete="off" placeholder="Cole aqui a chave inteira">
+    <button class="primary" onclick="salvarChaveIaUI_()">Salvar (pede a senha de administrador)</button>
+    <div class="msg" id="ciMsg"></div>
+  </div>
+</div>
 <div class="modal-overlay" id="senhaAdminModal">
   <div class="modal-box">
     <div class="modal-header"><h2>Confirmação de administrador</h2><button class="close-btn" onclick="fecharModalSenhaAdmin()">✕</button></div>
@@ -2909,9 +2936,11 @@ window.APP_VERSAO = APP_VERSAO;
 const APP_NOVIDADES = {
   Admin: [
     { v:'1.0', em:'09/10/2026', itens:[
+      'Novo: o cliente pode receber no celular os avisos do pedido (confirmado, pronto, saiu para entrega, entregue) e, 30 min depois da entrega, "Como foi seu pedido?". Saem sozinhos quando a equipe muda o status. Em Feedbacks aparece se veio pelo aviso ou pelo chat.',
       'Nada abre sozinho: a Ajuda e os avisos do Assistente vêm fechados (toque no título para abrir) e, ao entrar no Admin, aparecem só os grupos — toque no grupo e depois na tela.',
       'Cardápio do cliente: no fim da página aparecem nome, cidade, telefone e Instagram (edite em Cardápio Digital → Dados do restaurante) e o versículo 1 Coríntios 10:31.',
       'Novo: preço próprio por produto para o iFood. Em Pagamentos, a forma iFood está marcada como "preço próprio por produto"; em cada produto e combo aparece o campo "Preço no iFood" (em branco = preço base). Os preços do iFood de antes foram recolocados. No Caixa, ao escolher iFood, os itens usam o preço do iFood.',
+      'Contas e acessos agora mostra também as chaves das IAs (Gemini e Groq): ver e trocar pedem a senha de administrador.',
       'Novo: Administrador → Sistema → Contas e acessos, com e-mails, links e senhas das contas do sistema. A senha fica no cofre e só aparece com a sua senha de administrador.',
       'Primeira versão estável do sistema. O servidor principal é o Supabase; a planilha principal é a reserva e a planilha de contingência é o último recurso.',
       'Toque na bolinha colorida do topo para ver o estado de cada servidor.',
@@ -2938,6 +2967,7 @@ const APP_NOVIDADES = {
   ],
   Operador: [
     { v:'1.0', em:'09/10/2026', itens:[
+      'Novo: o cliente que aceitou os avisos recebe no celular cada mudança de status que você faz no pedido (confirmado, pronto, saiu para entrega, entregue). Em Feedbacks aparece se veio pelo aviso ou pelo chat.',
       'Nada abre sozinho: a Ajuda e os avisos do Assistente vêm fechados (toque no título para abrir) e, ao entrar no Admin, aparecem só as telas para você escolher.',
       'Novo: menu fixo embaixo no celular (Início, Caixa, Pedidos e "Mais"), com bolinha vermelha nos avisos. No computador continua no topo.',
       'Novo visual do cardápio do cliente: cabeçalho menor, produtos rolando para o lado com botão "+", fotos mais baixas e Atendimento como ícone redondo. Pop-ups sem corte no fim da tela.',
@@ -2982,6 +3012,8 @@ const APP_NOVIDADES = {
   ],
   Cliente: [
     { v:'1.0', em:'09/10/2026', itens:[
+      'Novo: avisos do pedido no celular (confirmado, pronto, saiu para entrega e entregue) e, depois da entrega, "Como foi seu pedido?". Toque em "Quero receber" no topo do cardápio. No iPhone, instale o app antes.',
+      'O atendente do chat agora oferece registrar o seu elogio ou sugestão como feedback.',
       'A Ajuda vem com os tópicos fechados: toque no título para abrir.',
       'Atendente virtual no balão "💬 Atendimento": tira dúvidas do cardápio, preços e promoções, e mostra o andamento do seu pedido pelo seu celular.',
       '"📦 Acompanhe seu pedido" mostra todos os pedidos feitos neste aparelho; dá para cancelar nos primeiros 3 minutos, antes de o restaurante aceitar.',
@@ -3418,7 +3450,7 @@ async function sbMontarDados_(nivel, chaves){
     estoque: estoque.map(e=>{ const y = { id:e.id, nome:e.ingrediente, quantidade:Number(e.quantidade), minimo:Number(e.quantidade_minima), unidade:e.unidade||'un', custo:Number(e.custo_unitario)||0, ativo:e.status!=='Inativo' }; if(!gestor) delete y.custo; return y; }),
     movimentacoesEstoque: movs.map(m=>({ id:m.id, ingredienteNome:nomeIng[m.ingrediente_id]||'', tipo:m.tipo, quantidade:Number(m.quantidade), qtdAntes:Number(m.qtd_antes), qtdDepois:Number(m.qtd_depois), motivo:m.motivo_referencia||'', usuario:loginDe[m.usuario_id]||'', data:m.data })).sort((a,b)=>new Date(b.data)-new Date(a.data)),
     mesas: mesas.map(m=>({ id:m.id, numero:m.numero, status:m.status||'Livre', capacidade:m.capacidade||'', observacao:m.observacao||'', garcomResponsavel:m.garcom_responsavel||'', chamadoEm: m.chamado_em ? (Date.parse(m.chamado_em)||0) : 0 })).sort((a,b)=>Number(a.numero)-Number(b.numero)),
-    feedbacks: fbDb.map(f=>({ id:f.id, vendaId:f.venda_id||'', telefone:f.telefone_cliente||'', nota:Number(f.nota)||0, comentario:f.comentario||'', data:sbDataBr_(f.data), status:f.status||'Novo', clienteId:f.cliente_id||'' })),
+    feedbacks: fbDb.map(f=>({ id:f.id, vendaId:f.venda_id||'', telefone:f.telefone_cliente||'', nota:Number(f.nota)||0, comentario:f.comentario||'', data:sbDataBr_(f.data), status:f.status||'Novo', clienteId:f.cliente_id||'', origem:f.origem||'formulario' })),
     ocorrencias: ocDb.map(o=>({ id:o.id, numero:Number(o.numero)||0, data:sbDataBr_(o.data_hora), tipo:o.tipo||'', setor:o.setor||'', vendaId:o.venda_id||'', clienteNome:o.cliente||'', clienteTelefone:o.telefone||'', registradoPor:o.registrado_por||'', responsavel:o.responsavel||'', descricao:o.descricao||'', solucao:o.solucao||'', status:o.status||'Aberta', atualizada:sbDataBr_(o.atualizada_em), historico:Array.isArray(o.historico)?o.historico.join('\n'):String(o.historico||'') })),
     maisPedidos: maisEqDb.map(m=>({ tipo:m.tipo, id:m.id })),
     vendas: vendasDb.map(v=>({ id:v.id, data:sbDataBr_(v.data_hora), timestamp:Date.parse(v.data_hora)||0, clienteNome:v.cliente_nome||'', clienteTelefone:v.cliente_telefone||'', formaPagamento:v.forma_pagamento||'',
@@ -3536,7 +3568,7 @@ const SB_ESCRITAS_ = {
   aplicarPrecoCalculadora:['produtoPrecos']
 };
 /* chamadas que só pedem ao banco e devolvem a resposta dele como está (sem reler as listas) */
-const SB_RPC_DIRETO_ = ['listarContas','salvarConta','excluirConta','verSenhaConta','saudeSistema','pushInscrever','pushCancelar','listarAuditoria','listarCompras','salvarFornecedor','cancelarCompra','listarSessoes','encerrarSessaoRemota','verificarSenhaAdmin','trocarMinhaSenha','fecharCaixa','previewFechamentoEntrega','getQrMesas','gerarNovoCodigoMesa','detectarNovosPedidos','simularPrecificacao'];
+const SB_RPC_DIRETO_ = ['listarChavesIa','verChaveIa','salvarChaveIa','listarContas','salvarConta','excluirConta','verSenhaConta','saudeSistema','pushInscrever','pushCancelar','listarAuditoria','listarCompras','salvarFornecedor','cancelarCompra','listarSessoes','encerrarSessaoRemota','verificarSenhaAdmin','trocarMinhaSenha','fecharCaixa','previewFechamentoEntrega','getQrMesas','gerarNovoCodigoMesa','detectarNovosPedidos','simularPrecificacao'];
 function sbNomeFuncao_(action){ return 'api_' + action.replace(/[A-Z]/g, m=>'_' + m.toLowerCase()); }
 async function sbRpc_(fn, corpo){
   let s = sbSessaoLer_(); if(!s) throw new SbSessaoExpirada_();
@@ -3681,7 +3713,7 @@ function mostrarManutencao_(msg){
   }
 }
 /* MODO RESERVA: funções que só existem no Supabase (sem equivalente na planilha). Com o Supabase fora, respondem NA HORA, sem esperar tempo esgotar. */
-const RESERVA_INDISPONIVEL_ = { listarContas:'Contas e acessos', salvarConta:'Contas e acessos', excluirConta:'Contas e acessos', verSenhaConta:'Contas e acessos', saudeSistema:'Saúde do sistema', salvarCardapioFechamento:'Abrir ou fechar o cardápio', listarCompras:'Compras e fornecedores', registrarCompra:'Compras e fornecedores', receberCompra:'Compras e fornecedores', cancelarCompra:'Compras e fornecedores', salvarFornecedor:'Compras e fornecedores',
+const RESERVA_INDISPONIVEL_ = { listarChavesIa:'Contas e acessos', verChaveIa:'Contas e acessos', salvarChaveIa:'Contas e acessos', listarContas:'Contas e acessos', salvarConta:'Contas e acessos', excluirConta:'Contas e acessos', verSenhaConta:'Contas e acessos', saudeSistema:'Saúde do sistema', salvarCardapioFechamento:'Abrir ou fechar o cardápio', listarCompras:'Compras e fornecedores', registrarCompra:'Compras e fornecedores', receberCompra:'Compras e fornecedores', cancelarCompra:'Compras e fornecedores', salvarFornecedor:'Compras e fornecedores',
   pushInscrever:'Avisos com o app fechado', pushCancelar:'Avisos com o app fechado', listarAuditoria:'Auditoria', listarSessoes:'Sessões abertas', encerrarSessaoRemota:'Sessões abertas', simularPrecificacao:'Calculadora de preço', salvarCupom:'Cupons', salvarEvento:'Eventos' };
 async function _apiCallRaw(action, payload, _tentativa, _idemChave){
   if(RESERVA_INDISPONIVEL_[action] && typeof _sb5Reserva_ !== 'undefined' && _sb5Reserva_) return { ok:false, reserva:true, message:'Modo reserva: "' + RESERVA_INDISPONIVEL_[action] + '" fica indisponível até o Supabase voltar. Nada foi gravado.' };
@@ -4224,7 +4256,7 @@ function abrirAdministrador(sub){
   if(alvo==='eventos'){ renderEventosUI(); }
   if(alvo==='custosprecificacao'){ prepararCalculadoraUI(); }
   if(alvo==='compras') carregarCompras_();
-  if(alvo==='contas') carregarContas_();
+  if(alvo==='contas'){ carregarContas_(); carregarChavesIa_(); }
   if(alvo==='auditoria') carregarAuditoria_();
   if(alvo==='visaogeral') carregarSaude_();
   if(alvo==='ocorrencias') renderOcorrencias();
@@ -8930,10 +8962,18 @@ Admin:{ nome:'Administrador', secoes:[
     'Para desligar, toque no mesmo botão. Ao sair do sistema, este aparelho deixa de receber os avisos de quem saiu.' ],
     comuns:['O som e a vibração do app aberto continuam como antes.'] },
 
+  { t:'Avisos do pedido para o cliente e feedbacks', itens:[
+    'O cliente que aceita os avisos (convite no topo do cardápio ou no cartão "Pedido enviado") recebe no celular: confirmado (quando o pedido vai para "Em preparo"), pronto (só retirada), saiu para entrega, entregue/retirado e cancelado.',
+    'O aviso sai sozinho quando a equipe muda o status do pedido. O texto mostra só o número do pedido, nunca nome, telefone ou endereço.',
+    '30 minutos depois de entregue (até 3 horas), quem aceitou recebe "⭐ Como foi seu pedido?". Se o cliente já deu feedback daquele pedido, não pergunta.',
+    'Feedbacks (Painel → Feedbacks) mostram de onde vieram: "🔔 veio pelo aviso do pedido", "💬 veio pelo chat" (o atendente oferece registrar quando o cliente elogia ou sugere) ou sem marca (rodapé do cardápio).',
+    'Pedidos de mesa (QR Code) não recebem avisos. No iPhone, o cliente precisa instalar o app para receber.' ]},
+
   { t:'Contas e acessos', itens:[
     'Administrador → Sistema → Contas e acessos: lista das contas que fazem o sistema funcionar (Supabase, GitHub, planilhas, etc.), com e-mail, link e observação.',
     '"+ Nova conta" cadastra; "Editar" muda os dados ou a senha; "Excluir" apaga a conta e a senha guardada.',
     'A senha fica no cofre criptografado do Supabase. Para ver, toque em "Ver senha" e digite a SUA senha de administrador; ela aparece por 30 segundos. Cada visualização fica na Auditoria.',
+    'Chaves das IAs (Gemini e Groq): ficam na mesma tela. "Ver chave" e "Trocar chave" pedem a sua senha de administrador. A chave nova vale na hora para os assistentes. Cada card tem o link de onde pegar uma chave nova.',
     'Só Administrador e Desenvolvedor veem esta tela. Nunca mande senhas por mensagem: digite direto aqui.' ]},
 
   { t:'Auditoria e acessos (IP)', itens:[
@@ -9199,7 +9239,7 @@ Operador:{ nome:'Caixa', secoes:[
   { t:'O que você tem em Administrador', itens:[
     'A aba aparece com o nome "Operação". A barra é reduzida: só o grupo "💬 Atendimento", com duas telas — Ocorrências e Feedbacks.',
     'Ocorrências: filtro Abertas/Todas e botão "Tratar". Você pode mudar status (Aberta → Em andamento → Resolvida), anotar responsável e descrever a solução.',
-    'Feedbacks: tudo o que os clientes enviaram. Você pode marcar como Visto ou Respondido.',
+    'Feedbacks: tudo o que os clientes enviaram. Você pode marcar como Visto ou Respondido. A marca "🔔 veio pelo aviso do pedido" ou "💬 veio pelo chat" mostra de onde veio.',
     'Atalho mais rápido no dia a dia: no Assistente, a aba "🔔 Avisos" mostra as ocorrências abertas, com botão "Tratar" direto.',
     'Você NÃO tem acesso às outras telas do Administrador (financeiro, usuários, backup, catálogo etc.).' ]},
 
@@ -9396,9 +9436,19 @@ const MANUAL_AJUDA_CLIENTE_ = {
       'Se for um problema (atraso, item errado ou faltando, cobrança), ou se você preferir uma pessoa, toque em "Falar com a equipe".',
       'Ele só fala da Texas Burger e não faz o pedido por você: monte o pedido no cardápio. Se a IA ficar indisponível, o botão da equipe continua funcionando.' ]},
 
+    { t:'🔔 Avisos do pedido no celular', itens:[
+      'Na primeira vez que você abre o cardápio, aparece no topo "🔔 Avisos do seu pedido". Toque em "Quero receber" e permita as notificações.',
+      'Depois, a cada pedido você recebe no celular: confirmado (em preparo), pronto para retirar, saiu para entrega e entregue. Funciona mesmo com o site fechado.',
+      'Uns 30 minutos depois da entrega chega "⭐ Como foi seu pedido?". Toque para dar uma nota.',
+      'Tocou em "Agora não"? O convite aparece mais uma vez no cartão "Pedido enviado".',
+      'No iPhone, os avisos só funcionam com o app instalado: Compartilhar → "Adicionar à Tela de Início", e abra o app por esse ícone.' ],
+      comuns:['Se as notificações foram bloqueadas, libere nas configurações do navegador → permissões do site → Notificações.',
+        'Sem os avisos, o status continua em "📦 Acompanhe seu pedido", no rodapé.'] },
+
     { t:'💬 Deixar um feedback', itens:[
       'No rodapé, toque em "💬 Deixar um feedback".',
       'Dê uma nota em estrelas (1 a 5) e escreva o que quiser: elogio, sugestão ou reclamação.',
+      'Também dá pelo aviso "Como foi seu pedido?" ou pelo atendente do 💬 Atendimento: quando você elogia ou dá uma sugestão, ele oferece "⭐ Registrar como feedback".',
       'É opcional deixar nome e telefone — mas se deixar, a gente consegue te responder.' ]},
 
     { t:'📲 Instalar o app na tela inicial', passos:[
@@ -10564,6 +10614,69 @@ function verSenhaConta_(id){
   });
 }
 
+/* ---------- CHAVES DAS IAs (Contas e acessos): ficam em ai_segredos, onde os assistentes já leem. Ver e trocar pedem senha de administrador. ---------- */
+const CHAVES_IA_INFO_ = {
+  gemini: { nome:'Gemini (Google)', link:'https://aistudio.google.com/apikey' },
+  groq:   { nome:'Groq', link:'https://console.groq.com/keys' }
+};
+let chavesIaLista_ = [];
+async function carregarChavesIa_(){
+  const box = document.getElementById('chavesIaLista'); if(!box) return;
+  try{
+    const r = await apiCall('listarChavesIa', {});
+    if(!r || !r.ok){ box.innerHTML = '<div class="notif-empty">' + escH((r && r.message) || 'Não foi possível carregar agora.') + '</div>'; return; }
+    chavesIaLista_ = r.chaves || []; renderChavesIa_();
+  }catch(e){ box.innerHTML = '<div class="notif-empty">Sem conexão para carregar as chaves.</div>'; }
+}
+function renderChavesIa_(){
+  const box = document.getElementById('chavesIaLista'); if(!box) return;
+  const bt = 'class="ghost" style="width:auto;padding:4px 10px;min-height:32px;margin-left:6px;"';
+  box.innerHTML = chavesIaLista_.map(c=>{ const info = CHAVES_IA_INFO_[c.provedor] || { nome:c.provedor, link:'' };
+    return `<div class="notif-card">
+      <div><b>${escH(info.nome)}</b></div>
+      ${c.temChave
+        ? `<div class="obs-line">🔑 <span id="ciVer_${c.provedor}">••••••••${escH(c.final||'')}</span> <button ${bt} onclick="verChaveIa_('${c.provedor}')">Ver chave</button></div>
+           <div class="obs-line">Trocada em ${escH(c.atualizadoEm ? fmtDiaHoraBr_(c.atualizadoEm) : '—')}</div>`
+        : `<div class="obs-line">⚠️ Sem chave cadastrada: esta IA não funciona.</div>`}
+      ${info.link?`<div class="obs-line">🔗 <a href="${info.link}" target="_blank" rel="noopener noreferrer" style="color:var(--gold);">Onde pegar uma chave nova</a></div>`:''}
+      <div class="btnrow" style="margin-top:8px;"><button class="ghost" onclick="abrirChaveIaModal_('${c.provedor}')">Trocar chave</button></div>
+    </div>`; }).join('') || '<div class="notif-empty">Nenhuma IA configurada.</div>';
+}
+function verChaveIa_(prov){
+  abrirModalSenhaAdmin(async function(senhaAdm){
+    const el = document.getElementById('ciVer_' + prov); if(!el) return;
+    try{
+      const r = await apiCall('verChaveIa', { provedor: prov, senhaAdmin: senhaAdm });
+      if(!r || !r.ok){ showMsg('chavesIaMsg', (r && r.message) || 'Não foi possível mostrar a chave.', 'warn'); return; }
+      const antes = el.textContent;
+      el.textContent = r.chave; el.style.fontFamily = 'monospace'; el.style.color = 'var(--cream)'; el.style.overflowWrap = 'anywhere';
+      clearTimeout(el._t); el._t = setTimeout(()=>{ el.textContent = antes; el.style.fontFamily = ''; }, 30000);   // esconde de novo em 30 s
+    }catch(e){ showMsg('chavesIaMsg', 'Sem conexão. Tente de novo.', 'warn'); }
+  });
+}
+function abrirChaveIaModal_(prov){
+  const info = CHAVES_IA_INFO_[prov] || { nome:prov };
+  document.getElementById('chaveIaTitulo').textContent = 'Trocar chave — ' + info.nome;
+  document.getElementById('ciProvedor').value = prov;
+  document.getElementById('ciChave').value = '';
+  document.getElementById('ciAjuda').textContent = 'Cole a chave nova inteira. A antiga deixa de ser usada assim que você salvar.';
+  document.getElementById('ciMsg').className = 'msg';
+  abrirFormModal('chaveIaModal');
+}
+function salvarChaveIaUI_(){
+  const prov = document.getElementById('ciProvedor').value, chave = document.getElementById('ciChave').value.trim();
+  if(chave.length < 20 || /\s/.test(chave)) return showMsg('ciMsg', 'Chave inválida. Copie a chave inteira, sem espaços.', 'warn');
+  abrirModalSenhaAdmin(async function(senhaAdm){
+    if(!iniciarOperacaoUnica('salvarChaveIa')) return;
+    try{
+      const r = await apiCall('salvarChaveIa', { provedor: prov, chave, senhaAdmin: senhaAdm });
+      if(r && r.ok){ document.getElementById('ciChave').value = ''; chavesIaLista_ = r.chaves || chavesIaLista_; renderChavesIa_(); fecharFormModal('chaveIaModal'); showMsg('chavesIaMsg', r.message || 'Chave salva.', 'ok'); }
+      else showMsg('ciMsg', (r && r.message) || 'Não foi possível salvar.', 'warn');
+    }catch(e){ showMsg('ciMsg', 'Sem conexão. Tente de novo.', 'warn'); }
+    finally{ finalizarOperacaoUnica('salvarChaveIa'); }
+  });
+}
+
 /* ---------- FEEDBACKS (ADMIN) — ITEM 34 ---------- */
 let filtroFeedbacksAtual = 'todos';
 function setFiltroFeedbacks(modo){
@@ -10579,7 +10692,7 @@ function renderFeedbacks(){
   const lista = (filtroFeedbacksAtual==='todos' ? feedbacks : feedbacks.filter(f=>f.status===filtroFeedbacksAtual))
     .slice().sort((a,b)=> dataBrNum_(b.data) - dataBrNum_(a.data));
   box.innerHTML = lista.length ? lista.map(f=>`<div class="notif-card">
-      <div>${'★'.repeat(Math.max(0,Math.min(5,f.nota||0)))}${'☆'.repeat(5-Math.max(0,Math.min(5,f.nota||0)))} <span class="obs-line">${f.data}${escH(f.telefone?' · '+f.telefone:'')}${f.vendaId?' · pedido #'+rotuloPedidoId(f.vendaId):''}</span></div>
+      <div>${'★'.repeat(Math.max(0,Math.min(5,f.nota||0)))}${'☆'.repeat(5-Math.max(0,Math.min(5,f.nota||0)))} <span class="obs-line">${f.data}${escH(f.telefone?' · '+f.telefone:'')}${f.vendaId?' · pedido #'+rotuloPedidoId(f.vendaId):''}${f.origem==='chat'?' · 💬 veio pelo chat':(f.origem==='aviso'?' · 🔔 veio pelo aviso do pedido':'')}</span></div>
       ${f.comentario?`<div style="margin-top:4px;">${escH(f.comentario)}</div>`:''}
       <div class="btnrow" style="margin-top:8px;">
         <button class="ghost ${f.status==='Visto'?'small-gold':''}" onclick="alterarStatusFeedback('${f.id}','${f.status==='Novo'?'Visto':(f.status==='Visto'?'Novo':'Visto')}')">${f.status==='Novo'?'Marcar como visto':(f.status==='Visto'?'✓ Visto (tocar volta a Novo)':'Voltar para visto')}</button>
@@ -11984,6 +12097,7 @@ function cdPintar_(deCache){
 }
 async function carregarCardapioPublico(){
   try{ if(!mesaQr && window.cdCapturarLocalSilenciosa_) window.cdCapturarLocalSilenciosa_(); }catch(e){}
+  if(!window._cdAvisosChamado_){ window._cdAvisosChamado_ = true; setTimeout(()=>{ if(window.cdAvisosIniciar_) window.cdAvisosIniciar_(); }, 1200); }
   const cache = cdLerCache_();
   if(cache){ cdDados = cache.dados; modoContingenciaAtivo = false; cdPintar_(true); }
   try{
@@ -12531,6 +12645,7 @@ async function finalizarPedidoPublico(){
       cdUltimaVendaId = r.id;
       mostrarBotaoWhatsappPedido(r);
       mostrarLinkAcompanhamento(r.id, nome, r.numero);
+      if(window.cdAvisosPosPedido_) window.cdAvisosPosPedido_(String(r.id).slice(-8));
       if(tipoEntrega==='Entrega' && window.cdEnviarLocalDoPedido_) window.cdEnviarLocalDoPedido_(r.id);
       cdPedidoConcluido = true;
       btn.disabled=true; btn.textContent='Pedido enviado';
@@ -12662,8 +12777,9 @@ function mostrarBotaoWhatsappContingencia(r){
 /* ---------- FEEDBACK (ITEM 34) — sempre disponível, com ou sem pedido ---------- */
 let cdUltimaVendaId = null;
 let cdNotaEscolhida = 0;
+let cdFeedbackCodigo_ = '', cdFeedbackOrigem_ = 'formulario';   // pedido (8 últimos do id) e de onde veio: formulario | aviso | chat
 function abrirFeedbackPublico(){
-  cdNotaEscolhida = 0;
+  cdNotaEscolhida = 0; cdFeedbackCodigo_ = ''; cdFeedbackOrigem_ = 'formulario';
   document.querySelectorAll('#cdEstrelas span').forEach(s=>s.classList.remove('on'));
   document.getElementById('cdFeedbackComentario').value = '';
   document.getElementById('cdFeedbackMsg').innerHTML = '';
@@ -12680,6 +12796,15 @@ function abrirFeedbackPublico(){
   document.getElementById('cdFeedbackModal').classList.add('open');
 }
 function fecharFeedbackPublico(){ document.getElementById('cdFeedbackModal').classList.remove('open'); }
+/* feedback aberto pelo aviso "Como foi seu pedido?" (origem aviso) ou pelo atendente do chat (origem chat, já com o texto do cliente) */
+function cdAbrirFeedbackEspecial_(o){
+  abrirFeedbackPublico();
+  cdFeedbackOrigem_ = o.origem === 'chat' ? 'chat' : 'aviso';
+  cdFeedbackCodigo_ = /^[0-9a-f]{8}$/.test(String(o.codigo || '')) ? String(o.codigo) : '';
+  if(o.titulo) document.getElementById('cdFeedbackTitulo').textContent = o.titulo;
+  if(o.comentario) document.getElementById('cdFeedbackComentario').value = String(o.comentario).slice(0, 500);
+  const m = document.getElementById('cdFeedbackModal'); if(m) m.style.zIndex = '10050';   // por cima do chat
+}
 document.addEventListener('click', (e)=>{
   const estrela = e.target.closest('#cdEstrelas span');
   if(estrela){
@@ -12691,7 +12816,9 @@ async function enviarFeedbackPublico(){
   if(!cdNotaEscolhida) return showMsg('cdFeedbackMsg','Toque nas estrelas para dar uma nota.','warn');
   try{
     const r = await apiCallFila('addFeedback', {
-      vendaId: cdUltimaVendaId,
+      vendaId: cdFeedbackCodigo_ ? undefined : cdUltimaVendaId,
+      codigo: cdFeedbackCodigo_ || undefined,
+      origem: cdFeedbackOrigem_,
       telefone: document.getElementById('cdFeedbackTelefone').value.trim(),
       nome: document.getElementById('cdFeedbackNome').value.trim(),
       nota: cdNotaEscolhida,
@@ -12779,6 +12906,125 @@ if(document.readyState === 'loading') document.addEventListener('DOMContentLoade
 
   varrer();
   window.senhaOlhoVarrer = varrer; // se um dia criar um campo de senha novo via JavaScript, chame senhaOlhoVarrer()
+})();
+
+/* ===== AVISOS DO PEDIDO NO CELULAR DO CLIENTE (Web Push) =====
+   1ª entrada no cardápio: aviso pequeno no topo "Quero receber / Agora não". A janela de permissão do celular só abre
+   quando o cliente toca (o Chrome esconde e o iPhone bloqueia pedidos feitos sozinhos).
+   "Agora não": não volta sozinho; aparece de novo UMA vez, no cartão "Pedido enviado".
+   iPhone fora do app instalado: explica que precisa "Adicionar à Tela de Início".
+   Cada pedido feito com os avisos ligados fica ligado a este aparelho (api_push_cliente_inscrever com o código).
+   O toque no aviso abre ./?pedido=XXXXXXXX (acompanhamento) ou ./?feedback=XXXXXXXX ("Como foi seu pedido?"). */
+(function(){
+  var K_PERG = 'txAvisosPerguntado', K_PERG2 = 'txAvisosPerguntado2';
+  function $(id){ return document.getElementById(id); }
+  function ler(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
+  function gravar(k, v){ try{ localStorage.setItem(k, v); }catch(e){} }
+  function ehIOS(){ return /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); }
+  function standalone(){ try{ return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true; }catch(e){ return false; } }
+  function equipeNoAparelho(){ try{ return !!localStorage.getItem(SESSAO_KEY); }catch(e){ return false; } }
+  /* 'default' | 'granted' | 'denied' | 'ios' (precisa instalar) | 'nao' (navegador sem suporte) */
+  function estado(){
+    if(pushSuportado_()) return Notification.permission;
+    if(ehIOS() && !standalone() && location.protocol === 'https:') return 'ios';
+    return 'nao';
+  }
+  async function inscrever(codigo){
+    var reg = await navigator.serviceWorker.ready;
+    var sub = await reg.pushManager.getSubscription();
+    if(!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly:true, applicationServerKey: pushChaveBytes_(PUSH_CHAVE_PUBLICA_) });
+    var p = sub.toJSON(); if(codigo) p.codigo = codigo;
+    var r = await sbRpcPublico_('api_push_cliente_inscrever', { p: p });
+    return !!(r && r.ok);
+  }
+  function esconder(){ var b = $('cdAvisosPedido'); if(b) b.style.display = 'none'; }
+  function texto(html){ var t = $('cdAvisosTxt'); if(t) t.innerHTML = html; }
+
+  /* chamado quando o cardápio do cliente aparece */
+  window.cdAvisosIniciar_ = function(){
+    try{
+      if((typeof mesaQr !== 'undefined' && mesaQr) || (typeof currentUser !== 'undefined' && currentUser) || equipeNoAparelho()) return;
+      var e = estado();
+      if(e === 'granted'){ inscrever('').catch(function(){}); return; }   // já aceitou antes: mantém a inscrição viva, sem perguntar
+      if(ler(K_PERG) || (e !== 'default' && e !== 'ios')) return;
+      var b = $('cdAvisosPedido'); if(!b) return;
+      if(e === 'ios'){
+        texto('<b>🔔 Avisos do seu pedido</b>No iPhone, para receber os avisos, instale o app: Compartilhar → "Adicionar à Tela de Início" e abra por lá.');
+        $('cdAvisosSim').textContent = 'Como instalar';
+      }
+      b.style.display = 'flex';
+    }catch(err){}
+  };
+  window.cdAvisosAceitar_ = async function(){
+    gravar(K_PERG, '1');
+    if(estado() === 'ios'){ esconder(); if(window.instalarApp) window.instalarApp(); return; }
+    var sim = $('cdAvisosSim'), nao = $('cdAvisosNao');
+    if(sim) sim.disabled = true; if(nao) nao.style.display = 'none';
+    try{
+      var perm = await Notification.requestPermission();
+      if(perm !== 'granted'){ texto('<b>Tudo bem!</b>Você pode acompanhar pelo botão "📦 Acompanhe seu pedido", no rodapé.'); }
+      else { var ok = await inscrever(''); texto(ok ? '<b>✅ Pronto!</b>Você vai receber no celular os avisos dos seus pedidos.' : '<b>Não deu agora.</b>Os avisos serão ligados quando você fizer o pedido.'); }
+    }catch(err){ texto('<b>Não deu agora.</b>Você pode acompanhar pelo botão "📦 Acompanhe seu pedido", no rodapé.'); }
+    if(sim) sim.style.display = 'none';
+    setTimeout(esconder, 4000);
+  };
+  window.cdAvisosRecusar_ = function(){ gravar(K_PERG, '1'); esconder(); };
+
+  /* pedido enviado: liga o aparelho a este pedido; se ainda não aceitou, oferece UMA vez no cartão de confirmação */
+  window.cdAvisosPosPedido_ = function(codigo){
+    try{
+      var e = estado();
+      if(e === 'granted'){ inscrever(codigo).catch(function(){}); return; }
+      if(e !== 'default' || ler(K_PERG2)) return;
+      gravar(K_PERG2, '1'); gravar(K_PERG, '1'); esconder();
+      var card = document.querySelector('#cdConfirmacaoPedido .cd-conf-card'); if(!card) return;
+      var box = document.createElement('div'); box.className = 'cd-conf-avisos';
+      box.innerHTML = '<b>🔔 Quer receber no celular os avisos deste pedido?</b><br>Confirmado, pronto, saiu para entrega e entregue.';
+      var bt = document.createElement('button'); bt.type = 'button'; bt.className = 'cd-conf-sec'; bt.textContent = 'Quero receber';
+      bt.onclick = async function(){
+        if(window.cdPararContagemWa_) cdPararContagemWa_();
+        var c = card.querySelector('.cd-conf-cont'); if(c) c.style.display = 'none';
+        bt.disabled = true;
+        try{
+          var perm = await Notification.requestPermission();
+          if(perm !== 'granted'){ box.textContent = 'Tudo bem! Acompanhe pelo botão "📦 Acompanhe seu pedido", no rodapé.'; return; }
+          var ok = await inscrever(codigo);
+          box.textContent = ok ? '✅ Pronto! Você vai receber os avisos deste pedido.' : 'Não deu agora. Acompanhe pelo botão "📦 Acompanhe seu pedido", no rodapé.';
+        }catch(err){ box.textContent = 'Não deu agora. Acompanhe pelo botão "📦 Acompanhe seu pedido", no rodapé.'; }
+      };
+      box.appendChild(bt);
+      var dica = card.querySelector('.cd-conf-dica');
+      if(dica) card.insertBefore(box, dica); else card.appendChild(box);
+    }catch(err){}
+  };
+
+  /* toque no aviso: ./?pedido=XXXXXXXX ou ./?feedback=XXXXXXXX (também chega por mensagem do service worker com o app aberto) */
+  function abrirPorUrl(url){
+    try{
+      var u = new URL(url, location.href), ped = u.searchParams.get('pedido'), fb = u.searchParams.get('feedback');
+      if(!ped && !fb) return;
+      if(typeof currentUser !== 'undefined' && currentUser) return;   // aparelho com a equipe logada: não abre telas do cliente
+      if(ped && /^[0-9a-f]{8}$/.test(ped)){
+        $('acompanhamentoConteudo').innerHTML = '<p class="sub">Carregando...</p>';
+        $('acompanhamentoPedido').classList.add('open');
+        abrirStatusPedido(ped);
+      } else if(fb && /^[0-9a-f]{8}$/.test(fb)){
+        var h = (typeof lerHistoricoPedidosCliente === 'function' ? lerHistoricoPedidosCliente() : []).find(function(x){ return x.codigo === fb; });
+        cdAbrirFeedbackEspecial_({ origem:'aviso', codigo: fb, titulo: 'Como foi seu pedido' + (h && h.numero ? ' nº ' + h.numero : '') + '?' });
+      }
+    }catch(err){}
+  }
+  window.cdAvisosAbrirUrl_ = abrirPorUrl;
+  function aoCarregar(){
+    try{
+      var q = location.search;
+      if(!/[?&](pedido|feedback)=/.test(q)) return;
+      try{ history.replaceState(null, '', location.pathname + location.hash); }catch(e){}
+      setTimeout(function(){ abrirPorUrl('./' + q); }, 600);   // espera o cardápio montar
+    }catch(err){}
+  }
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', aoCarregar); else aoCarregar();
+  try{ if('serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message', function(ev){ if(ev.data && ev.data.tipo === 'abrir-url' && ev.data.url) abrirPorUrl(ev.data.url); }); }catch(err){}
 })();
 
 /* ===== ITEM 7 — INSTALAR APP (cardápio público) ===== */
@@ -14117,6 +14363,7 @@ async function sb5SairReserva_(){
     guardarIa_('ia', j.resposta);
     if(j.acao === 'pedir_telefone'){ QA.tel = ''; pedirTelIa_(); }
     else if(j.acao === 'encaminhar'){ QA.enc = { tipo:j.tipo || 'outro', resumo:String(j.resumo || QA.ultima || '').slice(0, 300) }; cartaoEquipe_(); }
+    else if(j.acao === 'feedback'){ QA.fb = String(QA.ultima || '').slice(0, 500); acoesIa_('<div class="ia-card"><p>Quer deixar isso registrado para o restaurante? É só dar uma nota.</p><button type="button" class="primary" data-a="iaFeedback">⭐ Registrar como feedback</button></div>'); }
     else if($('iaTexto')) $('iaTexto').focus();
   }
   function consultarTelIa_(){
@@ -14277,6 +14524,7 @@ async function sb5SairReserva_(){
     else if(a === 'iaChip') enviarIa_(el.getAttribute('data-t'));
     else if(a === 'iaTel') consultarTelIa_();
     else if(a === 'iaEquipe') iaParaEquipe_();
+    else if(a === 'iaFeedback'){ acoesIa_(''); if(window.cdAbrirFeedbackEspecial_) cdAbrirFeedbackEspecial_({ origem:'chat', comentario: QA.fb || QA.ultima || '', titulo:'Seu feedback' }); }
     else if(a === 'equipe'){ QA.enc = null; iaParaEquipe_(); }
     else if(a === 'fechar') fechar_();
   });
