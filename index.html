@@ -2045,6 +2045,17 @@ body:has(.cd-fab-carrinho.show) .balao-ia{bottom:84px;}
     </div>
 
   </section>
+  <!-- =========================== CONTAS E ACESSOS (Admin → Sistema) =========================== -->
+  <section class="tab" id="tab-contas">
+    <div class="admin-subnav" data-admin-nav="1"></div>
+    <div class="card">
+      <h2>🔐 Contas e acessos</h2>
+      <p class="sub">E-mails, links e senhas das contas que fazem este sistema funcionar. Só Administrador e Desenvolvedor veem. Para ver uma senha, o app pede a sua senha de administrador.</p>
+      <button class="small-gold" onclick="abrirContaModal_('')">+ Nova conta</button>
+      <div id="contasLista" style="margin-top:10px;"><div class="notif-empty">Carregando…</div></div>
+      <div class="msg" id="contasMsg"></div>
+    </div>
+  </section>
 
 
   <footer>Dados salvos no Supabase · planilhas do Google como reserva · uso interno Texas Burger</footer>
@@ -2658,6 +2669,21 @@ body:has(.cd-fab-carrinho.show) .balao-ia{bottom:84px;}
 </div>
 
 <!-- MODAL SENHA ADMIN (excluir cliente) -->
+<!-- POP-UP: Conta (Contas e acessos) -->
+<div class="modal-overlay" id="contaModal">
+  <div class="modal-box">
+    <div class="modal-header"><h2 id="contaModalTitulo">Nova conta</h2><button class="close-btn" onclick="fecharFormModal('contaModal')" aria-label="Fechar">✕</button></div>
+    <input type="hidden" id="ctId">
+    <label for="ctServico">Serviço *</label><input type="text" id="ctServico" maxlength="80" placeholder="Ex.: Supabase, GitHub, Planilha principal">
+    <label for="ctEmail">E-mail da conta</label><input type="text" id="ctEmail" maxlength="120" inputmode="email" autocomplete="off" placeholder="email@gmail.com">
+    <label for="ctLink">Link</label><input type="text" id="ctLink" maxlength="500" inputmode="url" autocomplete="off" placeholder="https://...">
+    <label for="ctSenha">Senha</label><input type="password" id="ctSenha" maxlength="200" autocomplete="new-password" placeholder="Deixe em branco para não mudar">
+    <label id="ctRemoverBox" style="display:none;"><input type="checkbox" id="ctRemover"> Apagar a senha guardada</label>
+    <label for="ctObs">Observação</label><textarea id="ctObs" rows="2" maxlength="500" placeholder="Ex.: conta do dono, usada também no Google Drive"></textarea>
+    <button class="primary" onclick="salvarContaUI_()">Salvar</button>
+    <div class="msg" id="ctMsg"></div>
+  </div>
+</div>
 <div class="modal-overlay" id="senhaAdminModal">
   <div class="modal-box">
     <div class="modal-header"><h2>Confirmação de administrador</h2><button class="close-btn" onclick="fecharModalSenhaAdmin()">✕</button></div>
@@ -2871,6 +2897,7 @@ const APP_NOVIDADES = {
   Admin: [
     { v:'1.0', em:'09/10/2026', itens:[
       'Nada abre sozinho: a Ajuda e os avisos do Assistente vêm fechados (toque no título para abrir) e, ao entrar no Admin, aparecem só os grupos — toque no grupo e depois na tela.',
+      'Novo: Administrador → Sistema → Contas e acessos, com e-mails, links e senhas das contas do sistema. A senha fica no cofre e só aparece com a sua senha de administrador.',
       'Primeira versão estável do sistema. O servidor principal é o Supabase; a planilha principal é a reserva e a planilha de contingência é o último recurso.',
       'Toque na bolinha colorida do topo para ver o estado de cada servidor.',
       'Impressão: não pergunta mais "Saiu no papel?". Fica um botão "🔁 Não saiu? Reimprimir" por 10 minutos.',
@@ -3494,7 +3521,7 @@ const SB_ESCRITAS_ = {
   aplicarPrecoCalculadora:['produtoPrecos']
 };
 /* chamadas que só pedem ao banco e devolvem a resposta dele como está (sem reler as listas) */
-const SB_RPC_DIRETO_ = ['saudeSistema','pushInscrever','pushCancelar','listarAuditoria','listarCompras','salvarFornecedor','cancelarCompra','listarSessoes','encerrarSessaoRemota','verificarSenhaAdmin','trocarMinhaSenha','fecharCaixa','previewFechamentoEntrega','getQrMesas','gerarNovoCodigoMesa','detectarNovosPedidos','simularPrecificacao'];
+const SB_RPC_DIRETO_ = ['listarContas','salvarConta','excluirConta','verSenhaConta','saudeSistema','pushInscrever','pushCancelar','listarAuditoria','listarCompras','salvarFornecedor','cancelarCompra','listarSessoes','encerrarSessaoRemota','verificarSenhaAdmin','trocarMinhaSenha','fecharCaixa','previewFechamentoEntrega','getQrMesas','gerarNovoCodigoMesa','detectarNovosPedidos','simularPrecificacao'];
 function sbNomeFuncao_(action){ return 'api_' + action.replace(/[A-Z]/g, m=>'_' + m.toLowerCase()); }
 async function sbRpc_(fn, corpo){
   let s = sbSessaoLer_(); if(!s) throw new SbSessaoExpirada_();
@@ -3639,7 +3666,7 @@ function mostrarManutencao_(msg){
   }
 }
 /* MODO RESERVA: funções que só existem no Supabase (sem equivalente na planilha). Com o Supabase fora, respondem NA HORA, sem esperar tempo esgotar. */
-const RESERVA_INDISPONIVEL_ = { saudeSistema:'Saúde do sistema', salvarCardapioFechamento:'Abrir ou fechar o cardápio', listarCompras:'Compras e fornecedores', registrarCompra:'Compras e fornecedores', receberCompra:'Compras e fornecedores', cancelarCompra:'Compras e fornecedores', salvarFornecedor:'Compras e fornecedores',
+const RESERVA_INDISPONIVEL_ = { listarContas:'Contas e acessos', salvarConta:'Contas e acessos', excluirConta:'Contas e acessos', verSenhaConta:'Contas e acessos', saudeSistema:'Saúde do sistema', salvarCardapioFechamento:'Abrir ou fechar o cardápio', listarCompras:'Compras e fornecedores', registrarCompra:'Compras e fornecedores', receberCompra:'Compras e fornecedores', cancelarCompra:'Compras e fornecedores', salvarFornecedor:'Compras e fornecedores',
   pushInscrever:'Avisos com o app fechado', pushCancelar:'Avisos com o app fechado', listarAuditoria:'Auditoria', listarSessoes:'Sessões abertas', encerrarSessaoRemota:'Sessões abertas', simularPrecificacao:'Calculadora de preço', salvarCupom:'Cupons', salvarEvento:'Eventos' };
 async function _apiCallRaw(action, payload, _tentativa, _idemChave){
   if(RESERVA_INDISPONIVEL_[action] && typeof _sb5Reserva_ !== 'undefined' && _sb5Reserva_) return { ok:false, reserva:true, message:'Modo reserva: "' + RESERVA_INDISPONIVEL_[action] + '" fica indisponível até o Supabase voltar. Nada foi gravado.' };
@@ -4117,11 +4144,11 @@ const ADMIN_GRUPOS = [
   { nome:'🍔 Catálogo',   subs:['produtos', 'estoque', 'compras', 'custosprecificacao', 'cardapiodigital'] },
   { nome:'🎟️ Campanhas',  subs:['promocoes', 'eventos'] },
   { nome:'🏪 Operação',   subs:['restaurante', 'pagamentos', 'taxasentregas', 'notifadmin'] },
-  { nome:'⚙️ Sistema',    subs:['usuarios', 'auditoria', 'armazenamento', 'drive', 'integridade'] }
+  { nome:'⚙️ Sistema',    subs:['usuarios', 'auditoria', 'armazenamento', 'drive', 'integridade', 'contas'] }
 ];
 const ADMIN_SUBABAS = ADMIN_GRUPOS.reduce((a,g)=>a.concat(g.subs), []);
 /* a barra do Administrador existia copiada em 13 telas. Agora há UMA definição, desenhada em todas. */
-const ADMIN_SUBABAS_ROTULOS = { visaogeral:'Visão Geral', ocorrencias:'Ocorrências', feedbacks:'Feedbacks', relatorios:'Relatórios', financeiro:'Contas e despesas', analise:'Análise', ajustes:'Ajustes pós-venda', historico:'Histórico', produtos:'Produtos', estoque:'Estoque', compras:'Compras e fornecedores', custosprecificacao:'Custos e Precificação', cardapiodigital:'Cardápio Digital', promocoes:'Promoções', eventos:'Eventos', restaurante:'Mesas e QR Codes', pagamentos:'Pagamentos', taxasentregas:'Entregadores e taxas', notifadmin:'Configurar notificações', usuarios:'Usuários e Permissões', auditoria:'Auditoria', armazenamento:'Backup', drive:'Espaço e fotos', integridade:'Sincronização e contingência' };
+const ADMIN_SUBABAS_ROTULOS = { contas:'Contas e acessos', visaogeral:'Visão Geral', ocorrencias:'Ocorrências', feedbacks:'Feedbacks', relatorios:'Relatórios', financeiro:'Contas e despesas', analise:'Análise', ajustes:'Ajustes pós-venda', historico:'Histórico', produtos:'Produtos', estoque:'Estoque', compras:'Compras e fornecedores', custosprecificacao:'Custos e Precificação', cardapiodigital:'Cardápio Digital', promocoes:'Promoções', eventos:'Eventos', restaurante:'Mesas e QR Codes', pagamentos:'Pagamentos', taxasentregas:'Entregadores e taxas', notifadmin:'Configurar notificações', usuarios:'Usuários e Permissões', auditoria:'Auditoria', armazenamento:'Backup', drive:'Espaço e fotos', integridade:'Sincronização e contingência' };
 const ADMIN_GRUPOS_OPERADOR_ = [ { nome:'💬 Atendimento', subs:['ocorrencias', 'feedbacks'] } ];
 function gruposAdmin_(){ return (currentUser && currentUser.nivel==='Operador') ? ADMIN_GRUPOS_OPERADOR_ : ADMIN_GRUPOS; }
 function montarBarrasAdmin_(alvo, grupoIdx){
@@ -4182,6 +4209,7 @@ function abrirAdministrador(sub){
   if(alvo==='eventos'){ renderEventosUI(); }
   if(alvo==='custosprecificacao'){ prepararCalculadoraUI(); }
   if(alvo==='compras') carregarCompras_();
+  if(alvo==='contas') carregarContas_();
   if(alvo==='auditoria') carregarAuditoria_();
   if(alvo==='visaogeral') carregarSaude_();
   if(alvo==='ocorrencias') renderOcorrencias();
@@ -8866,6 +8894,12 @@ Admin:{ nome:'Administrador', secoes:[
     'Para desligar, toque no mesmo botão. Ao sair do sistema, este aparelho deixa de receber os avisos de quem saiu.' ],
     comuns:['O som e a vibração do app aberto continuam como antes.'] },
 
+  { t:'Contas e acessos', itens:[
+    'Administrador → Sistema → Contas e acessos: lista das contas que fazem o sistema funcionar (Supabase, GitHub, planilhas, etc.), com e-mail, link e observação.',
+    '"+ Nova conta" cadastra; "Editar" muda os dados ou a senha; "Excluir" apaga a conta e a senha guardada.',
+    'A senha fica no cofre criptografado do Supabase. Para ver, toque em "Ver senha" e digite a SUA senha de administrador; ela aparece por 30 segundos. Cada visualização fica na Auditoria.',
+    'Só Administrador e Desenvolvedor veem esta tela. Nunca mande senhas por mensagem: digite direto aqui.' ]},
+
   { t:'Auditoria e acessos (IP)', itens:[
     'Administrador → Sistema → Auditoria: lista as ações sensíveis (descontos, cancelamentos, preços, estoque, usuários, compras), as entradas no sistema ("Login") e as tentativas com senha errada ("Falha de login").',
     'Cada linha mostra quem fez, o perfil, o aparelho e o IP de origem. Use o período e a busca (nome, ação ou IP) para achar algo; mostra até 300 linhas.',
@@ -10416,6 +10450,80 @@ function renderLog(){
   const box = document.getElementById('logLista');
   if(!logRecentes.length){ box.innerHTML = '<div class="notif-empty">Nenhuma ação sensível registrada ainda.</div>'; return; }
   box.innerHTML = logRecentes.map(l=>`<div class="log-item"><div class="quando">${l.data} · ${escH(l.usuario||'—')}${l.perfil?(' ('+l.perfil+')'):''}</div><div>${l.acao}${escH(l.detalhes?(' — '+l.detalhes):'')}</div>${l.autorizador?`<div class="quando">Autorizado por ${l.autorizador}</div>`:''}${l.ip?`<div class="quando">🌐 IP ${escH(l.ip)}</div>`:''}${l.aparelho?`<div class="quando">📱 ${escH(l.aparelho)}</div>`:''}</div>`).join('');
+}
+
+/* ---------- CONTAS E ACESSOS (Admin → Sistema): e-mails, links e senhas das contas do sistema. Senha fica no cofre do Supabase. ---------- */
+let contasLista_ = [];
+async function carregarContas_(){
+  const box = document.getElementById('contasLista'); if(!box) return;
+  try{
+    const r = await apiCall('listarContas', {});
+    if(!r || !r.ok){ box.innerHTML = '<div class="notif-empty">' + escH((r && r.message) || 'Não foi possível carregar agora.') + '</div>'; return; }
+    contasLista_ = r.contas || []; renderContas_();
+  }catch(e){ box.innerHTML = '<div class="notif-empty">Sem conexão para carregar as contas.</div>'; }
+}
+function renderContas_(){
+  const box = document.getElementById('contasLista'); if(!box) return;
+  if(!contasLista_.length){ box.innerHTML = '<div class="notif-empty">Nenhuma conta cadastrada ainda.</div>'; return; }
+  box.innerHTML = contasLista_.map(c=>`<div class="notif-card">
+      <div><b>${escH(c.servico)}</b></div>
+      ${c.email?`<div class="obs-line">📧 ${escH(c.email)} <button class="ghost" style="width:auto;padding:4px 10px;min-height:32px;margin-left:6px;" onclick="contaCopiar_(this,'${escH(c.email).replace(/'/g,'&#39;')}')">Copiar</button></div>`:''}
+      ${c.link?`<div class="obs-line" style="overflow-wrap:anywhere;">🔗 <a href="${escH(c.link)}" target="_blank" rel="noopener noreferrer" style="color:var(--gold);">Abrir</a> · ${escH(c.link)}</div>`:''}
+      ${c.temSenha?`<div class="obs-line">🔑 <span id="ctSenhaVer_${c.id}">••••••••</span> <button class="ghost" style="width:auto;padding:4px 10px;min-height:32px;margin-left:6px;" onclick="verSenhaConta_('${c.id}')">Ver senha</button></div>`:''}
+      ${c.observacao?`<div class="obs-line">${escH(c.observacao)}</div>`:''}
+      <div class="btnrow" style="margin-top:8px;"><button class="ghost" onclick="abrirContaModal_('${c.id}')">Editar</button><button class="ghost" onclick="excluirContaUI_('${c.id}')">Excluir</button></div>
+    </div>`).join('');
+}
+function contaCopiar_(btn, txt){
+  const t = document.createElement('textarea'); t.innerHTML = txt; const v = t.value;
+  (navigator.clipboard ? navigator.clipboard.writeText(v) : Promise.reject()).then(()=>{ btn.textContent = 'Copiado'; setTimeout(()=>btn.textContent='Copiar', 1500); }).catch(()=>{ prompt('Copie:', v); });
+}
+function abrirContaModal_(id){
+  const c = contasLista_.find(x=>x.id===id) || null;
+  document.getElementById('contaModalTitulo').textContent = c ? 'Editar conta' : 'Nova conta';
+  document.getElementById('ctId').value = c ? c.id : '';
+  document.getElementById('ctServico').value = c ? c.servico : '';
+  document.getElementById('ctEmail').value = c ? c.email : '';
+  document.getElementById('ctLink').value = c ? c.link : '';
+  document.getElementById('ctObs').value = c ? c.observacao : '';
+  document.getElementById('ctSenha').value = '';
+  document.getElementById('ctSenha').placeholder = (c && c.temSenha) ? 'Já tem senha guardada — deixe em branco para não mudar' : 'Senha da conta (opcional)';
+  document.getElementById('ctRemover').checked = false;
+  document.getElementById('ctRemoverBox').style.display = (c && c.temSenha) ? '' : 'none';
+  document.getElementById('ctMsg').className = 'msg';
+  abrirFormModal('contaModal');
+}
+async function salvarContaUI_(){
+  const p = { id: document.getElementById('ctId').value || undefined, servico: document.getElementById('ctServico').value.trim(), email: document.getElementById('ctEmail').value.trim(),
+    link: document.getElementById('ctLink').value.trim(), observacao: document.getElementById('ctObs').value.trim(), senha: document.getElementById('ctSenha').value, removerSenha: document.getElementById('ctRemover').checked };
+  if(!p.servico) return showMsg('ctMsg', 'Informe o nome do serviço.', 'warn');
+  if(!iniciarOperacaoUnica('salvarConta')) return;
+  try{
+    const r = await apiCall('salvarConta', p);
+    if(r && r.ok){ document.getElementById('ctSenha').value = ''; contasLista_ = r.contas || contasLista_; renderContas_(); fecharFormModal('contaModal'); showMsg('contasMsg', r.message || 'Conta salva.', 'ok'); }
+    else showMsg('ctMsg', (r && r.message) || 'Não foi possível salvar.', 'warn');
+  }catch(e){ showMsg('ctMsg', 'Sem conexão. Tente de novo.', 'warn'); }
+  finally{ finalizarOperacaoUnica('salvarConta'); }
+}
+async function excluirContaUI_(id){
+  const c = contasLista_.find(x=>x.id===id); if(!c) return;
+  if(!confirm('Excluir a conta "' + c.servico + '"' + (c.temSenha ? ' e a senha guardada dela' : '') + '?')) return;
+  try{
+    const r = await apiCall('excluirConta', { id });
+    if(r && r.ok){ contasLista_ = r.contas || contasLista_.filter(x=>x.id!==id); renderContas_(); showMsg('contasMsg', r.message || 'Conta excluída.', 'ok'); }
+    else showMsg('contasMsg', (r && r.message) || 'Não foi possível excluir.', 'warn');
+  }catch(e){ showMsg('contasMsg', 'Sem conexão. Tente de novo.', 'warn'); }
+}
+function verSenhaConta_(id){
+  abrirModalSenhaAdmin(async function(senhaAdm){
+    const el = document.getElementById('ctSenhaVer_' + id); if(!el) return;
+    try{
+      const r = await apiCall('verSenhaConta', { id, senhaAdmin: senhaAdm });
+      if(!r || !r.ok){ showMsg('contasMsg', (r && r.message) || 'Não foi possível mostrar a senha.', 'warn'); return; }
+      el.textContent = r.senha; el.style.fontFamily = 'monospace'; el.style.color = 'var(--cream)';
+      clearTimeout(el._t); el._t = setTimeout(()=>{ el.textContent = '••••••••'; el.style.fontFamily = ''; }, 30000);   // esconde de novo em 30 s
+    }catch(e){ showMsg('contasMsg', 'Sem conexão. Tente de novo.', 'warn'); }
+  });
 }
 
 /* ---------- FEEDBACKS (ADMIN) — ITEM 34 ---------- */
