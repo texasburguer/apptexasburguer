@@ -1832,12 +1832,9 @@ body:has(.cd-fab-carrinho.show) .balao-ia{bottom:84px;}
   </section>
   <section class="tab" id="tab-visaogeral">
     <div class="admin-subnav" data-admin-nav="1"></div>
-    <div class="card" id="saudeCard" style="display:none;">
-      <h2 style="display:flex;align-items:center;gap:8px;"><span id="saudeDot" style="width:14px;height:14px;border-radius:50%;background:#888;display:inline-block;"></span> Saúde do sistema</h2>
-      <div class="obs-line" id="saudeResumo">Verificando…</div>
-      <div id="saudeLista" style="display:none;margin-top:8px;"></div>
-      <div class="btnrow" style="margin-top:8px;"><button class="ghost" type="button" onclick="alternarSaudeLista_()" id="saudeVerBtn">Ver detalhes</button> <button class="ghost" type="button" onclick="carregarSaude_()">Atualizar</button> <button class="ghost" type="button" id="reservaSimBtn" style="display:none;" onclick="sb5Simulacao_()">🧪 Simular queda (treino)</button></div>
-    </div>
+    <button class="card" id="saudeCard" type="button" onclick="abrirModalConexao_()" style="display:none;width:100%;text-align:left;cursor:pointer;padding:12px 14px;min-height:48px;" aria-label="Saúde do sistema: abrir Conexão e servidores">
+      <span style="display:flex;align-items:center;gap:10px;"><span id="saudeDot" style="width:14px;height:14px;border-radius:50%;background:#888;display:inline-block;flex:0 0 auto;"></span><span style="flex:1 1 auto;"><b>Saúde do sistema</b><span class="obs-line" id="saudeResumo" style="display:block;">Verificando…</span></span><span style="flex:0 0 auto;opacity:.7;">›</span></span>
+    </button>
     <div class="card">
       <h2>Visão Geral</h2>
       <label for="vgPeriodo">Período</label>
@@ -2392,6 +2389,13 @@ body:has(.cd-fab-carrinho.show) .balao-ia{bottom:84px;}
   <div class="modal-box">
     <div class="modal-header"><h2>Conexão e servidores</h2><button class="close-btn" onclick="fecharFormModal('conexaoModal')">✕</button></div>
     <div id="conexaoLista"></div>
+    <div id="saudeSecao" style="display:none;margin-top:14px;border-top:1px solid var(--gold);padding-top:12px;">
+      <h3 style="display:flex;align-items:center;gap:8px;margin:0 0 4px;"><span id="saudeDotModal" style="width:14px;height:14px;border-radius:50%;background:#888;display:inline-block;"></span> Saúde do sistema</h3>
+      <div class="obs-line" id="saudeResumoModal">Verificando…</div>
+      <div id="saudeLista" style="margin-top:8px;"></div>
+      <div id="integracoesSaude"></div>
+      <div class="btnrow" style="margin-top:8px;"><button class="ghost" type="button" id="reservaSimBtn" style="display:none;" onclick="sb5Simulacao_()">🧪 Simular queda (treino)</button></div>
+    </div>
     <div id="conexaoInfo" class="sub" style="font-size:13px;line-height:1.7;margin-top:12px;"></div>
     <div class="btnrow" style="margin-top:12px;"><button class="primary" id="conexaoVerificarBtn" onclick="verificarConexaoServidores_()" style="flex:1 1 100%;min-height:46px;">🔄 Verificar agora</button></div>
   </div>
@@ -2936,6 +2940,7 @@ window.APP_VERSAO = APP_VERSAO;
 const APP_NOVIDADES = {
   Admin: [
     { v:'1.0', em:'09/10/2026', itens:[
+      'Mudou: a "Saúde do sistema" saiu do Painel e agora fica dentro de "Conexão e servidores" (toque na bolinha colorida do topo), junto com os servidores. No Painel ficou só uma linha com a bolinha e o resumo; toque nela para abrir.',
       'Novo: o cliente pode receber no celular os avisos do pedido (confirmado, pronto, saiu para entrega, entregue) e, 30 min depois da entrega, "Como foi seu pedido?". Saem sozinhos quando a equipe muda o status. Em Feedbacks aparece se veio pelo aviso ou pelo chat.',
       'Nada abre sozinho: a Ajuda e os avisos do Assistente vêm fechados (toque no título para abrir) e, ao entrar no Admin, aparecem só os grupos — toque no grupo e depois na tela.',
       'Cardápio do cliente: no fim da página aparecem nome, cidade, telefone e Instagram (edite em Cardápio Digital → Dados do restaurante) e o versículo 1 Coríntios 10:31.',
@@ -8951,8 +8956,8 @@ Admin:{ nome:'Administrador', secoes:[
     'Funciona: venda do Caixa (retirada ou entrega, sem desconto e sem cupom) e pedido do cardápio, pela contingência; consulta dos pedidos em Pedidos.',
     'Na fila (seguem sozinhos na volta): cadastro de cliente, fidelidade, feedback e ocorrência.',
     'Espera a volta (aparece "indisponível até o Supabase voltar" e nada é gravado): mudar status, estoque, compras, relatórios, avisos e Assistente. Anote à mão o que precisar.',
-    'Em Visão geral, o cartão "Saúde do sistema" mostra uma bolinha verde, amarela ou vermelha: cópia para a planilha, backup (diário às 04:00), cópia no Drive, conferência diária de vendas, tarefas automáticas e Assistente. Toque em "Ver detalhes" para ler cada item.',
-    'Desenvolvedor: o botão "🧪 Simular queda (treino)" no mesmo cartão finge a queda só neste aparelho, para treinar a equipe. "Encerrar simulação" volta ao normal.' ],
+    'A "Saúde do sistema" fica dentro de "Conexão e servidores" (toque na bolinha colorida do topo, ou na linha "Saúde do sistema" em Visão geral): bolinha verde, amarela ou vermelha e cada item: cópia para a planilha, backup (diário às 04:00), cópia no Drive, conferência diária de vendas, tarefas automáticas e Assistente.',
+    'Desenvolvedor: o botão "🧪 Simular queda (treino)" em "Conexão e servidores" finge a queda só neste aparelho, para treinar a equipe. "Encerrar simulação" volta ao normal.' ],
     comuns:['O Guia de operação tem o passo a passo de queda, volta e restauração.'] },
 
   { t:'Avisos com o app fechado (🔔)', itens:[
@@ -10507,21 +10512,23 @@ async function encerrarSessaoRemotaUI_(sessaoId){
   carregarSessoes_(true);
 }
 const SAUDE_COR_ = { ok:'#2f9e44', atencao:'#f0a500', problema:'#d6336c' }, SAUDE_ROT_ = { ok:'Tudo certo', atencao:'Atenção', problema:'Precisa de cuidado' };
-function alternarSaudeLista_(){ const l = document.getElementById('saudeLista'), b = document.getElementById('saudeVerBtn'); const abrir = l.style.display==='none'; l.style.display = abrir ? '' : 'none'; b.textContent = abrir ? 'Esconder detalhes' : 'Ver detalhes'; }
+/* Saúde do sistema: a lista vive dentro de "Conexão e servidores"; no Painel fica só uma linha com a bolinha geral (toque abre a tela). */
 async function carregarSaude_(){
-  const card = document.getElementById('saudeCard'); if(!card) return;
-  const nivel = currentUser && currentUser.nivel; if(nivel!=='Admin' && nivel!=='Desenvolvedor'){ card.style.display = 'none'; return; }
-  card.style.display = '';
+  const card = document.getElementById('saudeCard'), sec = document.getElementById('saudeSecao');
+  const nivel = currentUser && currentUser.nivel; const pode = (nivel==='Admin' || nivel==='Desenvolvedor');
+  if(card) card.style.display = pode ? '' : 'none';
+  if(sec) sec.style.display = pode ? '' : 'none';
+  if(!pode) return;
   try{ const sb = document.getElementById('reservaSimBtn'); if(sb){ sb.style.display = nivel==='Desenvolvedor' ? '' : 'none'; sb.textContent = window._sb5Simulado_ ? '✅ Encerrar simulação' : '🧪 Simular queda (treino)'; } }catch(e){}
-  const dot = document.getElementById('saudeDot'), res = document.getElementById('saudeResumo'), lis = document.getElementById('saudeLista');
+  const dots = ['saudeDot','saudeDotModal'].map(i=>document.getElementById(i)).filter(Boolean), ress = ['saudeResumo','saudeResumoModal'].map(i=>document.getElementById(i)).filter(Boolean), lis = document.getElementById('saudeLista');
+  const pintar = (cor, txt)=>{ dots.forEach(d=>d.style.background = cor); ress.forEach(r=>r.textContent = txt); };
   try{
     const r = await apiCall('saudeSistema', {});
-    if(!r || !r.ok){ dot.style.background = '#888'; res.textContent = (r && r.message) || 'Não foi possível verificar agora.'; lis.innerHTML = ''; return; }
-    dot.style.background = SAUDE_COR_[r.geral] || '#888';
+    if(!r || !r.ok){ pintar('#888', (r && r.message) || 'Não foi possível verificar agora.'); if(lis) lis.innerHTML = ''; return; }
     const ruins = (r.itens||[]).filter(i=>i.nivel!=='ok');
-    res.textContent = SAUDE_ROT_[r.geral] + (ruins.length ? ': ' + ruins.map(i=>i.titulo).join(', ') : '.') + ' · verificado às ' + String(r.em||'').split(' ')[1];
-    lis.innerHTML = (r.itens||[]).map(i=>`<div class="notif-card" style="border-left:4px solid ${SAUDE_COR_[i.nivel]||'#888'};"><b>${escH(i.titulo)}</b><div class="obs-line">${escH(i.texto)}</div></div>`).join('');
-  }catch(e){ dot.style.background = '#888'; res.textContent = 'Sem conexão para verificar.'; }
+    pintar(SAUDE_COR_[r.geral] || '#888', SAUDE_ROT_[r.geral] + (ruins.length ? ': ' + ruins.map(i=>i.titulo).join(', ') : '.') + ' · verificado às ' + String(r.em||'').split(' ')[1]);
+    if(lis) lis.innerHTML = (r.itens||[]).map(i=>`<div class="notif-card" style="border-left:4px solid ${SAUDE_COR_[i.nivel]||'#888'};"><b>${escH(i.titulo)}</b><div class="obs-line">${escH(i.texto)}</div></div>`).join('');
+  }catch(e){ pintar('#888', 'Sem conexão para verificar.'); }
 }
 async function carregarAuditoria_(){
   const box = document.getElementById('logLista'); if(!box) return;
@@ -11221,6 +11228,7 @@ async function verificarConexaoServidores_(){
   ]);
   _connResultado_ = { sb, pl, ct, quando: Date.now() };
   renderConexaoModal_();
+  try{ carregarSaude_(); }catch(e){}
   if(btn){ btn.disabled = false; btn.textContent = '🔄 Verificar agora'; }
 }
 function abrirModalConexao_(){ renderConexaoModal_(); abrirFormModal('conexaoModal'); verificarConexaoServidores_(); }
