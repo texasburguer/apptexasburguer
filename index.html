@@ -635,6 +635,9 @@ input:focus,select:focus,textarea:focus{outline-offset:1px;outline:none;border-c
 /* ===== ITEM 10 — RODAPÉ DO CARDÁPIO ===== */
 .cd-rodape-links{display:flex;flex-direction:column;align-items:center;gap:8px;margin-top:26px;}
 .cd-rl-linha{display:flex;justify-content:center;gap:8px;width:100%;}
+.cd-frase-final{text-align:center;margin:22px 8px 6px;}
+.cd-frase-final p{margin:0;font-style:italic;color:var(--muted);font-size:15px;line-height:1.45;}
+.cd-frase-final span{display:block;margin-top:8px;color:var(--gold-dim);font-weight:800;font-size:13px;letter-spacing:.12em;text-transform:uppercase;}
 .cd-rodape-links .cd-rl-func{background:none;border:none;color:var(--muted);font-size:11px;text-decoration:underline;padding:10px;margin-top:4px;cursor:pointer;}
 /* ===== ITEM 11 — CONFIRMAÇÃO: ACOMPANHAR AGORA + INSTALAR APP ===== */
 .cd-conf-acoes{display:flex;flex-direction:column;gap:8px;margin-top:12px;}
@@ -761,6 +764,10 @@ body.perfil-garcom #btnFecharContaItens{display:none !important;}
     </div>
     <div class="cd-rl-linha">
       <button onclick="abrirAjudaCliente()">❓ Como pedir / Ajuda</button>
+    </div>
+    <div class="cd-frase-final">
+      <p>“Portanto, quando vocês comem, ou bebem, ou fazem qualquer outra coisa, façam tudo para a glória de Deus.”</p>
+      <span>1 Coríntios 10:31</span>
     </div>
     <button class="cd-rl-func" onclick="abrirAreaFuncionarios()">Área de Funcionários</button>
   </div>
@@ -2897,6 +2904,7 @@ const APP_NOVIDADES = {
   Admin: [
     { v:'1.0', em:'09/10/2026', itens:[
       'Nada abre sozinho: a Ajuda e os avisos do Assistente vêm fechados (toque no título para abrir) e, ao entrar no Admin, aparecem só os grupos — toque no grupo e depois na tela.',
+      'Cardápio do cliente: no fim da página aparecem nome, cidade, telefone e Instagram (edite em Cardápio Digital → Dados do restaurante) e o versículo 1 Coríntios 10:31.',
       'Novo: Administrador → Sistema → Contas e acessos, com e-mails, links e senhas das contas do sistema. A senha fica no cofre e só aparece com a sua senha de administrador.',
       'Primeira versão estável do sistema. O servidor principal é o Supabase; a planilha principal é a reserva e a planilha de contingência é o último recurso.',
       'Toque na bolinha colorida do topo para ver o estado de cada servidor.',
