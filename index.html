@@ -1812,7 +1812,6 @@ body:has(.cd-fab-carrinho.show) .balao-ia{bottom:84px;}
 
   <section class="tab" id="tab-admininicio">
     <div class="admin-subnav" data-admin-nav="1"></div>
-    <p class="sub" id="adminInicioDica" style="text-align:center;margin-top:18px;">Escolha um grupo acima.</p>
   </section>
   <section class="tab" id="tab-visaogeral">
     <div class="admin-subnav" data-admin-nav="1"></div>
@@ -4132,11 +4131,12 @@ function montarBarrasAdmin_(alvo, grupoIdx){
   const abas = grupos.length>1 ? grupos.map((g,i)=>`<button class="admin-gbtn${g===ativo?' active':''}" onclick="abrirAdminGrupo_(${i})">${g.nome}</button>`).join('') : '';
   const subs = ativo ? (`<div class="admin-grupo">${grupos.length>1 ? ativo.nome : (ativo.nome+' — o que você pode tratar aqui')}</div>` + ativo.subs.map(id=>`<button data-sub="${id}" class="${id===alvo?'active':''}" onclick="abrirAdministrador('${id}')">${ADMIN_SUBABAS_ROTULOS[id]}</button>`).join('')) : '';
   document.querySelectorAll('.admin-subnav[data-admin-nav]').forEach(nav=>{ nav.innerHTML = abas + subs; });
-  const dica = document.getElementById('adminInicioDica');
-  if(dica) dica.textContent = ativo ? 'Escolha uma tela acima.' : 'Escolha um grupo acima.';
+  _adminGrupoAtivo_ = ativo ? grupos.indexOf(ativo) : null;
 }
+let _adminGrupoAtivo_ = null;
 /* Entrar no Admin: só os grupos, nenhuma tela aberta. Tocar num grupo mostra as telas dele; a tela abre só quando você toca nela. */
 function abrirAdminGrupo_(i){
+  if(i != null && i === _adminGrupoAtivo_ && gruposAdmin_().length > 1) i = null;   // tocar de novo no grupo aberto fecha o menu dele
   montarBarrasAdmin_(null, i);
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
   const bt = document.querySelector('[data-tab="administrador"]'); if(bt) bt.classList.add('active');
