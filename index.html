@@ -1904,6 +1904,7 @@ body:has(.cd-fab-carrinho.show) .balao-ia{bottom:84px;}
         <div><label for="fpAcrPct">Acréscimo %</label><input type="number" id="fpAcrPct" placeholder="0" step="0.01" min="0" max="100"></div>
         <div><label for="fpAcrFixo">Acréscimo fixo (R$)</label><input type="number" id="fpAcrFixo" placeholder="0.00" step="0.01" min="0" max="1000"></div>
       </div>
+      <label style="margin-top:10px;"><input type="checkbox" id="fpPrecoProprio"> Esta forma tem preço próprio por produto (ex.: iFood)</label>
       <button class="primary" onclick="registrarFormaPagamento()">+ Adicionar forma de pagamento</button>
       <div class="msg" id="fpMsg"></div>
       <table style="margin-top:12px;">
@@ -2119,7 +2120,8 @@ body:has(.cd-fab-carrinho.show) .balao-ia{bottom:84px;}
       <div><label for="ppPreco">Preço</label><input type="number" id="ppPreco" step="0.01"></div>
       <div><label for="ppCusto">Custo</label><input type="number" id="ppCusto" step="0.01"></div>
     </div>
-    <p class="sub" style="margin-top:6px;">Esse é o preço base: vale para todas as formas de pagamento. Se uma forma cobra a mais (ex: iFood, Alelo), cadastre o acréscimo na própria forma, em Pagamentos.</p>
+    <p class="sub" style="margin-top:6px;">Esse é o preço base: vale para todas as formas de pagamento. Se uma forma tem preço próprio (ex.: iFood), preencha o campo dela abaixo; em branco, vale o preço base.</p>
+    <div id="ppPrecosProprios"></div>
 
     <label style="display:flex;align-items:center;gap:8px;margin-top:12px;"><input type="checkbox" id="ppAtivo" style="width:auto;"><span style="font-size:13px;">Produto ativo (aparece pra venda)</span></label>
 
@@ -2201,7 +2203,8 @@ body:has(.cd-fab-carrinho.show) .balao-ia{bottom:84px;}
       <div><label for="kkPreco">Preço</label><input type="number" id="kkPreco" step="0.01"></div>
       <div><label for="kkCusto">Custo</label><input type="number" id="kkCusto" step="0.01"></div>
     </div>
-    <p class="sub" style="margin-top:6px;">Esse é o preço base: vale para todas as formas de pagamento. Se uma forma cobra a mais (ex: iFood, Alelo), cadastre o acréscimo na própria forma, em Pagamentos.</p>
+    <p class="sub" style="margin-top:6px;">Esse é o preço base: vale para todas as formas de pagamento. Se uma forma tem preço próprio (ex.: iFood), preencha o campo dela abaixo; em branco, vale o preço base.</p>
+    <div id="kkPrecosProprios"></div>
     <label style="display:flex;align-items:center;gap:8px;margin-top:12px;"><input type="checkbox" id="kkAtivo" style="width:auto;"><span style="font-size:13px;">Combo ativo (aparece pra venda)</span></label>
 
     <button type="button" class="ghost" style="width:100%;margin-top:14px;" onclick="toggleAvancado('kk')">⚙️ Opções avançadas <span id="kkAvancadoSeta">▸</span></button>
@@ -2465,7 +2468,8 @@ body:has(.cd-fab-carrinho.show) .balao-ia{bottom:84px;}
         <div><label for="pCusto">Custo (R$)</label><input type="number" id="pCusto" placeholder="0.00" step="0.01" oninput="atualizarMargemPreview()"></div>
       </div>
       <div style="font-size:12.5px;color:var(--muted);margin-top:8px;">Margem: <b id="pMargemPreview" style="color:var(--gold);">R$ 0,00 (0%)</b></div>
-      <p class="sub" style="margin-top:6px;">Esse preço vale pra todas as formas de pagamento. Se uma forma cobra a mais (ex: iFood), cadastre o acréscimo na própria forma de pagamento.</p>
+      <p class="sub" style="margin-top:6px;">Esse é o preço base: vale para todas as formas de pagamento. Se uma forma tem preço próprio (ex.: iFood), preencha o campo dela abaixo; em branco, vale o preço base.</p>
+      <div id="pPrecosProprios"></div>
 
       <label style="display:flex;align-items:center;gap:8px;margin-top:14px;">
         <input type="checkbox" id="pEstoqueProprioAtivo" style="width:auto;" onchange="toggleEstoqueProprioUI('p')">
@@ -2533,7 +2537,8 @@ body:has(.cd-fab-carrinho.show) .balao-ia{bottom:84px;}
         <div><label for="koCusto">Custo (R$)</label><input type="number" id="koCusto" placeholder="0.00" step="0.01" oninput="atualizarMargemPreviewCombo()"></div>
       </div>
       <div style="font-size:12.5px;color:var(--muted);margin-top:8px;">Margem: <b id="koMargemPreview" style="color:var(--gold);">R$ 0,00 (0%)</b></div>
-      <p class="sub" style="margin-top:6px;">Esse preço vale pra todas as formas de pagamento. Se uma forma cobra a mais (ex: iFood), cadastre o acréscimo na própria forma de pagamento.</p>
+      <p class="sub" style="margin-top:6px;">Esse é o preço base: vale para todas as formas de pagamento. Se uma forma tem preço próprio (ex.: iFood), preencha o campo dela abaixo; em branco, vale o preço base.</p>
+      <div id="koPrecosProprios"></div>
 
       <div class="modal-section">
         <h3>Produtos que compõem o combo</h3>
@@ -2771,6 +2776,7 @@ body:has(.cd-fab-carrinho.show) .balao-ia{bottom:84px;}
       <div><label for="fmAcrFixo">Acréscimo fixo (R$)</label><input type="number" id="fmAcrFixo" step="0.01" min="0" max="1000"></div>
     </div>
     <label style="display:flex;gap:6px;align-items:center;"><input type="checkbox" id="fmTroco" style="width:auto;"> Permite troco</label>
+    <label><input type="checkbox" id="fmPrecoProprio"> Esta forma tem preço próprio por produto (ex.: iFood)</label>
     <label style="display:flex;gap:6px;align-items:center;"><input type="checkbox" id="fmAtiva" style="width:auto;"> Ativa</label>
     <div class="info-line" id="fmAviso" style="display:none;"></div>
     <button class="primary" onclick="salvarFormaModal()">Salvar</button>
@@ -2905,6 +2911,7 @@ const APP_NOVIDADES = {
     { v:'1.0', em:'09/10/2026', itens:[
       'Nada abre sozinho: a Ajuda e os avisos do Assistente vêm fechados (toque no título para abrir) e, ao entrar no Admin, aparecem só os grupos — toque no grupo e depois na tela.',
       'Cardápio do cliente: no fim da página aparecem nome, cidade, telefone e Instagram (edite em Cardápio Digital → Dados do restaurante) e o versículo 1 Coríntios 10:31.',
+      'Novo: preço próprio por produto para o iFood. Em Pagamentos, a forma iFood está marcada como "preço próprio por produto"; em cada produto e combo aparece o campo "Preço no iFood" (em branco = preço base). Os preços do iFood de antes foram recolocados. No Caixa, ao escolher iFood, os itens usam o preço do iFood.',
       'Novo: Administrador → Sistema → Contas e acessos, com e-mails, links e senhas das contas do sistema. A senha fica no cofre e só aparece com a sua senha de administrador.',
       'Primeira versão estável do sistema. O servidor principal é o Supabase; a planilha principal é a reserva e a planilha de contingência é o último recurso.',
       'Toque na bolinha colorida do topo para ver o estado de cada servidor.',
@@ -3382,7 +3389,7 @@ async function sbMontarDados_(nivel, chaves){
   const loginDe = {}; usuarios.forEach(u=>{ loginDe[u.id] = u.login; });
   const semCusto = x=>{ if(!gestor) delete x.custo; return x; };
   const cad = {
-    formasPagamento: (formas.length ? formas : formasOp).map((f,i)=>({ id:f.id, nome:f.nome, ativa:f.ativa !== false, visivelCardapio:f.visivel_cardapio !== false, taxaPct:Number(f.taxa_percentual)||0, taxaFixa:Number(f.taxa_fixa)||0, prazoDias:Number(f.prazo_dias)||0, permiteTroco:f.permite_troco, acrescimoPct:Number(f.acrescimo_percentual)||0, acrescimoFixo:Number(f.acrescimo_fixo)||0, ordem:Number(f.ordem)||(i+1) })).sort((a,b)=>a.ordem-b.ordem)
+    formasPagamento: (formas.length ? formas : formasOp).map((f,i)=>({ id:f.id, nome:f.nome, ativa:f.ativa !== false, visivelCardapio:f.visivel_cardapio !== false, taxaPct:Number(f.taxa_percentual)||0, taxaFixa:Number(f.taxa_fixa)||0, prazoDias:Number(f.prazo_dias)||0, permiteTroco:f.permite_troco, acrescimoPct:Number(f.acrescimo_percentual)||0, acrescimoFixo:Number(f.acrescimo_fixo)||0, precoProprio:f.preco_proprio===true, ordem:Number(f.ordem)||(i+1) })).sort((a,b)=>a.ordem-b.ordem)
       .map(f=> operacional ? { id:f.id, nome:f.nome, ativa:f.ativa, permiteTroco:f.permiteTroco, acrescimoPct:f.acrescimoPct, acrescimoFixo:f.acrescimoFixo, ordem:f.ordem } : f),
     categorias: cats.map(c=>({ id:c.id, nome:c.nome, ativa:c.ativa, ordem:Number(c.ordem)||0 })).sort((a,b)=>a.ordem-b.ordem),
     produtos: prods.map(p=>({ id:p.id, nome:p.nome, descricao:p.descricao||'', categoria:p.categoria_id||'', ativo:p.ativo, fotoId:p.foto_id_principal||'', fotoUrl:sbFotoUrl_(p.foto_id_principal), destaque:p.destaque, premioFidelidade:!!p.premio_fidelidade, premioIndicacao:!!p.premio_indicacao, estoqueProprioIngredienteId:p.estoque_proprio_ingrediente_id||'', ordemCardapio:Number(p.ordem_cardapio)||0 })),
@@ -4642,18 +4649,33 @@ function atualizarMargemPreview(){
    Um preço só vale para todas as formas de pagamento. O que muda por forma é o "Acréscimo"
    cadastrado na própria forma de pagamento (Administrador → Operação → Pagamentos). */
 let excecoesPreco = { p: [], ko: [], pp: [], kk: [] };   // legado: sem uso
-function formaReferenciaPreco_(){ return (formasPagamento||[]).slice().sort((a,b)=>(a.ordem||0)-(b.ordem||0))[0] || null; }
+function formaReferenciaPreco_(){ const l = (formasPagamento||[]).slice().sort((a,b)=>(a.ordem||0)-(b.ordem||0)); return l.find(f=>!f.precoProprio) || l[0] || null; }
 function linhaPrecoRef_(lista, chaveId, id){
   const ref = formaReferenciaPreco_();
   const linhas = (lista||[]).filter(x=>x[chaveId]===id);
   return (ref && linhas.find(x=>x.formaPagamentoId===ref.id)) || linhas[0] || null;
 }
-function renderPrecosExcecoes(){}
 function adicionarExcecaoPreco(){}
-function montarPrecosComExcecoes(prefix, precoBase, custoBase){
-  return formasPagamento.map(f=>({ formaPagamentoId: f.id, preco: precoBase, custo: custoBase }));
+/* PREÇO PRÓPRIO POR FORMA (ex.: iFood): formas marcadas em Pagamentos ganham um campo no produto/combo. Em branco = preço base. */
+function renderPrecosExcecoes(prefix, valores){
+  const box = document.getElementById((prefix||'') + 'PrecosProprios'); if(!box) return;
+  const atuais = {}; box.querySelectorAll('input[data-forma]').forEach(i=>{ atuais[i.dataset.forma] = i.value; });
+  const vals = valores || atuais;
+  const formas = (formasPagamento||[]).filter(f=>f.precoProprio && f.ativa !== false);
+  box.innerHTML = formas.map(f=>`<label for="${prefix}PP_${f.id}">Preço no ${escH(f.nome)} (R$) <span style="opacity:.75;">— em branco = preço base</span></label><input type="number" step="0.01" min="0" id="${prefix}PP_${f.id}" data-forma="${f.id}" placeholder="Igual ao preço base" value="${vals[f.id] != null ? escH(String(vals[f.id])) : ''}">`).join('');
 }
-function carregarExcecoesExistentes(){}
+function carregarExcecoesExistentes(prefix, precosDoItem, precoBase){
+  const vals = {};
+  (precosDoItem||[]).forEach(r=>{ const f = (formasPagamento||[]).find(x=>x.id===r.formaPagamentoId); if(f && f.precoProprio && Math.abs(Number(r.preco) - Number(precoBase)) > 0.004) vals[f.id] = Number(r.preco); });
+  renderPrecosExcecoes(prefix, vals);
+}
+function montarPrecosComExcecoes(prefix, precoBase, custoBase){
+  return formasPagamento.map(f=>{
+    const el = f.precoProprio ? document.getElementById((prefix||'') + 'PP_' + f.id) : null;
+    const v = el && String(el.value).trim() !== '' ? Number(String(el.value).replace(',', '.')) : NaN;
+    return { formaPagamentoId: f.id, preco: (v > 0 ? Math.round(v*100)/100 : precoBase), custo: custoBase };
+  });
+}
 
 /* ---------- SEÇÃO "OPÇÕES AVANÇADAS" (fecha por padrão em todo formulário) ---------- */
 function toggleAvancado(prefix){
@@ -4987,7 +5009,7 @@ async function registrarProduto(){
       renderAdicionaisChecklist('pAdicionaisLista', []);
       document.getElementById('pCategoria').value = '';
       document.getElementById('pFoto').value = ''; document.getElementById('pFotoPreview').innerHTML = '';
-      excecoesPreco.p = []; renderPrecosExcecoes('p');
+      excecoesPreco.p = []; renderPrecosExcecoes('p', {});
       ingredientesProdutoNovo = []; renderIngredientesProdutoNovo();
       atualizarMargemPreview(); renderProdutos(); renderProdutoCuradoria(); renderEstoque(); popularSelectIngredientes('pIngredienteSelect'); popularSelectIngredientes('ppIngredienteSelect'); popularSelectAdicionalIngrediente(); popularSelectProdutos(); popularSelectProdutosParaCombo('koProdutoSelect'); popularSelectProdutosParaCombo('kkProdutoSelect');
     } else { showMsg('pMsg', r.message, 'warn'); }
@@ -5178,7 +5200,7 @@ async function registrarCombo(){
       document.getElementById('koDestaque').checked = false;
       document.getElementById('koCategoria').value = '';
       document.getElementById('koFoto').value = ''; document.getElementById('koFotoPreview').innerHTML = '';
-      renderPrecosExcecoes('ko'); excecoesPreco.ko = [];
+      renderPrecosExcecoes('ko', {}); excecoesPreco.ko = [];
       document.getElementById('koAvancadoBox').style.display = 'none'; document.getElementById('koAvancadoSeta').textContent = '▸';
       itensComboNovo = []; renderItensComboNovo(); atualizarMargemPreviewCombo();
       renderCombos(); renderComboCuradoria(); popularSelectCombos();
@@ -7165,8 +7187,14 @@ function mudarFormaPreco(formaId){
   renderPagamentos();
 }
 /* Preço único: a forma escolhida NÃO muda o preço do item (muda só o acréscimo da forma). */
-function precoProdutoPorForma(produtoId){ return precoDisplayProduto(produtoId); }
-function precoComboPorForma(comboId){ return precoDisplayCombo(comboId); }
+function precoProprioDe_(lista, chave, id, formaId){
+  const f = (formasPagamento||[]).find(x=>x.id===formaId);
+  if(!f || !f.precoProprio) return null;
+  const r = (lista||[]).find(x=>x[chave]===id && x.formaPagamentoId===formaId);
+  return r ? { preco: Number(r.preco)||0, custo: Number(r.custo)||0 } : null;
+}
+function precoProdutoPorForma(produtoId, formaId){ return precoProprioDe_(produtoPrecos, 'produtoId', produtoId, formaId) || precoDisplayProduto(produtoId); }
+function precoComboPorForma(comboId, formaId){ return precoProprioDe_(comboPrecos, 'comboId', comboId, formaId) || precoDisplayCombo(comboId); }
 function buscarClienteVenda(){
   const termo = document.getElementById('vClienteBusca').value.toLowerCase();
   const box = document.getElementById('vClienteResultados');
@@ -8860,7 +8888,7 @@ Admin:{ nome:'Administrador', secoes:[
 
   { t:'Cadastrar produtos e estoque', passos:[
     'Administrador → Catálogo → Produtos → "Cadastrar produto".',
-    'Informe nome, categoria, preço e custo (a margem aparece sozinha). O preço vale para todas as formas de pagamento (é o preço base). Editar o produto nunca cria preços diferentes por forma: quem cobra a mais é o acréscimo da forma.',
+    'Informe nome, categoria, preço e custo (a margem aparece sozinha). O preço é o preço base e vale para todas as formas de pagamento. Formas marcadas em Pagamentos como "preço próprio por produto" (ex.: iFood) ganham um campo próprio no produto e no combo; em branco, vale o preço base.',
     'Só abra "⚙️ Opções avançadas" para a ficha técnica (ingredientes). Se uma forma de pagamento cobra a mais (ex.: iFood), cadastre o acréscimo (% ou valor fixo) na própria forma, em Pagamentos.',
     'Se o item tem estoque próprio (bebida), marque a opção e informe quantidade e mínimo.',
     'Para usar o produto como brinde, abra "⚙️ Opções avançadas" e marque "🎁 Este produto é um prêmio": prêmio do cartão fidelidade e/ou prêmio de indicação. Quando você quiser mudar a campanha, é só trocar a marca de produto.' ],
@@ -9806,7 +9834,7 @@ async function registrarFormaPagamento(){
   if(prazoDias<0||!Number.isInteger(prazoDias)){ showMsg('fpMsg','O prazo deve ser um número inteiro de dias.','warn'); return; }
   if(!iniciarOperacaoUnica('addForma')) return;
   try{
-    const r = await apiCall('addFormaPagamento', { nome, taxaPct, taxaFixa, prazoDias, permiteTroco, acrescimoPct, acrescimoFixo });
+    const r = await apiCall('addFormaPagamento', { nome, taxaPct, taxaFixa, prazoDias, permiteTroco, acrescimoPct, acrescimoFixo, precoProprio: !!(document.getElementById('fpPrecoProprio')||{}).checked });
     if(r.ok){
       formasPagamento = r.formasPagamento || formasPagamento;
       produtoPrecos = r.produtoPrecos || produtoPrecos;
@@ -9830,6 +9858,7 @@ function abrirModalForma(id){
   document.getElementById('fmAcrPct').value = f.acrescimoPct||0;
   document.getElementById('fmAcrFixo').value = f.acrescimoFixo||0;
   document.getElementById('fmTroco').checked = !!f.permiteTroco;
+  const fpp = document.getElementById('fmPrecoProprio'); if(fpp) fpp.checked = !!f.precoProprio;
   document.getElementById('fmAtiva').checked = !!f.ativa;
   const usada = pagamentosVenda.some(p=>p.forma===f.nome);
   document.getElementById('fmNome').disabled = usada;
@@ -9860,7 +9889,8 @@ async function salvarFormaModal(){
     const r = await apiCall('editarFormaPagamento', {
       id, novoNome, novoAtivo: document.getElementById('fmAtiva').checked,
       novaTaxaPct, novaTaxaFixa, novoPrazoDias, novaOrdem, novoAcrescimoPct, novoAcrescimoFixo,
-      novoPermiteTroco: document.getElementById('fmTroco').checked
+      novoPermiteTroco: document.getElementById('fmTroco').checked,
+      novoPrecoProprio: !!(document.getElementById('fmPrecoProprio')||{}).checked
     });
     if(r.ok){
       formasPagamento = r.formasPagamento || formasPagamento;
