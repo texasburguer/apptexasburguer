@@ -1007,7 +1007,10 @@ async function finalizarVendaConfirmada(total, desconto, senhaAdminConfirmacao){
   const acrVenda_ = acrescimoTotalVenda_();
   setBotoesOcupados(true);
   try{
-    const r = await apiCall('iniciarVenda', { requisicaoId: reqIdPersist_('venda', _reqVendaCont), itens: carrinhoAtual, clienteNome, clienteTelefone, pagamentos: pagamentosParaEnviar, tipoEntrega: tipoEntregaAtual, dadosEntrega, statusPagamento: statusPagamentoParaEnviar, desconto, senhaAdminConfirmacao, origem: (currentUser && currentUser.nivel==='Garçom') ? 'Garçom' : 'Balcão', mesaId: mesaEscolhidaId });
+    const payloadVenda_ = { requisicaoId: reqIdPersist_('venda', _reqVendaCont), itens: carrinhoAtual, clienteNome, clienteTelefone, pagamentos: pagamentosParaEnviar, tipoEntrega: tipoEntregaAtual, dadosEntrega, statusPagamento: statusPagamentoParaEnviar, desconto, senhaAdminConfirmacao, origem: (currentUser && currentUser.nivel==='Garçom') ? 'Garçom' : 'Balcão', mesaId: mesaEscolhidaId };
+    let r = await apiCall('iniciarVenda', payloadVenda_);
+    // o custo do produto mudou enquanto a tela estava aberta (preço de ingrediente/compra): atualiza o custo e tenta de novo, uma vez
+    if(r && !r.ok && typeof cfCustoMudou === 'function' && cfCustoMudou(r) && await cfAtualizarCustosItens(carrinhoAtual)) r = await apiCall('iniciarVenda', payloadVenda_);
     if(r.ok){
       reqIdConfirmado_('venda', _reqVendaCont);
       vendas = r.vendas || vendas; itensVenda = r.itensVenda || itensVenda; pagamentosVenda = r.pagamentosVenda || pagamentosVenda;

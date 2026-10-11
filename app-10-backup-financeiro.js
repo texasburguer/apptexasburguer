@@ -13,7 +13,7 @@ async function carregarArmazenamento(){
     res.innerHTML = `<div style="height:12px;background:#3a2c1c;border-radius:6px;overflow:hidden;"><div style="width:${pct}%;height:100%;background:${cor};"></div></div>
       <div style="margin-top:6px;">Usado: <b>${formatarBytes_(d.usado)}</b> · Livre: <b>${d.livre===null?'—':formatarBytes_(d.livre)}</b> · <b style="color:${cor};">${d.percentual===null?'—':d.percentual+'%'} (${escBk_(d.nivel)})</b></div>
       ${d.nivel==='Crítico'?'<div class="obs-line" style="color:#ffb3ab;margin-top:4px;">⚠️ Drive quase cheio: novos backups e fotos podem falhar. Libere espaço.</div>':d.nivel==='Atenção'?'<div class="obs-line" style="margin-top:4px;">Atenção: acima de 70% do espaço.</div>':''}`;
-    sistemaAlertas_.drive = d.nivel==='Crítico' ? ('Google Drive quase cheio ('+d.percentual+'% usado). Libere espaço em Administrador → Sistema → Espaço e fotos.') : '';
+    sistemaAlertas_.drive = d.nivel==='Crítico' ? ('Google Drive quase cheio ('+d.percentual+'% usado). Libere espaço em Administrador → Sistema → Backup e espaço.') : '';
     marcarAlertaAdmin_(d.nivel==='Crítico'); renderNotificacoes();
     const cats = Object.entries(r.categorias).map(([n,v])=>`<tr><td>${escBk_(n)}</td><td align="right">${v.qtd}</td><td align="right">${formatarBytes_(v.bytes)}</td></tr>`).join('');
     const arqs = (r.arquivos||[]).slice(0,10).map(a=>`<tr><td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;">${escBk_(a.nome)}</td><td>${escBk_(a.categoria)}</td><td align="right">${formatarBytes_(a.tamanho)}</td></tr>`).join('');
@@ -121,22 +121,9 @@ document.addEventListener('DOMContentLoaded', filaAtualizarBadge_);
 setTimeout(filaAtualizarBadge_, 500);
 
 /* ---------- CONTINGÊNCIA (ADMIN) — Item 81 ---------- */
-/* Contingência: status, armazenamento e interruptor da sincronização automática carregam sempre que a tela abre
-   (antes só rodavam uma vez, 8 s depois do login, e o resultado podia nunca aparecer). */
-async function contSincAutoCarregar(){
-  const cb = document.getElementById('contSincAuto'), m = document.getElementById('contSincAutoMsg'); if(!cb) return;
-  try{ const r = await apiCall('sincAutoStatus', {}); if(r && r.ok){ cb.checked = !!r.ativo; cb.disabled = false; if(m) m.textContent = r.ativo ? 'Ligada: o espelho é atualizado todo dia às 3h.' : 'Desligada: o espelho só atualiza quando você toca em "Sincronizar espelho agora".'; }
-    else if(m) m.textContent = 'Não consegui consultar o estado agora.'; }catch(e){ if(m) m.textContent = 'Não consegui consultar o estado agora.'; }
-}
-async function contSincAutoSalvar(ativar){
-  const cb = document.getElementById('contSincAuto'), m = document.getElementById('contSincAutoMsg'); if(cb) cb.disabled = true; if(m) m.textContent = 'Salvando...';
-  try{ const r = await apiCall('sincAutoDefinir', { ativar: !!ativar });
-    if(r && r.ok){ if(cb) cb.checked = !!r.ativo; if(m) m.textContent = r.message || 'Salvo.'; }
-    else{ if(cb) cb.checked = !ativar; if(m) m.textContent = (r && r.message) || 'Não foi possível salvar.'; }
-  }catch(e){ if(cb) cb.checked = !ativar; if(m) m.textContent = 'Sem conexão. Tente de novo.'; }
-  if(cb) cb.disabled = false;
-}
-function contAbrirTela_(){ try{ carregarStatusContingencia(); contSincAutoCarregar(); }catch(e){} }
+/* Contingência: status e armazenamento carregam sempre que a tela abre.
+   O espelho é atualizado pelo Supabase (a cada 10 min e completo às 3h); não há mais interruptor na tela. */
+function contAbrirTela_(){ try{ carregarStatusContingencia(); }catch(e){} }
 async function carregarStatusContingencia(){
   const box = document.getElementById('contingenciaStatus');
   if(!box) return;
@@ -163,13 +150,11 @@ async function carregarArmazenamentoContingencia(){
     const d = r.drive, cor = {Normal:'#7cc46a','Atenção':'#e0b53a','Crítico':'#e5534b'}[d.nivel] || '#999';
     const pct = d.percentual===null ? 0 : Math.min(100,d.percentual);
     const cats = Object.entries(r.categorias||{}).map(([n,v])=>`<tr><td>${escBk_(n)}</td><td align="right">${v.qtd}</td><td align="right">${formatarBytes_(v.bytes)}</td></tr>`).join('');
-    const ult = (r.backups||[])[0];
     box.innerHTML = `<div style="font-weight:600;margin-bottom:4px;">Espaço da conta da contingência</div>
       <div style="height:12px;background:#3a2c1c;border-radius:6px;overflow:hidden;"><div style="width:${pct}%;height:100%;background:${cor};"></div></div>
       <div style="margin-top:6px;">Usado: <b>${formatarBytes_(d.usado)}</b> · Livre: <b>${d.livre===null?'—':formatarBytes_(d.livre)}</b> · <b style="color:${cor};">${d.percentual===null?'—':d.percentual+'%'} (${escBk_(d.nivel)})</b></div>
       ${d.nivel==='Crítico'?'<div class="obs-line" style="color:#ffb3ab;margin-top:4px;">⚠️ Drive da contingência quase cheio: novas cópias de backup e fotos podem ser recusadas. Libere espaço nessa conta.</div>':d.nivel==='Atenção'?'<div class="obs-line" style="margin-top:4px;">Atenção: acima de 70% do espaço.</div>':''}
-      <table style="width:100%;border-collapse:collapse;white-space:nowrap;margin-top:6px;"><thead><tr><th align="left">Guardado lá</th><th align="right">Arquivos</th><th align="right">Tamanho</th></tr></thead><tbody>${cats}</tbody></table>
-      <div class="obs-line" style="margin-top:4px;">Última cópia de backup: <b>${ult ? formatarDataHoraISO(ult.criadoEm)+' ('+formatarBytes_(ult.tamanho)+')' : 'nenhuma ainda'}</b></div>`;
+      <table style="width:100%;border-collapse:collapse;white-space:nowrap;margin-top:6px;"><thead><tr><th align="left">Guardado lá</th><th align="right">Arquivos</th><th align="right">Tamanho</th></tr></thead><tbody>${cats}</tbody></table>`;
     sistemaAlertas_.driveCont = d.nivel==='Crítico' ? ('Drive da conta da contingência quase cheio ('+d.percentual+'% usado). Libere espaço nessa conta.') : '';
     marcarAlertaAdmin_(d.nivel==='Crítico'); renderNotificacoes();
   } catch(e){ box.innerHTML = '<span style="color:var(--muted);">Não foi possível consultar o espaço da contingência agora.</span>'; }
@@ -315,10 +300,9 @@ async function toggleFormaVisivelCardapio(id, novoValor){
 }
 async function editarMeta(tipo){
   const atual = tipo==='MetaMensal' ? metas.mensal : metas.diaria;
-  const novaMeta = prompt('Nova ' + (tipo==='MetaMensal'?'meta mensal':'meta diária') + ' (R$):', atual);
-  if(novaMeta === null) return;
-  const valorMeta = Number(String(novaMeta).replace(',','.'));
-  if(!(valorMeta > 0)){ alert('Informe um valor maior que zero (ex.: 15000 ou 15000,50).'); return; }
+  const f = await vsForm({ titulo: tipo==='MetaMensal' ? 'Meta mensal de vendas' : 'Meta diária de vendas', ok:'Salvar meta',
+    campos:[ { id:'valor', rotulo:'Valor da meta', sufixo:'R$', tipo:'numero', obrigatorio:true, maiorQueZero:true, valor: atual ? String(atual).replace('.',',') : '' } ] });
+  if(!f) return; const valorMeta = Number(f.valor);
   try{ const r = await apiCall('salvarMeta', { tipo, valor: valorMeta }); if(!r || !r.ok){ alert((r && r.message) || 'Não foi possível salvar a meta.'); return; } metas = r.metas || metas; salvarCache(); atualizarMetaUI(); } catch(e){ alert('Não foi possível salvar a meta agora.'); }
 }
 function atualizarMetaUI(){

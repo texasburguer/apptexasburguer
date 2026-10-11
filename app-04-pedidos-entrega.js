@@ -531,7 +531,7 @@ async function cozinhaIniciar(vendaId){
 }
 
 /* ---- Cozinha: detector próprio (consulta leve a cada 3 min, alerta visual + beep) ---- */
-let cozinhaVistos = null, cozinhaTimer = null, cozinhaSyncPendente = false, cozinhaUltimaChecagem = null, cozinhaAudio = null;
+let cozinhaVistos = null, cozinhaTimer = null, cozinhaSyncPendente = false, cozinhaUltimaChecagem = null;
 let cozinhaSomLigado = localStorage.getItem('cozinhaSom') !== '0';
 function atualizarStatusDetector_(erro){
   const el = document.getElementById('czStatus'); const btn = document.getElementById('czSomBtn');

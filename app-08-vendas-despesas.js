@@ -43,7 +43,9 @@ async function salvarEdicaoVenda(){
   if(!motivo){ showMsg('evMsg','Informe o motivo da edição.','warn'); return; }
   if(itensEdicaoVenda.length===0){ showMsg('evMsg','A venda precisa ter ao menos um item.','warn'); return; }
   try{
-    const r = await apiCall('editarVenda', { id: vendaEditandoId, itens: itensEdicaoVenda, motivo, senhaAdminConfirmacao, versaoEsperada: versaoEdicaoVenda_ || undefined });
+    const payloadEd_ = { id: vendaEditandoId, itens: itensEdicaoVenda, motivo, senhaAdminConfirmacao, versaoEsperada: versaoEdicaoVenda_ || undefined };
+    let r = await apiCall('editarVenda', payloadEd_);
+    if(r && !r.ok && typeof cfCustoMudou === 'function' && cfCustoMudou(r) && await cfAtualizarCustosItens(itensEdicaoVenda)) r = await apiCall('editarVenda', payloadEd_);
     if(r.ok){
       vendas = r.vendas || vendas; itensVenda = r.itensVenda || itensVenda; salvarCache();
       showMsg('evMsg', r.message, r.aviso ? 'warn' : 'ok');
@@ -374,8 +376,9 @@ async function registrarAjusteUI(){
   finally{ _ajOcupado_ = false; btn.disabled = false; }
 }
 async function cancelarAjusteUI(id){
-  const motivo = (prompt('Motivo do cancelamento deste ajuste:') || '').trim();
-  if(!motivo) return;
+  const f = await vsForm({ titulo:'Cancelar ajuste', ok:'Cancelar ajuste', perigo:true,
+    campos:[ { id:'motivo', rotulo:'Motivo do cancelamento', tipo:'texto', obrigatorio:true, sugestoes:['Lançado errado','Lançado em dobro'] } ] });
+  if(!f) return; const motivo = f.motivo;
   try{
     const r = await apiCall('cancelarAjustePosVenda', { id, motivo });
     if(r && r.ok){ ajustesPosVenda = r.ajustesPosVenda || ajustesPosVenda; despesas = r.despesas || despesas; salvarCache(); renderAjustes(); renderDespesas(); atualizarResumoHoje(); renderStatusCaixa(); if(((document.querySelector('section.tab.active')||{}).id||'')==='tab-relatorios') gerarRelatorio(); showMsg('ajMsg', r.message, 'ok'); }
@@ -410,8 +413,9 @@ function rbRender(){
 async function confirmarReembolsoUI(id){
   if(_rbOcupado_) return;
   const x = _rbItens_.find(i=>i.id===id); if(!x) return;
-  const obs = prompt('Devolveu ' + formatarMoeda(x.valor) + ' ao cliente. Como foi (Pix, dinheiro, estorno)? Pode deixar em branco.');
-  if(obs === null) return;
+  const f = await vsForm({ titulo:'Devolução ao cliente', texto:'Marcar que ' + formatarMoeda(x.valor) + ' foi devolvido ao cliente.', ok:'Marcar devolvido',
+    campos:[ { id:'obs', rotulo:'Como foi devolvido (opcional)', tipo:'texto', sugestoes:['Pix','Dinheiro','Estorno no cartão'] } ] });
+  if(!f) return; const obs = f.obs;
   _rbOcupado_ = true;
   try{
     const r = await apiCall('confirmarReembolso', { id, observacao: obs });

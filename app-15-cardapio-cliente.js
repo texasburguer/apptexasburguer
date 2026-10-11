@@ -134,18 +134,9 @@ function mostrarLinkAcompanhamento(vendaId, nomeCliente, numero){
 const CD_CACHE_KEY_ = 'cdCache_v1';
 function cdLerCache_(){ try{ const r = JSON.parse(localStorage.getItem(CD_CACHE_KEY_)||'null'); return (r && r.dados && r.dados.produtos) ? r : null; }catch(e){ return null; } }
 function cdSalvarCache_(dados){ try{ localStorage.setItem(CD_CACHE_KEY_, JSON.stringify({ t: Date.now(), dados })); }catch(e){} }
-/* Busca leve (GET): não entra na fila única do sistema e usa o cache do servidor. */
+/* Busca o cardápio no Supabase (o caminho antigo, pela planilha, foi retirado). */
 async function cdBuscarGet_(versaoAtual){
-  if(USAR_SUPABASE_){ const d = await sbCardapioPublico_(); if(d && d.manutencao){ mostrarManutencao_(d.message); throw new Error('manutencao'); } if(!d || !d.produtos) throw new Error('Resposta inválida'); return d; }
-  const ctl = new AbortController(); const to = setTimeout(()=>ctl.abort(), 15000);
-  try{
-    const res = await fetch(API_URL + (API_URL.indexOf('?')===-1?'?':'&') + 'cd=' + Date.now() + (versaoAtual ? '&v=' + encodeURIComponent(versaoAtual) : ''), { signal: ctl.signal });
-    if(!res.ok) throw new Error('Falha na requisição');
-    const d = await res.json();
-    if(d && d.igual) return { igual: true };   // ITEM 18: o celular já tem esta versão
-    if(!d || !d.produtos) throw new Error('Resposta inválida');
-    return d;
-  } finally { clearTimeout(to); }
+  const d = await sbCardapioPublico_(); if(d && d.manutencao){ mostrarManutencao_(d.message); throw new Error('manutencao'); } if(!d || !d.produtos) throw new Error('Resposta inválida'); return d;
 }
 /* Estado mostrado ao cliente: cardápio fechado pelo restaurante (mensagem dele) > caixa fechado > aberto. */
 function cdStatusTexto_(){

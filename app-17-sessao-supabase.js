@@ -19,12 +19,12 @@ const sb410Fmt_ = iso => iso ? new Date(iso).toLocaleString('pt-BR') : '—';
 const sb410Admin_ = () => !!currentUser && currentUser.nivel === 'Admin';
 const sb410Gestor_ = () => !!currentUser && (currentUser.nivel === 'Admin' || currentUser.nivel === 'Operador');
 
-/* ---------- cartões (criados uma vez, no fim da aba Armazenamento) ---------- */
+/* ---------- cartões (criados uma vez; ficam em Backup e espaço e em Sincronização e contingência) ---------- */
 function sb410Montar_(){
   const aba = document.getElementById('tab-armazenamento');
   if(!aba || !USAR_SUPABASE_ || document.getElementById('sb410Sync')) return;
   aba.insertAdjacentHTML('beforeend', `
-  <div class="card" id="sb410Sync"><h2>Sincronização com as planilhas</h2><div id="sb410SyncBox">Carregando…</div>
+  <div class="card" id="sb410Sync"><h2>Cópia na planilha principal</h2><p class="sub">O cardápio, os clientes e as vendas são copiados para a planilha a cada 2 minutos, sozinhos.</p><div id="sb410SyncBox">Carregando…</div>
     <button class="small-gold" style="width:100%;padding:10px;margin-top:8px;" onclick="sb410SyncAgora()">Sincronizar agora</button></div>
   <div class="card" id="sb410Bk"><h2>Backup do Supabase</h2>
     <div style="border:1px solid #3a2c1c;border-radius:10px;padding:10px;margin-bottom:10px;">
@@ -41,22 +41,14 @@ function sb410Montar_(){
     <div id="sb410BkBox">Carregando…</div>
     <button class="small-gold" style="width:100%;padding:10px;margin-top:8px;" onclick="sb410BkAgora()">Fazer backup agora</button></div>
   <div class="card" id="sb410Esp"><h2>Uso do Supabase</h2><div id="sb410EspBox">Carregando…</div></div>
-  <div class="card" id="sb410Fotos"><h2>Fotos (Google Drive)</h2>
-    <label for="sb410FotoPadrao">Ao enviar uma foto nova</label>
-    <select id="sb410FotoPadrao" style="width:100%;margin-bottom:8px;" onchange="sb410FotoSalvarPadrao(this.value)">
-      <option value="principal">Salvar no Drive principal</option><option value="contingencia">Salvar no Drive da contingência</option>
-      <option value="ambos">Salvar nos dois</option><option value="perguntar">Perguntar sempre</option></select>
-    <button class="ghost" style="width:100%;padding:10px;" onclick="sb410FotoSync()">Copiar fotos antigas para a contingência</button>
-    <div class="msg" id="sb410FotoMsg"></div></div>
   <div class="card" id="sb410Integ"><h2>Conferência de integridade</h2>
     <p class="sub">Compara as vendas de hoje no Supabase com a planilha (a conferência automática, às 6h10, confere o dia anterior).</p>
     <button class="ghost" style="width:100%;padding:10px;" onclick="sb410Integ()">Conferir agora</button><div class="msg" id="sb410IntegMsg"></div></div>`);
   const mover = (id, destino) => { const c = document.getElementById(id), d = document.getElementById('tab-'+destino); if(c && d && c.parentNode !== d) d.appendChild(c); };
   mover('sb410Sync','integridade'); mover('sb410Integ','integridade');
-  mover('sb410Esp','drive'); mover('sb410Fotos','drive');   // 'sb410Bk' fica em Backup
-  // "Importar cardápio inicial" sempre por último em Backup (os cards do Supabase são acrescentados depois dele)
-  const imp = document.getElementById('importarCardapioCard'), ta = document.getElementById('tab-armazenamento');
-  if(imp && ta) ta.appendChild(imp);
+  // Backup e espaço: Backup, Uso do Supabase (com o arquivamento) e, por último, o Google Drive
+  mover('sb410Esp','armazenamento');
+  { const dc = document.getElementById('driveCard'), ta = document.getElementById('tab-armazenamento'); if(dc && ta) ta.appendChild(dc); }
 }
 function sb410Carregar_(){
   sb410Montar_();
@@ -71,8 +63,8 @@ function sb410Carregar_(){
   if(!sb410Gestor_()) return;
   sb410SyncStatus();
   const adm = sb410Admin_();
-  ['sb410Bk','sb410Esp','sb410Fotos','sb410Integ'].forEach(id=>{ const e=document.getElementById(id); if(e) e.style.display = adm ? '' : 'none'; });
-  if(adm){ sb410VerificarAlertaBackup_(); sb410BkLista(); sb410BkCfgCarregar(); sb410Espaco(); sb410FotoCarregarPadrao(); }
+  ['sb410Bk','sb410Esp','driveCard','sb410Integ'].forEach(id=>{ const e=document.getElementById(id); if(e) e.style.display = adm ? '' : 'none'; });
+  if(adm){ sb410VerificarAlertaBackup_(); sb410BkLista(); sb410BkCfgCarregar(); sb410Espaco(); }
 }
 
 /* ---------- Etapa 4: sincronização ---------- */
@@ -84,11 +76,9 @@ async function sb410SyncStatus(){
     const horas = j.principal_ultimo_ok ? Math.round((Date.now()-new Date(j.principal_ultimo_ok).getTime())/3600000) : null;
     const travada = j.pendentes_principal > (j.alerta_itens||500) || (j.pendentes_principal>0 && (horas===null || horas > (j.alerta_horas||6)));
     box.innerHTML = `<div class="stat-row">
-      <div class="stat-box"><b>${j.pendentes_principal}</b>Pendentes (principal)</div>
-      <div class="stat-box"><b>${j.pendentes_contingencia}</b>Pendentes (contingência)</div>
+      <div class="stat-box"><b>${j.pendentes_principal}</b>Pendentes</div>
       <div class="stat-box"><b>${j.erros_principal}</b>Com erro</div></div>
-      <span class="obs-line">Principal: último envio ${sb410Fmt_(j.principal_ultimo_ok)}${(j.principal_ultimo_erro && (!j.principal_ultimo_ok || new Date(j.principal_ultimo_erro) > new Date(j.principal_ultimo_ok)))?' · <b>com erro agora</b>: '+escH(j.principal_ultimo_erro_msg||'sem detalhe'):''}</span>
-      <span class="obs-line">Contingência: último envio ${sb410Fmt_(j.contingencia_ultimo_ok)}${(j.contingencia_ultimo_erro && (!j.contingencia_ultimo_ok || new Date(j.contingencia_ultimo_erro) > new Date(j.contingencia_ultimo_ok)))?' · <b>com erro agora</b>: '+escH(j.contingencia_ultimo_erro_msg||'sem detalhe'):''}</span>
+      <span class="obs-line">Último envio para a planilha: ${sb410Fmt_(j.principal_ultimo_ok)}${(j.principal_ultimo_erro && (!j.principal_ultimo_ok || new Date(j.principal_ultimo_erro) > new Date(j.principal_ultimo_ok)))?' · <b>com erro agora</b>: '+escH(j.principal_ultimo_erro_msg||'sem detalhe'):''}</span>
       ${travada?'<span class="obs-line" style="color:#ffb3ab;">⚠️ Fila parada — confira o acesso às planilhas e a cota do Apps Script.</span>':''}`;
   }catch(e){ box.textContent = 'Não foi possível carregar.'; }
 }
@@ -167,11 +157,13 @@ async function sb410BkCfgSalvar(){
     sb410BkCfgCarregar();
   }catch(e){ if(m) m.textContent = 'Não foi possível salvar agora.'; }
 }
+let _sb410BkOcupado_ = false;
 async function sb410BkAgora(){
-  if(!confirm('Fazer backup agora? Pode levar alguns segundos.')) return;
+  if(_sb410BkOcupado_) return; _sb410BkOcupado_ = true;
+  const box = document.getElementById('sb410BkBox'); if(box) box.insertAdjacentHTML('afterbegin', '<div class="obs-line" id="sb410BkFazendo">Fazendo backup… pode levar alguns segundos.</div>');
   try{ const j = await sb410Edge_('criar-backup', { tipo:'Manual' }, 120000);
     alert(j.ok ? 'Backup feito ('+Math.round((j.tamanho||0)/1024)+' KB).' + (j.drive ? ' Cópia no Drive: ok.' : ' ATENÇÃO: a cópia no Drive não foi feita' + (j.driveErro ? ' ('+j.driveErro+')' : '') + '.') : 'Erro: '+(j.message||'falha')); }catch(e){ alert('Sem conexão.'); }
-  sb410BkLista(); setTimeout(sb410VerificarAlertaBackup_, 1500);
+  _sb410BkOcupado_ = false; sb410BkLista(); setTimeout(sb410VerificarAlertaBackup_, 1500);
 }
 /* Restaurar e excluir backup: pedem a senha do Administrador no pop-up (confere na hora) e o servidor confere de novo. */
 function sb410BkRestaurar(id){
@@ -190,7 +182,7 @@ function sb410BkExcluir(id){
   });
 }
 async function sb410BkReenviarDrive(id){
-  if(!confirm('Enviar este backup para o Google Drive agora? Pode levar até 2 minutos.')) return;
+  const box = document.getElementById('sb410BkBox'); if(box) box.insertAdjacentHTML('afterbegin', '<div class="obs-line">Enviando ao Drive… pode levar até 2 minutos.</div>');
   try{ const j = await sb410Edge_('criar-backup', { reenviarDrive:id }, 170000);
     alert(j.ok ? 'Cópia enviada ao Drive.' : 'Não foi possível enviar ao Drive: ' + (j.message || 'falha')); }catch(e){ alert('Sem conexão. Tente de novo.'); }
   sb410BkLista();
@@ -258,33 +250,11 @@ async function sb410ArquivarAgora(){
   sb410Espaco();
 }
 
-/* ---------- Etapa 8: fotos só no Drive ---------- */
-let _sb410FotoRes_ = null;
-function sb410FotoResp_(d){
-  document.getElementById('sb410FotoModal').classList.remove('open');
-  if(d && document.getElementById('sb410FotoLembrar').checked) sb410FotoSalvarPadrao(d);
-  const f = _sb410FotoRes_; _sb410FotoRes_ = null; if(f) f(d);
-}
-function sb410FotoPerguntar_(){ return new Promise(res=>{ _sb410FotoRes_ = res; document.getElementById('sb410FotoLembrar').checked = false; document.getElementById('sb410FotoModal').classList.add('open'); }); }
-async function sb410FotoCarregarPadrao(){
-  try{ const c = await sbSelecionar_('configuracoes_fotos','id=eq.true',true); const s = document.getElementById('sb410FotoPadrao'); if(s && c[0]) s.value = c[0].destino_padrao_upload; }catch(e){}
-}
-async function sb410FotoSalvarPadrao(v){
-  try{ const t = await sb410Token_();
-    await sbJson_(SUPABASE_URL_+'/rest/v1/configuracoes_fotos?id=eq.true', { method:'PATCH', headers:{ apikey:SUPABASE_CHAVE_, Authorization:'Bearer '+t, 'Content-Type':'application/json', Prefer:'return=minimal' }, body: JSON.stringify({ destino_padrao_upload:v, atualizado_em:new Date().toISOString() }) }, 15000);
-    const s = document.getElementById('sb410FotoPadrao'); if(s) s.value = v;
-  }catch(e){}
-}
-async function sb410FotoSync(){
-  const m = document.getElementById('sb410FotoMsg'); if(m) m.textContent = 'Copiando…';
-  try{ const j = await sb410Edge_('sincronizar-fotos', {}, 120000); if(m) m.textContent = j.ok ? (j.message || (j.replicadas||0)+' foto(s) copiada(s).') : 'Erro: '+(j.message||'falha'); }
-  catch(e){ if(m) m.textContent = 'Sem conexão.'; }
-}
+
 /* Chamada pelo roteador (sbRotear_) no lugar do "ainda não migrada" — ver LEIA-ME */
+/* Fotos: sempre no Drive principal, com cópia no Drive da contingência (o espelho de 10 min também copia as que faltarem). */
 async function sbUploadFoto_(action, p){
-  let destino = 'principal';
-  try{ const c = await sbSelecionar_('configuracoes_fotos','id=eq.true',true); destino = (c[0] && c[0].destino_padrao_upload) || 'principal'; }catch(e){}
-  if(destino === 'perguntar'){ destino = await sb410FotoPerguntar_(); if(!destino) return { ok:false, message:'Envio cancelado.' }; }
+  const destino = 'ambos';
   const corpo = { nomeBase:p.nomeBase, base64Data:p.base64Data, mimeType:p.mimeType, destino };
   if(action === 'uploadFotoCombo') corpo.comboId = p.comboId; else corpo.produtoId = p.produtoId;
   const j = await sb410Edge_('upload-foto', corpo, 90000);
@@ -325,13 +295,13 @@ async function sb410Integ(){
   catch(e){ if(m){ m.className = 'msg warn'; m.textContent = 'Sem conexão.'; } }
 }
 
-/* ---------- gancho: ao abrir Administrador → Sistema → Backup ---------- */
+/* ---------- gancho: ao abrir Administrador → Sistema → Backup e espaço / Sincronização e contingência ---------- */
 (function(){
   const orig = window.abrirAdministrador;
   if(typeof orig !== 'function') return;
   window.abrirAdministrador = function(sub){
     const r = orig.apply(this, arguments);
-    try{ if(['armazenamento','drive','integridade'].some(id=>{ const s = document.getElementById('tab-'+id); return s && s.classList.contains('active'); })) sb410Carregar_(); }catch(e){}
+    try{ if(['armazenamento','integridade'].some(id=>{ const s = document.getElementById('tab-'+id); return s && s.classList.contains('active'); })) sb410Carregar_(); }catch(e){}
     return r;
   };
 })();

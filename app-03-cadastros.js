@@ -31,6 +31,7 @@ function previewFoto(inputId, previewId){
   reader.readAsDataURL(input.files[0]);
 }
 function atualizarMargemPreview(){
+  if(typeof cfAtualizarMargem === 'function') return cfAtualizarMargem('p');
   const preco = Number(document.getElementById('pPreco').value) || 0;
   const custo = Number(document.getElementById('pCusto').value) || 0;
   const margem = preco - custo;
@@ -47,7 +48,6 @@ function linhaPrecoRef_(lista, chaveId, id){
   const linhas = (lista||[]).filter(x=>x[chaveId]===id);
   return (ref && linhas.find(x=>x.formaPagamentoId===ref.id)) || linhas[0] || null;
 }
-function adicionarExcecaoPreco(){}
 /* PREÇO PRÓPRIO POR FORMA (ex.: iFood): formas marcadas em Pagamentos ganham um campo no produto/combo. Em branco = preço base. */
 function renderPrecosExcecoes(prefix, valores){
   const box = document.getElementById((prefix||'') + 'PrecosProprios'); if(!box) return;
@@ -86,6 +86,7 @@ function toggleEstoqueProprioUI(prefix){
 function coletarEstoqueProprio(prefix){
   if(!document.getElementById(prefix+'EstoqueProprioAtivo').checked) return null;
   const obj = { ativo: true, unidade: document.getElementById(prefix+'EstoqueUnidade').value, minimo: Number(document.getElementById(prefix+'EstoqueMin').value)||0 };
+  if(typeof cfCustoEstoqueProprio === 'function') obj.custo = cfCustoEstoqueProprio(prefix); // custo do item pronto
   const campoQtd = document.getElementById(prefix+'EstoqueQtd');
   if(campoQtd) obj.quantidade = Number(campoQtd.value)||0; // só existe no cadastro novo; na edição a quantidade não é mexida
   return obj;
@@ -325,6 +326,7 @@ function adicionarItemAoComboNovo(){
 function renderItensComboNovo(){
   const box = document.getElementById('koItensLista');
   box.innerHTML = itensComboNovo.map((it,idx)=>`<div class="ingrediente-row"><span>${it.quantidade}x ${it.produtoNome}</span><button class="rm-row" onclick="itensComboNovo.splice(${idx},1);renderItensComboNovo();">✕</button></div>`).join('') || '<div class="notif-empty">Nenhum produto adicionado ainda.</div>';
+  if(typeof cfCustoCombo === 'function') cfCustoCombo('ko');
 }
 function adicionarItemAoComboEdicao(){
   const sel = document.getElementById('kkProdutoSelect');
@@ -338,6 +340,7 @@ function adicionarItemAoComboEdicao(){
 function renderItensComboEdicao(){
   const box = document.getElementById('kkItensLista');
   box.innerHTML = itensComboEdicao.map((it,idx)=>`<div class="ingrediente-row"><span>${it.quantidade}x ${it.produtoNome}</span><button class="rm-row" onclick="itensComboEdicao.splice(${idx},1);renderItensComboEdicao();">✕</button></div>`).join('') || '<div class="notif-empty">Nenhum produto vinculado.</div>';
+  if(typeof cfCustoCombo === 'function') cfCustoCombo('kk');
 }
 function descricaoItensCombo(comboId){
   return comboItens.filter(it=>it.comboId===comboId).map(it=>{
@@ -349,16 +352,8 @@ function popularSelectIngredientes(selectId){
   const sel = document.getElementById(selectId);
   sel.innerHTML = estoque.map(e=>`<option value="${e.id}" data-nome="${escH(e.nome)}" data-unidade="${e.unidade||'un'}">${escH(e.nome)} (${e.unidade||'un'})</option>`).join('') || '<option value="">Cadastre um ingrediente primeiro</option>';
 }
-function adicionarIngredienteAoProdutoNovo(){
-  const sel = document.getElementById('pIngredienteSelect');
-  const opt = sel.options[sel.selectedIndex];
-  const qtd = Number(document.getElementById('pIngredienteQtd').value) || 0;
-  if(!opt || !opt.value || qtd<=0) return;
-  ingredientesProdutoNovo.push({ ingredienteId: opt.value, ingredienteNome: opt.dataset.nome, quantidadePorUnidade: qtd, unidade: opt.dataset.unidade||'un' });
-  document.getElementById('pIngredienteQtd').value = '';
-  renderIngredientesProdutoNovo();
-}
 function renderIngredientesProdutoNovo(){
+  if(typeof cfRwRender === 'function') return cfRwRender('p');
   const box = document.getElementById('pIngredientesLista');
   box.innerHTML = ingredientesProdutoNovo.map((ing,idx)=>`<div class="ingrediente-row"><span>${ing.quantidadePorUnidade} ${ing.unidade||'un'} de ${ing.ingredienteNome}</span><button class="rm-row" onclick="ingredientesProdutoNovo.splice(${idx},1);renderIngredientesProdutoNovo();">✕</button></div>`).join('');
 }
@@ -382,8 +377,8 @@ async function registrarProduto(){
   if(!nome){ showMsg('pMsg','Informe o nome do produto.','warn'); return; }
   setBotoesOcupados(true);
   try{
-    const r = await apiCall('addProduto', { nome, descricao, categoria, precoBase, custoBase, precos, ingredientes: ingredientesProdutoNovo, destaque: document.getElementById('pDestaque').checked, adicionaisIds: coletarAdicionaisChecklist('pAdicionaisLista'), estoqueProprio: coletarEstoqueProprio('p') });
-    produtos = r.produtos || produtos; produtoPrecos = r.produtoPrecos || produtoPrecos; produtoIngredientes = r.produtoIngredientes || produtoIngredientes; produtoAdicionais = r.produtoAdicionais || produtoAdicionais; estoque = r.estoque || estoque; salvarCache();
+    const r = await apiCall('addProduto', { nome, descricao, categoria, precoBase, custoBase, precos, ingredientes: (typeof cfIngredientesParaSalvar === 'function' ? cfIngredientesParaSalvar('p') : ingredientesProdutoNovo), destaque: document.getElementById('pDestaque').checked, adicionaisIds: coletarAdicionaisChecklist('pAdicionaisLista'), estoqueProprio: coletarEstoqueProprio('p') });
+    produtos = r.produtos || produtos; produtoPrecos = r.produtoPrecos || produtoPrecos; produtoIngredientes = r.produtoIngredientes || produtoIngredientes; produtoAdicionais = r.produtoAdicionais || produtoAdicionais; estoque = r.estoque || estoque; if(r.comboPrecos) comboPrecos = r.comboPrecos; salvarCache();
     if(r.ok){
       showMsg('pMsg', r.message, 'ok');
       const arquivoFoto = document.getElementById('pFoto').files[0];
@@ -395,7 +390,7 @@ async function registrarProduto(){
         } catch(e){ /* produto já foi salvo; a foto pode ser adicionada depois na edição */ }
       }
       fecharFormModal('produtoNovoModal'); showMsg('pMsgLista', r.message, 'ok');
-      ['pNome','pDescricao','pPreco','pCusto','pEstoqueQtd','pEstoqueMin'].forEach(id=>document.getElementById(id).value='');
+      ['pNome','pDescricao','pPreco','pCusto','pEstoqueQtd','pEstoqueMin','pPrValor','pPrQtd'].forEach(id=>{ const el = document.getElementById(id); if(el) el.value=''; });
       document.getElementById('pDestaque').checked = false;
       document.getElementById('pEstoqueProprioAtivo').checked = false; toggleEstoqueProprioUI('p');
       renderAdicionaisChecklist('pAdicionaisLista', []);
@@ -403,6 +398,7 @@ async function registrarProduto(){
       document.getElementById('pFoto').value = ''; document.getElementById('pFotoPreview').innerHTML = '';
       excecoesPreco.p = []; renderPrecosExcecoes('p', {});
       ingredientesProdutoNovo = []; renderIngredientesProdutoNovo();
+      if(typeof cfIniciarProduto === 'function') cfIniciarProduto('p', null);
       atualizarMargemPreview(); renderProdutos(); renderProdutoCuradoria(); renderEstoque(); popularSelectIngredientes('pIngredienteSelect'); popularSelectIngredientes('ppIngredienteSelect'); popularSelectAdicionalIngrediente(); popularSelectProdutos(); popularSelectProdutosParaCombo('koProdutoSelect'); popularSelectProdutosParaCombo('kkProdutoSelect');
     } else { showMsg('pMsg', r.message, 'warn'); }
   } catch(e){ showMsg('pMsg','Não foi possível cadastrar.','warn'); }
@@ -439,6 +435,7 @@ function abrirEditarProduto(id){
   popularSelectIngredientes('ppIngredienteSelect'); atualizarLabelQtdIngrediente('pp');
   ingredientesProdutoEdicao = produtoIngredientes.filter(v=>v.produtoId===id && v.ingredienteId!==p.estoqueProprioIngredienteId).map(v=>({ingredienteId:v.ingredienteId, ingredienteNome:v.ingredienteNome, quantidadePorUnidade:v.quantidadePorUnidade, unidade:(estoque.find(e=>e.id===v.ingredienteId)||{}).unidade||'un'}));
   renderIngredientesProdutoEdicao();
+  if(typeof cfIniciarProduto === 'function') cfIniciarProduto('pp', p);
   document.getElementById('produtoModal').classList.add('open');
 }
 function fecharModalProduto(){ document.getElementById('produtoModal').classList.remove('open'); }
@@ -464,16 +461,8 @@ async function removerFotoProdutoEdicao(){
     if(r.ok){ produtos = r.produtos || produtos; salvarCache(); renderProdutos(); document.getElementById('ppFotoAtual').innerHTML = '<span style="color:var(--muted);font-size:12.5px;">Nenhuma foto cadastrada.</span>'; }
   } catch(e){ showMsg('ppFotoMsg','Não foi possível remover a foto.','warn'); }
 }
-function adicionarIngredienteAoProdutoEdicao(){
-  const sel = document.getElementById('ppIngredienteSelect');
-  const opt = sel.options[sel.selectedIndex];
-  const qtd = Number(document.getElementById('ppIngredienteQtd').value) || 0;
-  if(!opt || !opt.value || qtd<=0) return;
-  ingredientesProdutoEdicao.push({ ingredienteId: opt.value, ingredienteNome: opt.dataset.nome, quantidadePorUnidade: qtd, unidade: opt.dataset.unidade||'un' });
-  document.getElementById('ppIngredienteQtd').value = '';
-  renderIngredientesProdutoEdicao();
-}
 function renderIngredientesProdutoEdicao(){
+  if(typeof cfRwRender === 'function') return cfRwRender('pp');
   const box = document.getElementById('ppIngredientesLista');
   box.innerHTML = ingredientesProdutoEdicao.map((ing,idx)=>`<div class="ingrediente-row"><span>${ing.quantidadePorUnidade} ${ing.unidade||'un'} de ${ing.ingredienteNome}</span><button class="rm-row" onclick="ingredientesProdutoEdicao.splice(${idx},1);renderIngredientesProdutoEdicao();">✕</button></div>`).join('') || '<div class="notif-empty">Nenhum ingrediente vinculado.</div>';
 }
@@ -490,16 +479,16 @@ async function salvarEdicaoProduto(){
       id: produtoEditandoId, nome, descricao: document.getElementById('ppDescricao').value.trim(),
       categoria: document.getElementById('ppCategoria').value,
       precos: montarPrecosComExcecoes('pp', precoBase, custoBase),
-      ativo: document.getElementById('ppAtivo').checked, ingredientes: ingredientesProdutoEdicao, destaque: document.getElementById('ppDestaque').checked,
+      ativo: document.getElementById('ppAtivo').checked, ingredientes: (typeof cfIngredientesParaSalvar === 'function' ? cfIngredientesParaSalvar('pp') : ingredientesProdutoEdicao), destaque: document.getElementById('ppDestaque').checked,
       adicionaisIds: coletarAdicionaisChecklist('ppAdicionaisLista'), estoqueProprio: coletarEstoqueProprio('pp')
     });
-    produtos = r.produtos || produtos; produtoPrecos = r.produtoPrecos || produtoPrecos; produtoIngredientes = r.produtoIngredientes || produtoIngredientes; produtoAdicionais = r.produtoAdicionais || produtoAdicionais; estoque = r.estoque || estoque; salvarCache();
+    produtos = r.produtos || produtos; produtoPrecos = r.produtoPrecos || produtoPrecos; produtoIngredientes = r.produtoIngredientes || produtoIngredientes; produtoAdicionais = r.produtoAdicionais || produtoAdicionais; estoque = r.estoque || estoque; if(r.comboPrecos) comboPrecos = r.comboPrecos; salvarCache();
     if(r.ok && premioMudou){
       const rp = await apiCall('editarPremioProduto', { produtoId: produtoEditandoId, premioFidelidade: premioFid, premioIndicacao: premioInd });
       if(rp && rp.ok){ produtos = rp.produtos || produtos; salvarCache(); }
       else { showMsg('ppMsg', 'Produto salvo, mas o prêmio não foi atualizado: ' + ((rp && rp.message) || 'tente de novo.'), 'warn'); renderProdutos(); return; }
     }
-    if(r.ok){ showMsg('ppMsg', r.message, 'ok'); renderProdutos(); renderProdutoCuradoria(); renderEstoque(); popularSelectProdutos(); setTimeout(fecharModalProduto, 700); }
+    if(r.ok){ showMsg('ppMsg', r.message, 'ok'); renderProdutos(); renderProdutoCuradoria(); renderEstoque(); popularSelectProdutos(); try{ renderCombos(); }catch(e){} setTimeout(fecharModalProduto, 700); }
     else showMsg('ppMsg', r.message, 'warn');
   } catch(e){ showMsg('ppMsg','Não foi possível salvar.','warn'); }
 }
@@ -512,16 +501,17 @@ function renderProdutos(){
   const filtro = document.getElementById('pSearch').value.toLowerCase();
   const tbody = document.getElementById('pTable');
   const lista = produtos.filter(p=>!filtro||p.nome.toLowerCase().includes(filtro));
+  if(typeof cfAvisos === 'function') cfAvisos();
   if(lista.length===0){ tbody.innerHTML = '<tr class="empty-row"><td colspan="4">Nenhum produto cadastrado ainda.</td></tr>'; return; }
   tbody.innerHTML = lista.map(p=>{
     const { preco, custo } = precoDisplayProduto(p.id);
     const margem = preco - custo;
     const pct = preco>0 ? (margem/preco*100) : 0;
     const ingredientesDoProduto = produtoIngredientes.filter(v=>v.produtoId===p.id);
-    const ingredientesTxt = ingredientesDoProduto.length ? ingredientesDoProduto.map(v=>v.quantidadePorUnidade+'x '+v.ingredienteNome).join(', ') : '';
+    const ingredientesTxt = ingredientesDoProduto.filter(v=>v.ingredienteId!==p.estoqueProprioIngredienteId).map(v=>{ const e = estoque.find(x=>x.id===v.ingredienteId)||{}; const u = e.unidade||'un'; const f = (u==='kg'||u==='l')?1000:1; return (Math.round(Number(v.quantidadePorUnidade)*f*1000)/1000).toLocaleString('pt-BR')+' '+(u==='kg'?'g':(u==='l'?'ml':u))+' '+v.ingredienteNome; }).join(', ');
     const thumb = p.fotoUrl ? `<img src="${fotoSrc_(p.fotoUrl, 100)}" onerror="fotoFalhou_(this)" style="width:34px;height:34px;border-radius:6px;object-fit:cover;vertical-align:middle;margin-right:6px;">` : '';
-    return `<tr><td>${thumb}${escH(p.nome)}<span class="obs-line">${nomeCategoria(p.categoria)}${ingredientesTxt?' · '+ingredientesTxt:''}</span></td><td>${formatarMoeda(preco)}</td><td>${formatarMoeda(margem)}<span class="obs-line">${pct.toFixed(0)}%</span></td>
-      <td><button class="ghost" onclick="abrirEditarProduto('${p.id}')">editar</button><button class="ghost" onclick="excluirProdutoConfirm('${p.id}')">excluir</button></td></tr>`;
+    return `<tr class="vs-linha" onclick="abrirEditarProduto('${p.id}')"><td>${thumb}${escH(p.nome)}<span class="obs-line">${nomeCategoria(p.categoria)}${ingredientesTxt?' · '+ingredientesTxt:''}</span></td><td>${formatarMoeda(preco)}</td><td>${custo>0 ? formatarMoeda(margem)+'<span class="obs-line">'+pct.toFixed(0)+'%</span>' : '<span class="cf-sem">custo não informado</span>'}</td>
+      <td><button type="button" class="ghost vs-mais" aria-label="Ações de ${escH(p.nome)}" onclick="event.stopPropagation();vsAcoesProduto('${p.id}')">⋯</button></td></tr>`;
   }).join('');
 }
 function renderProdutoCuradoria(){
@@ -674,7 +664,7 @@ function renderCombos(){
     const { preco } = precoDisplayCombo(c.id);
     const itensTxt = descricaoItensCombo(c.id);
     const thumb = c.fotoUrl ? `<img src="${fotoSrc_(c.fotoUrl, 100)}" onerror="fotoFalhou_(this)" style="width:34px;height:34px;border-radius:6px;object-fit:cover;vertical-align:middle;margin-right:6px;">` : '';
-    return `<tr><td>${thumb}${escH(c.nome)}<span class="obs-line">${nomeCategoria(c.categoria)}${itensTxt?' · '+itensTxt:''}</span></td><td>${formatarMoeda(preco)}</td><td><button class="ghost" onclick="abrirEditarCombo('${c.id}')">editar</button><button class="ghost" onclick="excluirComboConfirm('${c.id}')">excluir</button></td></tr>`;
+    return `<tr class="vs-linha" onclick="abrirEditarCombo('${c.id}')"><td>${thumb}${escH(c.nome)}<span class="obs-line">${nomeCategoria(c.categoria)}${itensTxt?' · '+itensTxt:''}</span></td><td>${formatarMoeda(preco)}</td><td><button type="button" class="ghost vs-mais" aria-label="Ações de ${escH(c.nome)}" onclick="event.stopPropagation();vsAcoesCombo('${c.id}')">⋯</button></td></tr>`;
   }).join('');
 }
 function renderComboCuradoria(){
@@ -718,6 +708,7 @@ async function registrarIngrediente(){
   const unidade = document.getElementById('eUnidade').value;
   const custo = Number(document.getElementById('eCusto').value) || 0;
   if(!nome){ showMsg('eMsg','Informe o nome do ingrediente.','warn'); return; }
+  if(!(custo > 0) && !confirm('Cadastrar "'+nome+'" sem preço? Os produtos que usam este ingrediente ficam sem custo até você informar quanto pagou.')) return;
   setBotoesOcupados(true);
   try{
     const r = await apiCall('addIngrediente', { nome, quantidade, minimo, unidade, custo });
@@ -725,8 +716,8 @@ async function registrarIngrediente(){
     if(r.ok){
       showMsg('eMsg', r.message, 'ok');
       fecharFormModal('ingredienteNovoModal'); showMsg('eMsgLista', r.message, 'ok');
-      ['eNome','eQtd','eMin','eCusto'].forEach(id=>document.getElementById(id).value='');
-      document.getElementById('eUnidade').value = 'un';
+      ['eNome','eQtd','eMin','eCusto','eCompraValor','eCompraQtd'].forEach(id=>{ const el = document.getElementById(id); if(el) el.value=''; });
+      document.getElementById('eUnidade').value = 'un'; if(typeof cfIngAtualizar === 'function') cfIngAtualizar('e');
       renderEstoque(); renderMovimentacoesEstoque(); popularSelectIngredientes('pIngredienteSelect'); popularSelectIngredientes('ppIngredienteSelect'); popularSelectAdicionalIngrediente();
     } else { showMsg('eMsg', r.message, 'warn'); }
   } catch(e){ showMsg('eMsg','Não foi possível cadastrar.','warn'); }
@@ -741,6 +732,7 @@ function editarEstoquePrompt(id){
   document.getElementById('eeUnidade').value = ['un','g','kg','ml','l'].includes(i.unidade) ? i.unidade : 'un';
   document.getElementById('eeCusto').value = i.custo || 0;
   document.getElementById('eeAtivo').checked = i.ativo !== false;
+  if(typeof cfEeAbrir === 'function') cfEeAbrir(i);
   showMsg('eeMsg','','');
   abrirFormModal('ingredienteEditModal');
 }
@@ -752,11 +744,12 @@ async function salvarEdicaoIngrediente(){
   const unidade = document.getElementById('eeUnidade').value;
   setBotoesOcupados(true);
   try{
+    if(typeof cfEeAntesDeSalvar === 'function' && !(await cfEeAntesDeSalvar())) return;
     const r = await apiCall('editarIngrediente', { id, nome, quantidade:Number(document.getElementById('eeQtd').value)||0, minimo:Number(document.getElementById('eeMin').value)||0, unidade, custo:Number(document.getElementById('eeCusto').value)||0, ativo: document.getElementById('eeAtivo').checked });
-    estoque = r.estoque || estoque; movimentacoesEstoque = r.movimentacoesEstoque || movimentacoesEstoque; salvarCache();
+    estoque = r.estoque || estoque; movimentacoesEstoque = r.movimentacoesEstoque || movimentacoesEstoque; if(r.produtoPrecos) produtoPrecos = r.produtoPrecos; if(r.comboPrecos) comboPrecos = r.comboPrecos; if(r.produtoIngredientes) produtoIngredientes = r.produtoIngredientes; salvarCache();
     if(r.ok){
       fecharFormModal('ingredienteEditModal'); showMsg('eMsgLista', r.message || 'Ingrediente atualizado.', 'ok');
-      renderEstoque(); renderMovimentacoesEstoque(); renderNotificacoes(); popularSelectIngredientes('pIngredienteSelect'); popularSelectIngredientes('ppIngredienteSelect'); popularSelectAdicionalIngrediente();
+      renderEstoque(); renderMovimentacoesEstoque(); renderNotificacoes(); try{ renderProdutos(); renderCombos(); }catch(e){} popularSelectIngredientes('pIngredienteSelect'); popularSelectIngredientes('ppIngredienteSelect'); popularSelectAdicionalIngrediente();
     } else { showMsg('eeMsg', r.message || 'Não foi possível salvar.', 'warn'); }
   }catch(e){ showMsg('eeMsg','Não foi possível salvar.','warn'); }
   finally{ setBotoesOcupados(false); }
@@ -777,20 +770,16 @@ async function salvarBloqueioEstoque(ligado){
 function renderEstoque(){
   const chkBE = document.getElementById('cfgBloquearEstoque'); if(chkBE && document.activeElement!==chkBE) chkBE.checked = !!(configEstoque && configEstoque.bloquear);
   const tbody = document.getElementById('eTable');
-  if(estoque.length===0){ tbody.innerHTML = '<tr class="empty-row"><td colspan="4">Nenhum ingrediente cadastrado ainda.</td></tr>'; return; }
-  tbody.innerHTML = estoque.map(i=>{
+  if(typeof cfAvisos === 'function') cfAvisos();
+  const listaEst = typeof cfEstoqueFiltro === 'function' ? estoque.filter(cfEstoqueFiltro) : estoque;
+  if(listaEst.length===0){ tbody.innerHTML = '<tr class="empty-row"><td colspan="4">' + ((typeof _cfEstAba_ !== 'undefined' && _cfEstAba_==='beb') ? 'Nenhuma bebida ou item pronto com estoque. Cadastre em Produtos → + Novo produto → "Comprado pronto".' : 'Nenhum ingrediente cadastrado ainda.') + '</td></tr>'; return; }
+  tbody.innerHTML = listaEst.map(i=>{
     const baixo = Number(i.minimo)>0 && i.quantidade <= i.minimo;
-    return `<tr>
-      <td>${escH(i.nome)}${i.ativo===false?' <span class="badge">inativo</span>':''}</td>
+    return `<tr class="vs-linha" onclick="vsAcoesEstoque('${i.id}')">
+      <td>${escH(i.nome)}${i.ativo===false?' <span class="badge">inativo</span>':''}${typeof cfCustoLinhaEstoque === 'function' ? '<span class="obs-line">'+cfCustoLinhaEstoque(i)+'</span>' : ''}</td>
       <td>${i.quantidade} ${i.unidade||'un'}</td>
       <td>${baixo?'<span class="badge baixo">baixo</span>':'<span class="badge done">ok</span>'}</td>
-      <td>
-        <button class="ghost" onclick="editarEstoquePrompt('${i.id}')">editar</button>
-        <button class="ghost" onclick="entradaEstoquePrompt('${i.id}')">+ entrada</button>
-        <button class="ghost" onclick="perdaEstoquePrompt('${i.id}')">- perda</button>
-        <button class="ghost" onclick="inventarioEstoquePrompt('${i.id}')">inventário</button>
-        <button class="ghost" onclick="excluirEstoqueConfirm('${i.id}')">excluir</button>
-      </td>
+      <td><button type="button" class="ghost vs-mais" aria-label="Ações de ${escH(i.nome)}" onclick="event.stopPropagation();vsAcoesEstoque('${i.id}')">⋯</button></td>
     </tr>`;
   }).join('');
 }
@@ -805,24 +794,29 @@ function renderMovimentacoesEstoque(){
 }
 async function entradaEstoquePrompt(id){
   const i = estoque.find(x=>x.id===id); if(!i) return;
-  const qtd = prompt('Quantidade de entrada de "'+i.nome+'" ('+(i.unidade||'un')+'):'); if(qtd===null || !Number(qtd)) return;
-  const motivo = prompt('Motivo (ex: compra, reposição):', 'Reposição de estoque') || 'Reposição de estoque';
+  const f = await vsForm({ titulo:'➕ Entrada · ' + i.nome, texto:'Hoje tem ' + i.quantidade + ' ' + (i.unidade||'un') + '. Compra lançada em Compras já dá entrada sozinha.', ok:'Registrar entrada',
+    campos:[ { id:'qtd', rotulo:'Quantidade que entrou', sufixo:i.unidade||'un', tipo:'numero', obrigatorio:true, maiorQueZero:true },
+             { id:'motivo', rotulo:'Motivo', tipo:'texto', valor:'Reposição de estoque', sugestoes:['Reposição de estoque','Compra','Devolução'] } ] });
+  if(!f) return; const qtd = f.qtd, motivo = f.motivo || 'Reposição de estoque';
   try{ const r = await apiCall('registrarEntradaEstoque', { ingredienteId:id, quantidade:Number(qtd), motivo }); estoque = r.estoque||estoque; movimentacoesEstoque = r.movimentacoesEstoque||movimentacoesEstoque; salvarCache(); renderEstoque(); renderMovimentacoesEstoque(); showMsg('eMsg', r.message, r.ok?'ok':'warn'); }
   catch(e){ showMsg('eMsg','Não foi possível registrar a entrada.','warn'); }
 }
 async function perdaEstoquePrompt(id){
   const i = estoque.find(x=>x.id===id); if(!i) return;
-  const qtd = prompt('Quantidade perdida de "'+i.nome+'" ('+(i.unidade||'un')+'):'); if(qtd===null || !Number(qtd)) return;
-  const motivo = prompt('Motivo da perda (obrigatório):'); if(!motivo) return;
+  const f = await vsForm({ titulo:'➖ Perda · ' + i.nome, texto:'Hoje tem ' + i.quantidade + ' ' + (i.unidade||'un') + '.', ok:'Registrar perda', perigo:true,
+    campos:[ { id:'qtd', rotulo:'Quantidade perdida', sufixo:i.unidade||'un', tipo:'numero', obrigatorio:true, maiorQueZero:true },
+             { id:'motivo', rotulo:'Motivo da perda', tipo:'texto', obrigatorio:true, sugestoes:['Estragou','Venceu','Caiu / derramou','Erro no preparo'] } ] });
+  if(!f) return; const qtd = f.qtd, motivo = f.motivo;
   try{ const r = await apiCall('registrarPerdaEstoque', { ingredienteId:id, quantidade:Number(qtd), motivo }); estoque = r.estoque||estoque; movimentacoesEstoque = r.movimentacoesEstoque||movimentacoesEstoque; salvarCache(); renderEstoque(); renderMovimentacoesEstoque(); showMsg('eMsg', r.message, r.ok?'ok':'warn'); }
   catch(e){ showMsg('eMsg','Não foi possível registrar a perda.','warn'); }
 }
 async function inventarioEstoquePrompt(id){
   const i = estoque.find(x=>x.id===id); if(!i) return;
-  const nova = prompt('Quantidade contada fisicamente de "'+i.nome+'" ('+(i.unidade||'un')+'):', i.quantidade); if(nova===null) return;
-  if(String(nova).trim()==='' || isNaN(Number(String(nova).replace(',','.'))) || Number(String(nova).replace(',','.'))<0){ showMsg('eMsg','Informe a quantidade contada (um número, zero ou mais).','warn'); return; }
-  const motivo = prompt('Observação (opcional):', 'Contagem de inventário') || 'Contagem de inventário';
-  try{ const r = await apiCall('registrarInventarioEstoque', { ingredienteId:id, novaQuantidade:Number(String(nova).replace(',','.')), motivo }); estoque = r.estoque||estoque; movimentacoesEstoque = r.movimentacoesEstoque||movimentacoesEstoque; salvarCache(); renderEstoque(); renderMovimentacoesEstoque(); showMsg('eMsg', r.message, r.ok?'ok':'warn'); }
+  const f = await vsForm({ titulo:'📋 Inventário · ' + i.nome, texto:'O sistema diz ' + i.quantidade + ' ' + (i.unidade||'un') + '. Informe quanto você contou: o estoque passa a ser esse número.', ok:'Corrigir estoque',
+    campos:[ { id:'nova', rotulo:'Quantidade contada', sufixo:i.unidade||'un', tipo:'numero', obrigatorio:true, minimo:0, valor:String(i.quantidade).replace('.',',') },
+             { id:'motivo', rotulo:'Observação (opcional)', tipo:'texto', valor:'Contagem de inventário' } ] });
+  if(!f) return; const motivo = f.motivo || 'Contagem de inventário';
+  try{ const r = await apiCall('registrarInventarioEstoque', { ingredienteId:id, novaQuantidade:Number(f.nova), motivo }); estoque = r.estoque||estoque; movimentacoesEstoque = r.movimentacoesEstoque||movimentacoesEstoque; salvarCache(); renderEstoque(); renderMovimentacoesEstoque(); showMsg('eMsg', r.message, r.ok?'ok':'warn'); }
   catch(e){ showMsg('eMsg','Não foi possível registrar o inventário.','warn'); }
 }
 
@@ -904,8 +898,9 @@ function botoesSuspensao(v){
   return '';
 }
 async function suspenderPedidoUI(vendaId){
-  const motivo = prompt('Motivo da suspensão (ex: cliente não atende, falta de ingrediente):');
-  if(!motivo || !motivo.trim()) return;
+  const f = await vsForm({ titulo:'⏸ Suspender pedido', texto:'O pedido fica parado até você tocar em "Retomar pedido".', ok:'Suspender',
+    campos:[ { id:'motivo', rotulo:'Motivo', tipo:'texto', obrigatorio:true, sugestoes:['Cliente não atende','Falta de ingrediente','Aguardando o cliente confirmar'] } ] });
+  if(!f) return; const motivo = f.motivo;
   const chave = 'suspender-'+vendaId; if(!iniciarOperacaoUnica(chave)) return;
   try{
     const r = await apiCall('suspenderPedido', { vendaId, motivo: motivo.trim() });
@@ -936,8 +931,9 @@ async function aceitarPedidoUI(vendaId){
   finally { finalizarOperacaoUnica(chave); }
 }
 async function rejeitarPedidoUI(vendaId){
-  const motivo = prompt('Motivo da recusa (ex: sem estoque, fora do horário):');
-  if(!motivo) return;
+  const f = await vsForm({ titulo:'Recusar pedido', ok:'Recusar pedido', perigo:true,
+    campos:[ { id:'motivo', rotulo:'Motivo da recusa', tipo:'texto', obrigatorio:true, sugestoes:['Sem estoque','Fora do horário','Fora da área de entrega','Pedido repetido'] } ] });
+  if(!f) return; const motivo = f.motivo;
   const executar = async (senha)=>{
     try{
       const r = await apiCall('rejeitarPedido', { vendaId, motivo, senhaAdminConfirmacao: senha||'' });

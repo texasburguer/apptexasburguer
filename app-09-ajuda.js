@@ -68,14 +68,14 @@ function novidadesHtml_(perfil){
 
 const MANUAL_AJUDA_ = {
 Admin:{ nome:'Administrador', secoes:[
-  _aj.entrar('Início, Caixa, Pedidos (com Retiradas, Entregas e Mesas), Clientes e Administrador. Os avisos ficam no botão ✨ Assistente, na aba 🔔 Avisos'),
+  _aj.entrar('Início, Caixa, Pedidos (com Retiradas, Entregas e Mesas), Clientes e Administrador. Os avisos ficam no botão redondo do Tex (canto de baixo), na aba 🔔 Avisos'),
   { t:'Buscar (🔍 no topo)', itens:[
     'Toque na lupa 🔍 no topo, digite pelo menos 2 letras ou números e veja clientes (nome ou telefone, sem precisar de acento), pedidos (número, nome ou telefone do cliente) e produtos/combos.',
     'No cliente, toque em "abrir" para ver o perfil. No pedido, toque em "ver pedido completo": aparece também a 🕒 Linha do tempo (feito, aceito, pronto, saiu, entregue e quanto tempo levou cada etapa).' ]},
 
   { t:'Onde fica cada coisa', itens:[
     'Ao tocar em Admin, nada abre sozinho: aparecem só os 6 grupos; toque num grupo para ver as telas dele e depois na tela que quer abrir.',
-    'A aba Administrador tem uma barra dividida em 6 grupos: Painel (Visão Geral, Ocorrências, Feedbacks, Relatórios); Financeiro (Contas e despesas, Análise, Ajustes pós-venda, Histórico); Catálogo (Produtos, Estoque, Custos e Precificação, Cardápio Digital); Campanhas (Promoções, Eventos); Operação (Mesas e QR Codes, Pagamentos, Entregadores e taxas, Configurar notificações); Sistema (Usuários e Permissões, Auditoria, Backup, Espaço e fotos, Sincronização e contingência).',
+    'A aba Administrador tem uma barra dividida em 6 grupos: Painel (Visão Geral, Ocorrências, Feedbacks, Relatórios); Financeiro (Contas e despesas, Análise, Ajustes pós-venda, Histórico); Catálogo (Produtos, Estoque, Custos e Precificação, Cardápio Digital); Campanhas (Promoções, Eventos); Operação (Mesas e QR Codes, Pagamentos, Entregadores e taxas, Configurar notificações); Sistema (Usuários e Permissões, Auditoria, Backup e espaço, Sincronização e contingência, Contas e acessos).',
     'Caixa, Pedidos, Entregas e Clientes funcionam como nos outros perfis, e você pode tudo.' ]},
 
   { t:'Criar usuário e trocar senha', passos:[
@@ -83,19 +83,28 @@ Admin:{ nome:'Administrador', secoes:[
     'Em "Criar acesso", preencha Login e Senha e escolha o perfil (Operador, Garçom, Cozinha, Entregador, Admin ou Desenvolvedor).',
     'Digite "Sua senha de administrador" e toque em "Criar acesso".',
     'Perfil Desenvolvedor: você cria como qualquer outro, mas depois de criado fica travado — só o próprio Desenvolvedor edita ou troca a senha. Nem você nem ele excluem esse acesso.',
-    'Para mudar nome, telefone, perfil, situação ou redefinir a senha de alguém, toque em "editar" na lista "Usuários cadastrados". Mudar perfil, situação, senha, ativar, desativar ou excluir pede a SUA senha de administrador (conferida de verdade). No seu próprio acesso o perfil fica travado e a senha se troca em "🔑 Senha".' ],
+    'Para mudar nome, telefone, perfil, situação ou redefinir a senha de alguém, na lista "Usuários cadastrados" toque na pessoa (ou no ⋯) e escolha Editar. Mudar perfil, situação, senha, ativar, desativar ou excluir pede a SUA senha de administrador (conferida de verdade). No seu próprio acesso o perfil fica travado e a senha se troca em "🔑 Senha".' ],
     comuns:['Entregador não aparece na escolha de entregas: usuário inativo ou sem o perfil Entregador.',
       'Funcionário esqueceu a senha: só você troca — não existe "esqueci minha senha".',
       'Você esqueceu a sua: rode redefinirSenhaAdminEmergencia no editor do Apps Script.'] },
 
   { t:'Cadastrar produtos e estoque', passos:[
-    'Administrador → Catálogo → Produtos → "Cadastrar produto".',
-    'Informe nome, categoria, preço e custo (a margem aparece sozinha). O preço é o preço base e vale para todas as formas de pagamento. Formas marcadas em Pagamentos como "preço próprio por produto" (ex.: iFood) ganham um campo próprio no produto e no combo; em branco, vale o preço base.',
-    'Só abra "⚙️ Opções avançadas" para a ficha técnica (ingredientes). Se uma forma de pagamento cobra a mais (ex.: iFood), cadastre o acréscimo (% ou valor fixo) na própria forma, em Pagamentos.',
-    'Se o item tem estoque próprio (bebida), marque a opção e informe quantidade e mínimo.',
-    'Para usar o produto como brinde, abra "⚙️ Opções avançadas" e marque "🎁 Este produto é um prêmio": prêmio do cartão fidelidade e/ou prêmio de indicação. Quando você quiser mudar a campanha, é só trocar a marca de produto.' ],
-    comuns:['"Importar cardápio inicial" só precisa rodar uma vez; o que já existe pelo nome não é duplicado.',
-      'Cada venda baixa o estoque pela ficha técnica. Ingrediente no mínimo gera aviso em 🔔 Avisos (no Assistente), sem bloquear a venda. Ingrediente com mínimo 0 não avisa; para ser avisado, defina um mínimo maior que 0.'] },
+    'Administrador → Catálogo → Produtos → "+ Novo produto". Preencha nome, categoria, preço de venda e, se quiser, foto e descrição.',
+    'Em "Como é feito?" escolha: 🍳 Preparado aqui (lanches, porções), 🥤 Comprado pronto (bebidas, sobremesa embalada) ou ✍️ Sem controle.',
+    'Preparado aqui: digite o ingrediente (ex.: "quei"), toque nele e diga quanto vai em cada um. Ingrediente comprado por kg ou litro pede gramas ou ml. Não existe? Toque em "+ criar" ali mesmo. Para ir mais rápido, use "📋 Copiar receita de outro produto" e só ajuste. O custo aparece sozinho.',
+    'Comprado pronto: informe "Paguei R$ __ por __ unidades" (ex.: 30 por 12 = R$ 2,50 por lata), quanto tem agora e o mínimo para avisar. Cada venda baixa 1 do estoque.',
+    'Sem controle: digite o custo se souber.',
+    'Em "⚙️ Mais opções" ficam o preço próprio do iFood (em branco = preço de venda), os adicionais, o destaque no cardápio e o prêmio (fidelidade/indicação).',
+    'Produto novo já vem com os adicionais marcados que os outros produtos da mesma categoria têm ("Comprado pronto", como bebida, vem sem nenhum). Desmarque o que não vale para ele.',
+    'Ingredientes: Catálogo → Estoque → "+ Novo ingrediente": nome, como você compra (un, kg, litro) e "Paguei R$ __ por __". Para dar preço a vários de uma vez, use "💲 Preços em lote".' ],
+    comuns:['O custo dos produtos e combos se atualiza sozinho quando o preço de um ingrediente muda (edição, lote ou compra recebida). O custo do combo é a soma dos produtos dele.',
+      'Trocar a unidade de um ingrediente de kg para g (ou l para ml) converte as receitas sozinho. Trocar de "un" para kg não converte: o sistema avisa quais receitas revisar.',
+      'O Estoque tem duas abas: Ingredientes e Bebidas e itens prontos. Bebidas não aparecem na hora de montar receita.',
+      'O aviso "Cadastro incompleto" mostra quantos produtos estão sem custo e quantos ingredientes estão sem preço. Sem custo, margem e lucro dos relatórios ficam errados.',
+      'Nas listas de Estoque, Produtos, Combos e Usuários, toque na linha (ou no ⋯) para ver as ações: editar, entrada, perda, inventário, excluir. No produto e no combo, tocar na linha já abre a edição.',
+      'Entrada, perda e inventário abrem uma janela só, com a quantidade e o motivo juntos. Na perda, toque num motivo pronto (Estragou, Venceu…) ou escreva o seu.',
+      'Cada venda baixa o estoque pela receita. Ingrediente no mínimo gera aviso em 🔔 Avisos (no Assistente), sem bloquear a venda. Ingrediente com mínimo 0 não avisa.',
+      'Bebida e item comprado pronto não têm adicionais.'] },
 
   { t:'Prêmios: fidelidade e indicação', passos:[
     'Marque os produtos que podem ser prêmio em Catálogo → Produtos → Editar → "🎁 Este produto é um prêmio".',
@@ -114,7 +123,7 @@ Admin:{ nome:'Administrador', secoes:[
     'No celular, o menu fica fixo na parte de baixo da tela: Início, Caixa, Pedidos e as outras telas do seu perfil. A aba aberta fica em dourado.',
     'Quando há mais telas do que cabem, aparece "Mais" com as demais. Uma bolinha vermelha avisa que há algo novo naquela aba.',
     'No computador o menu continua no topo.' ],
-    comuns:['O botão do Assistente sobe um pouco para não ficar em cima do menu.'] },
+    comuns:['O botão do Assistente é o rosto do Tex no canto de baixo; ele fica acima do menu, e a página tem um espaço no fim para nada ficar escondido atrás dele.'] },
 
   { t:'Modo reserva e Saúde do sistema', itens:[
     'Se o Supabase cair, aparece uma faixa laranja "Modo reserva" no topo. Ela diz o que funciona, o que fica na fila e o que espera a volta.',
@@ -162,9 +171,10 @@ Admin:{ nome:'Administrador', secoes:[
     comuns:['Auditoria e IPs são só do Administrador e do Desenvolvedor.'] },
 
   { t:'Compras, fornecedores e análises avançadas', itens:[
-    'Compras e fornecedores (só Administrador): Administrador → Catálogo → "Compras e fornecedores". Cadastre o fornecedor, depois registre a compra: itens do estoque (ou "outro item"), quantidade, unidade e o valor total pago por item.',
+    'Compras e fornecedores (só Administrador): Administrador → Catálogo → "Compras e fornecedores". Cadastre o fornecedor e registre a compra: em "O que você comprou?" digite e toque no ingrediente ou bebida da lista (aí dá entrada no estoque). Texto que não é da lista vira só despesa e aparece um aviso laranja. Informe quantidade, unidade e o valor total pago. Bebida em fardo: preencha "Embalagens" e "Unidades em cada" (ex.: 2 × 12 = 24).',
     'Compra "Recebida" já soma no estoque e atualiza o custo médio do insumo; "Pedido" só guarda o pedido e você marca como recebida quando chegar. Toda compra recebida vira uma despesa (Paga ou A pagar, com vencimento).',
     'Marque "saiu do caixa" só se o dinheiro saiu da gaveta. Compra já recebida não é cancelada: corrija pelo estoque ou pela despesa. Pedido ainda não recebido pode ser cancelado com motivo.',
+    'Ao marcar um pedido de compra como recebido, escolha "✅ Já paguei" ou "🕒 Vou pagar depois" (aí aparece o calendário do vencimento).',
     'Assistente (balão ✨): diga, por exemplo, "comprei 30kg de picanha do fornecedor X por R$ 900". A IA só monta um cartão; nada é gravado até você tocar em "Confirmar e gravar". Use "Revisar na tela" para ajustar antes. Fornecedor ou item que a IA não achar bloqueia o botão: cadastre antes.',
     'O Assistente também registra: despesa nova, pagar despesa, cancelar despesa, entrada/perda/contagem de estoque, cadastrar ou editar ingrediente, cliente, ocorrência, sangria, ajuste pós-venda, brinde e receber ou cancelar pedido de compra. Sempre com cartão e "Confirmar e gravar". Se faltar algo ou o nome for ambíguo, o cartão avisa em laranja e o botão fica travado. Cancelar despesa e ajuste pós-venda pedem a sua senha de administrador no cartão. Ele NUNCA exclui nada, nem mexe em venda, caixa, usuários, contas, preços, cardápio ou configurações: isso é pelas telas.',
     'Relatórios → "Análise avançada": margem líquida por forma de pagamento, vendas por dia da semana e comparação com o mesmo período do ano passado. Também há os períodos "Últimos 90 dias" e "Últimos 12 meses".' ],
@@ -213,7 +223,8 @@ Admin:{ nome:'Administrador', secoes:[
     'Ao voltar, o Admin recebe sozinho as vendas da contingência. Falhas ficam na tela de Contingência.',
     'Tempo real (WebSocket) e modo reserva são automáticos.',
     'Administrador → Sistema → Sincronização e contingência: mostra o uso de espaço da planilha de contingência, "🔄 Sincronizar espelho agora" e "⬇️ Trazer vendas pendentes da contingência".',
-    'O interruptor "Sincronização automática do espelho (todo dia às 3h)" liga e desliga a cópia diária do cardápio e dos cadastros para a contingência.' ]},
+    'O espelho da contingência (cardápio, preços, clientes e pedidos em andamento) se atualiza sozinho a cada 10 minutos e por completo todo dia às 3h. Não há nada para ligar.',
+    'Na mesma tela, "Cópia na planilha principal" mostra quantos itens faltam ir para a planilha (o cardápio, os clientes e as vendas vão a cada 2 minutos).' ]},
 
   { t:'Fila de envio e erros de sincronização', itens:[
     'Itens como cadastro de cliente, fidelidade, feedback e ocorrência podem ficar guardados no aparelho quando a internet cai. Aparece o botão "na fila" no topo.',
@@ -245,11 +256,11 @@ Admin:{ nome:'Administrador', secoes:[
     'Em "Dados completos do período" baixe Vendas, Itens vendidos ou Despesas. Meses já arquivados entram sozinhos (as despesas só se estiverem no app). O arquivo abre direto no Excel, com acentos corretos.' ]},
 
   { t:'Arquivamento e uso do banco', itens:[
-    'Administrador → Sistema → Espaço e fotos → bloco "Uso do Supabase".',
+    'Administrador → Sistema → Backup e espaço → bloco "Uso do Supabase".',
     'Por padrão, vendas e caixas fechados com mais de 90 dias saem do Supabase e vão para a planilha (abas Arquivo_*), de madrugada. Você pode mudar a regra (90/60/30 dias) e forçar "Mandar para a planilha agora".',
     '"Proteção de espaço": se o uso chegar a 90%, 95% ou 98% do limite (você escolhe), o sistema manda para a planilha as vendas e caixas já encerrados, mesmo com menos de 30 dias. O que tem menos de 1 dia, os pedidos em andamento e o caixa aberto nunca saem; só apaga o que a planilha confirmou. Verifica de hora em hora.',
     'Relatórios e Visão Geral buscam esse arquivo automaticamente quando o período pedido é antigo.',
-    'Fotos: só no Google Drive. Administrador → Espaço e fotos → "Copiar fotos antigas para a contingência".' ]},
+    'Fotos: ficam no Google Drive principal, com uma cópia no Drive da contingência. Isso é automático: não há o que escolher.' ]},
 
   { t:'Exemplos de pergunta ao assistente', itens:[
     '"Resumo de hoje" — faturamento, pedidos, ticket.',
@@ -261,12 +272,12 @@ Admin:{ nome:'Administrador', secoes:[
     '"Como cancelo uma venda?" / "Como fecho o caixa?" — passo a passo do manual.' ]},
 
   { t:'Backup e armazenamento', passos:[
-    'Administrador → Sistema → Backup → "Fazer backup agora".',
+    'Administrador → Sistema → Backup e espaço → "Fazer backup agora" (começa na hora, sem pergunta).',
     'Ative o backup automático e escolha o horário e a retenção (por quantos dias guardar).',
     'Para restaurar, escolha o backup no histórico e confirme com sua senha de administrador.',
     'Para apagar um backup, toque em "Excluir" no histórico e confirme com a sua senha de administrador.',
     'Se o backup ficou sem cópia no Drive, aparece o motivo e o botão "Enviar ao Drive" para tentar de novo. O backup tenta até 3 vezes sozinho.',
-    'Confira o uso do Drive: até 70% normal, 70–90% atenção, acima de 90% crítico.' ],
+    'Na mesma tela, mais abaixo: "Uso do Supabase" (com o arquivamento) e "Google Drive" (espaço usado: até 70% normal, 70–90% atenção, acima de 90% crítico).' ],
     comuns:['Drive cheio: backups e fotos podem falhar.',
       'A conferência de integridade compara, todo dia às 6h10, as vendas do dia anterior no Supabase e na planilha e avisa se o número não bate.'] },
 
@@ -294,7 +305,7 @@ Admin:{ nome:'Administrador', secoes:[
 
   { t:'🛠️ Desenvolvedor (exclusivo)', soDev:true, itens:[
     'Esta seção só aparece para quem entrou com acesso de nível Desenvolvedor (e sem "Ver como"). Ninguém mais vê.',
-    'Barra "Modo Desenvolvedor — vendo o sistema como:". Escolha um perfil (Operador, Garçom, Cozinha, Entregador) ou uma PESSOA específica e a tela muda para a dela. Suas ações continuam com acesso total.',
+    'Barra "Modo Desenvolvedor — vendo o sistema como:" (toque em ▸ para abrir e em ▾ para recolher; fica recolhida até você abrir). Escolha um perfil (Operador, Garçom, Cozinha, Entregador) ou uma PESSOA específica e a tela muda para a dela. Suas ações continuam com acesso total.',
     'Voltar para a visão normal: selecione "Admin (visão normal)".',
     'Auto-teste da Ajuda (também no console): testarAjuda_() — valida os 7 manuais em sequência e devolve o resultado.',
     'Painel de uso da IA (custo, erros e cota): dentro do balão (✨) → "Uso da IA". A IA de análise de código do Desenvolvedor foi retirada.',
@@ -322,7 +333,7 @@ Operador:{ nome:'Caixa', secoes:[
     'No celular, o menu fica fixo na parte de baixo da tela: Início, Caixa, Pedidos e as outras telas do seu perfil. A aba aberta fica em dourado.',
     'Quando há mais telas do que cabem, aparece "Mais" com as demais. Uma bolinha vermelha avisa que há algo novo naquela aba.',
     'No computador o menu continua no topo.' ],
-    comuns:['O botão do Assistente sobe um pouco para não ficar em cima do menu.'] },
+    comuns:['O botão do Assistente é o rosto do Tex no canto de baixo; ele fica acima do menu, e a página tem um espaço no fim para nada ficar escondido atrás dele.'] },
 
   { t:'Modo reserva (quando o sistema cai)', itens:[
     'Uma faixa laranja "Modo reserva" no topo avisa que o servidor principal está fora.',
@@ -338,7 +349,7 @@ Operador:{ nome:'Caixa', secoes:[
     'Para desligar, toque no mesmo botão. Ao sair do sistema, este aparelho deixa de receber os avisos de quem saiu.' ],
     comuns:['O som e a vibração do app aberto continuam como antes.'] },
 
-  _aj.entrar('Início, Caixa, Pedidos (com Retiradas, Entregas e Mesas), Clientes e Operação (Ocorrências e Feedbacks). Os avisos ficam no botão ✨ Assistente, na aba 🔔 Avisos'),
+  _aj.entrar('Início, Caixa, Pedidos (com Retiradas, Entregas e Mesas), Clientes e Operação (Ocorrências e Feedbacks). Os avisos ficam no botão redondo do Tex (canto de baixo), na aba 🔔 Avisos'),
   { t:'Buscar (🔍 no topo)', itens:[
     'Toque na lupa 🔍 no topo, digite pelo menos 2 letras ou números e veja clientes (nome ou telefone, sem precisar de acento), pedidos (número, nome ou telefone do cliente) e produtos/combos.',
     'No cliente, toque em "abrir" para ver o perfil. No pedido, toque em "ver pedido completo": aparece também a 🕒 Linha do tempo (feito, aceito, pronto, saiu, entregue e quanto tempo levou cada etapa).' ]},
@@ -368,7 +379,7 @@ Operador:{ nome:'Caixa', secoes:[
     'Em Entregas, o entregador já vem preenchido quando só existe um cadastrado. Com mais de um, escolha no campo "Entregador".',
     'Para imprimir (o modelo da comanda é o mesmo em todas): nas Entregas toque em "🖨️ Imprimir para o entregador"; nas Retiradas e nas Mesas, em "🖨️ Imprimir pedido da retirada" (ou "da mesa"). O botão aparece depois que o pedido é aceito. Papel (58mm, 80mm ou A4) em Pedidos → Entregas.',
     'Venda "A Receber": quando o cliente pagar, toque em "marcar como recebido".',
-    '"⏸ Suspender" pausa o pedido (pede motivo) e "▶️ Retomar" volta.' ],
+    '"⏸ Suspender" pausa o pedido (toque num motivo pronto, como "Cliente não atende", ou escreva) e "▶️ Retomar" volta. Recusar pedido também tem motivos prontos.' ],
     comuns:['Só dá para editar os itens com o pedido "Em preparo".',
       'O entregador esqueceu de marcar: marque você pelo botão do pedido.',
       'Sem aviso de pedido novo: no Início, toque em "🔔 Ativar avisos" e "🔊 Testar som".'] },
@@ -759,7 +770,7 @@ function testarAjuda_(){
 
     if(!html){ problemas.push('html vazio'); }
     else{
-      if(!/Texas Burger · (<b>)?v-/.test(html)) problemas.push('rodapé de versão ausente');
+      if(!/Texas Burger · (<b>)?(v-|\d)/.test(html)) problemas.push('rodapé de versão ausente');
       if(!/🆕 O que mudou/.test(html))    problemas.push('bloco de novidades ausente');
       if(perfilManual === 'Admin' && ehDevFake){
         if(!/🛠️ Desenvolvedor \(exclusivo\)/.test(html)) problemas.push('seção Desenvolvedor ausente para Dev');

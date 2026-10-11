@@ -1,0 +1,35 @@
+@charset "utf-8";
+/* Cadastro fácil: tipo do produto, receita com busca, preços em lote, avisos. */
+.cf-tit{margin:16px 0 6px;font-size:15px;color:var(--cream);}
+.cf-tipos{flex-wrap:wrap;gap:6px;}
+.cf-tipos button.toggle-mode{flex:1 1 30%;min-width:96px;font-size:12.5px;padding:10px 6px;}
+.cf-sec{margin-top:8px;}
+.cf-busca{position:relative;}
+.cf-sug{display:flex;flex-direction:column;gap:4px;margin-top:4px;}
+.cf-sug:empty{display:none;}
+button.cf-sug-item{display:flex;justify-content:space-between;align-items:center;gap:8px;width:100%;text-align:left;background:var(--panel-2);border:1px solid var(--line);color:var(--cream);border-radius:10px;padding:10px 12px;font-size:14px;cursor:pointer;min-height:44px;}
+button.cf-sug-item span{color:var(--muted);font-size:12px;white-space:nowrap;}
+button.cf-sug-item:focus-visible,button.cf-sug-item:hover{border-color:var(--gold);}
+button.cf-sug-item.cf-criar{border-style:dashed;border-color:var(--gold);color:var(--gold);font-weight:700;}
+.cf-sug-grupo{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--gold);margin:4px 2px 0;}
+.cf-novo{background:var(--panel-2);border:1px solid var(--gold);border-radius:12px;padding:12px;}
+.cf-novo .btnrow{margin-top:8px;}
+.cf-add{display:flex;align-items:flex-end;}
+.cf-add button{width:100%;padding:12px;min-height:44px;}
+.cf-total{margin:8px 0;font-size:13px;color:var(--cream);}
+.cf-margem{min-height:44px;display:flex;align-items:center;padding:0 4px;color:var(--gold);}
+.cf-sem{color:var(--orange);font-weight:700;}
+.cf-aviso{background:rgba(253,159,0,.10);border:1px solid var(--orange);border-radius:12px;padding:10px 12px;margin:8px 0 12px;font-size:13px;color:var(--cream);line-height:1.45;}
+.cf-aviso .btnrow{margin-top:8px;flex-wrap:wrap;gap:6px;}
+.cf-ok{color:var(--ok);font-size:12.5px;margin:4px 0;}
+.cf-alerta{color:#ffd28a;font-size:12.5px;margin:4px 0;line-height:1.45;}
+.cf-alerta .link-btn{margin:0 2px;}
+.cf-alerta-txt{color:#ffd28a !important;}
+.cf-lote-row{border-bottom:1px solid var(--line);padding:10px 0;}
+.cf-lote-row:last-child{border-bottom:none;}
+.cf-lote-nome{display:flex;justify-content:space-between;gap:8px;align-items:baseline;flex-wrap:wrap;}
+.cf-lote-nome span{font-size:12px;color:var(--muted);}
+.cf-lote-campos{display:grid;grid-template-columns:72px 1fr 1fr;gap:6px;margin-top:6px;}
+.cf-lote-campos input,.cf-lote-campos select{margin:0;min-height:44px;}
+.cf-lote-res{font-size:12px;color:var(--muted);margin-top:4px;min-height:1em;}
+.cf-emb label{font-size:12px;}

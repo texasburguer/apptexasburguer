@@ -49,12 +49,12 @@ function renderUsuarios(){
   try{ carregarSessoes_(false); }catch(e){}
   if(!usuarios.length){ tbody.innerHTML = '<tr class="empty-row"><td colspan="4">Nenhum usuário.</td></tr>'; return; }
   const souDev = !!(currentUser && currentUser.nivelReal === 'Desenvolvedor');
-  tbody.innerHTML = usuarios.map(u=>{
+  tbody.innerHTML = usuarios.map((u,iu)=>{
     const protegido = (u.nivel === 'Desenvolvedor' && !souDev);
     const acoes = protegido
       ? '<span class="obs-line" title="Este acesso é protegido: só o próprio Desenvolvedor altera.">🔒 protegido</span>'
-      : `<button class="ghost" data-usr-acao="editar" data-usr-login="${escH(u.login)}">editar</button><button class="ghost" data-usr-acao="toggle" data-usr-login="${escH(u.login)}" data-usr-ativo="${u.ativo?1:0}">${u.ativo?'desativar':'ativar'}</button>${u.nivel==='Desenvolvedor' ? '' : `<button class="ghost" data-usr-acao="excluir" data-usr-login="${escH(u.login)}">excluir</button>`}`;
-    return `<tr><td>${escH(u.login)}${u.nome?`<div class="obs-line">${escH(u.nome)}</div>`:''}${u.nivel==='Entregador'?`<div class="obs-line">${u.telefone?'📞 '+escH(u.telefone):'⚠ sem telefone'}</div>`:''}</td><td>${u.nivel}</td><td><span class="badge ${u.ativo?'done':'baixo'}">${u.ativo?'Ativo':'Inativo'}</span></td>
+      : `<button type="button" class="ghost vs-mais" aria-label="Ações de ${escH(u.login)}" onclick="event.stopPropagation();vsAcoesUsuario(${iu})">⋯</button>`;
+    return `<tr${protegido ? '' : ` class="vs-linha" onclick="vsAcoesUsuario(${iu})"`}><td>${escH(u.login)}${u.nome?`<div class="obs-line">${escH(u.nome)}</div>`:''}${u.nivel==='Entregador'?`<div class="obs-line">${u.telefone?'📞 '+escH(u.telefone):'⚠ sem telefone'}</div>`:''}</td><td>${u.nivel}</td><td><span class="badge ${u.ativo?'done':'baixo'}">${u.ativo?'Ativo':'Inativo'}</span></td>
     <td>${acoes}</td></tr>`;
   }).join('');
 }
@@ -656,9 +656,10 @@ async function emitirVendaNfce_(vendaId){
   if(!confirm('Criar a nota desta venda agora?')) return;
   try{ const r = await apiCall('nfceEmitirVenda', { vendaId }); showMsg('nfceConfMsg', (r&&r.message)||'Não foi possível.', r&&r.ok?'ok':'warn'); setTimeout(carregarNfceConf_, 6000); }catch(e){ showMsg('nfceConfMsg','Sem conexão.','warn'); }
 }
-function inutilizarNfce_(serie, ini, fim){
-  const just = prompt('Motivo da inutilização (mínimo 15 letras):', 'Numeração pulada por falha de emissão');
-  if(!just || just.trim().length < 15) return alert('Escreva um motivo com pelo menos 15 letras.');
+async function inutilizarNfce_(serie, ini, fim){
+  const f = await vsForm({ titulo:'Inutilizar numeração', texto:'Série ' + serie + ', números ' + ini + (fim && fim !== ini ? ' a ' + fim : '') + '.', ok:'Continuar',
+    campos:[ { id:'just', rotulo:'Motivo (mínimo 15 letras)', tipo:'texto', obrigatorio:true, minLetras:15, max:255, valor:'Numeração pulada por falha de emissão' } ] });
+  if(!f) return; const just = f.just;
   abrirModalSenhaAdmin(async function(senhaAdm){
     try{ const r = await apiCall('nfceInutilizar', { serie, ini, fim, justificativa:just.trim(), senhaAdmin:senhaAdm }); showMsg('nfceConfMsg', (r&&r.message)||'Não foi possível.', r&&r.ok?'ok':'warn'); setTimeout(carregarNfceConf_, 6000); }
     catch(e){ showMsg('nfceConfMsg','Sem conexão.','warn'); }

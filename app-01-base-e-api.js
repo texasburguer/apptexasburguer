@@ -19,6 +19,14 @@ window.APP_VERSAO = APP_VERSAO;
 const APP_NOVIDADES = {
   Admin: [
     { v:'1.0', em:'09/10/2026', itens:[
+      'Mais simples: entrada, perda e inventário do estoque, suspender e recusar pedido, receber e cancelar compra, meta de vendas, fechar o cardápio e marcar reembolso agora abrem uma janela só, com motivos prontos para tocar. Ao receber uma compra, escolha "Já paguei" ou "Vou pagar depois" (com calendário).',
+      'Novo: produto novo já vem com os adicionais que os outros produtos da mesma categoria têm. Bebida e item comprado pronto vêm sem adicionais.',
+      'Mudou: em Sistema, "Backup" e "Espaço e fotos" viraram uma tela só, "Backup e espaço". Saíram o botão "Importar cardápio inicial", a escolha de onde salvar a foto (agora vai sempre para os dois Drives) e a caixinha do espelho das 3h (o espelho já se atualiza sozinho a cada 10 minutos). "Fazer backup agora" começa sem pergunta.',
+      'Por dentro: a planilha principal e a contingência ficaram enxutas (só o que o sistema usa hoje). A planilha recebe só o cardápio, os clientes e as vendas; as abas que não são mais usadas podem ser apagadas.',
+      'Visual: as listas de Estoque, Produtos, Combos e Usuários ficaram compactas. Toque na linha (ou no ⋯) para ver as ações. O botão do Assistente virou só o rosto do Tex, para não cobrir botões, e a página ganhou espaço no fim. A Visão Geral avisa quando falta custo nos produtos (lucro e margem ficariam maiores que a realidade).',
+      'Novo: cadastro de produto mais fácil. Em "Como é feito?" escolha Preparado aqui (receita), Comprado pronto (bebidas) ou Sem controle. Na receita você digita o ingrediente, cria um novo ali mesmo e pode copiar a receita de outro produto. Ingrediente por kg/litro pede gramas/ml.',
+      'Novo: o custo dos produtos e combos se atualiza sozinho quando o preço de um ingrediente muda (edição, "💲 Preços em lote" ou compra recebida). Ingrediente: "Paguei R$ __ por __" calcula o custo. Aviso "Cadastro incompleto" mostra o que falta.',
+      'Novo: o Estoque tem as abas Ingredientes e Bebidas e itens prontos. Na compra, digite o item e toque nele na lista; se não for da lista, aparece aviso de que não entra no estoque. Bebida em fardo: "Embalagens" × "Unidades em cada".',
       'Novo: reembolso de venda cancelada. Quando uma venda já paga é cancelada, o sistema cria sozinho um reembolso pendente (valor, forma de pagamento, motivo e quem cancelou). Em Administrador → Financeiro → Ajustes pós-venda aparece a lista "Reembolsos de vendas canceladas"; depois de devolver o dinheiro ao cliente, o Administrador toca em "marcar devolvido".',
       'Novo: o Assistente (chat) agora também registra despesa, pagamento de conta, entrada/perda/contagem de estoque, ingrediente, cliente, ocorrência, sangria, ajuste pós-venda, brinde e recebimento/cancelamento de compra. Ele nunca grava sozinho: mostra um cartão e só grava ao tocar em "Confirmar e gravar". Cancelar despesa e ajuste pós-venda pedem a sua senha de administrador. Excluir, mexer em venda/caixa/usuários/preços ele não faz.',
       'Novo: conheça o Tex, o mascote do Assistente. Ele aparece no botão, no título e nas respostas do chat da equipe.',
@@ -65,6 +73,7 @@ const APP_NOVIDADES = {
   ],
   Operador: [
     { v:'1.0', em:'09/10/2026', itens:[
+      'Mais simples: suspender e recusar pedido agora abrem uma janela com motivos prontos para tocar (ex.: "Cliente não atende", "Sem estoque").',
       'Novo: quando a nota fiscal for ligada, o Caixa ganha o campo "CPF na nota (só se o cliente pedir)". Enquanto estiver desligada, nada muda.',
       'Novo: o cliente que aceitou os avisos recebe no celular cada mudança de status que você faz no pedido (confirmado, pronto, saiu para entrega, entregue). Em Feedbacks aparece se veio pelo aviso ou pelo chat.',
       'Nada abre sozinho: a Ajuda e os avisos do Assistente vêm fechados (toque no título para abrir) e, ao entrar no Admin, aparecem só as telas para você escolher.',
@@ -246,14 +255,10 @@ function parseDataBR(str){
   if(!d||!m||!y) return null;
   return new Date(y, m-1, d, hh||0, mm||0).getTime();
 }
-/* FASE 11 (ITEM 79) — toda operação que não pode se repetir ganha um requisicaoId automático.
+/* FASE 11 (ITEM 79) — toda operação que não pode se repetir ganha um requisicaoId automático (lista SB_IDEM_NOVAS_).
    O id é ligado à "intenção" (ação + dados, via hash — nenhuma senha é guardada): se a internet cair no
    meio e o usuário tocar de novo, o id é o mesmo e o backend ignora a repetição. Some após qualquer
    resposta definitiva do servidor. Guardado na sessionStorage para sobreviver a um recarregar da página. */
-const ACOES_IDEM_FRONT = ['addSangria','registrarEntradaEstoque','registrarPerdaEstoque','registrarInventarioEstoque',
-  'addOrStampFidelidade','resgatarPremioFidelidade','fecharContaMesa','cancelarVenda','editarVenda','addFeedback',
-  'addDespesa','pagarDespesa','registrarAjustePosVenda','cancelarAjustePosVenda','abrirCaixa','fecharCaixa','salvarCliente','rejeitarPedido','editarStatusFeedback','registrarOcorrencia',
-  'toggleResgateIndicacao'];
 const IDEM_KEY = 'texasBurgerIdem_v1';
 let _idemMapa = {};
 try{ _idemMapa = JSON.parse(sessionStorage.getItem(IDEM_KEY) || '{}') || {}; }catch(e){ _idemMapa = {}; }
@@ -272,13 +277,13 @@ function idemLimpar_(chave){ if(chave && _idemMapa[chave]){ delete _idemMapa[cha
    Se outra pessoa alterou o mesmo registro no meio tempo, o servidor recusa (conflito) e o app puxa o estado real. */
 const VERSAO_FRONT_ = { editarProduto:()=>produtos, editarCombo:()=>combos, editarAdicional:()=>adicionais, editarFormaPagamento:()=>formasPagamento,
   editarCategoria:()=>categorias, editarDespesa:()=>despesas, editarDespesaRecorrente:()=>despesasRecorrentes, salvarCliente:()=>clientes,
-  editarVenda:()=>vendas, editarUsuario:()=>usuarios, editarCupom:()=>cupons, salvarEvento:()=>eventos };
+  editarVenda:()=>vendas, editarUsuario:()=>usuarios, salvarEvento:()=>eventos };
 /* ---- Aviso de carregamento (#15) ----
    Toda ação que fala com a planilha mostra um aviso se demorar mais de ~0,4 s. Ações de gravação importantes (venda, pedido, caixa,
    conta da mesa, pagamento...) também travam a tela por trás, para evitar toque duplo. Atualizações em segundo plano ficam de fora. */
 /* ITEM 19 — estado da sincronização por versão (var: precisa existir antes de qualquer chamada) */
 var _dadosBrutos = null, _versoesLocais = null, _ultimoFullMs = 0;
-const API_SILENCIOSAS_ = new Set(['getVersoes','getDadosGrupo','getAll','detectarNovosPedidos','obterStatusBackup','getCardapio','getStatusPedidoPublico','autenticar','verificarSenhaAdmin','getMesaPublica','obterArmazenamentoContingencia','obterChaveContingencia','listarSessoes']);
+const API_SILENCIOSAS_ = new Set(['getVersoes','getDadosGrupo','getAll','detectarNovosPedidos','getCardapio','getStatusPedidoPublico','autenticar','verificarSenhaAdmin','getMesaPublica','obterArmazenamentoContingencia','obterChaveContingencia','listarSessoes']);
 const API_ROTULOS_ = {
   iniciarVenda:'Registrando a venda…', criarPedidoCardapio:'Enviando seu pedido…', fecharCaixa:'Fechando o caixa…', abrirCaixa:'Abrindo o caixa…',
   fecharContaMesa:'Fechando a conta da mesa…', cancelarVenda:'Cancelando a venda…', editarVenda:'Salvando a venda…', pagarDespesa:'Registrando o pagamento…',
@@ -310,54 +315,12 @@ function _carregandoFim_(action){
   if(_apiAtivas === 0){ clearTimeout(_apiTimerAviso); const el = document.getElementById('apiCarregando'); if(el) el.classList.remove('show','trava'); }
   else _carregandoAtualizar_();
 }
-/* TIMEOUT DA API (módulo 3): antes, se o Apps Script travasse, a tela esperava para sempre.
-   - Cada chamada tem limite de tempo (30 s; 60 s nas leituras grandes; 120 s em backup, sincronização e envio de foto).
-   - Estourou o tempo e a ação é REPETÍVEL (leitura, ou ação com requisicaoId que o servidor já usa para não duplicar): repete até 2 vezes com o mesmo id.
-     Se continuar sem resposta, dá erro como antes (a venda do Caixa cai na contingência com o mesmo id).
-   - Estourou o tempo e a ação NÃO é repetível: não repete sozinho, porque o servidor pode ter feito a operação. Devolve {ok:false, timeout:true}
-     com aviso para conferir antes de repetir, e puxa o estado real da planilha. */
-const TIMEOUT_API_MS_ = 30000, TIMEOUT_API_PESADA_MS_ = 60000, TIMEOUT_API_LONGA_MS_ = 120000;
-const TIMEOUT_API_REPETICOES_ = 2, TIMEOUT_API_PAUSA_MS_ = 1000;
-const ACOES_PESADAS_ = new Set(['getAll','getDadosGrupo','conferirIntegridade','obterArmazenamento','obterArmazenamentoContingencia','obterStatusBackup']);
-const ACOES_LONGAS_ = new Set(['fazerBackupAgora','restaurarBackup','configurarBackupAutomatico','seedCardapioTexasBurger','sincronizarContingenciaAgora','reconciliarContingenciaAgora','uploadFotoProduto','uploadFotoCombo']);
-const ACOES_LEITURA_REPETIVEL_ = new Set(['getAll','getVersoes','getDadosGrupo','getCardapio','conferirIntegridade','obterStatusBackup','obterArmazenamento','obterArmazenamentoContingencia','getStatusPedidoPublico','getMesaPublica','detectarNovosPedidos','getQrMesas','previewFechamentoEntrega','simularPrecificacao']);
-const ACOES_REPETIVEIS_COM_ID_ = new Set(ACOES_IDEM_FRONT.concat(['iniciarVenda','criarPedidoCardapio','criarPedidoMesa','fecharPeriodoEntregador','adicionarCustoEvento','adicionarRecebimentoEvento']));
-const ACOES_TIMEOUT_SEM_ESTADO_ = new Set(['autenticar','verificarSenhaAdmin']); // não mexem em dados: só pedem para tentar de novo
-function repetivelNoTimeout_(action, payload){
-  return ACOES_LEITURA_REPETIVEL_.has(action) || (ACOES_REPETIVEIS_COM_ID_.has(action) && !!(payload && payload.requisicaoId));
-}
-function timeoutDaAcao_(action){
-  return ACOES_LONGAS_.has(action) ? TIMEOUT_API_LONGA_MS_ : (ACOES_PESADAS_.has(action) ? TIMEOUT_API_PESADA_MS_ : TIMEOUT_API_MS_);
-}
-async function postApi_(action, payload, ms){
-  const ctl = new AbortController(); const to = setTimeout(()=>ctl.abort(), ms);
-  try{
-    const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(Object.assign({ action, token: currentUser?currentUser.token:'' }, payload)), signal: ctl.signal });
-    if(!res.ok) throw new Error('Falha na requisição');
-    const j = await res.json(); registrarSucessoApi_(action); return j;
-  }catch(e){
-    if(e && e.name === 'AbortError'){ registrarTimeoutApi_(action); const t = new Error('O servidor demorou para responder'); t.timeout = true; throw t; }
-    throw e;
-  }finally{ clearTimeout(to); }
-}
-/* BLOCO 1.2 — TIMEOUTS SEGUIDOS ACIONAM A CONTINGÊNCIA (preventivo).
-   2 estouros de tempo em 60 s = "servidor lento": por 2 min a venda do Caixa (e o pedido do cardápio, sem cupom) vai direto à contingência,
-   em vez de esperar 3 x 30 s a cada tentativa. Qualquer resposta boa da planilha desliga o modo na hora. O Caixa sempre pergunta antes
-   (e, se a pessoa recusar, tenta a planilha mesmo assim). Backup/sincronização (ações longas) não contam. */
-const TIMEOUTS_LIMIAR_ = 2, TIMEOUTS_JANELA_MS_ = 60000, CONT_PREVENTIVO_MS_ = 120000;
+/* BLOCO 1.2 — "servidor lento" (preventivo). Contava os atrasos da planilha antiga; com o Supabase ele fica desligado
+   (servidorLento_ responde sempre "não") e a queda do servidor é tratada pelo modo reserva (app-18). Mantido porque o Caixa e o
+   cardápio ainda consultam servidorLento_. */
 let _timeoutsApi_ = [], _contPreventivoAte_ = 0, _statusPreventivo_ = false;
 function _desligarPreventivo_(){ _contPreventivoAte_ = 0; _timeoutsApi_ = []; if(_statusPreventivo_){ _statusPreventivo_ = false; if(conexaoAtual==='contingencia') setConexaoStatus('online'); } }
 function servidorLento_(){ if(_contPreventivoAte_ && Date.now() > _contPreventivoAte_) _desligarPreventivo_(); return Date.now() < _contPreventivoAte_; }
-function registrarTimeoutApi_(action){
-  if(ACOES_LONGAS_.has(action)) return;
-  const agora = Date.now();
-  _timeoutsApi_ = _timeoutsApi_.filter(t=>agora - t < TIMEOUTS_JANELA_MS_); _timeoutsApi_.push(agora);
-  if(_timeoutsApi_.length >= TIMEOUTS_LIMIAR_ && !(_contPreventivoAte_ > agora)){
-    _contPreventivoAte_ = agora + CONT_PREVENTIVO_MS_;
-    if(currentUser && conexaoAtual!=='offline'){ _statusPreventivo_ = true; setConexaoStatus('contingencia', 'servidor lento'); }
-  }
-}
-function registrarSucessoApi_(action){ if(ACOES_LONGAS_.has(action)) return; if(_contPreventivoAte_ || _timeoutsApi_.length) _desligarPreventivo_(); }
 /* Contingência com limite de tempo. O servidor da contingência já descarta id repetido ("Já estava na fila"), então o envio da venda/pedido
    pode ser repetido com o mesmo id. A leitura do espelho e o status não repetem: se falharem, o chamador usa o cache ou avisa. */
 const TIMEOUT_CONT_ENVIO_MS_ = 20000, TIMEOUT_CONT_LEITURA_MS_ = 15000, TIMEOUT_CONT_REPETICOES_ = 2;
@@ -639,10 +602,11 @@ async function sbCardapioPublico_(){
 const SB_ESCRITAS_ = {
   addFormaPagamento:['formasPagamento','produtoPrecos','comboPrecos'], editarFormaPagamento:['formasPagamento'],
   addCategoria:['categorias'], editarCategoria:['categorias'], excluirCategoria:['categorias'],
-  addIngrediente:['estoque','movimentacoesEstoque'], editarIngrediente:['estoque','movimentacoesEstoque'], excluirIngrediente:['estoque'],
+  addIngrediente:['estoque','movimentacoesEstoque'], editarIngrediente:['estoque','movimentacoesEstoque','produtoPrecos','comboPrecos','produtoIngredientes'], excluirIngrediente:['estoque'],
+  salvarPrecosLote:['estoque','produtoPrecos','comboPrecos','produtoIngredientes','adicionais'],
   addAdicional:['adicionais'], editarAdicional:['adicionais'], excluirAdicional:['adicionais','produtoAdicionais'], vincularAdicionaisEmLote:['produtoAdicionais'],
   registrarBrinde:['fidelidade','indicacoes','estoque','movimentacoesEstoque'], editarPremioProduto:['produtos'],
-  addProduto:['produtos','produtoPrecos','produtoIngredientes','produtoAdicionais','estoque'], editarProduto:['produtos','produtoPrecos','produtoIngredientes','produtoAdicionais','estoque'],
+  addProduto:['produtos','produtoPrecos','produtoIngredientes','produtoAdicionais','estoque','comboPrecos'], editarProduto:['produtos','produtoPrecos','produtoIngredientes','produtoAdicionais','estoque','comboPrecos'],
   excluirProduto:['produtos','produtoPrecos','produtoIngredientes'], editarVisibilidadeCardapioProduto:['produtos'], editarOrdemCardapioProduto:['produtos'],
   addCombo:['combos','comboPrecos','comboItens'], editarCombo:['combos','comboPrecos','comboItens'], excluirCombo:['combos','comboPrecos','comboItens'],
   editarVisibilidadeCardapioCombo:['combos'], editarOrdemCardapioCombo:['combos'],
@@ -650,7 +614,7 @@ const SB_ESCRITAS_ = {
   salvarConfigNotificacoes:{ config:'configNotificacoes' }, salvarConfigEstoque:{ configEstoque:'configEstoque' }, salvarConfigCardapio:{ config:'configCardapio' }, salvarCardapioFechamento:{ config:'configCardapio' }, salvarDadosRestaurante:{ config:'configCardapio' },
   salvarConfigEntrega:{ configEntrega:'configEntrega' }, salvarMeta:{ metas:'metas' }, salvarCliente:['clientes'],
   criarUsuario:['usuarios'], editarUsuario:['usuarios'], excluirUsuario:['usuarios'], excluirCliente:['clientes'],
-  registrarEntradaEstoque:['estoque','movimentacoesEstoque'], registrarPerdaEstoque:['estoque','movimentacoesEstoque'], registrarInventarioEstoque:['estoque','movimentacoesEstoque'],
+  registrarEntradaEstoque:['estoque','movimentacoesEstoque','produtoPrecos','comboPrecos'], registrarPerdaEstoque:['estoque','movimentacoesEstoque'], registrarInventarioEstoque:['estoque','movimentacoesEstoque'],
   addSangria:['sangrias'],
   fecharContaMesa:['vendas','itensVenda','pagamentosVenda','mesas','fidelidade','clientes'], fecharPeriodoEntregador:['vendas','fechamentosEntrega','entregasFechadas','despesas'],
   abrirCaixa:['sessaoCaixa'], cancelarVenda:['vendas','estoque'], editarVenda:['vendas','itensVenda','pagamentosVenda'],
@@ -660,9 +624,8 @@ const SB_ESCRITAS_ = {
   addDespesa:['despesas'], editarDespesa:['despesas'], pagarDespesa:['despesas'], cancelarDespesa:['despesas'], gerarDespesasMes:['despesas'],
   addDespesaRecorrente:['despesasRecorrentes','despesas'], editarDespesaRecorrente:['despesasRecorrentes','despesas'],
   registrarAjustePosVenda:['ajustesPosVenda','despesas'], cancelarAjustePosVenda:['ajustesPosVenda','despesas'],
-  seedCardapioTexasBurger:['categorias','produtos','produtoPrecos','combos','comboPrecos','comboItens','estoque','adicionais'],
-  salvarCupom:['cupons'], editarCupom:['cupons'], alternarCupom:['cupons'],
-  registrarCompra:['estoque','movimentacoesEstoque','despesas'], receberCompra:['estoque','movimentacoesEstoque','despesas'],
+  salvarCupom:['cupons'], alternarCupom:['cupons'],
+  registrarCompra:['estoque','movimentacoesEstoque','despesas','produtoPrecos','comboPrecos'], receberCompra:['estoque','movimentacoesEstoque','despesas','produtoPrecos','comboPrecos'],
   salvarEvento:['eventos'], cancelarEvento:['eventos'], adicionarCustoEvento:['eventos'], adicionarRecebimentoEvento:['eventos'],
   addOrStampFidelidade:['fidelidade'], resgatarPremioFidelidade:['fidelidade'], indicarNovoCliente:['clientes','indicacoes','fidelidade'], toggleResgateIndicacao:['indicacoes'],
   registrarOcorrencia:['ocorrencias'], atualizarOcorrencia:['ocorrencias'], editarStatusFeedback:['feedbacks'],
@@ -765,12 +728,9 @@ async function sbRotear_(action, payload){
     // Contingência e Drive: Edge Function planilha-admin (Admin/Operador logado) → Apps Script da planilha principal
     if(action === 'obterArmazenamento') return await sb410Edge_('planilha-admin', { acao:'armazenamento' }, 90000);
     if(action === 'obterArmazenamentoContingencia') return await sb410Edge_('planilha-admin', { acao:'armazenamentoContingencia' }, 90000);
-    if(action === 'sincAutoStatus') return await sb410Edge_('planilha-admin', { acao:'sincAutoStatus' }, 60000);
-    if(action === 'sincAutoDefinir') return await sb410Edge_('planilha-admin', { acao:'sincAutoDefinir', ativar: !!(payload && payload.ativar) }, 60000);
     if(action === 'sincronizarContingenciaAgora') return await sb410Edge_('planilha-admin', { acao:'sincronizarContingencia' }, 150000);
     if(action === 'reconciliarContingenciaAgora') return await sb410Edge_('planilha-admin', { acao:'reconciliarContingencia' }, 150000);
     if(action === 'obterChaveContingencia') return await sb410Edge_('planilha-admin', { acao:'chaveContingencia' }, 30000);
-    if(action === 'obterStatusBackup') return { ok:false, naoMigrada:true };
     return { ok:false, naoMigrada:true, message: SB_NAO_MIGRADA_ };
   }catch(e){
     if(e instanceof SbSessaoExpirada_){ sbDiagSessao_('sbRotear_', action); sbSessaoGravar_(null); return { ok:false, sessaoExpirada:true, message:'Sessão expirada.' }; }
@@ -815,54 +775,14 @@ function mostrarManutencao_(msg){
 }
 /* MODO RESERVA: funções que só existem no Supabase (sem equivalente na planilha). Com o Supabase fora, respondem NA HORA, sem esperar tempo esgotar. */
 const RESERVA_INDISPONIVEL_ = { salvarIaExtras:'Contas e acessos', integracoesFlags:'Integrações', integracoesStatus:'Integrações', integracoesMarcar:'Integrações', integracoesConfig:'Integrações', integracoesSalvarSegredo:'Integrações', integracoesVerSegredo:'Integrações', integracoesLigar:'Integrações', integracoesDesligar:'Integrações', integracoesLog:'Integrações', fiscalEmpresaLer:'Integrações', fiscalEmpresaSalvar:'Integrações', fiscalPerfis:'Integrações', fiscalPerfilSalvar:'Integrações', fiscalPerfilExcluir:'Integrações', fiscalAtribuir:'Integrações', fiscalSemPerfil:'Integrações', fiscalExportar:'Integrações', fiscalImportar:'Integrações', nfceLista:'Integrações', nfceReemitir:'Integrações', nfceEmitirVenda:'Integrações', nfceCpf:'Integrações', nfceSimular:'Integrações', nfceConferencia:'Integrações', nfceInutilizar:'Integrações', nfcePacote:'Integrações', ifoodPedidos:'Integrações', ifoodPrecos:'Integrações', ifoodPrecosPedirCatalogo:'Integrações', ifoodPrecosAplicar:'Integrações', ifoodPrecosEnviar:'Integrações', ifoodPrecosDesfazer:'Integrações', ifoodFinanceiro:'Integrações', ifoodAvaliacoes:'Integrações', ifoodAvaliacaoResponder:'Integrações', ifoodRelatorio:'Integrações', ifoodLoja:'Integrações', ifoodLojaAcao:'Integrações', ifoodNegociacoes:'Integrações', ifoodNegociacaoResponder:'Integrações', ifoodItens:'Integrações', ifoodLigarItem:'Integrações', ifoodReprocessar:'Integrações', ifoodSimular:'Integrações', listarChavesIa:'Contas e acessos', verChaveIa:'Contas e acessos', salvarChaveIa:'Contas e acessos', listarContas:'Contas e acessos', salvarConta:'Contas e acessos', excluirConta:'Contas e acessos', verSenhaConta:'Contas e acessos', saudeSistema:'Saúde do sistema', salvarCardapioFechamento:'Abrir ou fechar o cardápio', listarCompras:'Compras e fornecedores', registrarCompra:'Compras e fornecedores', receberCompra:'Compras e fornecedores', cancelarCompra:'Compras e fornecedores', salvarFornecedor:'Compras e fornecedores',
-  listarReembolsos:'Reembolsos', confirmarReembolso:'Reembolsos', pushInscrever:'Avisos com o app fechado', pushCancelar:'Avisos com o app fechado', listarAuditoria:'Auditoria', listarSessoes:'Sessões abertas', encerrarSessaoRemota:'Sessões abertas', simularPrecificacao:'Calculadora de preço', salvarCupom:'Cupons', salvarEvento:'Eventos' };
+  listarReembolsos:'Reembolsos', confirmarReembolso:'Reembolsos', salvarPrecosLote:'Preços em lote', pushInscrever:'Avisos com o app fechado', pushCancelar:'Avisos com o app fechado', listarAuditoria:'Auditoria', listarSessoes:'Sessões abertas', encerrarSessaoRemota:'Sessões abertas', simularPrecificacao:'Calculadora de preço', salvarCupom:'Cupons', salvarEvento:'Eventos' };
 async function _apiCallRaw(action, payload, _tentativa, _idemChave){
   if(RESERVA_INDISPONIVEL_[action] && typeof _sb5Reserva_ !== 'undefined' && _sb5Reserva_) return { ok:false, reserva:true, message:'Modo reserva: "' + RESERVA_INDISPONIVEL_[action] + '" fica indisponível até o Supabase voltar. Nada foi gravado.' };
   if(currentUser && currentUser.emergencia) throw new Error('Modo emergência: este aparelho não fala com a planilha principal'); // BLOCO 1.3 (age como falha de rede: nada é gravado nem apagado)
   payload = payload || {};
   if(USAR_SUPABASE_){ const _rsb = await sbRotear_(action, payload); if(_rsb !== undefined){ if(_rsb && _rsb.sessaoExpirada){ try{ _fila.forEach(i=>{ if(i.estado==='pendente' || i.estado==='retry' || i.estado==='enviando'){ i.estado='erro'; i.erro='Sessão expirada — entre de novo e toque em "Tentar de novo"'; } }); filaSalvar_(); }catch(e){} localStorage.removeItem(SESSAO_KEY); localStorage.removeItem(CONTINGENCIA_CHAVE_KEY); localStorage.removeItem(CACHE_KEY); currentUser = null; alert('Sua sessão expirou. Faça login novamente.'); location.reload(); } if(_rsb && (_rsb.conflito || _rsb.duplicado)) atualizarAposDuplicado_(); else if(_rsb && _rsb.ok === true && SB_REFRESH_APOS_.has(action)) setTimeout(atualizarAposDuplicado_, 400); return _rsb; } }
-  const _chaveVer = payload.id || (action === 'editarUsuario' ? payload.loginAlvo : ''); // BLOCO 4.1: usuário é identificado pelo login
-  if(_tentativa === undefined && VERSAO_FRONT_[action] && _chaveVer && payload.versaoEsperada === undefined){
-    try{ const atual = (VERSAO_FRONT_[action]()||[]).find(x=>(payload.id ? x.id === payload.id : String(x.login).toLowerCase() === String(_chaveVer).toLowerCase())); if(atual && atual._v) payload = Object.assign({}, payload, { versaoEsperada: atual._v }); }catch(e){}
-  }
-  if(_tentativa === undefined && ACOES_IDEM_FRONT.indexOf(action) !== -1 && !payload.requisicaoId){
-    _idemChave = idemChave_(action, payload);
-    payload = Object.assign({}, payload, { requisicaoId: idemId_(_idemChave) });
-  }
-  const repetivel = repetivelNoTimeout_(action, payload), msTimeout = timeoutDaAcao_(action);
-  let dados;
-  for(let tt = 0; ; tt++){
-    try{ dados = await postApi_(action, payload, msTimeout); break; }
-    catch(e){
-      if(!(e && e.timeout)) throw e;
-      if(repetivel){
-        if(tt < TIMEOUT_API_REPETICOES_){ await new Promise(r=>setTimeout(r, TIMEOUT_API_PAUSA_MS_)); continue; }
-        throw e; // 3 tentativas sem resposta: erro, como em qualquer falha de conexão (o id fica guardado para a próxima tentativa)
-      }
-      if(!ACOES_TIMEOUT_SEM_ESTADO_.has(action) && currentUser && currentUser.token) atualizarAposDuplicado_(); // a operação pode ter sido feita: traz o estado real
-      return { ok: false, timeout: true, message: ACOES_TIMEOUT_SEM_ESTADO_.has(action)
-        ? 'O servidor demorou para responder. Tente de novo.'
-        : 'O servidor demorou para responder. A operação pode ter sido feita — confira a lista antes de repetir.' };
-    }
-  }
-  if(dados && dados.manutencao) mostrarManutencao_(dados.message);  // ITEM 2.8
-  if(dados && dados.sessaoExpirada){
-    /* MELHORIA 5.3 — itens na fila offline não são reenviados sem login: viram "com erro" e o usuário reenvia depois de entrar. */
-    try{ _fila.forEach(i=>{ if(i.estado==='pendente' || i.estado==='retry' || i.estado==='enviando'){ i.estado='erro'; i.erro='Sessão expirada — entre de novo e toque em "Tentar de novo"'; } }); filaSalvar_(); }catch(e){}
-    localStorage.removeItem(SESSAO_KEY); localStorage.removeItem(CONTINGENCIA_CHAVE_KEY); localStorage.removeItem(CACHE_KEY);
-    currentUser = null;
-    alert('Sua sessão expirou. Faça login novamente.');
-    location.reload();
-  }
-  // Servidor ocupado: ele NÃO executou nada, então repetir é sempre seguro (mesmo requisicaoId).
-  if(dados && dados.ocupado && (_tentativa||0) < 2){
-    await new Promise(r=>setTimeout(r, 1500));
-    return _apiCallRaw(action, payload, (_tentativa||0)+1, _idemChave);
-  }
-  idemLimpar_(_idemChave);
-  if(dados && dados.conflito) atualizarAposDuplicado_(); // alguém alterou o registro antes: traz o estado real
-  if(dados && dados.duplicado) atualizarAposDuplicado_();
-  return dados;
+  // O caminho antigo (envio direto para a planilha) foi retirado: com o Supabase ligado, sbRotear_ sempre responde.
+  return { ok:false, naoMigrada:true, message: SB_NAO_MIGRADA_ };
 }
 /* O servidor recusou uma repetição: o dado local pode estar defasado, então puxa o estado real. */
 async function atualizarAposDuplicado_(){

@@ -147,27 +147,84 @@ async function carregarCompras_(){
     if(_cpPend_) cpAplicarPend_();
   }catch(e){ box.innerHTML = '<div class="notif-empty">Não foi possível carregar agora.</div>'; }
 }
-function cpItemVazio_(){ return { ingredienteId:'', descricao:'', quantidade:'', unidade:'un', valorTotal:'' }; }
+function cpItemVazio_(){ return { ingredienteId:'', descricao:'', quantidade:'', unidade:'un', valorTotal:'', emb:'', porEmb:'' }; }
 function cpAddItem_(){ cpItens_.push(cpItemVazio_()); cpRenderItens_(); }
 function cpRemoverItem_(i){ cpItens_.splice(i,1); if(!cpItens_.length) cpItens_.push(cpItemVazio_()); cpRenderItens_(); }
+function cpNorm_(s){ return String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().trim(); }
+function cpEhBebida_(id){ return (produtos||[]).some(p=>p.estoqueProprioIngredienteId===id); }
 function cpEditarItem_(i, campo, v){
   cpItens_[i][campo] = v;
   if(campo==='ingredienteId'){ const e = (estoque||[]).find(x=>x.id===v); if(e){ cpItens_[i].unidade = e.unidade || 'un'; cpItens_[i].descricao = ''; } cpRenderItens_(); return; }
-  cpAtualizarTotal_();
+  if(campo==='unidade'){ cpRenderItens_(); return; }
+  cpInfoItem_(i); cpAtualizarTotal_();
+}
+/* busca por digitação: escolher um ingrediente dá entrada no estoque; texto livre vira só despesa (com aviso) */
+function cpBuscar_(i, txt){
+  const it = cpItens_[i]; if(!it) return;
+  it.descricao = txt; it.ingredienteId = '';
+  const q = cpNorm_(txt), box = document.getElementById('cpSug_'+i);
+  if(box){
+    if(!q){ box.innerHTML = ''; }
+    else {
+      const ativos = (estoque||[]).filter(e=>e.ativo!==false && cpNorm_(e.nome).indexOf(q)!==-1)
+        .sort((a,b)=>((cpNorm_(a.nome).indexOf(q)===0?0:1)-(cpNorm_(b.nome).indexOf(q)===0?0:1)) || a.nome.localeCompare(b.nome)).slice(0,8);
+      const ing = ativos.filter(e=>!cpEhBebida_(e.id)), beb = ativos.filter(e=>cpEhBebida_(e.id));
+      const bt = e=>`<button type="button" class="cf-sug-item" onclick="cpEscolher_(${i},'${e.id}')">${escH(e.nome)} <span>${escH(e.unidade||'un')}</span></button>`;
+      box.innerHTML = (ing.length ? '<div class="cf-sug-grupo">Ingredientes</div>' + ing.map(bt).join('') : '')
+        + (beb.length ? '<div class="cf-sug-grupo">Bebidas e itens prontos</div>' + beb.map(bt).join('') : '');
+    }
+  }
+  cpInfoItem_(i);
+}
+function cpEscolher_(i, id){ const box = document.getElementById('cpSug_'+i); if(box) box.innerHTML = ''; cpEditarItem_(i, 'ingredienteId', id); }
+/* "Comprei N embalagens de M unidades" -> quantidade = N x M */
+function cpEmb_(i, campo, v){
+  const it = cpItens_[i]; if(!it) return;
+  it[campo] = v;
+  const n = Number(it.emb)||0, m = Number(it.porEmb)||0;
+  if(n>0 && m>0){ it.quantidade = String(Math.round(n*m*1000)/1000); const q = document.getElementById('cpQtd_'+i); if(q) q.value = it.quantidade; }
+  cpInfoItem_(i); cpAtualizarTotal_();
+}
+function cpInfoItem_(i){
+  const it = cpItens_[i], el = document.getElementById('cpInfo_'+i); if(!it || !el) return;
+  const e = it.ingredienteId ? (estoque||[]).find(x=>x.id===it.ingredienteId) : null;
+  const q = Number(it.quantidade)||0, v = Number(it.valorTotal)||0;
+  let html = '';
+  if(e){
+    html = `<div class="cf-ok">✓ Entra no estoque de <b>${escH(e.nome)}</b>${cpEhBebida_(e.id)?' (bebida/item pronto)':''}</div>`;
+    if(q>0 && v>0){
+      const f = typeof cfFator_ === 'function' ? cfFator_(it.unidade||'un', e.unidade||'un') : (it.unidade===e.unidade?1:null);
+      html += `<div class="sub">= R$ ${(v/q).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:4})} por ${escH(it.unidade||'un')}${f && f!==1 ? ' (R$ ' + (v/(q*f)).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:4}) + ' por ' + escH(e.unidade) + ')' : ''}</div>`;
+      if(!f) html += `<div class="cf-alerta">⚠️ A unidade "${escH(it.unidade)}" não combina com a do estoque de ${escH(e.nome)} (${escH(e.unidade)}). Troque a unidade.</div>`;
+    }
+  } else if(String(it.descricao||'').trim()){
+    const q2 = cpNorm_(it.descricao), parecido = (estoque||[]).filter(x=>x.ativo!==false && (cpNorm_(x.nome).indexOf(q2)!==-1 || q2.indexOf(cpNorm_(x.nome))!==-1)).slice(0,3);
+    html = `<div class="cf-alerta">⚠️ Este item <b>não vai dar entrada no estoque</b> (entra só como despesa).${parecido.length ? ' É algum destes? ' + parecido.map(x=>`<button type="button" class="link-btn" onclick="cpEscolher_(${i},'${x.id}')">${escH(x.nome)}</button>`).join(' ') : ' Se for ingrediente, cadastre em Catálogo → Estoque.'}</div>`;
+  }
+  el.innerHTML = html;
 }
 function cpRenderItens_(){
   const box = document.getElementById('cpItens'); if(!box) return;
-  const ing = (estoque||[]).filter(e=>e.ativo!==false).slice().sort((a,b)=>a.nome.localeCompare(b.nome));
-  box.innerHTML = cpItens_.map((it,i)=>`<div class="notif-card" style="padding:10px;">
-    <select onchange="cpEditarItem_(${i},'ingredienteId',this.value)"><option value="">Outro item (sem estoque)</option>${ing.map(e=>`<option value="${e.id}"${e.id===it.ingredienteId?' selected':''}>${escH(e.nome)} (${escH(e.unidade)})</option>`).join('')}</select>
-    ${it.ingredienteId ? '' : `<input type="text" placeholder="Descrição (ex.: caixas de embalagem)" maxlength="80" value="${escH(it.descricao)}" oninput="cpEditarItem_(${i},'descricao',this.value)">`}
+  box.innerHTML = cpItens_.map((it,i)=>{
+    const e = it.ingredienteId ? (estoque||[]).find(x=>x.id===it.ingredienteId) : null;
+    const nome = e ? e.nome : (it.descricao||'');
+    return `<div class="notif-card" style="padding:10px;">
+    <label for="cpBusca_${i}">O que você comprou?</label>
+    <div class="cf-busca"><input type="text" id="cpBusca_${i}" maxlength="80" autocomplete="off" placeholder="Digite: carne, queijo, coca, embalagem…" value="${escH(nome)}" oninput="cpBuscar_(${i},this.value)"><div class="cf-sug" id="cpSug_${i}"></div></div>
+    <div id="cpInfo_${i}"></div>
     <div class="row2">
-      <div><label>Quantidade</label><input type="number" inputmode="decimal" min="0" step="0.001" value="${escH(it.quantidade)}" oninput="cpEditarItem_(${i},'quantidade',this.value)"></div>
-      <div><label>Unidade</label><select onchange="cpEditarItem_(${i},'unidade',this.value)">${CP_UNIDADES_.map(u=>`<option${u===it.unidade?' selected':''}>${u}</option>`).join('')}</select></div>
+      <div><label for="cpQtd_${i}">Quantidade</label><input type="number" id="cpQtd_${i}" inputmode="decimal" min="0" step="0.001" value="${escH(it.quantidade)}" oninput="cpEditarItem_(${i},'quantidade',this.value)"></div>
+      <div><label for="cpUn_${i}">Unidade</label><select id="cpUn_${i}" onchange="cpEditarItem_(${i},'unidade',this.value)">${CP_UNIDADES_.map(u=>`<option${u===it.unidade?' selected':''}>${u}</option>`).join('')}</select></div>
     </div>
-    <label>Valor total pago por este item (R$)</label><input type="number" inputmode="decimal" min="0" step="0.01" value="${escH(it.valorTotal)}" oninput="cpEditarItem_(${i},'valorTotal',this.value)">
+    ${(it.unidade||'un')==='un' ? `<div class="row2 cf-emb">
+      <div><label for="cpEmb_${i}">Embalagens (opcional)</label><input type="number" id="cpEmb_${i}" inputmode="numeric" min="0" step="1" placeholder="Ex: 2 fardos" value="${escH(it.emb||'')}" oninput="cpEmb_(${i},'emb',this.value)"></div>
+      <div><label for="cpPorEmb_${i}">Unidades em cada</label><input type="number" id="cpPorEmb_${i}" inputmode="numeric" min="0" step="1" placeholder="Ex: 12" value="${escH(it.porEmb||'')}" oninput="cpEmb_(${i},'porEmb',this.value)"></div>
+    </div>` : ''}
+    <label for="cpValor_${i}">Valor total pago por este item (R$)</label><input type="number" id="cpValor_${i}" inputmode="decimal" min="0" step="0.01" value="${escH(it.valorTotal)}" oninput="cpEditarItem_(${i},'valorTotal',this.value)">
     ${cpItens_.length>1 ? `<button type="button" class="link-btn" onclick="cpRemoverItem_(${i})">remover item</button>` : ''}
-  </div>`).join('');
+  </div>`;
+  }).join('');
+  cpItens_.forEach((it,i)=>cpInfoItem_(i));
   cpAtualizarTotal_();
 }
 function cpAtualizarTotal_(){ const t = cpItens_.reduce((s,it)=>s+(Number(it.valorTotal)||0),0); const el = document.getElementById('cpTotal'); if(el) el.textContent = formatarMoeda(t); }
@@ -201,40 +258,37 @@ function cpMontarPayload_(){
   return { fornecedorId: document.getElementById('cpFornecedor').value, data: document.getElementById('cpData').value, status: document.getElementById('cpStatus').value,
     pagamento: document.getElementById('cpPagamento').value, vencimento: document.getElementById('cpVenc').value, saiuDoCaixa: document.getElementById('cpSaiuCaixa').checked,
     observacao: document.getElementById('cpObs').value,
-    itens: cpItens_.filter(it=>it.ingredienteId || it.descricao || it.quantidade || it.valorTotal).map(it=>({ ingredienteId: it.ingredienteId || undefined, descricao: it.descricao, quantidade: Number(it.quantidade)||0, unidade: it.unidade, valorTotal: Number(it.valorTotal)||0 })) };
+    itens: cpItens_.filter(it=>it.ingredienteId || it.descricao || it.quantidade || it.valorTotal).map(it=>{ let ing = it.ingredienteId; if(!ing && it.descricao){ const x = (estoque||[]).find(e=>e.ativo!==false && cpNorm_(e.nome)===cpNorm_(it.descricao)); if(x) ing = x.id; } return { ingredienteId: ing || undefined, descricao: ing ? '' : it.descricao, quantidade: Number(it.quantidade)||0, unidade: it.unidade, valorTotal: Number(it.valorTotal)||0 }; }) };
 }
 async function registrarCompraUI(){
   const p = cpMontarPayload_();
   if(!p.fornecedorId){ showMsg('cpMsg','Escolha o fornecedor (cadastre abaixo, se for novo).','warn'); return; }
   if(!p.itens.length){ showMsg('cpMsg','Informe ao menos um item.','warn'); return; }
   const total = p.itens.reduce((s,i)=>s+i.valorTotal,0);
-  if(!confirm('Registrar compra de ' + formatarMoeda(total) + ' (' + p.itens.length + ' item(ns))?' + (p.status==='Recebida' ? '\nO estoque será atualizado agora.' : ''))) return;
+  const semEstoque = p.itens.filter(i=>!i.ingredienteId).map(i=>i.descricao||'item');
+  if(!confirm('Registrar compra de ' + formatarMoeda(total) + ' (' + p.itens.length + ' item(ns))?' + (p.status==='Recebida' ? '\nO estoque e o custo dos produtos serão atualizados agora.' : '') + (semEstoque.length ? '\n\nSem entrada no estoque (só despesa): ' + semEstoque.join(', ') : ''))) return;
   try{
     const r = await apiCall('registrarCompra', p);
     showMsg('cpMsg', r.message, r.ok?'ok':'warn');
-    if(r.ok){ if(r.estoque) estoque = r.estoque; if(r.movimentacoesEstoque) movimentacoesEstoque = r.movimentacoesEstoque; if(r.despesas) despesas = r.despesas; cpItens_ = []; cpAddItem_(); document.getElementById('cpObs').value=''; await carregarCompras_(); }
+    if(r.ok){ if(r.estoque) estoque = r.estoque; if(r.movimentacoesEstoque) movimentacoesEstoque = r.movimentacoesEstoque; if(r.despesas) despesas = r.despesas; if(r.produtoPrecos) produtoPrecos = r.produtoPrecos; if(r.comboPrecos) comboPrecos = r.comboPrecos; salvarCache(); try{ renderEstoque(); renderProdutos(); renderCombos(); }catch(e){} cpItens_ = []; cpAddItem_(); document.getElementById('cpObs').value=''; await carregarCompras_(); }
   }catch(e){ showMsg('cpMsg','Não foi possível registrar agora. Confira em "Compras recentes" antes de tentar de novo.','warn'); }
 }
 async function receberCompraUI(id){
-  const pg = confirm('Marcar esta compra como RECEBIDA (entra no estoque).\n\nEla já foi paga?\n• OK = já paga\n• Cancelar = ainda a pagar (peço o vencimento em seguida)') ? 'Pago' : 'A pagar';
-  let venc = '';
-  if(pg==='A pagar'){
-    const txt = prompt('Vencimento (DD/MM/AAAA):', cpHoje_().split('-').reverse().join('/')); if(!txt) return;
-    const m = String(txt).trim().match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{2}|\d{4})$/);
-    if(!m){ showMsg('cpListaMsg','Data inválida. Use DD/MM/AAAA, por exemplo 20/10/2026.','warn'); return; }
-    const ano = m[3].length === 2 ? '20' + m[3] : m[3], mes = m[2].padStart(2,'0'), dia = m[1].padStart(2,'0');
-    const dt = new Date(ano + '-' + mes + '-' + dia + 'T12:00:00');
-    if(isNaN(dt) || dt.getDate() !== Number(dia)){ showMsg('cpListaMsg','Data inválida. Use DD/MM/AAAA, por exemplo 20/10/2026.','warn'); return; }
-    venc = ano + '-' + mes + '-' + dia;
-  }
+  const f = await vsForm({ titulo:'Compra recebida', texto:'A mercadoria entra no estoque e o custo dos produtos é atualizado.', ok:'Marcar recebida',
+    campos:[ { id:'pg', tipo:'escolha', rotulo:'Pagamento', valor:'Pago', opcoes:[ { v:'Pago', t:'✅ Já paguei' }, { v:'A pagar', t:'🕒 Vou pagar depois' } ] },
+             { id:'venc', rotulo:'Vencimento', tipo:'data', obrigatorio:true, valor:cpHoje_(), mostrarSe:{ campo:'pg', valor:'A pagar' } } ] });
+  if(!f) return;
+  const pg = f.pg === 'A pagar' ? 'A pagar' : 'Pago', venc = pg === 'A pagar' ? (f.venc || '') : '';
   try{
     const r = await apiCall('receberCompra', { id, pagamento: pg, vencimento: venc, saiuDoCaixa: false });
     showMsg('cpListaMsg', r.message, r.ok?'ok':'warn');
-    if(r.ok){ if(r.estoque) estoque = r.estoque; if(r.movimentacoesEstoque) movimentacoesEstoque = r.movimentacoesEstoque; if(r.despesas) despesas = r.despesas; await carregarCompras_(); }
+    if(r.ok){ if(r.estoque) estoque = r.estoque; if(r.movimentacoesEstoque) movimentacoesEstoque = r.movimentacoesEstoque; if(r.despesas) despesas = r.despesas; if(r.produtoPrecos) produtoPrecos = r.produtoPrecos; if(r.comboPrecos) comboPrecos = r.comboPrecos; salvarCache(); try{ renderEstoque(); renderProdutos(); renderCombos(); }catch(e){} await carregarCompras_(); }
   }catch(e){ showMsg('cpListaMsg','Não foi possível receber agora.','warn'); }
 }
 async function cancelarCompraUI(id){
-  const motivo = prompt('Motivo do cancelamento do pedido:'); if(!motivo) return;
+  const f = await vsForm({ titulo:'Cancelar pedido de compra', ok:'Cancelar pedido', perigo:true,
+    campos:[ { id:'motivo', rotulo:'Motivo do cancelamento', tipo:'texto', obrigatorio:true, sugestoes:['Fornecedor não entregou','Pedido feito errado'] } ] });
+  if(!f) return; const motivo = f.motivo;
   try{ const r = await apiCall('cancelarCompra', { id, motivo }); showMsg('cpListaMsg', r.message, r.ok?'ok':'warn'); if(r.ok) await carregarCompras_(); }
   catch(e){ showMsg('cpListaMsg','Não foi possível cancelar agora.','warn'); }
 }
@@ -552,7 +606,8 @@ function cdChipAtualizar_(){
 async function cdChipAlternar_(){
   const f = (configCardapio && configCardapio.fechamento) || { ativo:false, mensagem:'', periodos:[] };
   const fechar = !f.ativo; let msg = '';
-  if(fechar){ const r = prompt('Fechar o cardápio dos clientes agora?\nMensagem para o cliente (opcional):', ''); if(r === null) return; msg = String(r).trim(); }
+  if(fechar){ const r = await vsForm({ titulo:'Fechar o cardápio dos clientes', texto:'Os clientes não conseguem pedir até você reabrir.', ok:'Fechar cardápio', perigo:true,
+    campos:[ { id:'msg', rotulo:'Mensagem para o cliente (opcional)', tipo:'texto', max:160 } ] }); if(!r) return; msg = String(r.msg || '').trim(); }
   else if(!confirm('Reabrir o cardápio dos clientes?')) return;
   if(!iniciarOperacaoUnica('fechaCardapio')) return;
   try{

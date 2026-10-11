@@ -411,7 +411,8 @@
     </div>
 
     <div class="card" data-painel="produtos">
-      <div class="card-head"><h2>Produtos cadastrados</h2><button type="button" class="small-gold" onclick="abrirFormModal('produtoNovoModal')">+ Novo produto</button></div>
+      <div class="card-head"><h2>Produtos cadastrados</h2><button type="button" class="small-gold" onclick="abrirFormModal('produtoNovoModal');cfIniciarProduto('p',null)">+ Novo produto</button></div>
+      <div id="cfAvisoProdutos"></div>
       <div class="msg" id="pMsgLista"></div>
       <input type="text" class="search" id="pSearch" placeholder="Buscar produto..." oninput="renderProdutos()">
       <table>
@@ -480,10 +481,19 @@
         <div class="admin-subnav" data-admin-nav="1"></div>
 
     <div class="card">
-      <h2>Ingredientes (Estoque)</h2>
+      <h2>Estoque</h2>
+      <div id="cfAvisoEstoque"></div>
+      <div class="btnrow" style="margin-bottom:10px;">
+        <button type="button" class="toggle-mode active" id="estAbaIng" onclick="cfEstoqueAba('ing')">Ingredientes</button>
+        <button type="button" class="toggle-mode" id="estAbaBeb" onclick="cfEstoqueAba('beb')">Bebidas e itens prontos</button>
+      </div>
       <label style="display:flex;gap:8px;align-items:center;margin-bottom:4px;"><input type="checkbox" id="cfgBloquearEstoque" style="width:auto;" onchange="salvarBloqueioEstoque(this.checked)"> Bloquear venda quando o estoque for insuficiente</label>
       <p class="sub" id="cfgBloquearEstoqueMsg" style="margin-top:0;">Desligado: a venda passa e o estoque pode ficar negativo (fica registrado). Ligue só depois de cadastrar as quantidades.</p>
-      <button type="button" class="primary" onclick="abrirFormModal('ingredienteNovoModal')">+ Novo ingrediente</button>
+      <div class="btnrow" id="estNovoIngBox">
+        <button type="button" class="primary" onclick="cfAbrirNovoIngrediente()">+ Novo ingrediente</button>
+        <button type="button" class="ghost" onclick="cfAbrirLote()">💲 Preços em lote</button>
+      </div>
+      <p class="sub" id="estBebAjuda" style="display:none;">Bebidas e itens prontos são cadastrados como produto: Catálogo → Produtos → + Novo produto → "🥤 Comprado pronto". Aqui você vê e ajusta o estoque deles.</p>
       <div class="msg" id="eMsgLista"></div>
       <table style="margin-top:14px;">
         <thead><tr><th>Ingrediente</th><th>Qtd</th><th>Status</th><th></th></tr></thead>
@@ -1311,7 +1321,7 @@
       <label for="relPeriodo">Período</label>
       <select id="relPeriodo" onchange="renderRelatorio()"></select>
       <div id="relMesArqBox" style="display:none;margin-top:6px;"><label for="relMesArq">Mês</label><input type="month" id="relMesArq" onchange="renderRelatorio()">
-        <div class="obs-line">Vendas antigas já arquivadas na planilha (prazo definido em Sistema → Espaço e fotos) são buscadas de lá por este relatório.</div></div>
+        <div class="obs-line">Vendas antigas já arquivadas na planilha (prazo definido em Sistema → Backup e espaço) são buscadas de lá por este relatório.</div></div>
       <label for="relTipo">Relatório</label>
       <select id="relTipo" onchange="renderRelatorio()"></select>
       <div id="relResultado"></div>
@@ -1371,20 +1381,8 @@
 
   <section class="tab" id="tab-armazenamento">
     <div class="admin-subnav" data-admin-nav="1"></div>
-    <div class="card" id="importarCardapioCard">
-      <h2>Importar cardápio inicial</h2>
-      <p class="sub">Cadastra de uma vez as categorias, produtos, combos e bebidas do Texas Burger, já com preço da loja, preço do iFood e foto. Pode rodar com segurança mais de uma vez — se algo já existir pelo nome, não duplica, e a foto só é enviada para quem ainda está sem foto. Leva alguns minutos por causa das fotos: não feche a página.</p>
-      <button class="small-gold" style="width:100%;padding:10px;" onclick="importarCardapioInicial()">📥 Importar cardápio do Texas Burger</button>
-      <button class="ghost" style="width:100%;padding:10px;margin-top:8px;" onclick="aplicarFotosCardapioInicial()">📷 Só aplicar as fotos do cardápio inicial</button>
-      <div class="msg" id="importarCardapioMsg"></div>
-    </div>
-
-  </section>
-
-  <section class="tab" id="tab-drive">
-        <div class="admin-subnav" data-admin-nav="1"></div>
-
-    <div class="card">
+    <!-- app-17 acrescenta aqui Backup e Uso do Supabase; o Google Drive fica por último -->
+    <div class="card" id="driveCard">
       <h2>Google Drive</h2>
       <div id="driveResumo" style="font-size:13px;">Carregando...</div>
       <div id="driveArquivos" style="overflow-x:auto;font-size:12.5px;margin-top:10px;"></div>
@@ -1402,11 +1400,7 @@
       <div id="contingenciaStatus" style="font-size:13px;margin-bottom:10px;">Carregando status...</div>
       <div id="contingenciaArmazenamento" style="font-size:13px;margin-bottom:10px;"></div>
       <button class="small-gold" style="width:100%;padding:10px;" onclick="sincronizarContingenciaUI()">🔄 Sincronizar espelho agora</button>
-      <div class="obs-line" style="margin-top:8px;display:flex;align-items:center;gap:8px;">
-        <input type="checkbox" id="contSincAuto" onchange="contSincAutoSalvar(this.checked)" style="width:auto;margin:0;">
-        <label for="contSincAuto" id="contSincAutoTxt" style="margin:0;">Sincronização automática do espelho (todo dia às 3h)</label>
-      </div>
-      <div class="obs-line" id="contSincAutoMsg" style="margin-top:2px;"></div>
+      <div class="obs-line" style="margin-top:8px;">O espelho se atualiza sozinho a cada 10 minutos (e por completo todo dia às 3h). O botão acima é só para quando você quiser na hora.</div>
       <button class="ghost" style="width:100%;padding:10px;margin-top:8px;" onclick="reconciliarContingenciaUI()">⬇️ Trazer vendas pendentes da contingência</button>
       <div class="msg" id="contingenciaMsg"></div>
     </div>
@@ -1484,75 +1478,77 @@
 <!-- MODAL EDITAR PRODUTO -->
 <div class="modal-overlay" id="produtoModal">
   <div class="modal-box">
-    <div class="modal-header"><h2>Editar produto</h2><button class="close-btn" onclick="fecharModalProduto()">✕</button></div>
-    <label for="ppNome">Nome</label><input type="text" id="ppNome">
-    <label for="ppDescricao">Descrição</label><input type="text" id="ppDescricao">
-    <label for="ppCategoria">Categoria</label><select id="ppCategoria"></select>
-    <div class="row2">
-      <div><label for="ppPreco">Preço</label><input type="number" id="ppPreco" step="0.01"></div>
-      <div><label for="ppCusto">Custo</label><input type="number" id="ppCusto" step="0.01"></div>
-    </div>
-    <p class="sub" style="margin-top:6px;">Esse é o preço base: vale para todas as formas de pagamento. Se uma forma tem preço próprio (ex.: iFood), preencha o campo dela abaixo; em branco, vale o preço base.</p>
-    <div id="ppPrecosProprios"></div>
-
-    <label style="display:flex;align-items:center;gap:8px;margin-top:12px;"><input type="checkbox" id="ppAtivo" style="width:auto;"><span style="font-size:13px;">Produto ativo (aparece pra venda)</span></label>
-
-    <label style="display:flex;align-items:center;gap:8px;margin-top:12px;">
-      <input type="checkbox" id="ppEstoqueProprioAtivo" style="width:auto;" onchange="toggleEstoqueProprioUI('pp')">
-      Este item tem estoque próprio (ex: bebidas, itens já prontos)
-    </label>
-    <div id="ppEstoqueProprioBox" style="display:none;margin-top:8px;">
-      <p class="sub" id="ppEstoqueProprioAviso" style="margin-bottom:6px;"></p>
+    <div class="modal-header"><h2>Editar produto</h2><button class="close-btn" onclick="fecharModalProduto()" aria-label="Fechar">✕</button></div>
+      <label for="ppNome">Nome</label><input type="text" id="ppNome">
       <div class="row2">
-        <div><label for="ppEstoqueMin">Mínimo (alerta)</label><input type="number" id="ppEstoqueMin" step="0.01" placeholder="0"></div>
-        <div>
-          <label for="ppEstoqueUnidade">Unidade</label>
-          <select id="ppEstoqueUnidade">
-            <option value="un">Unidade (un)</option>
-            <option value="g">Grama (g)</option>
-            <option value="kg">Quilo (kg)</option>
-            <option value="ml">Mililitro (ml)</option>
-            <option value="l">Litro (l)</option>
-          </select>
-        </div>
+        <div><label for="ppCategoria">Categoria</label><select id="ppCategoria"></select></div>
+        <div><label for="ppPreco">Preço de venda (R$)</label><input type="number" id="ppPreco" step="0.01" min="0" inputmode="decimal" oninput="cfAtualizarMargem('pp')"></div>
       </div>
-      <p class="sub">A quantidade em estoque se ajusta pelas movimentações (venda, entrada, perda, inventário) em Catálogo → Estoque — editar aqui não muda a quantidade atual.</p>
-    </div>
-
-    <button type="button" class="ghost" style="width:100%;margin-top:14px;" onclick="toggleAvancado('pp')">⚙️ Opções avançadas <span id="ppAvancadoSeta">▸</span></button>
-    <div id="ppAvancadoBox" style="display:none;margin-top:10px;">
-
-      <div class="modal-section">
-        <h3>🎁 Este produto é um prêmio</h3>
-        <label style="display:flex;align-items:center;gap:8px;"><input type="checkbox" id="ppPremioFid" style="width:auto;"> Prêmio do cartão fidelidade</label>
-        <label style="display:flex;align-items:center;gap:8px;margin-top:6px;"><input type="checkbox" id="ppPremioInd" style="width:auto;"> Prêmio de indicação</label>
-      </div>
-      <div class="modal-section">
-        <h3>Adicionais disponíveis para este produto (opcional)</h3>
-        <div id="ppAdicionaisLista" style="display:flex;flex-direction:column;gap:6px;"></div>
-      </div>
-      <label style="display:flex;align-items:center;gap:8px;margin-top:8px;"><input type="checkbox" id="ppDestaque" style="width:auto;"><span style="font-size:13px;">Mostrar em "📌 Destaques" no Cardápio Digital</span></label>
+      <label for="ppDescricao">Descrição</label><input type="text" id="ppDescricao">
+      <label style="display:flex;align-items:center;gap:8px;margin-top:12px;"><input type="checkbox" id="ppAtivo" style="width:auto;"><span style="font-size:13px;">Produto ativo (aparece pra venda)</span></label>
       <div class="modal-section">
         <h3>Foto</h3>
         <div id="ppFotoAtual" style="margin-bottom:8px;"></div>
-        <input type="file" id="ppFoto" accept="image/*" onchange="trocarFotoProdutoEdicao()">
+        <input type="file" id="ppFoto" accept="image/*" aria-label="Trocar foto" onchange="trocarFotoProdutoEdicao()">
         <button type="button" class="ghost" style="width:100%;margin-top:8px;" onclick="removerFotoProdutoEdicao()">Remover foto</button>
         <div class="msg" id="ppFotoMsg"></div>
       </div>
-      <div class="modal-section">
-        <h3>Ficha técnica (opcional)</h3>
-        <div class="row3">
-          <div><select id="ppIngredienteSelect" onchange="atualizarLabelQtdIngrediente('pp')"></select></div>
-          <div><input type="number" id="ppIngredienteQtd" placeholder="Qtd" step="0.01"></div>
-        </div>
-        <div class="sub" id="ppIngredienteUnidadeLabel" style="margin:2px 0 8px;"></div>
-        <button class="small-gold" style="margin-top:8px;width:100%;padding:10px;" onclick="adicionarIngredienteAoProdutoEdicao()">+ Adicionar ingrediente</button>
-        <div id="ppIngredientesLista" style="margin-top:8px;"></div>
+      <h3 class="cf-tit">Como é feito?</h3>
+      <div class="btnrow cf-tipos" id="ppTipoBotoes">
+        <button type="button" class="toggle-mode" data-tipo="receita" onclick="cfSetTipo('pp','receita')">🍳 Preparado aqui</button>
+        <button type="button" class="toggle-mode" data-tipo="pronto" onclick="cfSetTipo('pp','pronto')">🥤 Comprado pronto</button>
+        <button type="button" class="toggle-mode" data-tipo="manual" onclick="cfSetTipo('pp','manual')">✍️ Sem controle</button>
       </div>
-    </div>
+      <p class="sub" id="ppTipoAjuda" style="margin-top:4px;"></p>
+      <div id="ppSecReceita" class="modal-section cf-sec">
+        <h3>Receita (o que vai em cada um)</h3>
+        <div class="cf-busca"><input type="text" id="ppRwBusca" placeholder="Digite o ingrediente (ex.: queijo)" autocomplete="off" aria-label="Buscar ingrediente" oninput="cfRwBuscar('pp')"><div id="ppRwSug" class="cf-sug"></div></div>
+        <div class="row2">
+          <div><label for="ppRwQtd" id="ppRwQtdLbl">Quantidade por unidade vendida</label><input type="number" id="ppRwQtd" step="0.001" min="0" inputmode="decimal" placeholder="Qtd"></div>
+          <div class="cf-add"><button type="button" class="small-gold" onclick="cfRwAdicionar('pp')">+ Adicionar</button></div>
+        </div>
+        <div id="ppIngredientesLista" style="margin-top:8px;"></div>
+        <div id="ppRwTotal" class="cf-total"></div>
+        <select id="ppRwCopiar" onchange="cfRwCopiar('pp', this.value)" aria-label="Copiar receita de outro produto"></select>
+        <select id="ppIngredienteSelect" hidden aria-hidden="true" tabindex="-1"></select><input type="hidden" id="ppIngredienteQtd"><div id="ppIngredienteUnidadeLabel" hidden></div>
+      </div>
+      <div id="ppSecPronto" class="modal-section cf-sec" style="display:none;">
+        <h3>Compra e estoque</h3>
+        <input type="checkbox" id="ppEstoqueProprioAtivo" hidden onchange="toggleEstoqueProprioUI('pp')">
+        <div id="ppEstoqueProprioBox">
+          <p class="sub" id="ppEstoqueProprioAviso" style="margin-bottom:6px;"></p>
+          <div class="row2">
+            <div><label for="ppPrValor">Paguei (R$)</label><input type="number" id="ppPrValor" step="0.01" min="0" inputmode="decimal" placeholder="Ex: 30" oninput="cfAtualizarCusto('pp')"></div>
+            <div><label for="ppPrQtd">por quantas unidades</label><input type="number" id="ppPrQtd" step="1" min="0" inputmode="numeric" placeholder="Ex: 12 (fardo)" oninput="cfAtualizarCusto('pp')"></div>
+          </div>
+          <label for="ppEstoqueMin">Avisar quando chegar a (un)</label><input type="number" id="ppEstoqueMin" step="1" min="0" inputmode="numeric" placeholder="0">
+          <select id="ppEstoqueUnidade" hidden aria-hidden="true" tabindex="-1"><option value="un" selected>un</option><option value="g">g</option><option value="kg">kg</option><option value="ml">ml</option><option value="l">l</option></select>
+          <p class="sub">A quantidade em estoque muda pelas vendas, compras e em Catálogo → Estoque (entrada, perda, inventário).</p>
+        </div>
+      </div>
+      <div class="row2" style="margin-top:10px;">
+        <div><label for="ppCusto">Custo (R$)</label><input type="number" id="ppCusto" placeholder="0,00" step="0.01" min="0" inputmode="decimal" oninput="cfAtualizarMargem('pp')"></div>
+        <div><label>Margem</label><div class="cf-margem"><b id="ppMargemPreview">—</b></div></div>
+      </div>
+      <p class="sub" id="ppCustoNota" style="margin-top:4px;"></p>
+      <button type="button" class="ghost" style="width:100%;margin-top:14px;" onclick="toggleAvancado('pp')">⚙️ Mais opções (iFood, adicionais, destaque, prêmio) <span id="ppAvancadoSeta">▸</span></button>
+      <div id="ppAvancadoBox" style="display:none;margin-top:10px;">
+        <p class="sub">Preço próprio de uma forma de pagamento (ex.: iFood). Em branco = o preço de venda acima.</p>
+        <div id="ppPrecosProprios"></div>
+        <div class="modal-section">
+          <h3>Adicionais disponíveis para este produto</h3>
+          <div id="ppAdicionaisLista" style="display:flex;flex-direction:column;gap:6px;"></div>
+        </div>
+        <label style="display:flex;align-items:center;gap:8px;margin-top:8px;"><input type="checkbox" id="ppDestaque" style="width:auto;"><span style="font-size:13px;">Mostrar em "📌 Destaques" no Cardápio Digital</span></label>
+        <div class="modal-section">
+          <h3>🎁 Este produto é um prêmio</h3>
+          <label style="display:flex;align-items:center;gap:8px;"><input type="checkbox" id="ppPremioFid" style="width:auto;"> Prêmio do cartão fidelidade</label>
+          <label style="display:flex;align-items:center;gap:8px;margin-top:6px;"><input type="checkbox" id="ppPremioInd" style="width:auto;"> Prêmio de indicação</label>
+        </div>
+      </div>
 
-    <button class="primary" onclick="salvarEdicaoProduto()" style="margin-top:14px;">Salvar alterações</button>
-    <div class="msg" id="ppMsg"></div>
+      <button class="primary" onclick="salvarEdicaoProduto()" style="margin-top:14px;">Salvar alterações</button>
+      <div class="msg" id="ppMsg"></div>
   </div>
 </div>
 
@@ -1838,63 +1834,63 @@
     <div class="modal-header"><h2>Novo produto</h2><button class="close-btn" onclick="fecharFormModal('produtoNovoModal')" aria-label="Fechar">✕</button></div>
       <label for="pNome">Nome</label>
       <input type="text" id="pNome" placeholder="Ex: X-Bacon">
+      <div class="row2">
+        <div><label for="pCategoria">Categoria</label><select id="pCategoria"></select></div>
+        <div><label for="pPreco">Preço de venda (R$)</label><input type="number" id="pPreco" placeholder="0,00" step="0.01" min="0" inputmode="decimal" oninput="atualizarMargemPreview()"></div>
+      </div>
       <label for="pDescricao">Descrição (opcional)</label>
       <input type="text" id="pDescricao" placeholder="Ex: Pão, hambúrguer, bacon, queijo e molho da casa">
-      <label for="pCategoria">Categoria</label>
-      <select id="pCategoria"></select>
-      <div class="row2">
-        <div><label for="pPreco">Preço (R$)</label><input type="number" id="pPreco" placeholder="0.00" step="0.01" oninput="atualizarMargemPreview()"></div>
-        <div><label for="pCusto">Custo (R$)</label><input type="number" id="pCusto" placeholder="0.00" step="0.01" oninput="atualizarMargemPreview()"></div>
+      <label for="pFoto">Foto (opcional)</label>
+      <input type="file" id="pFoto" accept="image/*" onchange="previewFoto('pFoto','pFotoPreview')">
+      <div id="pFotoPreview" style="margin-top:8px;"></div>
+      <h3 class="cf-tit">Como é feito?</h3>
+      <div class="btnrow cf-tipos" id="pTipoBotoes">
+        <button type="button" class="toggle-mode" data-tipo="receita" onclick="cfSetTipo('p','receita')">🍳 Preparado aqui</button>
+        <button type="button" class="toggle-mode" data-tipo="pronto" onclick="cfSetTipo('p','pronto')">🥤 Comprado pronto</button>
+        <button type="button" class="toggle-mode" data-tipo="manual" onclick="cfSetTipo('p','manual')">✍️ Sem controle</button>
       </div>
-      <div style="font-size:12.5px;color:var(--muted);margin-top:8px;">Margem: <b id="pMargemPreview" style="color:var(--gold);">R$ 0,00 (0%)</b></div>
-      <p class="sub" style="margin-top:6px;">Esse é o preço base: vale para todas as formas de pagamento. Se uma forma tem preço próprio (ex.: iFood), preencha o campo dela abaixo; em branco, vale o preço base.</p>
-      <div id="pPrecosProprios"></div>
-
-      <label style="display:flex;align-items:center;gap:8px;margin-top:14px;">
-        <input type="checkbox" id="pEstoqueProprioAtivo" style="width:auto;" onchange="toggleEstoqueProprioUI('p')">
-        Este item tem estoque próprio (ex: bebidas, itens já prontos)
-      </label>
-      <div id="pEstoqueProprioBox" style="display:none;margin-top:8px;">
+      <p class="sub" id="pTipoAjuda" style="margin-top:4px;"></p>
+      <div id="pSecReceita" class="modal-section cf-sec">
+        <h3>Receita (o que vai em cada um)</h3>
+        <div class="cf-busca"><input type="text" id="pRwBusca" placeholder="Digite o ingrediente (ex.: queijo)" autocomplete="off" aria-label="Buscar ingrediente" oninput="cfRwBuscar('p')"><div id="pRwSug" class="cf-sug"></div></div>
         <div class="row2">
-          <div><label for="pEstoqueQtd">Quantidade inicial</label><input type="number" id="pEstoqueQtd" step="0.01" placeholder="0"></div>
-          <div><label for="pEstoqueMin">Mínimo (alerta)</label><input type="number" id="pEstoqueMin" step="0.01" placeholder="0"></div>
+          <div><label for="pRwQtd" id="pRwQtdLbl">Quantidade por unidade vendida</label><input type="number" id="pRwQtd" step="0.001" min="0" inputmode="decimal" placeholder="Qtd"></div>
+          <div class="cf-add"><button type="button" class="small-gold" onclick="cfRwAdicionar('p')">+ Adicionar</button></div>
         </div>
-        <label for="pEstoqueUnidade">Unidade</label>
-        <select id="pEstoqueUnidade">
-          <option value="un">Unidade (un)</option>
-          <option value="g">Grama (g)</option>
-          <option value="kg">Quilo (kg)</option>
-          <option value="ml">Mililitro (ml)</option>
-          <option value="l">Litro (l)</option>
-        </select>
+        <div id="pIngredientesLista" style="margin-top:8px;"></div>
+        <div id="pRwTotal" class="cf-total"></div>
+        <select id="pRwCopiar" onchange="cfRwCopiar('p', this.value)" aria-label="Copiar receita de outro produto"></select>
+        <select id="pIngredienteSelect" hidden aria-hidden="true" tabindex="-1"></select><input type="hidden" id="pIngredienteQtd"><div id="pIngredienteUnidadeLabel" hidden></div>
       </div>
-
-      <button type="button" class="ghost" style="width:100%;margin-top:14px;" onclick="toggleAvancado('p')">⚙️ Opções avançadas <span id="pAvancadoSeta">▸</span></button>
-      <div id="pAvancadoBox" style="display:none;margin-top:10px;">
-
-
-        <div class="modal-section">
-          <h3>Ficha técnica (opcional)</h3>
-          <div class="row3">
-            <div><select id="pIngredienteSelect" onchange="atualizarLabelQtdIngrediente('p')"></select></div>
-            <div><input type="number" id="pIngredienteQtd" placeholder="Qtd" step="0.01"></div>
+      <div id="pSecPronto" class="modal-section cf-sec" style="display:none;">
+        <h3>Compra e estoque</h3>
+        <input type="checkbox" id="pEstoqueProprioAtivo" hidden onchange="toggleEstoqueProprioUI('p')">
+        <div id="pEstoqueProprioBox">
+          <div class="row2">
+            <div><label for="pPrValor">Paguei (R$)</label><input type="number" id="pPrValor" step="0.01" min="0" inputmode="decimal" placeholder="Ex: 30" oninput="cfAtualizarCusto('p')"></div>
+            <div><label for="pPrQtd">por quantas unidades</label><input type="number" id="pPrQtd" step="1" min="0" inputmode="numeric" placeholder="Ex: 12 (fardo)" oninput="cfAtualizarCusto('p')"></div>
           </div>
-          <div class="sub" id="pIngredienteUnidadeLabel" style="margin:2px 0 8px;"></div>
-          <button class="small-gold" style="margin-top:8px;width:100%;padding:10px;" onclick="adicionarIngredienteAoProdutoNovo()">+ Adicionar ingrediente</button>
-          <div id="pIngredientesLista" style="margin-top:8px;"></div>
+          <div class="row2">
+            <div><label for="pEstoqueQtd">Tenho agora (un)</label><input type="number" id="pEstoqueQtd" step="1" min="0" inputmode="numeric" placeholder="0"></div>
+            <div><label for="pEstoqueMin">Avisar quando chegar a (un)</label><input type="number" id="pEstoqueMin" step="1" min="0" inputmode="numeric" placeholder="0"></div>
+          </div>
+          <select id="pEstoqueUnidade" hidden aria-hidden="true" tabindex="-1"><option value="un" selected>un</option><option value="g">g</option><option value="kg">kg</option><option value="ml">ml</option><option value="l">l</option></select>
         </div>
-
+      </div>
+      <div class="row2" style="margin-top:10px;">
+        <div><label for="pCusto">Custo (R$)</label><input type="number" id="pCusto" placeholder="0,00" step="0.01" min="0" inputmode="decimal" oninput="atualizarMargemPreview()"></div>
+        <div><label>Margem</label><div class="cf-margem"><b id="pMargemPreview">—</b></div></div>
+      </div>
+      <p class="sub" id="pCustoNota" style="margin-top:4px;"></p>
+      <button type="button" class="ghost" style="width:100%;margin-top:14px;" onclick="toggleAvancado('p')">⚙️ Mais opções (iFood, adicionais, destaque) <span id="pAvancadoSeta">▸</span></button>
+      <div id="pAvancadoBox" style="display:none;margin-top:10px;">
+        <p class="sub">Preço próprio de uma forma de pagamento (ex.: iFood). Em branco = o preço de venda acima.</p>
+        <div id="pPrecosProprios"></div>
         <div class="modal-section">
-          <h3>Foto (opcional)</h3>
-          <input type="file" id="pFoto" accept="image/*" onchange="previewFoto('pFoto','pFotoPreview')">
-          <div id="pFotoPreview" style="margin-top:8px;"></div>
-        </div>
-
-        <div class="modal-section">
-          <h3>Adicionais disponíveis para este produto (opcional)</h3>
+          <h3>Adicionais disponíveis para este produto</h3>
+          <p class="sub" id="pAdicionaisNota" style="margin:0 0 6px;"></p>
           <div id="pAdicionaisLista" style="display:flex;flex-direction:column;gap:6px;"></div>
         </div>
-
         <label style="display:flex;align-items:center;gap:8px;margin-top:10px;"><input type="checkbox" id="pDestaque" style="width:auto;"> Mostrar em "📌 Destaques" no Cardápio Digital</label>
       </div>
 
@@ -1952,23 +1948,27 @@
   <div class="modal-box">
     <div class="modal-header"><h2>Novo ingrediente</h2><button class="close-btn" onclick="fecharFormModal('ingredienteNovoModal')" aria-label="Fechar">✕</button></div>
       <label for="eNome">Nome do ingrediente</label>
-      <input type="text" id="eNome" placeholder="Ex: Pão de hambúrguer">
+      <input type="text" id="eNome" placeholder="Ex: Queijo mussarela">
+      <label for="eUnidade">Como você compra</label>
+      <select id="eUnidade" onchange="cfIngAtualizar('e')">
+        <option value="un">Por unidade (un)</option>
+        <option value="kg">Por quilo (kg)</option>
+        <option value="l">Por litro (l)</option>
+        <option value="g">Por grama (g)</option>
+        <option value="ml">Por mililitro (ml)</option>
+      </select>
       <div class="row2">
-        <div><label for="eQtd">Quantidade atual</label><input type="number" id="eQtd" placeholder="0" step="0.01"></div>
-        <div><label for="eMin">Quantidade mínima (alerta)</label><input type="number" id="eMin" placeholder="0" step="0.01"></div>
+        <div><label for="eCompraValor">Paguei (R$)</label><input type="number" id="eCompraValor" step="0.01" min="0" inputmode="decimal" placeholder="Ex: 40" oninput="cfIngAtualizar('e')"></div>
+        <div><label for="eCompraQtd" id="eCompraQtdLbl">por quantas unidades</label><input type="number" id="eCompraQtd" step="0.001" min="0" inputmode="decimal" placeholder="Ex: 1" oninput="cfIngAtualizar('e')"></div>
       </div>
-      <div class="row2">
-        <div>
-          <label for="eUnidade">Unidade</label>
-          <select id="eUnidade">
-            <option value="un">Unidade (un)</option>
-            <option value="g">Grama (g)</option>
-            <option value="kg">Quilo (kg)</option>
-            <option value="ml">Mililitro (ml)</option>
-            <option value="l">Litro (l)</option>
-          </select>
+      <p class="sub" id="eCustoNota">Informe quanto pagou para o sistema calcular o custo.</p>
+      <input type="hidden" id="eCusto">
+      <button type="button" class="ghost" style="width:100%;margin-top:10px;" onclick="toggleAvancado('e')">📦 Estoque agora e aviso de mínimo (opcional) <span id="eAvancadoSeta">▸</span></button>
+      <div id="eAvancadoBox" style="display:none;margin-top:8px;">
+        <div class="row2">
+          <div><label for="eQtd">Tenho agora</label><input type="number" id="eQtd" placeholder="0" step="0.01" min="0" inputmode="decimal"></div>
+          <div><label for="eMin">Avisar quando chegar a</label><input type="number" id="eMin" placeholder="0" step="0.01" min="0" inputmode="decimal"></div>
         </div>
-        <div><label for="eCusto">Custo por unidade (R$)</label><input type="number" id="eCusto" placeholder="0.00" step="0.01"></div>
       </div>
       <button class="primary" id="eBtn" onclick="registrarIngrediente()">Cadastrar ingrediente</button>
       <div class="msg" id="eMsg"></div>
@@ -1982,27 +1982,42 @@
       <input type="hidden" id="eeId">
       <label for="eeNome">Nome do ingrediente</label>
       <input type="text" id="eeNome" maxlength="80">
+      <label for="eeUnidade">Como você compra</label>
+      <select id="eeUnidade" onchange="cfEeUnidadeMudou()">
+        <option value="un">Por unidade (un)</option>
+        <option value="kg">Por quilo (kg)</option>
+        <option value="l">Por litro (l)</option>
+        <option value="g">Por grama (g)</option>
+        <option value="ml">Por mililitro (ml)</option>
+      </select>
+      <p class="sub cf-alerta-txt" id="eeUnidadeAviso"></p>
       <div class="row2">
-        <div><label for="eeQtd">Quantidade atual</label><input type="number" id="eeQtd" step="0.01"></div>
-        <div><label for="eeMin">Quantidade mínima (alerta)</label><input type="number" id="eeMin" step="0.01"></div>
+        <div><label for="eeCompraValor">Paguei (R$)</label><input type="number" id="eeCompraValor" step="0.01" min="0" inputmode="decimal" placeholder="opcional" oninput="cfIngAtualizar('ee')"></div>
+        <div><label for="eeCompraQtd" id="eeCompraQtdLbl">por quantas unidades</label><input type="number" id="eeCompraQtd" step="0.001" min="0" inputmode="decimal" placeholder="Ex: 1" oninput="cfIngAtualizar('ee')"></div>
       </div>
+      <label for="eeCusto" id="eeCustoLbl">Custo por unidade (R$)</label><input type="number" id="eeCusto" step="0.0001" min="0" inputmode="decimal" oninput="cfIngAtualizar('ee', true)">
+      <p class="sub" id="eeCustoNota"></p>
       <div class="row2">
-        <div>
-          <label for="eeUnidade">Unidade</label>
-          <select id="eeUnidade">
-            <option value="un">Unidade (un)</option>
-            <option value="g">Grama (g)</option>
-            <option value="kg">Quilo (kg)</option>
-            <option value="ml">Mililitro (ml)</option>
-            <option value="l">Litro (l)</option>
-          </select>
-        </div>
-        <div><label for="eeCusto">Custo por unidade (R$)</label><input type="number" id="eeCusto" step="0.01"></div>
+        <div><label for="eeQtd">Tenho agora</label><input type="number" id="eeQtd" step="0.01" inputmode="decimal"></div>
+        <div><label for="eeMin">Avisar quando chegar a</label><input type="number" id="eeMin" step="0.01" min="0" inputmode="decimal"></div>
       </div>
-      <label style="display:flex;align-items:center;gap:8px;margin-top:6px;"><input type="checkbox" id="eeAtivo" style="width:auto;"> Ingrediente ativo (desmarcado some das fichas técnicas, sem excluir)</label>
-      <p class="sub" style="margin:6px 0;">Se mudar a quantidade aqui, fica registrado como ajuste. Para reposição ou perda, use "+ entrada" e "- perda".</p>
+      <label style="display:flex;align-items:center;gap:8px;margin-top:6px;"><input type="checkbox" id="eeAtivo" style="width:auto;"> Ingrediente ativo (desmarcado some das receitas, sem excluir)</label>
+      <p class="sub" style="margin:6px 0;">Mudar "Tenho agora" fica registrado como ajuste. Para reposição ou perda, toque no ingrediente na lista e escolha Entrada ou Perda.</p>
       <button class="primary" id="eeBtn" onclick="salvarEdicaoIngrediente()">Salvar alterações</button>
       <div class="msg" id="eeMsg"></div>
+  </div>
+</div>
+
+<!-- POP-UP: Preços em lote -->
+<div class="modal-overlay" id="precosLoteModal">
+  <div class="modal-box">
+    <div class="modal-header"><h2>💲 Preços dos ingredientes</h2><button class="close-btn" onclick="fecharFormModal('precosLoteModal')" aria-label="Fechar">✕</button></div>
+      <p class="sub">Para cada ingrediente: como você compra e quanto pagou. Exemplo: kg · paguei 40 · por 1. O custo de todos os produtos que usam o ingrediente é recalculado sozinho.</p>
+      <label style="display:flex;align-items:center;gap:8px;"><input type="checkbox" id="plSoSemPreco" style="width:auto;" onchange="cfLoteRender()"> Mostrar só os que estão sem preço</label>
+      <input type="text" class="search" id="plBusca" placeholder="Buscar ingrediente..." aria-label="Buscar ingrediente" oninput="cfLoteRender()">
+      <div id="plLista"></div>
+      <button class="primary" id="plBtn" onclick="cfLoteSalvar()" style="margin-top:12px;">Salvar preços</button>
+      <div class="msg" id="plMsg"></div>
   </div>
 </div>
 
@@ -2290,39 +2305,26 @@
   </div>
 </div>
 
-<script src="app-01-base-e-api.js?v=ef856325" charset="utf-8" data-origem="__big0__"></script>
-<script src="app-02-abas.js?v=4ce035a6" charset="utf-8" data-origem="__big1__"></script>
-<script src="app-03-cadastros.js?v=2ed86749" charset="utf-8" data-origem="__big2__"></script>
-<script src="app-04-pedidos-entrega.js?v=384bd48f" charset="utf-8" data-origem="__big3__"></script>
+<script src="app-01-base-e-api.js?v=03a38894" charset="utf-8" data-origem="__big0__"></script>
+<script src="app-02-abas.js?v=1c06834e" charset="utf-8" data-origem="__big1__"></script>
+<script src="app-03-cadastros.js?v=b31742a7" charset="utf-8" data-origem="__big2__"></script>
+<script src="app-04-pedidos-entrega.js?v=d0d4fe5d" charset="utf-8" data-origem="__big3__"></script>
 <script src="app-05-avisos-push.js?v=9f260647" charset="utf-8" data-origem="__big4__"></script>
-<script src="app-06-caixa.js?v=2f82c220" charset="utf-8" data-origem="__big5__"></script>
+<script src="app-06-caixa.js?v=2eb0f13a" charset="utf-8" data-origem="__big5__"></script>
 <script src="app-07-impressao.js?v=d0e63a58" charset="utf-8" data-origem="__big6__"></script>
-<script src="app-08-vendas-despesas.js?v=1ce91e20" charset="utf-8" data-origem="__big7__"></script>
-<script src="app-09-ajuda.js?v=b0dac2f7" charset="utf-8" data-origem="__big8__"></script>
-<script src="app-10-backup-financeiro.js?v=f5674e07" charset="utf-8" data-origem="__big9__"></script>
-<script src="app-11-admin-integracoes.js?v=c7ad3db0" charset="utf-8" data-origem="__big10__"></script>
-<script src="app-12-gestao-ia.js?v=a1be99b7" charset="utf-8" data-origem="__big11__"></script>
+<script src="app-08-vendas-despesas.js?v=7b0341b0" charset="utf-8" data-origem="__big7__"></script>
+<script src="app-09-ajuda.js?v=bbcf8d0d" charset="utf-8" data-origem="__big8__"></script>
+<script src="app-10-backup-financeiro.js?v=e8704271" charset="utf-8" data-origem="__big9__"></script>
+<script src="app-11-admin-integracoes.js?v=ca968d85" charset="utf-8" data-origem="__big10__"></script>
+<script src="app-12-gestao-ia.js?v=19a33ae4" charset="utf-8" data-origem="__big11__"></script>
 <script src="app-13-conexao-sync.js?v=64fab071" charset="utf-8" data-origem="__big12__"></script>
-<script src="app-14-relatorios.js?v=8f2237a5" charset="utf-8" data-origem="__big13__"></script>
-<script src="app-15-cardapio-cliente.js?v=eca8acfb" charset="utf-8" data-origem="__big14__"></script>
-<script src="app-16-sessao-final.js?v=37dfd33a" charset="utf-8" data-origem="__big15__"></script>
-<!-- ═══════════ SINCRONIZAÇÃO, BACKUP, ESPAÇO, FOTOS E INTEGRIDADE (aba Armazenamento) ═══════════
-     Cria cartões novos (ids sb410*) no fim da aba Armazenamento. -->
-<div id="sb410FotoModal" class="modal-overlay" onclick="if(event.target===this)sb410FotoResp_(null)">
-  <div class="modal-box" style="max-width:420px;">
-    <h2 style="margin:0 0 6px;">Onde salvar esta foto?</h2>
-    <p class="sub">As fotos ficam só no Google Drive.</p>
-    <div style="display:flex;flex-direction:column;gap:8px;">
-      <button class="ghost" style="padding:12px;" onclick="sb410FotoResp_('principal')">☁️ Drive principal (recomendado)</button>
-      <button class="ghost" style="padding:12px;" onclick="sb410FotoResp_('contingencia')">🟦 Drive da contingência</button>
-      <button class="ghost" style="padding:12px;" onclick="sb410FotoResp_('ambos')">🟣 Os dois (mais seguro)</button>
-    </div>
-    <label style="display:flex;gap:8px;align-items:center;margin-top:12px;font-size:13px;"><input type="checkbox" id="sb410FotoLembrar" style="width:auto;"> Lembrar minha escolha</label>
-    <button class="ghost" style="margin-top:10px;width:100%;" onclick="sb410FotoResp_(null)">Cancelar</button>
-  </div>
-</div>
+<script src="app-14-relatorios.js?v=f3a2869e" charset="utf-8" data-origem="__big13__"></script>
+<script src="app-15-cardapio-cliente.js?v=9fc5fef4" charset="utf-8" data-origem="__big14__"></script>
+<script src="app-16-sessao-final.js?v=f8a6b211" charset="utf-8" data-origem="__big15__"></script>
+<!-- ═══════════ SINCRONIZAÇÃO, BACKUP, ESPAÇO E INTEGRIDADE ═══════════
+     app-17 cria cartões (ids sb410*) nas telas Backup e espaço e Sincronização e contingência. -->
 
-<script src="app-17-sessao-supabase.js?v=e50bcde5" charset="utf-8" data-origem=""></script>
+<script src="app-17-sessao-supabase.js?v=add7fc79" charset="utf-8" data-origem=""></script>
 
 <!-- ═══════════ MODO RESERVA (queda do Supabase) ═══════════
      Detecta a queda do Supabase, avisa com faixa laranja e reenvia a fila do aparelho sozinha na volta.
@@ -2370,5 +2372,9 @@
 <link rel="stylesheet" href="estilo-11-janelas-popup.css?v=61617ec5" data-origem="popBoxCss">
 <script src="app-23-janelas-popup.js?v=6f031891" charset="utf-8" data-origem=""></script>
 <script src="app-24-acessibilidade.js?v=1567f2c1" charset="utf-8" data-origem=""></script>
+<link rel="stylesheet" href="estilo-12-cadastro-facil.css?v=d2d12073" data-origem="">
+<script src="app-25-cadastro-facil.js?v=0920f0cd" charset="utf-8" data-origem=""></script>
+<link rel="stylesheet" href="estilo-13-visual.css?v=e256f776" data-origem="">
+<script src="app-26-visual.js?v=cccee8a5" charset="utf-8" data-origem=""></script>
 </body>
 </html>
