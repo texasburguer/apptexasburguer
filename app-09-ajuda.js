@@ -1,0 +1,834 @@
+/* ---------- AJUDA POR PERFIL: cada usuário abre só o manual do seu perfil ---------- */
+const _aj = {
+  entrar: (abas)=>({ t:'Entrar, sair e status', passos:[
+    'Digite Login e Senha e toque em “Entrar”.',
+    'Olhe o status no topo: 🟢 Online = tudo certo · 🟡 Sincronizando = aguarde · 🔴 Sem conexão = veja “E se der errado?” · 🟠 Contingência = o servidor está lento ou fora do ar e o app usa a reserva. Toque na bolinha colorida do topo para ver o estado do Supabase, da planilha principal e da contingência.',
+    'Para sair, toque em “Sair” no topo. Para trocar a sua senha, toque em “🔑 Senha” (precisa da senha atual e de ao menos 8 caracteres).' ],
+    itens:['Suas abas: '+abas+'. Um ponto dourado numa aba avisa que há algo novo.'],
+    comuns:['“Login ou senha incorretos”: confira os dados. Se esqueceu a senha, só o Administrador pode redefinir.','“Sua sessão expirou”: entre de novo; o que você estava digitando pode se perder.','“Muitas tentativas erradas”: depois de 5 erros o login fica bloqueado por 10 minutos, contados a partir do primeiro erro. Espere e tente de novo, sem insistir.'] }),
+  ocorr: (quem)=>({ t:'Registrar um problema (Ocorrência)', passos:[
+    'No cartão do pedido, toque em “⚠️ Ocorrência”.',
+    'Escolha o tipo, descreva o que aconteceu e confirme.',
+    quem ]})
+};
+/* Rodapé de versão que aparece no fim de TODO manual de Ajuda. */
+function ajudaRodapeVersao_(){
+  const idade = (function(){
+    try{
+      const [d, m, a] = String(APP_ATUALIZADO_EM).split('/').map(Number);
+      if(!d || !m || !a) return '';
+      const dif = Math.floor((Date.now() - new Date(a, m - 1, d).getTime()) / 86400000);
+      if(!isFinite(dif) || dif < 0) return '';
+      if(dif === 0) return 'atualizada hoje';
+      if(dif === 1) return 'atualizada ontem';
+      if(dif < 30)  return 'atualizada há ' + dif + ' dias';
+      const meses = Math.round(dif / 30);
+      return 'atualizada há ' + (meses === 1 ? '1 mês' : meses + ' meses');
+    }catch(e){ return ''; }
+  })();
+  return '<div style="text-align:center;font-size:11px;color:var(--muted);margin-top:16px;padding-top:10px;border-top:1px solid var(--line);">' +
+    'Texas Burger · <b>' + escH(APP_VERSAO) + '</b> · ' + escH(APP_ATUALIZADO_EM) +
+    (idade ? ' <span style="opacity:.8;">(' + escH(idade) + ')</span>' : '') +
+    '</div>';
+}
+
+/* Monta a seção "🆕 O que mudou" a partir de APP_NOVIDADES[perfil]. */
+function novidadesHtml_(perfil){
+  const lista = (APP_NOVIDADES[perfil] || []).filter(r => r && Array.isArray(r.itens) && r.itens.length);
+  if(!lista.length) return '';
+  let ultimaVista = '';
+  try{ ultimaVista = localStorage.getItem('txbAjudaVista_' + perfil) || ''; }catch(e){}
+  const atual = lista[0].v;
+  const temNova = !!ultimaVista && ultimaVista !== atual;
+  try{ localStorage.setItem('txbAjudaVista_' + perfil, atual); }catch(e){}
+
+  const bloco = (r, idx) => {
+    const ehAtual = idx === 0;
+    const selo = ehAtual && temNova
+      ? ' <span class="badge" style="background:var(--red-hi,#d20807);color:#fff;border:0;font-size:10px;padding:1px 6px;">NOVO</span>'
+      : '';
+    const itens = r.itens.map(x => '<li>'+escH(x)+'</li>').join('');
+    return '<div style="margin-top:8px;">' +
+      '<div style="font-size:11.5px;color:var(--muted);letter-spacing:.03em;">' +
+      escH(r.v) + (r.em ? ' · ' + escH(r.em) : '') + selo +
+      '</div><ul class="ia-lista" style="margin-top:2px;">' + itens + '</ul></div>';
+  };
+
+  const atualHtml = bloco(lista[0], 0);
+  const antigas = lista.slice(1);
+  const antigasHtml = antigas.length
+    ? '<details class="ajuda-det" style="margin-top:8px;"><summary>Versões anteriores ('+antigas.length+')</summary>' +
+      antigas.map((r, i) => bloco(r, i + 1)).join('') + '</details>'
+    : '';
+
+  return '<details class="ajuda-det"><summary>🆕 O que mudou</summary>' +
+    '<p class="sub" style="margin:0 0 6px;font-size:12px;">Só aparece o que este perfil usa. A versão em uso está no rodapé.</p>' +
+    atualHtml + antigasHtml + '</details>';
+}
+
+const MANUAL_AJUDA_ = {
+Admin:{ nome:'Administrador', secoes:[
+  _aj.entrar('Início, Caixa, Pedidos (com Retiradas, Entregas e Mesas), Clientes e Administrador. Os avisos ficam no botão ✨ Assistente, na aba 🔔 Avisos'),
+  { t:'Buscar (🔍 no topo)', itens:[
+    'Toque na lupa 🔍 no topo, digite pelo menos 2 letras ou números e veja clientes (nome ou telefone, sem precisar de acento), pedidos (número, nome ou telefone do cliente) e produtos/combos.',
+    'No cliente, toque em "abrir" para ver o perfil. No pedido, toque em "ver pedido completo": aparece também a 🕒 Linha do tempo (feito, aceito, pronto, saiu, entregue e quanto tempo levou cada etapa).' ]},
+
+  { t:'Onde fica cada coisa', itens:[
+    'Ao tocar em Admin, nada abre sozinho: aparecem só os 6 grupos; toque num grupo para ver as telas dele e depois na tela que quer abrir.',
+    'A aba Administrador tem uma barra dividida em 6 grupos: Painel (Visão Geral, Ocorrências, Feedbacks, Relatórios); Financeiro (Contas e despesas, Análise, Ajustes pós-venda, Histórico); Catálogo (Produtos, Estoque, Custos e Precificação, Cardápio Digital); Campanhas (Promoções, Eventos); Operação (Mesas e QR Codes, Pagamentos, Entregadores e taxas, Configurar notificações); Sistema (Usuários e Permissões, Auditoria, Backup, Espaço e fotos, Sincronização e contingência).',
+    'Caixa, Pedidos, Entregas e Clientes funcionam como nos outros perfis, e você pode tudo.' ]},
+
+  { t:'Criar usuário e trocar senha', passos:[
+    'Administrador → Sistema → Usuários e Permissões.',
+    'Em "Criar acesso", preencha Login e Senha e escolha o perfil (Operador, Garçom, Cozinha, Entregador, Admin ou Desenvolvedor).',
+    'Digite "Sua senha de administrador" e toque em "Criar acesso".',
+    'Perfil Desenvolvedor: você cria como qualquer outro, mas depois de criado fica travado — só o próprio Desenvolvedor edita ou troca a senha. Nem você nem ele excluem esse acesso.',
+    'Para mudar nome, telefone, perfil, situação ou redefinir a senha de alguém, toque em "editar" na lista "Usuários cadastrados". Mudar perfil, situação, senha, ativar, desativar ou excluir pede a SUA senha de administrador (conferida de verdade). No seu próprio acesso o perfil fica travado e a senha se troca em "🔑 Senha".' ],
+    comuns:['Entregador não aparece na escolha de entregas: usuário inativo ou sem o perfil Entregador.',
+      'Funcionário esqueceu a senha: só você troca — não existe "esqueci minha senha".',
+      'Você esqueceu a sua: rode redefinirSenhaAdminEmergencia no editor do Apps Script.'] },
+
+  { t:'Cadastrar produtos e estoque', passos:[
+    'Administrador → Catálogo → Produtos → "Cadastrar produto".',
+    'Informe nome, categoria, preço e custo (a margem aparece sozinha). O preço é o preço base e vale para todas as formas de pagamento. Formas marcadas em Pagamentos como "preço próprio por produto" (ex.: iFood) ganham um campo próprio no produto e no combo; em branco, vale o preço base.',
+    'Só abra "⚙️ Opções avançadas" para a ficha técnica (ingredientes). Se uma forma de pagamento cobra a mais (ex.: iFood), cadastre o acréscimo (% ou valor fixo) na própria forma, em Pagamentos.',
+    'Se o item tem estoque próprio (bebida), marque a opção e informe quantidade e mínimo.',
+    'Para usar o produto como brinde, abra "⚙️ Opções avançadas" e marque "🎁 Este produto é um prêmio": prêmio do cartão fidelidade e/ou prêmio de indicação. Quando você quiser mudar a campanha, é só trocar a marca de produto.' ],
+    comuns:['"Importar cardápio inicial" só precisa rodar uma vez; o que já existe pelo nome não é duplicado.',
+      'Cada venda baixa o estoque pela ficha técnica. Ingrediente no mínimo gera aviso em 🔔 Avisos (no Assistente), sem bloquear a venda. Ingrediente com mínimo 0 não avisa; para ser avisado, defina um mínimo maior que 0.'] },
+
+  { t:'Prêmios: fidelidade e indicação', passos:[
+    'Marque os produtos que podem ser prêmio em Catálogo → Produtos → Editar → "🎁 Este produto é um prêmio".',
+    'Clientes → toque no cliente. Com as 10 marcas do cartão, ou com uma indicação pendente, aparece o prêmio para escolher e o botão "🎁 Resgatar prêmio" (ou "Resgatar indicação").',
+    'Confirme. O cartão zera (ou a indicação é marcada), o estoque do produto baixa e o custo entra no financeiro. O cliente não paga nada.' ],
+    comuns:['O caixa precisa estar aberto: o prêmio fica registrado no turno.','"Nenhum prêmio cadastrado": nenhum produto ativo está marcado como prêmio daquele tipo.','As indicações pendentes também aparecem em 🔔 Avisos (no Assistente).'] },
+
+  { t:'QR Code das mesas', passos:[
+    'Administrador → Operação → Mesas e QR Codes → "📲 QR Codes das mesas".',
+    'Escolha a mesa e toque em "🖨️ Imprimir esta mesa" (ou "Imprimir todas"). Também dá para "⬇️ Baixar PNG".',
+    'Plastifique e deixe na mesa. O cliente pede pelo celular e você aceita o pedido em Pedidos.',
+    'Se alguém espalhar o QR, use "🔄 Gerar novo código" e imprima o QR novo daquela mesa.' ],
+    comuns:['O endereço do site está fixo nos QR: https://texasburguer.github.io/apptexasburguer/ — se mudar, é preciso imprimir de novo.'] },
+
+  { t:'Menu de baixo (celular)', itens:[
+    'No celular, o menu fica fixo na parte de baixo da tela: Início, Caixa, Pedidos e as outras telas do seu perfil. A aba aberta fica em dourado.',
+    'Quando há mais telas do que cabem, aparece "Mais" com as demais. Uma bolinha vermelha avisa que há algo novo naquela aba.',
+    'No computador o menu continua no topo.' ],
+    comuns:['O botão do Assistente sobe um pouco para não ficar em cima do menu.'] },
+
+  { t:'Modo reserva e Saúde do sistema', itens:[
+    'Se o Supabase cair, aparece uma faixa laranja "Modo reserva" no topo. Ela diz o que funciona, o que fica na fila e o que espera a volta.',
+    'Funciona: venda do Caixa (retirada ou entrega, sem desconto e sem cupom) e pedido do cardápio, pela contingência; consulta dos pedidos em Pedidos.',
+    'Na fila (seguem sozinhos na volta): cadastro de cliente, fidelidade, feedback e ocorrência.',
+    'Espera a volta (aparece "indisponível até o Supabase voltar" e nada é gravado): mudar status, estoque, compras, relatórios, avisos e Assistente. Anote à mão o que precisar.',
+    'A "Saúde do sistema" fica dentro de "Conexão e servidores" (toque na bolinha colorida do topo): bolinha verde, amarela ou vermelha e cada item: cópia para a planilha, backup (diário às 04:00), cópia no Drive, conferência diária de vendas, tarefas automáticas e Assistente.',
+    'Desenvolvedor: o botão "🧪 Simular queda (treino)" em "Conexão e servidores" finge a queda só neste aparelho, para treinar a equipe. "Encerrar simulação" volta ao normal.' ],
+    comuns:['O Guia de operação tem o passo a passo de queda, volta e restauração.'] },
+
+  { t:'Avisos com o app fechado (🔔)', itens:[
+    'Toque no 🔔 do topo e em "Ligar avisos com o app fechado". Permita as notificações quando o navegador pedir.',
+    'Depois disso o celular avisa "Novo pedido" (do cardápio) e "Cliente no atendimento" mesmo com o app fechado ou a tela bloqueada. O aviso não mostra nome nem telefone do cliente.',
+    'No iPhone: abra o endereço no Safari, toque em Compartilhar → "Adicionar à Tela de Início" e abra o app por esse ícone antes de ligar. No Android basta ligar.',
+    'Para desligar, toque no mesmo botão. Ao sair do sistema, este aparelho deixa de receber os avisos de quem saiu.' ],
+    comuns:['O som e a vibração do app aberto continuam como antes.'] },
+
+  { t:'Avisos do pedido para o cliente e feedbacks', itens:[
+    'O cliente que aceita os avisos (convite no topo do cardápio ou no cartão "Pedido enviado") recebe no celular: confirmado (quando o pedido vai para "Em preparo"), pronto (só retirada), saiu para entrega, entregue/retirado e cancelado.',
+    'O aviso sai sozinho quando a equipe muda o status do pedido. O texto mostra só o número do pedido, nunca nome, telefone ou endereço.',
+    '30 minutos depois de entregue (até 3 horas), quem aceitou recebe "⭐ Como foi seu pedido?". Se o cliente já deu feedback daquele pedido, não pergunta.',
+    'Feedbacks (Painel → Feedbacks) mostram de onde vieram: "🔔 veio pelo aviso do pedido", "💬 veio pelo chat" (o atendente oferece registrar quando o cliente elogia ou sugere) ou sem marca (rodapé do cardápio).',
+    'Pedidos de mesa (QR Code) não recebem avisos. No iPhone, o cliente precisa instalar o app para receber.' ]},
+
+  { t:'Contas e acessos', itens:[
+    'Administrador → Sistema → Contas e acessos: lista das contas que fazem o sistema funcionar (Supabase, GitHub, planilhas, etc.), com e-mail, link e observação.',
+    '"+ Nova conta" cadastra; "Editar" muda os dados ou a senha; "Excluir" apaga a conta e a senha guardada.',
+    'A senha fica no cofre criptografado do Supabase. Para ver, toque em "Ver senha" e digite a SUA senha de administrador; ela aparece por 30 segundos. Cada visualização fica na Auditoria.',
+    'Chaves das IAs (Gemini, Groq, NVIDIA e Cloudflare): ficam na mesma tela. "Ver chave" e "Trocar chave" pedem a sua senha de administrador. A chave nova vale na hora. NVIDIA e Cloudflare são IAs de RESERVA: sem chave nada muda; com chave, entram quando Gemini e Groq falham ou esgotam o limite grátis. A Cloudflare pede também o Account ID. Para usá-las no atendimento ao cliente do cardápio, marque a opção abaixo da lista (só depois de conferir a privacidade do provedor).',
+    'Cartão "Integrações (iFood e Nota fiscal)": guia passo a passo, chaves, checklist e interruptor Ligar/Desligar de cada uma. Nascem DESLIGADAS: desligado, o sistema funciona como sempre. Ligar e desligar pedem a sua senha de administrador.',
+    'iFood ligado: os pedidos entram sozinhos como venda normal (marca "iFood #número"), com aviso no celular da equipe e baixa dos ingredientes. Em "Itens do iFood" ligue cada item do iFood a um produto do sistema (o sistema sugere pelo nome); item sem ligação entra com o aviso "SEM LIGAÇÃO" e dá para refazer depois em "Refazer pedidos sem ligação". Ao mudar o status do pedido (em preparo, pronta, saiu para entrega) o iFood é avisado sozinho; se ele não confirmar, aparece o alerta "Ação não confirmada no iFood". Se o iFood cancelar, a venda é cancelada e o estoque volta. Desenvolvedor: "Simular pedido do iFood (treino)" cria um pedido de mentira.',
+    'iFood — Preços, financeiro e avaliações: em Integrações → iFood, "Preços" compara o preço do sistema com o do iFood (importe o cardápio do iFood primeiro); "Gravar preços do iFood no sistema" atualiza o campo "Preço no iFood"; "Enviar nossos preços ao iFood" só aparece com o ajuste ligado, bloqueia variações acima do limite e tem histórico com "Desfazer". "Financeiro" mostra quanto falta receber do iFood e os repasses. "Avaliações" traz as notas e permite responder. "Relatório por canal" compara balcão, cardápio e iFood. Com o ajuste "Pausar no iFood o item que acabar no estoque", o item some do iFood quando um ingrediente acaba e volta quando repõe.',
+    'iFood — Negociações: quando o cliente pede cancelamento ou reembolso, a equipe recebe um aviso no celular. Em Integrações → iFood → "Negociações" toque em Aceitar, Recusar ou numa alternativa antes do prazo (o iFood decide se o prazo acabar). "Loja no iFood": Pausar 30 min / 1 h, Retomar, Fechar e Abrir; com o ajuste "Abrir e fechar a loja junto com o caixa" ligado, abrir o caixa abre a loja e fechar o caixa fecha.',
+    'Janelas: os botões de Nota fiscal e de iFood abrem em uma janela por cima da tela, com rolagem só dentro dela. Para voltar, toque no ✕ do topo ou em "Fechar" no fim; salvar continua no botão de salvar de cada janela.',
+    'Nota fiscal — cadastro: em Integrações → Nota fiscal, "Dados fiscais da empresa" (CNPJ, inscrição estadual, endereço, código do município, número do CSC, alíquota do Simples) e "Perfis fiscais" (NCM, CFOP, CSOSN que o contador informa). Crie poucos perfis, marque um como padrão e ligue só as exceções. "Itens sem perfil" mostra o que falta e "Baixar planilha do contador" / "Enviar planilha preenchida" fazem tudo de uma vez. O CSC secreto é digitado no botão do cartão (nunca por mensagem). Com a nota fiscal ligada, o Resultado (DRE) ganha a linha "Impostos sobre vendas (estimado)"; desligada, nada muda.',
+    'Nota fiscal — emissão: em Integrações → Nota fiscal escolha onde emitir (Balcão, Cardápio, iFood, Mesa) e quando (ao pagar ou na entrega). Cada venda gera a nota sozinha cerca de 1 minuto depois. "Notas fiscais" lista as notas: autorizadas, rejeitadas (com o motivo em português), pendências (ex.: item sem perfil fiscal) e contingência; toque em "Reemitir" depois de corrigir. "Abrir DANFE" mostra o cupom com QR Code e "Enviar ao cliente" abre o WhatsApp com o link. Ligue primeiro em TESTE (homologação) e peça ao contador para conferir. O Desenvolvedor tem "Nota de treino" (não fala com a Focus).',
+    'Nota fiscal — fechamento: se você cancela uma venda que já tem nota, a nota é cancelada sozinha dentro de 30 minutos; depois disso fica "cancelamento para o contador orientar". "Conferência" mostra vendas sem nota (com botão Emitir), notas com problema e números pulados (botão Inutilizar, pede a sua senha). "Pacote do contador" baixa a planilha do mês e lista os XML. A tela de notas mostra quantas notas já saíram no mês (plano de 500) e a Saúde do sistema avisa a 80%.',
+    'Só Administrador e Desenvolvedor veem esta tela. Nunca mande senhas por mensagem: digite direto aqui.' ]},
+
+  { t:'Auditoria e acessos (IP)', itens:[
+    'Administrador → Sistema → Auditoria: lista as ações sensíveis (descontos, cancelamentos, preços, estoque, usuários, compras), as entradas no sistema ("Login") e as tentativas com senha errada ("Falha de login").',
+    'Cada linha mostra quem fez, o perfil, o aparelho e o IP de origem. Use o período e a busca (nome, ação ou IP) para achar algo; mostra até 300 linhas.',
+    'Vários "Falha de login" seguidos do mesmo IP podem ser alguém tentando adivinhar a senha: troque a senha do usuário e encerre as sessões dele.',
+    'O IP é apagado depois de 90 dias (o restante do registro fica). Em Usuários → sessões abertas, cada aparelho também mostra o IP da entrada.' ],
+    comuns:['Auditoria e IPs são só do Administrador e do Desenvolvedor.'] },
+
+  { t:'Compras, fornecedores e análises avançadas', itens:[
+    'Compras e fornecedores (só Administrador): Administrador → Catálogo → "Compras e fornecedores". Cadastre o fornecedor, depois registre a compra: itens do estoque (ou "outro item"), quantidade, unidade e o valor total pago por item.',
+    'Compra "Recebida" já soma no estoque e atualiza o custo médio do insumo; "Pedido" só guarda o pedido e você marca como recebida quando chegar. Toda compra recebida vira uma despesa (Paga ou A pagar, com vencimento).',
+    'Marque "saiu do caixa" só se o dinheiro saiu da gaveta. Compra já recebida não é cancelada: corrija pelo estoque ou pela despesa. Pedido ainda não recebido pode ser cancelado com motivo.',
+    'Assistente (balão ✨): diga, por exemplo, "comprei 30kg de picanha do fornecedor X por R$ 900". A IA só monta um cartão; nada é gravado até você tocar em "Confirmar e gravar". Use "Revisar na tela" para ajustar antes. Fornecedor ou item que a IA não achar bloqueia o botão: cadastre antes.',
+    'O Assistente também registra: despesa nova, pagar despesa, cancelar despesa, entrada/perda/contagem de estoque, cadastrar ou editar ingrediente, cliente, ocorrência, sangria, ajuste pós-venda, brinde e receber ou cancelar pedido de compra. Sempre com cartão e "Confirmar e gravar". Se faltar algo ou o nome for ambíguo, o cartão avisa em laranja e o botão fica travado. Cancelar despesa e ajuste pós-venda pedem a sua senha de administrador no cartão. Ele NUNCA exclui nada, nem mexe em venda, caixa, usuários, contas, preços, cardápio ou configurações: isso é pelas telas.',
+    'Relatórios → "Análise avançada": margem líquida por forma de pagamento, vendas por dia da semana e comparação com o mesmo período do ano passado. Também há os períodos "Últimos 90 dias" e "Últimos 12 meses".' ],
+    comuns:['Compras e a gravação pela IA são só do Administrador e do Desenvolvedor.'] },
+
+  { t:'Cardápio Digital, promoções e eventos', itens:[
+    'Cardápio Digital: escolha o que aparece para o cliente, destaques, ordem e frase de abertura. "Mais Pedidos" é automático.',
+    'Se o cliente pedir mais de 1 lanche com adicionais, os adicionais valem para todos — o cardápio avisa.',
+    'Endereço de entrega: o cliente preenche Rua e bairro, NÚMERO e CIDADE (a localização do celular e o CEP já preenchem rua, bairro e cidade). Sem o número o pedido não é enviado. No pedido, o endereço chega como "Rua, Bairro, nº 123 — Cidade".',
+    'Abrir ou fechar o cardápio: use o botão "🌐 Cardápio aberto" em Início ou no Caixa. Um toque fecha (com uma mensagem opcional para o cliente) e outro reabre, sem fechar o caixa. Pedido de mesa por QR Code continua valendo. O cardápio só recebe pedidos com o caixa aberto.',
+    'Cupom progressivo: em Promoções → novo cupom, escolha o tipo "Progressivo (por faixa)" e escreva uma faixa por linha (ex.: "50 5" e "100 10" = R$ 5 de desconto a partir de R$ 50 e R$ 10 a partir de R$ 100). Vale a maior faixa que o pedido alcança, contando só os itens (sem a taxa de entrega).',
+    'Dados do restaurante: nome, endereço, telefone, horário e redes sociais (texto livre) aparecem no rodapé do cardápio do cliente e nas mensagens de WhatsApp e relatórios.',
+    'O cliente pode escrever uma observação em cada item; ela aparece na comanda da cozinha e no pedido.',
+    'Item "Esgotado": se "bloquear venda sem estoque" estiver ligado (Catálogo → Estoque), o cardápio mostra "Esgotado" no que o estoque não cobre.',
+    'No celular, "Mais pedidos", "Destaques" e cada categoria rolam para o lado. O cliente toca no botão vermelho "+" para adicionar e na foto para ver o item ampliado. O botão "💬" redondo abre o Atendimento.',
+    'Na entrega, o endereço vem com rua e bairro preenchidos pela localização do cliente (só se ele permitir). O número da casa é sempre digitado por ele e o pedido não segue sem ele.',
+    'O cardápio abre rápido porque guarda cópia no aparelho do cliente. Mudanças suas aparecem em instantes.',
+    'O cardápio só recebe pedidos com o caixa aberto; fechado, aparece "Estamos fechados no momento".',
+    'Promoções: cupons. Eventos: custos e recebimentos por evento. Custos e Precificação: simulador de preço; "Aplicar como preço base" vale para todas as formas de pagamento.' ]},
+
+  { t:'Caixa: abrir, vender e fechar', passos:[
+    'Aba Caixa → "Abrir caixa" e informe o fundo de troco.',
+    'Em "Iniciar venda": 1. Cliente → 2. Itens → 3. Pagamento e finalizar.',
+    'Depois escolha 58mm, 80mm ou A4 e toque em Imprimir, Copiar ou WhatsApp.',
+    'Para encerrar, feche o caixa, informe o dinheiro contado e confira a diferença.',
+    'CPF na nota: quando a nota fiscal está ligada, aparece o campo "CPF na nota (só se o cliente pedir)" antes de Finalizar. Preencha só se o cliente pedir; a nota sai cerca de 1 minuto depois da venda e, depois que sai, não dá mais para incluir o CPF.',
+    'Mesas: o botão "🍽️ Mesas" mostra todas as mesas e quem pediu a conta.',
+    'Pedido de mesa no Caixa: "Pagar ao sair" deixa na conta; "Pagar agora" cobra na hora.',
+    'Se a forma de pagamento tem acréscimo (ex.: iFood), o Caixa mostra o valor a mais e já soma no total e no comprovante. Em pagamento dividido, o acréscimo vale só para a parte paga naquela forma.',
+    'Imprimir o pedido: em Pedidos, nos cartões de Retirada e de Mesa, o botão "🖨️ Imprimir pedido da retirada" (ou "da mesa") imprime o cliente, os itens, o total e se já está pago ou se é para cobrar. Todas usam o mesmo modelo de comanda (a da cozinha também); nas entregas ela traz o endereço, a referência e o valor a cobrar. O botão só aparece depois que o pedido foi aceito. O tamanho do papel dessas três impressões se escolhe em Pedidos → Entregas ("Papel da impressão").' ],
+    comuns:['"Abra o caixa antes de registrar uma venda".',
+      '"A soma dos pagamentos precisa bater com o total".',
+      'Desconto nunca pode zerar a venda; no Caixa pede a sua senha.'] },
+
+  { t:'Modo emergência (servidor fora do ar)', itens:[
+    'Só funciona no mesmo aparelho em que você já fez login normal ao menos uma vez nos últimos 30 dias. Cada login novo renova o prazo.',
+    'Quando o sistema não consegue falar com o servidor (Supabase), aparece a pergunta: "Entrar em MODO EMERGÊNCIA como [seu login]?". A senha é conferida no aparelho.',
+    'O que dá: registrar venda de retirada/entrega pela contingência, usando o catálogo da última sincronização. Sem mesa, sem desconto.',
+    'O que NÃO dá: abrir/fechar caixa, cancelar, receber pagamento, mexer em estoque, ver financeiro.',
+    'Um aviso laranja fixo no topo mostra "MODO EMERGÊNCIA". Um vigia testa o servidor a cada 30 s. Assim que ele responde, o app pede login de novo.',
+    'Errar a senha 5 vezes no modo emergência bloqueia por 5 minutos.' ]},
+
+  { t:'Contingência e modo reserva', itens:[
+    'O Supabase é o servidor principal; a planilha principal é a reserva e a planilha de contingência é o último recurso. Se o Supabase cai, o modo reserva segura o app e a contingência segura o cardápio e as vendas.',
+    'No modo reserva: faixa laranja no topo e cartão "Pedidos na reserva (somente consulta)" em Pedidos. Mostra o que estava em andamento no último espelho e o que entrou na fila da contingência.',
+    'Ao voltar, o Admin recebe sozinho as vendas da contingência. Falhas ficam na tela de Contingência.',
+    'Tempo real (WebSocket) e modo reserva são automáticos.',
+    'Administrador → Sistema → Sincronização e contingência: mostra o uso de espaço da planilha de contingência, "🔄 Sincronizar espelho agora" e "⬇️ Trazer vendas pendentes da contingência".',
+    'O interruptor "Sincronização automática do espelho (todo dia às 3h)" liga e desliga a cópia diária do cardápio e dos cadastros para a contingência.' ]},
+
+  { t:'Fila de envio e erros de sincronização', itens:[
+    'Itens como cadastro de cliente, fidelidade, feedback e ocorrência podem ficar guardados no aparelho quando a internet cai. Aparece o botão "na fila" no topo.',
+    'Toque nele para ver estado, tentativas e motivo. Você pode tentar de novo, descartar ou enviar agora.',
+    'Venda, pagamento, sangria, cancelamento e estoque NUNCA ficam na fila.',
+    'Se a sessão expirar com itens na fila, eles viram "com erro" e voltam só quando alguém entrar de novo e tocar em "Tentar de novo".' ]},
+
+  { t:'Localização do entregador', itens:[
+    'No cartão da entrega, se o status for "Saiu para entrega" e houver entregador atribuído, aparece "📍 Ver localização".',
+    'Abre um mapa embutido (Leaflet local) e um botão "Abrir no mapa".',
+    'A posição só existe se o entregador estiver com o app aberto e GPS permitido. O envio é a cada ~18 s e só enquanto houver entrega em "Saiu para entrega".',
+    'O cliente vê apenas a distância aproximada.' ]},
+
+  { t:'Balão de atendimento e assistente de IA', itens:[
+    'No canto da tela tem um botão único. Para o cliente, é o atendimento. Para funcionário logado, é o assistente.',
+    'A conversa com o assistente continua ao fechar e reabrir o botão ✨. Ela some ao recarregar o app, ao sair da conta ou depois de 2 horas parada. Para começar do zero, toque em "🗑️ Nova conversa".',
+    'Dentro do assistente há duas abas: "✨ Conversa" (perguntas à IA e atendimento de clientes) e "🔔 Avisos" (o que antes ficava em Notificações). O botão do canto mostra "🔔 n" quando há aviso.',
+    'Em Avisos aparecem só os itens que precisam de você, em grupos que se abrem ao toque: pedidos aguardando aceite, ocorrências, entregas com problema, contas vencidas, falhas do sistema, estoque baixo, cartão fidelidade quase completo, indicações pendentes, aniversariantes do mês e clientes inativos. O que está em dia fica numa linha só ("✅ Em dia: …").',
+    'Quais avisos aparecem para cada perfil se escolhe em Administrador → Operação → Configurar notificações. Botões como "Tratar" abrem a tela da ocorrência por cima.',
+    'Assistente (Admin e Operador, só leitura): escreva em português. Exemplos: "como faço uma venda?", "quanto tem de pão no estoque?", "tem cliente aguardando?", "qual produto vendeu mais hoje?".',
+    'Período: reconhece "hoje", "ontem", "7 dias", "30 dias", "mês". Pergunta de mês anterior avisa que os dados estão arquivados (veja Relatórios).',
+    'A IA é somente leitura. Não altera preço, não cancela, não muda status. Ela só responde assuntos do restaurante e nunca mostra senha nem dados de contato de clientes. O Operador recebe só o que é da função de Caixa.',
+    'Para o cliente, o balão é o atendente virtual: responde cardápio, preços, promoções, formas de pagamento e andamento do pedido (pelo celular dele). Se for problema, oferece "Falar com a equipe"; aí o chamado aparece para você no balão (aba Conversa).',
+    'Se a IA ficar sem cota ou fora do ar, o cliente continua vendo o botão para falar com a equipe, que não depende da IA.',
+    'Quando o Supabase cai (ou a IA falha seguidas vezes), o balão avisa e o sistema segue normal.' ]},
+
+  { t:'Baixar para o Excel (CSV)', itens:[
+    'Administrador → Relatórios: escolha o período e toque em "⬇️ Baixar este relatório (CSV)" para o relatório na tela.',
+    'Em "Dados completos do período" baixe Vendas, Itens vendidos ou Despesas. Meses já arquivados entram sozinhos (as despesas só se estiverem no app). O arquivo abre direto no Excel, com acentos corretos.' ]},
+
+  { t:'Arquivamento e uso do banco', itens:[
+    'Administrador → Sistema → Espaço e fotos → bloco "Uso do Supabase".',
+    'Por padrão, vendas e caixas fechados com mais de 90 dias saem do Supabase e vão para a planilha (abas Arquivo_*), de madrugada. Você pode mudar a regra (90/60/30 dias) e forçar "Mandar para a planilha agora".',
+    '"Proteção de espaço": se o uso chegar a 90%, 95% ou 98% do limite (você escolhe), o sistema manda para a planilha as vendas e caixas já encerrados, mesmo com menos de 30 dias. O que tem menos de 1 dia, os pedidos em andamento e o caixa aberto nunca saem; só apaga o que a planilha confirmou. Verifica de hora em hora.',
+    'Relatórios e Visão Geral buscam esse arquivo automaticamente quando o período pedido é antigo.',
+    'Fotos: só no Google Drive. Administrador → Espaço e fotos → "Copiar fotos antigas para a contingência".' ]},
+
+  { t:'Exemplos de pergunta ao assistente', itens:[
+    '"Resumo de hoje" — faturamento, pedidos, ticket.',
+    '"Como estão as vendas comparadas com ontem?"',
+    '"Qual produto vendeu mais nos últimos 7 dias?"',
+    '"Em que horário vendemos mais?"',
+    '"Tem algo fora do normal?" — anomalias do dia.',
+    '"O que precisa comprar?" — sugestão de compras pelo consumo.',
+    '"Como cancelo uma venda?" / "Como fecho o caixa?" — passo a passo do manual.' ]},
+
+  { t:'Backup e armazenamento', passos:[
+    'Administrador → Sistema → Backup → "Fazer backup agora".',
+    'Ative o backup automático e escolha o horário e a retenção (por quantos dias guardar).',
+    'Para restaurar, escolha o backup no histórico e confirme com sua senha de administrador.',
+    'Para apagar um backup, toque em "Excluir" no histórico e confirme com a sua senha de administrador.',
+    'Se o backup ficou sem cópia no Drive, aparece o motivo e o botão "Enviar ao Drive" para tentar de novo. O backup tenta até 3 vezes sozinho.',
+    'Confira o uso do Drive: até 70% normal, 70–90% atenção, acima de 90% crítico.' ],
+    comuns:['Drive cheio: backups e fotos podem falhar.',
+      'A conferência de integridade compara, todo dia às 6h10, as vendas do dia anterior no Supabase e na planilha e avisa se o número não bate.'] },
+
+  { t:'Ocorrências', itens:[
+    'Você trata direto pelo Assistente: aba "🔔 Avisos" → "⚠️ Ocorrências abertas" → botão "Tratar".',
+    'A tela completa (com filtro Abertas/Todas) continua em Administrador → Painel → Ocorrências.' ]},
+
+  { t:'Ajustes pós-venda (reembolso, crédito, cortesia)', passos:[
+    'Administrador → Financeiro → Ajustes pós-venda.',
+    'Busque a venda (nº do pedido, nome ou telefone) — só aparecem pedidos já entregues.',
+    'Escolha o tipo (Reembolso em dinheiro, Crédito para próxima compra, Cortesia ou Desconto retroativo), o valor e o motivo.',
+    'Em reembolso e desconto retroativo, escolha se o dinheiro sai do caixa (o caixa precisa estar aberto) ou fora dele.',
+    'Toque em "Registrar ajuste". Para desfazer, use "cancelar" na lista, com o motivo.' ],
+    comuns:['A venda original NÃO muda. No DRE o ajuste aparece como "Ajustes pós-venda".',
+      'Crédito não reduz o resultado na hora: quando o cliente usar, aplique como desconto no Caixa.',
+      'Reembolso e desconto retroativo não passam do valor da venda (somando ajustes já feitos).'] },
+
+  { t:'🛠️ Desenvolvedor (exclusivo)', soDev:true, itens:[
+    'Esta seção só aparece para quem entrou com acesso de nível Desenvolvedor (e sem "Ver como"). Ninguém mais vê.',
+    'Barra "Modo Desenvolvedor — vendo o sistema como:". Escolha um perfil (Operador, Garçom, Cozinha, Entregador) ou uma PESSOA específica e a tela muda para a dela. Suas ações continuam com acesso total.',
+    'Voltar para a visão normal: selecione "Admin (visão normal)".',
+    'Auto-teste da Ajuda (também no console): testarAjuda_() — valida os 7 manuais em sequência e devolve o resultado.',
+    'Painel de uso da IA (custo, erros e cota): dentro do balão (✨) → "Uso da IA". A IA de análise de código do Desenvolvedor foi retirada.',
+    'Diagnóstico do sistema: Administrador → Sistema → Sincronização e contingência → "Conferência de integridade". Somente leitura.',
+    'Ao criar/editar usuário Desenvolvedor: você cria como qualquer outro, mas depois de criado o acesso fica travado. Nem você nem ele excluem. Só o próprio Desenvolvedor edita a senha.',
+    'O servidor sempre confere o nível de quem pede; não adianta forçar "Ver como" para ganhar acesso.' ]},
+
+  { t:'ℹ️ Sobre o sistema', itens:[
+    'Versão em uso neste aparelho: ' + APP_VERSAO + ' — publicada em ' + APP_ATUALIZADO_EM + '.',
+    'A Ajuda é atualizada junto com o sistema. Se algum passo aqui não bater com a tela, recarregue a página (Ctrl+Shift+R no computador, ou feche e reabra o app no celular).',
+    'Esta versão inclui: aviso de pedido novo em segundos, modo reserva automático (Supabase), modo emergência (servidor fora do ar), fila de envio para cadastros, confirmação de impressão da comanda + alerta "PEDIDO ALTERADO", localização do entregador, balão único com IA, arquivamento automático (por idade e por espaço), prêmios de fidelidade e indicação, atendente virtual no cardápio e backup com exclusão e reenvio ao Drive.',
+    'Para dúvida ou problema: use o balão de atendimento (canto da tela) ou fale com o responsável técnico.',
+    'O app registra erros de JavaScript deste aparelho e envia para o Supabase (com o login de quem estava usando). Nada de dado pessoal de cliente sai por esse caminho.' ]}
+ ],
+ erros:[
+  { q:'A internet caiu', a:'Venda no Caixa: se você já entrou neste aparelho, o sistema oferece guardar a venda na CONTINGÊNCIA (só retirada ou entrega, sem desconto, sem mesa). Ela entra sozinha quando voltar. Não confirme se já apareceu. Caixa, cancelamento, pagamentos e estoque exigem conexão e nunca ficam guardados. Clientes, feedbacks e ocorrências ficam salvos no aparelho.' },
+  { q:'Supabase fora do ar (faixa laranja)', a:'Modo reserva automático: o app para o tempo real, volta às atualizações de 3 min, abre o cartão "Pedidos na reserva" em Pedidos e libera o Caixa para registrar venda na contingência. Ao voltar, a fila é reenviada e as vendas da contingência são reconciliadas sozinhas.' },
+  { q:'"Sua sessão expirou"', a:'Entre de novo. Itens que estavam na fila viram "com erro" e voltam pelo botão "na fila" no topo → "Tentar de novo".' },
+  { q:'"Alguém alterou este registro"', a:'Outra pessoa editou o mesmo cadastro antes de você. O sistema recarrega os dados reais; confira e refaça a edição.' },
+  { q:'Pedido duplicado', a:'Duplo toque ou internet lenta não duplicam. Se o cliente fez dois pedidos de verdade, cancele um: Caixa → "Lançamentos desde a abertura" → excluir, motivo "Pedido duplicado".' }
+ ]},
+
+Operador:{ nome:'Caixa', secoes:[
+  { t:'Menu de baixo (celular)', itens:[
+    'No celular, o menu fica fixo na parte de baixo da tela: Início, Caixa, Pedidos e as outras telas do seu perfil. A aba aberta fica em dourado.',
+    'Quando há mais telas do que cabem, aparece "Mais" com as demais. Uma bolinha vermelha avisa que há algo novo naquela aba.',
+    'No computador o menu continua no topo.' ],
+    comuns:['O botão do Assistente sobe um pouco para não ficar em cima do menu.'] },
+
+  { t:'Modo reserva (quando o sistema cai)', itens:[
+    'Uma faixa laranja "Modo reserva" no topo avisa que o servidor principal está fora.',
+    'Você continua vendendo no Caixa (retirada ou entrega, sem desconto e sem cupom) e vendo os pedidos em Pedidos. Pedidos do cardápio também entram.',
+    'Mudar status do pedido, estoque e compras ficam indisponíveis até voltar: anote à mão e lance depois.',
+    'Cadastro de cliente, fidelidade, feedback e ocorrência vão para uma fila e seguem sozinhos na volta. Não repita a ação.' ],
+    comuns:['Quando a faixa sumir, confira se os pedidos feitos na queda aparecem em Pedidos.'] },
+
+  { t:'Avisos com o app fechado (🔔)', itens:[
+    'Toque no 🔔 do topo e em "Ligar avisos com o app fechado". Permita as notificações quando o navegador pedir.',
+    'Depois disso o celular avisa "Novo pedido" (do cardápio) e "Cliente no atendimento" mesmo com o app fechado ou a tela bloqueada. O aviso não mostra nome nem telefone do cliente.',
+    'No iPhone: abra o endereço no Safari, toque em Compartilhar → "Adicionar à Tela de Início" e abra o app por esse ícone antes de ligar. No Android basta ligar.',
+    'Para desligar, toque no mesmo botão. Ao sair do sistema, este aparelho deixa de receber os avisos de quem saiu.' ],
+    comuns:['O som e a vibração do app aberto continuam como antes.'] },
+
+  _aj.entrar('Início, Caixa, Pedidos (com Retiradas, Entregas e Mesas), Clientes e Operação (Ocorrências e Feedbacks). Os avisos ficam no botão ✨ Assistente, na aba 🔔 Avisos'),
+  { t:'Buscar (🔍 no topo)', itens:[
+    'Toque na lupa 🔍 no topo, digite pelo menos 2 letras ou números e veja clientes (nome ou telefone, sem precisar de acento), pedidos (número, nome ou telefone do cliente) e produtos/combos.',
+    'No cliente, toque em "abrir" para ver o perfil. No pedido, toque em "ver pedido completo": aparece também a 🕒 Linha do tempo (feito, aceito, pronto, saiu, entregue e quanto tempo levou cada etapa).' ]},
+
+  { t:'Abrir o caixa', passos:['Aba Caixa → "Abrir caixa".','Informe o fundo de troco e confirme.'],
+    comuns:['Sem caixa aberto não há venda, despesa nem sangria, e o Cardápio Digital não recebe pedidos.',
+      '"Já existe um caixa aberto": feche o anterior antes.'] },
+
+  { t:'Fazer uma venda', passos:[
+    '1. Cliente: busque por nome ou telefone, ou "Venda sem cadastro". Escolha Retirada, Entrega ou Mesa.',
+    '2. Itens: toque nos produtos; adicionais abrem numa janela.',
+    '3. Pagamento e finalizar: escolha a forma. Em dinheiro, informe o recebido e veja o troco. Para dividir, marque "Dividir pagamento". Confira o total, escolha 58mm, 80mm ou A4 e toque em Imprimir, Copiar ou WhatsApp.',
+    'CPF na nota: quando a nota fiscal está ligada, aparece o campo "CPF na nota (só se o cliente pedir)" antes de Finalizar. Preencha só se o cliente pedir; a nota sai cerca de 1 minuto depois da venda e, depois que sai, não dá mais para incluir o CPF.',
+    '"↺ Repetir última venda" recarrega o carrinho anterior.' ],
+    comuns:['"Abra o caixa antes de registrar uma venda."',
+      '"A soma dos pagamentos precisa bater com o total".',
+      'Desconto (% ou R$) pede a senha do administrador.'] },
+
+  { t:'Cliente cancelou o pedido (Cardápio)', itens:[
+    'Nos primeiros 3 minutos, e só enquanto o pedido está "aguardando aceite", o cliente cancela sozinho. O estoque volta.',
+    'Depois de aceito, ou passados os 3 minutos, o cliente precisa ligar. Cancelar ou editar passa a ser com você ou o Admin.' ]},
+
+  { t:'Pedidos e entregas', passos:[
+    'Pedido do Cardápio chega como "novo — aguardando aceite": toque em "✅ Aceitar" ou "❌ Rejeitar".',
+    'Quando ficar "Pronta" (retirada ou entrega) ou "Saiu para entrega", e o cliente tiver telefone, toque em "📲 Avisar cliente".',
+    'Avance com "Marcar como…": Em preparo → Pronta → Retirada (Servida, se for mesa).',
+    'Em Entregas, o entregador já vem preenchido quando só existe um cadastrado. Com mais de um, escolha no campo "Entregador".',
+    'Para imprimir (o modelo da comanda é o mesmo em todas): nas Entregas toque em "🖨️ Imprimir para o entregador"; nas Retiradas e nas Mesas, em "🖨️ Imprimir pedido da retirada" (ou "da mesa"). O botão aparece depois que o pedido é aceito. Papel (58mm, 80mm ou A4) em Pedidos → Entregas.',
+    'Venda "A Receber": quando o cliente pagar, toque em "marcar como recebido".',
+    '"⏸ Suspender" pausa o pedido (pede motivo) e "▶️ Retomar" volta.' ],
+    comuns:['Só dá para editar os itens com o pedido "Em preparo".',
+      'O entregador esqueceu de marcar: marque você pelo botão do pedido.',
+      'Sem aviso de pedido novo: no Início, toque em "🔔 Ativar avisos" e "🔊 Testar som".'] },
+
+  { t:'Cliente pedindo pela mesa (QR Code)', passos:[
+    'O cliente aponta a câmera para o QR da mesa, escolhe os itens e envia.',
+    'O pedido chega em Pedidos como "Recebido" (📱 Cliente). Toque em ✅ Aceitar, ou ❌ Rejeitar.',
+    'Se o cliente tocar em "Chamar garçom", a mesa aparece em 🍽️ Mesas com 🔔 — toque em ✔ Atendido quando for lá.',
+    'Se tocar em "Pedir a conta", a mesa vira "Pediu a conta" e você fecha como sempre.' ],
+    comuns:['O cliente só cancela enquanto o pedido está "Recebido".',
+      'Pedido de mesa pelo cliente nunca vai ao preparo sem o aceite.'] },
+
+  { t:'Fechar a conta de uma mesa', passos:[
+    'Quando o garçom pede a conta, a mesa fica "Aguardando fechamento".',
+    'Toque em "🍽️ Mesas". Quem pediu a conta aparece primeiro, com pontinho de aviso e som.',
+    'Em cada mesa: garçom, tempo, pedidos e total. "Ver pedidos" mostra o detalhe; "💳 Fechar conta" abre o pagamento.',
+    'Para dividir, marque "Dividir em duas formas" e informe o valor da primeira.',
+    'Se a forma escolhida tem acréscimo, ele é somado no fechamento e aparece no total a cobrar.' ],
+    comuns:['"Abra o caixa antes de fechar a conta da mesa".',
+      '"A soma dos pagamentos não bate com a conta".'] },
+
+  { t:'Editar ou cancelar uma venda', passos:[
+    'Caixa → "Lançamentos desde a abertura".',
+    'Toque em "editar" ou "excluir".',
+    'Cancelar pede motivo e a senha do administrador. Se o pedido já estava pronto, diga se a mercadoria foi perdida ou volta ao estoque.' ]},
+
+  { t:'Despesa e sangria', passos:['Caixa → "+ Despesa" ou "− Sangria".','Informe valor e motivo e confirme.'],
+    comuns:['Sangria é retirada de dinheiro do caixa e não conta como despesa.'] },
+
+  { t:'Fechar o caixa', passos:[
+    'Caixa → fechar caixa.',
+    'Informe o dinheiro contado.',
+    'Confira o total por forma, despesas, sangrias e a diferença.' ],
+    comuns:['Ao tocar em "Sair" com o caixa aberto, o sistema pergunta se você quer mesmo sair.'] },
+
+  { t:'Modo emergência (servidor fora do ar)', itens:[
+    'Só funciona no mesmo aparelho em que você já fez login normal nos últimos 30 dias.',
+    'Quando o sistema não conseguir falar com o servidor (Supabase), oferece "Entrar em MODO EMERGÊNCIA como [seu login]".',
+    'Dá para: registrar venda de retirada/entrega pela contingência.',
+    'Não dá para: abrir/fechar caixa, cancelar, receber pagamento, mexer em estoque, ver financeiro.',
+    'Quando o servidor voltar, o app avisa e pede login de novo.' ]},
+
+  { t:'Fila de envio', itens:[
+    'Cadastro de cliente, fidelidade, feedback e ocorrência podem ficar guardados no aparelho quando a internet cai. Aparece "na fila" no topo.',
+    'Toque para ver estado, tentativas e motivo. Você pode tentar de novo, descartar ou enviar agora.',
+    'Venda, pagamento, sangria, cancelamento e estoque NUNCA ficam na fila.' ]},
+
+  { t:'Balão de atendimento', itens:[
+    'O botão no canto é o assistente quando você está logado. Para o cliente ele é o atendente virtual (IA); quando o problema é com a equipe, o chamado chega aqui.',
+    'Escreva perguntas como: "como faço uma venda?", "quanto tem de pão no estoque?", "tem cliente aguardando?".',
+    'Se houver cliente esperando, o botão mostra um contador vermelho. Toque para ver a fila e assumir um atendimento.' ]},
+
+  { t:'Localização do entregador', itens:[
+    'Em Entregas, quando o pedido estiver "Saiu para entrega" e tiver entregador atribuído, aparece "📍 Ver localização".',
+    'Abre um mapa com a última posição (o entregador envia a cada ~18 s, só enquanto estiver na rua).' ]},
+
+  { t:'O que você tem em Administrador', itens:[
+    'A aba aparece com o nome "Operação". A barra é reduzida: só o grupo "💬 Atendimento", com duas telas — Ocorrências e Feedbacks.',
+    'Ocorrências: filtro Abertas/Todas e botão "Tratar". Você pode mudar status (Aberta → Em andamento → Resolvida), anotar responsável e descrever a solução.',
+    'Feedbacks: tudo o que os clientes enviaram. Você pode marcar como Visto ou Respondido. A marca "🔔 veio pelo aviso do pedido" ou "💬 veio pelo chat" mostra de onde veio.',
+    'Atalho mais rápido no dia a dia: no Assistente, a aba "🔔 Avisos" mostra as ocorrências abertas, com botão "Tratar" direto.',
+    'Você NÃO tem acesso às outras telas do Administrador (financeiro, usuários, backup, catálogo etc.).' ]},
+
+  { t:'Clientes e fidelidade', passos:['Clientes → "+ Novo cliente": só nome e telefone são obrigatórios.','Toque no cliente para ver histórico, total gasto, indicação e cartão fidelidade.','Com as 10 marcas, ou com uma indicação pendente, escolha o prêmio e toque em "🎁 Resgatar". Precisa do caixa aberto; o estoque baixa e o cliente não paga.','No histórico do cliente, use os filtros de período, entrega/retirada e pago/a receber.'],
+    comuns:['"Nenhum prêmio cadastrado": peça ao Administrador para marcar um produto como prêmio.'] },
+
+  _aj.ocorr('Ela aparece na aba "🔔 Avisos" do Assistente e você pode tratar direto pelo botão "Tratar".')
+ ],
+ erros:[
+  { q:'A internet caiu', a:'O botão de finalizar trava com "Sem conexão". Se você já entrou neste aparelho, o sistema oferece guardar a venda na CONTINGÊNCIA (só retirada ou entrega, sem desconto, sem mesa): ela entra sozinha quando voltar. Fechar caixa, cancelar, pagar e lançar despesa exigem conexão.' },
+  { q:'Supabase fora do ar (faixa laranja)', a:'Modo reserva automático. O cartão "Pedidos na reserva" fica em Pedidos (somente consulta). Você pode continuar registrando retirada/entrega na contingência — sem desconto, sem mesa, sem cupom.' },
+  { q:'O caixa está fechado', a:'Abra o caixa antes de vender, lançar despesa ou sangria. Enquanto estiver fechado, o Cardápio Digital também não recebe pedidos.' },
+  { q:'Pedido duplicado', a:'Duplo toque não duplica. Se o cliente pediu duas vezes, cancele um em "Lançamentos desde a abertura" → excluir, motivo "Pedido duplicado".' },
+  { q:'Errei o valor ou um item', a:'Use "editar" em "Lançamentos desde a abertura". Itens de pedido só mudam enquanto o pedido está "Em preparo".' }
+ ]},
+
+'Garçom':{ nome:'Garçom', secoes:[
+  _aj.entrar('Início, Atendimento, Pedidos (com Retiradas, Entregas e Mesas) e Clientes'),
+  { t:'Buscar (🔍 no topo)', itens:[
+    'Toque na lupa 🔍 no topo e digite o nome do cliente, o número do pedido ou o nome de um produto. Você não vê valores nem telefone dos pedidos.' ]},
+
+  { t:'Lançar pedido de uma mesa', passos:[
+    'Aba Caixa → etapa "1. Cliente" → escolha a mesa. Se estiver Livre, toque em "Abrir mesa".',
+    'Vá em "2. Itens", toque nos itens e escolha os adicionais.',
+    'Toque em "Lançar na mesa (enviar à cozinha)". Repita quantas vezes o cliente pedir mais.' ],
+    comuns:['"A mesa N está … — não aceita novos itens": já está aguardando fechamento.',
+      '"Esta mesa está sob responsabilidade de outro garçom": a mesa é de quem a abriu; peça ao Caixa.',
+      'Você lança pedido de mesa, sem desconto e sem receber pagamento.'] },
+
+  { t:'Pedir a conta', passos:[
+    'Caixa → escolha a mesa (ou toque em "🍽️ Mesas").',
+    'Toque em "Pedir fechamento" e confirme.',
+    'A mesa passa para "Aguardando fechamento". O Caixa recebe — ou você mesmo, com "💳 Receber conta".' ],
+    comuns:['Só dá para pedir fechamento de mesa "Ocupada".'] },
+
+  { t:'Cliente pedindo pela mesa (QR Code)', passos:[
+    'O cliente pode pedir pelo celular. Quem aceita o pedido é o Caixa.',
+    'Se ele tocar em "Chamar garçom", a mesa aparece em 🍽️ Mesas com 🔔 e o aparelho avisa.',
+    'Depois de atender, toque em ✔ Atendido.' ],
+    comuns:['Se a mesa pedir a conta, ela vira "Pediu a conta".'] },
+
+  { t:'Receber a conta (garçom)', passos:[
+    'Toque em "🍽️ Mesas" e ache a sua mesa.',
+    'Toque em "💳 Receber conta", confira o total e escolha a forma.',
+    'Para dividir, marque "Dividir em duas formas".',
+    'Confirme. A mesa fica livre e o valor entra no caixa.' ],
+    comuns:['"O caixa está fechado": peça ao caixa para abrir.',
+      '"Esta mesa não está sob a sua responsabilidade": só quem abriu a mesa recebe.'] },
+
+  { t:'Acompanhar e servir', passos:['Aba Pedidos: veja o andamento de cada pedido. Para imprimir o pedido, toque em "🖨️ Imprimir pedido da mesa" no cartão (aparece depois que o pedido é aceito).','Quando estiver "Pronta", leve à mesa e toque em "Marcar como “Servida”".'] },
+
+  { t:'Aviso de pedido pronto', itens:[
+    'Na primeira vez, toque em "🔔 Ativar avisos e som".',
+    'Quando um pedido das SUAS mesas ficar "Pronta", o aparelho toca, vibra e o título da aba mostra "Pedido pronto".',
+    'A checagem roda mesmo com o app em segundo plano.' ]},
+
+  { t:'Clientes', passos:['Aba Clientes → "+ Novo cliente".','Só nome e telefone são obrigatórios.'] },
+
+  _aj.ocorr('O Administrador e o Operador são avisados e resolvem.')
+ ],
+ erros:[
+  { q:'A internet caiu', a:'Você não tem fila de envio: se aparecer "Sem conexão — a mesa não foi aberta" (ou o fechamento não foi solicitado), nada foi gravado. Espere o 🟢, confira em Pedidos se o pedido já entrou e só então repita.' },
+  { q:'O caixa está fechado', a:'Quem abre e fecha o caixa é o Caixa. Se a conta da mesa não puder ser recebida, avise o responsável.' },
+  { q:'Pedido duplicado ou item errado', a:'Duplo toque não duplica. Se lançou item errado ou em dobro, peça ao Caixa para editar ou cancelar (itens só mudam com o pedido "Em preparo").' }
+ ]},
+
+Cozinha:{ nome:'Cozinha', secoes:[
+  _aj.entrar('Início, Cozinha (os pedidos) e Notificações'),
+  { t:'Buscar (🔍 no topo)', itens:[
+    'Toque na lupa 🔍 no topo e digite o número do pedido, o nome do cliente ou o nome de um produto para achar um pedido rápido.' ]},
+
+  { t:'Preparar os pedidos', passos:[
+    'Aba Pedidos: três colunas (Novos, Em preparo, Prontos) com itens, adicionais e observações.',
+    'Observação do cliente em um item aparece em destaque com 📝 abaixo do item.',
+    'Para imprimir: "🖨️ Comanda" no pedido ou "🖨️ Imprimir novos". Marque "Imprimir sozinho quando chegar pedido" para imprimir automático (o navegador precisa estar em modo quiosque de impressão).',
+    'No Início, "🔊 Testar som" confere se o celular toca e "🔔 Ativar avisos" libera notificações.',
+    'Pedido novo chega com beep e piscada (o sistema confere a cada poucos segundos com o app aberto e online).',
+    'Toque em "▶️ Iniciar preparo" (no pedido do Cardápio: "Aceitar e iniciar preparo").',
+    'Terminou? Toque em "✅ Pronto".',
+    'A comanda impressa é única: nas entregas traz o endereço, a referência, o telefone e o valor a cobrar. Grampeie no pedido e ele já segue para o entregador.',
+    'No fim da tela, "📜 Concluídos neste turno" mostra o que já saiu (retirado, entregue ou servido), com o horário. A lista zera quando o caixa fecha.' ],
+    comuns:['Sem beep: toque em "🔊 Testar som" no Início, aumente o volume de mídia e tire o modo silencioso.',
+      'O sistema mantém a tela ligada enquanto o app está aberto. Se aparecer "⚠️ A tela NÃO está sendo mantida ligada", toque em "📱 Manter a tela ligada".'] },
+
+  { t:'Confirmar impressão da comanda', itens:[
+    'Depois de mandar imprimir, fica um botão discreto "🔁 Não saiu? Reimprimir" (some sozinho em 10 min). Ninguém precisa confirmar quando saiu certo.',
+    '🔁 Não saiu? Reimprimir: o sistema tira o pedido de "impressos" e manda de novo.',
+    '✖ Saiu, ocultar: esconde o botão.' ]},
+
+  { t:'Pedido alterado depois de impresso', itens:[
+    'O aparelho guarda uma "foto" da comanda quando você imprime ou quando o pedido aparece na tela.',
+    'Se um Admin/Operador editar o pedido, a foto deixa de bater. O cartão ganha faixa vermelha "PEDIDO ALTERADO" e toca dois bipes uma vez.',
+    'Para resolver: "🖨️ Reimprimir comanda atualizada" ou "👍 Ciente".' ]},
+
+  _aj.ocorr('O Administrador e o Operador são avisados. Use para falta de ingrediente ou pedido que não pode ser produzido.'),
+
+  { t:'Notificações', itens:['Mural de avisos. Você só vê os que o Administrador liberou para a Cozinha.'] }
+ ],
+ erros:[
+  { q:'A internet caiu', a:'O topo mostra "⚠️ Sem conexão com o servidor — tentando de novo em 3 min." Continue os pedidos já visíveis. Se tocar em "Iniciar preparo" e aparecer "Sem conexão — o preparo não foi registrado", repita quando voltar o 🟢.' },
+  { q:'Não chega nenhum pedido', a:'Confira o status no topo (🟢). Com o caixa fechado, o Cardápio Digital não recebe pedidos; avise o Caixa. Toque em "↻ Verificar agora".' },
+  { q:'Pedido duplicado', a:'Se aparecerem dois iguais, faça só um e avise o Caixa para cancelar o repetido. Você também pode registrar uma Ocorrência no pedido.' },
+  { q:'Não sei se a comanda saiu', a:'Sem resposta em 30 s o aviso fica vermelho. Toque em ✅ Saiu ou 🔁 Não saiu.' }
+ ]},
+
+Entregador:{ nome:'Entregador', secoes:[
+  _aj.entrar('Início, Minhas entregas e Meus ganhos'),
+
+  { t:'Fazer uma entrega', passos:[
+    'Aba Minhas entregas: aparecem só as suas. Uma nova toca um aviso sonoro.',
+    'O cartão mostra itens, endereço, referência, telefone, total, taxa e "📍 Ver no Maps".',
+    'Quem marca o pedido como "Pronta" é a Cozinha. Quando pegar o pedido (status "Pronta"), toque em "Marcar como “Saiu para entrega”". Nesse momento o app começa a enviar sua localização.',
+    'Ao entregar, toque em "✅ Já entreguei". O envio de localização para sozinho.',
+    'Se o cartão diz "A receber", cobre o valor do cliente; quem registra o recebimento é o Caixa.' ],
+    comuns:['Não aparece nada: ainda não atribuíram entrega a você. Avise o Caixa.',
+      'Pedido "aguardando aceite": o botão só aparece depois que o Caixa aceitar.'] },
+
+  { t:'Aviso de entrega nova', itens:[
+    'Na primeira vez, toque em "🔔 Ativar avisos e som" (canto da tela).',
+    'Quando o Caixa atribuir uma entrega, o aparelho toca, vibra e a aba mostra "Nova entrega".',
+    'A checagem roda com o app aberto, mesmo em segundo plano.' ]},
+
+  { t:'Localização (sua privacidade)', itens:[
+    'O envio só liga quando você tem entrega em "Saiu para entrega" — não fica rodando o dia inteiro.',
+    'Não guarda histórico: a posição é atualizada em cima da anterior e o banco limpa ao sair do status.',
+    'Precisa do GPS permitido no navegador. Se negar, a entrega continua normal; só o mapa do restaurante fica sem sua posição.',
+    'Ao marcar "Já entreguei", o envio para automaticamente.' ]},
+
+  { t:'Meu dia', itens:[
+    'Em Minhas entregas, "💰 Meu dia" mostra suas entregas de hoje, as taxas e a ajuda diária.',
+    'O total previsto é taxas + ajuda diária (uma vez por dia). O acerto oficial é feito pelo Administrador.' ]},
+
+  _aj.ocorr('O Administrador e o Operador são avisados. Use para cliente ausente, endereço errado ou problema na entrega.')
+ ],
+ erros:[
+  { q:'A internet caiu', a:'O celular mostra o último estado salvo. Se o toque em "Saiu para entrega" ou "Já entreguei" falhar, confira o status no cartão e toque de novo quando voltar a conexão — o sistema não duplica.' },
+  { q:'O cliente não atende', a:'Avise o Caixa: ele pode usar "⏸ Suspender" no pedido (com motivo) e retomar depois. Registre uma Ocorrência para ficar anotado.' },
+  { q:'Pedido duplicado', a:'Se aparecerem dois cartões iguais, entregue só um e avise o Caixa, que cancela o repetido.' },
+  { q:'Esqueci de marcar "Entregue"', a:'Avise o Caixa ou o Administrador: eles marcam manualmente pelo pedido.' },
+  { q:'O mapa não mostra minha posição', a:'Confira se o GPS está ligado e se o navegador tem permissão de localização para o site.' }
+ ]}
+};
+
+const MANUAL_AJUDA_CLIENTE_ = {
+  nome:'Cliente',
+  secoes:[
+    { t:'🍔 Como fazer um pedido', passos:[
+      'Escolha a categoria lá em cima (Lanches, Combos, Bebidas…) ou role a tela para ver "Mais pedidos" e "Destaques".',
+      'Role para o lado em cada seção para ver mais itens. Toque na foto para ver o item ampliado. Toque em "Adicionar" no item. Se ele tiver adicionais, aparece uma janela. Você também pode escrever uma observação (ex.: "sem cebola").',
+      'Ajuste a quantidade e toque em "Adicionar ao carrinho".',
+      'Quando terminar, toque na barra dourada que aparece embaixo ("X itens — R$ …") para abrir o carrinho.',
+      'Nome e telefone ficam guardados neste aparelho e já vêm preenchidos nos próximos pedidos; é só conferir. O endereço não é guardado: vem sempre pela localização.',
+      'No carrinho, informe nome, telefone e escolha Retirar no balcão ou Entrega. Se for entrega, digite o CEP (opcional) para preencher rua e bairro, ou o app pode pedir a sua localização para preencher rua e bairro: confira e digite o número da casa (ou "s/n").',
+      'Confira o total e toque em "Enviar pedido". O restaurante vai confirmar antes de preparar.' ]},
+
+    { t:'🛒 Carrinho guardado', itens:[
+      'Se você sair do cardápio no meio do pedido, o carrinho fica guardado neste aparelho por 24 horas. Ao voltar, toque em "Continuar pedido" (ou "Descartar"). Os preços são atualizados e itens esgotados ficam de fora.' ]},
+
+    { t:'🎟️ Cupom de desconto', itens:[
+      'No carrinho, antes de enviar, tem um campo "🎟️ Cupom".',
+      'Digite o código (ex.: PROMO10) e toque em "Aplicar cupom".',
+      'O desconto aparece embaixo e o total é recalculado na hora.',
+      'Alguns cupons dão mais desconto quanto maior o pedido (ex.: R$ 5 a partir de R$ 50, R$ 10 a partir de R$ 100). Vale a maior faixa que o seu pedido alcança.',
+      'Se o cupom não valer (fora do prazo, valor mínimo não atingido, etc.), aparece uma mensagem explicando.' ]},
+
+    { t:'💳 Formas de pagamento e troco', itens:[
+      'Escolha a forma de pagamento no carrinho, antes de enviar.',
+      'Se escolher Dinheiro, aparece a opção "Preciso de troco". Marque e informe para quanto (ex.: "troco para R$ 50").',
+      'Pagamento combinado na entrega ou na retirada — não cobramos pelo site.' ]},
+
+    { t:'📦 Acompanhar seu pedido', passos:[
+      'No rodapé do cardápio, toque em "📦 Acompanhe seu pedido".',
+      'Se você tem só um pedido neste aparelho, o status abre direto. Se tem mais, aparece a lista para escolher.',
+      'O status atualiza sozinho a cada 20 segundos: Recebido → Aceito/Em preparo → Pronto/Saiu pra entrega → Entregue/Retirado.',
+      'O status fica salvo no seu navegador. Se você limpar o histórico do navegador, perde a lista (o restaurante continua com o pedido).' ]},
+
+    { t:'✖ Cancelar um pedido', itens:[
+      'Você pode cancelar nos PRIMEIROS 3 MINUTOS, e só enquanto o pedido está "aguardando aceite".',
+      'No acompanhamento do pedido, aparece um botão "✖ Cancelar pedido" com uma contagem de segundos.',
+      'Depois desse prazo, ou depois que o restaurante aceitou, o cancelamento passa a ser com o restaurante — ligue para eles.' ]},
+
+    { t:'🍽️ Pedido na mesa (QR Code)', itens:[
+      'Aponte a câmera do celular para o QR Code que está na mesa.',
+      'O cardápio abre já identificando a sua mesa ("Você está na Mesa X" no topo).',
+      'Escolha os itens e envie. O restaurante vai CONFIRMAR antes de preparar. Você pode fazer mais de um pedido pela mesma mesa.',
+      'O pagamento é feito no caixa, no final.',
+      'Se precisar de ajuda, toque em "🔔 Chamar garçom". Se quiser fechar a conta, toque em "🧾 Pedir a conta".' ],
+      comuns:['Se a mesa já pediu a conta, não dá para fazer novos pedidos por ali — chame o garçom.',
+        'O cliente pode cancelar um pedido pelo celular enquanto o restaurante não aceitou.'] },
+
+    { t:'💬 Balão de atendimento', itens:[
+      'No canto da tela tem um botão redondo com o rosto do Tex, o atendente virtual. Toque para conversar.',
+      'O atendente virtual (IA) responde dúvidas do cardápio, ingredientes, preços, combos, promoções e formas de pagamento, e sugere o que pedir.',
+      'Para saber do seu pedido, ele pede o seu celular (o mesmo do pedido) e mostra o andamento. O número não fica salvo.',
+      'Se for um problema (atraso, item errado ou faltando, cobrança), ou se você preferir uma pessoa, toque em "Falar com a equipe".',
+      'Ele só fala da Texas Burger e não faz o pedido por você: monte o pedido no cardápio. Se a IA ficar indisponível, o botão da equipe continua funcionando.' ]},
+
+    { t:'🔔 Avisos do pedido no celular', itens:[
+      'Na primeira vez que você abre o cardápio, aparece no topo "🔔 Avisos do seu pedido". Toque em "Quero receber" e permita as notificações.',
+      'Depois, a cada pedido você recebe no celular: confirmado (em preparo), pronto para retirar, saiu para entrega e entregue. Funciona mesmo com o site fechado.',
+      'Uns 30 minutos depois da entrega chega "⭐ Como foi seu pedido?". Toque para dar uma nota.',
+      'Tocou em "Agora não"? O convite aparece mais uma vez no cartão "Pedido enviado".',
+      'No iPhone, os avisos só funcionam com o app instalado: Compartilhar → "Adicionar à Tela de Início", e abra o app por esse ícone.' ],
+      comuns:['Se as notificações foram bloqueadas, libere nas configurações do navegador → permissões do site → Notificações.',
+        'Sem os avisos, o status continua em "📦 Acompanhe seu pedido", no rodapé.'] },
+
+    { t:'💬 Deixar um feedback', itens:[
+      'No rodapé, toque em "💬 Deixar um feedback".',
+      'Dê uma nota em estrelas (1 a 5) e escreva o que quiser: elogio, sugestão ou reclamação.',
+      'Também dá pelo aviso "Como foi seu pedido?" ou pelo Tex, o atendente virtual: quando você elogia ou dá uma sugestão, ele oferece "⭐ Registrar como feedback".',
+      'É opcional deixar nome e telefone — mas se deixar, a gente consegue te responder.' ]},
+
+    { t:'📲 Instalar o app na tela inicial', passos:[
+      'No rodapé, toque em "📲 Instalar app".',
+      'Android (Chrome): aparece "Instalar app". Se não aparecer, use o menu ⋮ → "Instalar app" ou "Adicionar à tela inicial".',
+      'iPhone (Safari): Compartilhar (quadrado com seta) → "Adicionar à Tela de Início".',
+      'Depois de instalado, o app abre em tela cheia, mais rápido e com ícone próprio.' ],
+      comuns:['Se o convite apareceu e você tocou em "Agora não", ele volta depois de 7 dias.',
+        'No iPhone, só funciona pelo Safari.'] },
+
+    { t:'🔳 QR Code do app', itens:[
+      'No rodapé, toque em "🔳 QR Code do app".',
+      'Aparece um QR Code e um link. Você pode copiar o link, compartilhar ou baixar a imagem.',
+      'Mande para um amigo: ele aponta a câmera e abre o cardápio no celular dele.' ]},
+
+    { t:'🔒 O que fazemos com seus dados', itens:[
+      'Nome e telefone só são usados para preparar e entregar seu pedido.',
+      'Não enviamos propaganda nem compartilhamos com terceiros.',
+      'Seus pedidos ficam salvos no SEU navegador (para você poder acompanhar).',
+      'Se quiser que a gente apague seus dados, fale com o restaurante pelo balão de atendimento.' ]}
+  ],
+  erros:[
+    { q:'Meu pedido não aparece no acompanhamento', a:'O acompanhamento funciona no MESMO navegador em que você fez o pedido. Se você limpou o histórico, mudou de aparelho ou navegador, o link se perde — mas o restaurante continua com seu pedido. Ligue para eles.' },
+    { q:'Fechei a página antes de enviar', a:'Se você não chegou a tocar em "Enviar pedido", o pedido NÃO foi feito. Abra o cardápio de novo e refaça.' },
+    { q:'Não consigo cancelar meu pedido', a:'Só dá para cancelar nos primeiros 3 minutos e enquanto o restaurante ainda não aceitou. Passou disso, ligue para o restaurante.' },
+    { q:'O cupom não funcionou', a:'Confira se o código está certo, se ainda está dentro do prazo e se o valor do pedido atinge o mínimo. A mensagem de erro diz o motivo.' },
+    { q:'O WhatsApp não abriu sozinho', a:'Alguns navegadores bloqueiam a abertura automática. Toque no botão verde "📲 Enviar pedido pelo WhatsApp" na tela de confirmação. Isso NÃO afeta o pedido — ele já foi enviado.' },
+    { q:'O app não instalou', a:'Android: use o Chrome. iPhone: use o Safari. Se ainda não aparecer o convite, use o menu do navegador ("Adicionar à tela inicial").' },
+    { q:'Estou fechado e não consigo pedir', a:'Quando o restaurante está fechado, o cardápio mostra "Estamos fechados no momento" e não aceita pedidos.' }
+  ]
+};
+
+function ajudaClienteHtml_(){
+  const m = MANUAL_AJUDA_CLIENTE_;
+  const li = a => a.map(x=>'<li>'+escH(x)+'</li>').join('');
+  let h = '<p class="sub">Guia rápido para pedir pelo cardápio. Toque num título para abrir.</p>';
+  h += novidadesHtml_('Cliente');
+  m.secoes.forEach((s,i)=>{
+    h += '<details class="ajuda-det"><summary>'+escH(s.t)+'</summary>';
+    if(s.passos) h += '<ol>'+li(s.passos)+'</ol>';
+    if(s.itens)  h += '<ul>'+li(s.itens)+'</ul>';
+    if(s.comuns) h += '<div class="ajuda-comuns"><b>Detalhes</b>'+s.comuns.map(x=>'<div>• '+escH(x)+'</div>').join('')+'</div>';
+    h += '</details>';
+  });
+  h += '<h3 class="ajuda-erro-tit">🆘 E se der errado?</h3>';
+  m.erros.forEach(e=>{ h += '<details class="ajuda-erro"><summary>'+escH(e.q)+'</summary><p>'+escH(e.a)+'</p></details>'; });
+  h += ajudaRodapeVersao_();
+  h += '<button class="primary" style="margin-top:14px;" onclick="fecharAjudaCliente()">Fechar</button>';
+  return h;
+}
+function abrirAjudaCliente(){
+  let m = document.getElementById('ajudaClienteModal');
+  if(!m){
+    m = document.createElement('div');
+    m.className = 'modal-overlay';
+    m.id = 'ajudaClienteModal';
+    m.setAttribute('onclick', "if(event.target===this) fecharAjudaCliente()");
+    m.innerHTML = '<div class="modal-box" style="max-width:560px;">' +
+      '<div class="modal-header"><h2>❓ Como pedir / Ajuda</h2><button class="close-btn" type="button" onclick="fecharAjudaCliente()" aria-label="Fechar">✕</button></div>' +
+      '<div id="ajudaClienteConteudo"></div></div>';
+    document.body.appendChild(m);
+  }
+  document.getElementById('ajudaClienteConteudo').innerHTML = ajudaClienteHtml_();
+  m.classList.add('open');
+}
+function fecharAjudaCliente(){
+  const m = document.getElementById('ajudaClienteModal');
+  if(m) m.classList.remove('open');
+}
+
+function ajudaHtml_(p){
+  const m = MANUAL_AJUDA_[p] || MANUAL_AJUDA_.Operador;
+  const li = a => a.map(x=>'<li>'+escH(x)+'</li>').join('');
+  const ehDev = !!(currentUser && currentUser.nivelReal === 'Desenvolvedor');
+  const ehMudou = s => /^\s*🆕\s*O que mudou/i.test(String(s && s.t || ''));
+  const secoes = m.secoes.filter(s => !ehMudou(s) && (!s.soDev || ehDev));
+
+  let h = '<p class="sub">Manual do perfil <b>' + escH(m.nome) + '</b>.' +
+    (ehDev ? ' <span style="opacity:.75;">(comandos de Desenvolvedor inclusos)</span>' : '') +
+    ' Toque num título para abrir.</p>';
+  h += novidadesHtml_(p);
+  secoes.forEach((s,i)=>{
+    h += '<details class="ajuda-det"><summary>'+escH(s.t)+'</summary>';
+    if(s.passos) h += '<ol>'+li(s.passos)+'</ol>';
+    if(s.itens)  h += '<ul>'+li(s.itens)+'</ul>';
+    if(s.comuns) h += '<div class="ajuda-comuns"><b>Erros comuns</b>'+s.comuns.map(x=>'<div>• '+escH(x)+'</div>').join('')+'</div>';
+    h += '</details>';
+  });
+  h += '<h3 class="ajuda-erro-tit">🆘 E se der errado?</h3>';
+  m.erros.forEach(e=>{ h += '<details class="ajuda-erro"><summary>'+escH(e.q)+'</summary><p>'+escH(e.a)+'</p></details>'; });
+  h += ajudaRodapeVersao_();
+  return h;
+}
+
+/* ===================== AUTO-TESTE DA AJUDA =====================
+   Valida os 6 manuais sem abrir nada na tela: gera o HTML de cada um e confere
+   que o rodapé de versão, o bloco de novidades e as seções específicas estão presentes.
+   Simula o perfil via currentUser (restaura ao final). Nunca toca em dado real.
+   Uso: testarAjuda_() no console, ou "testar ajuda" no balão (Desenvolvedor). */
+function testarAjuda_(){
+  if(!currentUser){ console.warn('testarAjuda_: entre no sistema primeiro.'); return { ok:false, resumo:'Sem usuário logado.' }; }
+
+  const snap = { nivel: currentUser.nivel, nivelReal: currentUser.nivelReal, verComo: currentUser.verComo };
+  const resultados = [];
+  const restaurar = () => { currentUser.nivel = snap.nivel; currentUser.nivelReal = snap.nivelReal; currentUser.verComo = snap.verComo; };
+
+  const rodar = (rotulo, perfilManual, ehDevFake) => {
+    const problemas = [];
+    let html = '';
+    currentUser.nivel = perfilManual;
+    currentUser.nivelReal = ehDevFake ? 'Desenvolvedor' : perfilManual;
+    currentUser.verComo = '';
+    try{
+      html = (perfilManual === 'Cliente') ? ajudaClienteHtml_() : ajudaHtml_(perfilManual);
+    }catch(e){
+      problemas.push('erro ao gerar: ' + ((e && e.message) || e));
+    }
+
+    if(!html){ problemas.push('html vazio'); }
+    else{
+      if(!/Texas Burger · (<b>)?v-/.test(html)) problemas.push('rodapé de versão ausente');
+      if(!/🆕 O que mudou/.test(html))    problemas.push('bloco de novidades ausente');
+      if(perfilManual === 'Admin' && ehDevFake){
+        if(!/🛠️ Desenvolvedor \(exclusivo\)/.test(html)) problemas.push('seção Desenvolvedor ausente para Dev');
+      }
+      if(perfilManual === 'Admin' && !ehDevFake){
+        if(/🛠️ Desenvolvedor \(exclusivo\)/.test(html)) problemas.push('seção Desenvolvedor aparecendo para Admin comum');
+      }
+      if(perfilManual === 'Operador'){
+        if(!/O que você tem em Administrador/.test(html)) problemas.push('seção "O que você tem em Administrador" ausente');
+      }
+      if(perfilManual === 'Cliente'){
+        if(!/Como fazer um pedido/.test(html)) problemas.push('manual do cliente sem "Como fazer um pedido"');
+        if(!/Acompanhar seu pedido/.test(html)) problemas.push('manual do cliente sem "Acompanhar seu pedido"');
+      }
+    }
+    resultados.push({ rotulo: rotulo || perfilManual, ok: !problemas.length, problemas });
+  };
+
+  try{
+    rodar('Admin (comum)',      'Admin',      false);
+    rodar('Admin (como Dev)',   'Admin',      true);
+    rodar('Operador',           'Operador',   false);
+    rodar('Garçom',             'Garçom',     false);
+    rodar('Cozinha',            'Cozinha',    false);
+    rodar('Entregador',         'Entregador', false);
+    rodar('Cliente (cardápio)', 'Cliente',    false);
+  } finally { restaurar(); }
+
+  const total  = resultados.length;
+  const falhas = resultados.filter(r => !r.ok).length;
+  const linhas = resultados.map(r =>
+    (r.ok ? '✅' : '❌') + ' ' + r.rotulo + (r.ok ? ' — ok' : ' — ' + r.problemas.join('; '))
+  ).join('\n');
+  const resumo = falhas === 0
+    ? '✅ Auto-teste da Ajuda: ' + total + ' manuais, tudo ok.'
+    : '❌ Auto-teste da Ajuda: ' + falhas + ' de ' + total + ' com problema.';
+
+  console.log(resumo + '\n' + linhas);
+  return { ok: falhas === 0, resumo, linhas, total, falhas, resultados };
+}
+window.testarAjuda_ = testarAjuda_;
+
+function abrirAjuda(){
+  const nivel = (currentUser && currentUser.nivel) || 'Operador';
+  const m = MANUAL_AJUDA_[nivel] || MANUAL_AJUDA_.Operador;
+  document.getElementById('ajudaTitulo').textContent = 'Ajuda — '+m.nome;
+  document.getElementById('ajudaConteudo').innerHTML = ajudaHtml_(nivel);
+  document.getElementById('ajudaModal').classList.add('open');
+}
+function fecharAjuda(){ document.getElementById('ajudaModal').classList.remove('open'); }
+
+function abrirCalculadora(){ calcExpr=''; document.getElementById('calcDisplay').textContent='0'; document.getElementById('calcModal').classList.add('open'); }
+function fecharCalculadora(){ document.getElementById('calcModal').classList.remove('open'); }
+function calcInput(v){ calcExpr += v; document.getElementById('calcDisplay').textContent = calcExpr; }
+function calcClear(){ calcExpr=''; document.getElementById('calcDisplay').textContent='0'; }
+function calcBackspace(){ calcExpr = calcExpr.slice(0,-1); document.getElementById('calcDisplay').textContent = calcExpr || '0'; }
+function calcEquals(){
+  if(!/^[0-9+\-*/.\s]+$/.test(calcExpr)){ document.getElementById('calcDisplay').textContent = 'Erro'; calcExpr=''; return; }
+  try{ const resultado = Function('"use strict";return ('+calcExpr+')')(); document.getElementById('calcDisplay').textContent = String(Math.round(resultado*100)/100); calcExpr = String(resultado); }
+  catch(e){ document.getElementById('calcDisplay').textContent = 'Erro'; calcExpr=''; }
+}
+
+/* ============================================================
+   FINANCEIRO
+   ============================================================ */
+/* "09/10 às 19:43" no horário de Brasília */
+function fmtDiaHoraBr_(iso){
+  const d = new Date(iso); if(isNaN(d)) return String(iso||'');
+  const p = Object.fromEntries(new Intl.DateTimeFormat('pt-BR', { timeZone:'America/Sao_Paulo', day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit', hour12:false }).formatToParts(d).map(x=>[x.type, x.value]));
+  return p.day + '/' + p.month + ' às ' + p.hour + ':' + p.minute;
+}
+function formatarDataHoraISO(iso){
+  if(!iso) return null;
+  const d = new Date(iso);
+  return Utilities_formatarDataBR(d);
+}
+function Utilities_formatarDataBR(d){
+  const pad = n=>String(n).padStart(2,'0');
+  return pad(d.getDate())+'/'+pad(d.getMonth()+1)+'/'+d.getFullYear()+' '+pad(d.getHours())+':'+pad(d.getMinutes());
+}

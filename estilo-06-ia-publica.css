@@ -1,0 +1,11 @@
+@charset "utf-8";
+
+.ia-acoes{flex:0 0 auto;}
+.ia-acoes:empty{display:none;}
+.ia-chips{display:flex;flex-wrap:wrap;gap:6px;padding:4px 0 8px;}
+.ia-chips .ghost{width:auto;margin:0;padding:6px 10px;font-size:12px;}
+.ia-card{background:var(--panel-2);border:1px solid var(--gold-dim);border-radius:12px;padding:10px;margin:4px 0 8px;font-size:13px;}
+.ia-card p{margin:0 0 8px;}
+.ia-card .primary{margin:0;}
+.ia-rodape{flex:0 0 auto;text-align:center;padding-top:4px;}
+#chatPublicoModal .chat-balao.ia,#chatPublicoModal .chat-balao.eu{max-width:90%;}

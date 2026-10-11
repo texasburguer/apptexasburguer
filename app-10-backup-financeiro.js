@@ -1,0 +1,768 @@
+/* ---------- FASE 10 — ARMAZENAMENTO, BACKUP E RECUPERAÇÃO ---------- */
+function escBk_(s){ return escH(s); }
+function formatarBytes_(b){ b=Number(b)||0; if(b<=0) return '—'; const u=['B','KB','MB','GB','TB']; let i=0; while(b>=1024&&i<u.length-1){ b/=1024; i++; } return b.toFixed(i?1:0)+' '+u[i]; }
+function marcarAlertaAdmin_(ativo){ if(!ativo) return; const b=document.querySelector('[data-tab="administrador"]'); if(b) b.classList.add('has-alert'); }
+async function carregarArmazenamento(){
+  const res = document.getElementById('driveResumo'), lista = document.getElementById('driveArquivos');
+  if(!res) return;
+  try{
+    const r = await apiCall('obterArmazenamento', {});
+    if(!r || r.ok===false){ res.innerHTML = '<span style="color:var(--muted);">'+escBk_(r&&r.message||'Indisponível.')+'</span>'; return; }
+    const d = r.drive, cor = {Normal:'#7cc46a','Atenção':'#e0b53a','Crítico':'#e5534b'}[d.nivel] || '#999';
+    const pct = d.percentual===null ? 0 : Math.min(100,d.percentual);
+    res.innerHTML = `<div style="height:12px;background:#3a2c1c;border-radius:6px;overflow:hidden;"><div style="width:${pct}%;height:100%;background:${cor};"></div></div>
+      <div style="margin-top:6px;">Usado: <b>${formatarBytes_(d.usado)}</b> · Livre: <b>${d.livre===null?'—':formatarBytes_(d.livre)}</b> · <b style="color:${cor};">${d.percentual===null?'—':d.percentual+'%'} (${escBk_(d.nivel)})</b></div>
+      ${d.nivel==='Crítico'?'<div class="obs-line" style="color:#ffb3ab;margin-top:4px;">⚠️ Drive quase cheio: novos backups e fotos podem falhar. Libere espaço.</div>':d.nivel==='Atenção'?'<div class="obs-line" style="margin-top:4px;">Atenção: acima de 70% do espaço.</div>':''}`;
+    sistemaAlertas_.drive = d.nivel==='Crítico' ? ('Google Drive quase cheio ('+d.percentual+'% usado). Libere espaço em Administrador → Sistema → Espaço e fotos.') : '';
+    marcarAlertaAdmin_(d.nivel==='Crítico'); renderNotificacoes();
+    const cats = Object.entries(r.categorias).map(([n,v])=>`<tr><td>${escBk_(n)}</td><td align="right">${v.qtd}</td><td align="right">${formatarBytes_(v.bytes)}</td></tr>`).join('');
+    const arqs = (r.arquivos||[]).slice(0,10).map(a=>`<tr><td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;">${escBk_(a.nome)}</td><td>${escBk_(a.categoria)}</td><td align="right">${formatarBytes_(a.tamanho)}</td></tr>`).join('');
+    lista.innerHTML = `<table style="width:100%;border-collapse:collapse;white-space:nowrap;"><thead><tr><th align="left">Categoria</th><th align="right">Arquivos</th><th align="right">Tamanho</th></tr></thead><tbody>${cats}</tbody></table>
+      <div style="margin-top:8px;font-weight:600;">Maiores arquivos</div><table style="width:100%;border-collapse:collapse;white-space:nowrap;"><tbody>${arqs}</tbody></table>`;
+  } catch(e){ res.innerHTML = '<span style="color:var(--muted);">Não foi possível consultar o Drive agora.</span>'; }
+}
+
+
+/* ============================================================
+   FASE 11 — FILA DE ENVIO (ITEM 78) e CONTINGÊNCIA (ITEM 81)
+   Estados de cada item: pendente → enviando → confirmado | retry (sem internet) | erro (recusado / esgotou tentativas).
+   SÓ entram na fila operações NÃO críticas. Operações financeiras (venda, pagamento, sangria,
+   cancelamento, estoque, caixa) exigem confirmação do backend e nunca ficam "guardadas".
+   ============================================================ */
+const FILA_KEY = 'texasBurgerFila_v1';
+const FILA_MAX_TENTATIVAS = 8;
+let _fila = [];
+try{ _fila = JSON.parse(localStorage.getItem(FILA_KEY) || '[]') || []; }catch(e){ _fila = []; }
+_fila.forEach(i=>{ if(i.estado === 'enviando') i.estado = 'retry'; }); // recarregou no meio do envio
+const _filaEmVoo = new Set();
+function filaSalvar_(){ try{ localStorage.setItem(FILA_KEY, JSON.stringify(_fila)); }catch(e){} filaAtualizarBadge_(); }
+async function apiCallFila(action, payload, rotulo){
+  // Idempotência: mesmo conteúdo = mesmo id. 3 cliques seguidos no botão viram 1 envio.
+  const chave = idemChave_(action, payload);
+  const id = idemId_(chave);
+  if(_fila.some(x => x.id === id)) return { ok: true, enfileirado: true, message: '📡 Este lançamento já está na fila — será enviado quando a internet voltar.' };
+  const item = { id, action, payload: Object.assign({}, payload), rotulo: rotulo || action, estado: 'pendente', tentativas: 0, criadoEm: Date.now(), erro: '', idemChave: chave };
+  item.payload.requisicaoId = item.id;
+  _fila.push(item); filaSalvar_();
+  const r = await filaEnviarItem_(item, true);
+  if(r) { idemLimpar_(chave); return r; }
+  return { ok: true, enfileirado: true, message: '📡 Sem conexão — salvo neste aparelho e será enviado sozinho quando a internet voltar.' };
+}
+/* Retorna: resposta do servidor | null (falha de rede) | undefined (já em envio, ignorado). */
+async function filaEnviarItem_(item, imediato){
+  if(_filaEmVoo.has(item.id)) return undefined;
+  _filaEmVoo.add(item.id);
+  item.estado = 'enviando'; item.tentativas++; filaSalvar_();
+  try{
+    const r = await apiCall(item.action, item.payload);
+    if(r && r.manutencao){ item.estado = 'retry'; item.tentativas = Math.max(0, item.tentativas - 1); item.erro = 'Sistema em manutenção'; filaSalvar_(); return null; }  // ITEM 2.8
+    if(r && r.ok !== false){ _fila = _fila.filter(x=>x.id !== item.id); if(item.idemChave) idemLimpar_(item.idemChave); filaSalvar_(); return r; }
+    if(imediato){ _fila = _fila.filter(x=>x.id !== item.id); filaSalvar_(); return r; } // quem chamou já mostra o erro
+    item.estado = 'erro'; item.erro = (r && r.message) || 'Recusado pelo servidor'; filaSalvar_();
+    return r;
+  }catch(e){
+    item.estado = item.tentativas >= FILA_MAX_TENTATIVAS ? 'erro' : 'retry';
+    item.erro = item.estado === 'erro' ? 'Não foi possível enviar após várias tentativas' : 'Sem conexão';
+    filaSalvar_();
+    return null;
+  }finally{ _filaEmVoo.delete(item.id); }
+}
+let _filaProcessando = false;
+async function filaProcessar(){
+  if(_filaProcessando || !apiConfigurada()) return;
+  const alvo = _fila.filter(i=>i.estado === 'pendente' || i.estado === 'retry').sort((a,b)=>a.criadoEm - b.criadoEm);
+  if(!alvo.length) return;
+  _filaProcessando = true;
+  try{ for(const it of alvo){ const r = await filaEnviarItem_(it, false); if(r === null) break; } }
+  finally{ _filaProcessando = false; }
+}
+setInterval(filaProcessar, 30000);            // sem itens na fila não faz nenhuma chamada
+window.addEventListener('online', ()=>{ setTimeout(filaProcessar, 800); });
+const FILA_ROTULO_ESTADO = { pendente:'⏳ Aguardando', enviando:'📤 Enviando', retry:'🔁 Vai tentar de novo', erro:'⚠️ Com erro', confirmado:'✅ Enviado' };
+function filaAtualizarBadge_(){
+  let b = document.getElementById('filaBadge');
+  if(!b){
+    const st = document.getElementById('connDot') || document.getElementById('connStatus'); if(!st) return;
+    b = document.createElement('button'); b.id = 'filaBadge'; b.className = 'ghost';
+    b.style.cssText = 'margin-left:6px;padding:2px 8px;font-size:11px;display:none;'; b.onclick = abrirFila;
+    st.insertAdjacentElement('afterend', b);
+  }
+  const n = _fila.length, erros = _fila.filter(i=>i.estado === 'erro').length;
+  b.style.display = n ? 'inline-block' : 'none';
+  b.textContent = (erros ? '⚠️ ' : '⏳ ') + n + ' na fila';
+  if(erros){ const nb = document.querySelector('[data-tab="notificacoes"]'); if(nb) nb.classList.add('has-alert'); }
+}
+function abrirFila(){
+  let ov = document.getElementById('filaModal');
+  if(!ov){
+    ov = document.createElement('div'); ov.className = 'modal-overlay'; ov.id = 'filaModal';
+    ov.innerHTML = '<div class="modal-box" style="max-width:520px;"><div class="modal-header"><h2>Fila de envio</h2><button class="close-btn" onclick="document.getElementById(\'filaModal\').classList.remove(\'open\')">✕</button></div><div id="filaLista" style="font-size:13px;"></div></div>';
+    document.body.appendChild(ov);
+  }
+  filaRenderLista_(); ov.classList.add('open');
+}
+function filaRenderLista_(){
+  const box = document.getElementById('filaLista'); if(!box) return;
+  if(!_fila.length){ box.innerHTML = '<p class="sub">Nada aguardando envio. ✅</p>'; return; }
+  box.innerHTML = '<p class="sub">Itens salvos neste aparelho que ainda não chegaram ao servidor. Vendas e pagamentos nunca ficam aqui.</p>' +
+    _fila.map(i=>`<div class="notif-card"><b>${escBk_(i.rotulo)}</b> · ${FILA_ROTULO_ESTADO[i.estado]||i.estado}
+      <div class="obs-line">${new Date(i.criadoEm).toLocaleString('pt-BR')} · ${i.tentativas} tentativa(s)${i.erro?' · '+escBk_(i.erro):''}</div>
+      <div style="margin-top:6px;display:flex;gap:6px;">
+        ${i.estado==='erro'?`<button class="ghost" style="padding:4px 10px;" onclick="filaReenviar_('${i.id}')">Tentar de novo</button>`:''}
+        <button class="ghost" style="padding:4px 10px;" onclick="filaDescartar_('${i.id}')">Descartar</button></div></div>`).join('') +
+    '<button class="small-gold" style="width:100%;padding:10px;margin-top:8px;" onclick="filaProcessar().then(filaRenderLista_)">Enviar agora</button>';
+}
+function filaReenviar_(id){ const i = _fila.find(x=>x.id === id); if(!i) return; i.estado = 'retry'; i.tentativas = 0; i.erro = ''; filaSalvar_(); filaProcessar().then(filaRenderLista_); filaRenderLista_(); }
+function filaDescartar_(id){
+  if(!confirm('Descartar este item? Ele NÃO será enviado ao servidor.')) return;
+  _fila = _fila.filter(x=>x.id !== id); filaSalvar_(); filaRenderLista_();
+}
+document.addEventListener('DOMContentLoaded', filaAtualizarBadge_);
+setTimeout(filaAtualizarBadge_, 500);
+
+/* ---------- CONTINGÊNCIA (ADMIN) — Item 81 ---------- */
+/* Contingência: status, armazenamento e interruptor da sincronização automática carregam sempre que a tela abre
+   (antes só rodavam uma vez, 8 s depois do login, e o resultado podia nunca aparecer). */
+async function contSincAutoCarregar(){
+  const cb = document.getElementById('contSincAuto'), m = document.getElementById('contSincAutoMsg'); if(!cb) return;
+  try{ const r = await apiCall('sincAutoStatus', {}); if(r && r.ok){ cb.checked = !!r.ativo; cb.disabled = false; if(m) m.textContent = r.ativo ? 'Ligada: o espelho é atualizado todo dia às 3h.' : 'Desligada: o espelho só atualiza quando você toca em "Sincronizar espelho agora".'; }
+    else if(m) m.textContent = 'Não consegui consultar o estado agora.'; }catch(e){ if(m) m.textContent = 'Não consegui consultar o estado agora.'; }
+}
+async function contSincAutoSalvar(ativar){
+  const cb = document.getElementById('contSincAuto'), m = document.getElementById('contSincAutoMsg'); if(cb) cb.disabled = true; if(m) m.textContent = 'Salvando...';
+  try{ const r = await apiCall('sincAutoDefinir', { ativar: !!ativar });
+    if(r && r.ok){ if(cb) cb.checked = !!r.ativo; if(m) m.textContent = r.message || 'Salvo.'; }
+    else{ if(cb) cb.checked = !ativar; if(m) m.textContent = (r && r.message) || 'Não foi possível salvar.'; }
+  }catch(e){ if(cb) cb.checked = !ativar; if(m) m.textContent = 'Sem conexão. Tente de novo.'; }
+  if(cb) cb.disabled = false;
+}
+function contAbrirTela_(){ try{ carregarStatusContingencia(); contSincAutoCarregar(); }catch(e){} }
+async function carregarStatusContingencia(){
+  const box = document.getElementById('contingenciaStatus');
+  if(!box) return;
+  try{
+    const r = await fetchContingencia_(_connOptsContingencia_(), TIMEOUT_CONT_LEITURA_MS_, 0);
+    if(r.ok){
+      if(r.pendentes === undefined && r.espelhoAtualizadoEm === undefined){
+        box.innerHTML = '🟢 Contingência acessível. Para ver a data do espelho e as vendas pendentes, a chave da contingência precisa estar neste aparelho (ela é carregada quando o Administrador entra; saia e entre de novo).';
+      } else {
+        const idade = r.espelhoAtualizadoEm ? fmtDiaHoraBr_(r.espelhoAtualizadoEm) : 'nunca sincronizado';
+        const pend = (typeof r.pendentes === 'number') ? r.pendentes : (Array.isArray(r.pendentes) ? r.pendentes.length : 0);
+        box.innerHTML = `🟢 Contingência acessível — espelho atualizado em: <b>${idade}</b> · ${pend} venda(s) pendente(s) de reconciliar`;
+      }
+      carregarArmazenamentoContingencia();
+    } else box.innerHTML = '🔴 Contingência respondeu com erro.';
+  } catch(e){ box.innerHTML = '🔴 Não foi possível falar com a API de contingência agora.'; }
+}
+async function carregarArmazenamentoContingencia(){
+  const box = document.getElementById('contingenciaArmazenamento');
+  if(!box) return;
+  try{
+    const r = await apiCall('obterArmazenamentoContingencia', {});
+    if(!r || r.ok===false){ box.innerHTML = '<span style="color:var(--muted);">Espaço da conta da contingência indisponível: '+escBk_(r&&r.message||'sem resposta')+'</span>'; sistemaAlertas_.driveCont=''; return; }
+    const d = r.drive, cor = {Normal:'#7cc46a','Atenção':'#e0b53a','Crítico':'#e5534b'}[d.nivel] || '#999';
+    const pct = d.percentual===null ? 0 : Math.min(100,d.percentual);
+    const cats = Object.entries(r.categorias||{}).map(([n,v])=>`<tr><td>${escBk_(n)}</td><td align="right">${v.qtd}</td><td align="right">${formatarBytes_(v.bytes)}</td></tr>`).join('');
+    const ult = (r.backups||[])[0];
+    box.innerHTML = `<div style="font-weight:600;margin-bottom:4px;">Espaço da conta da contingência</div>
+      <div style="height:12px;background:#3a2c1c;border-radius:6px;overflow:hidden;"><div style="width:${pct}%;height:100%;background:${cor};"></div></div>
+      <div style="margin-top:6px;">Usado: <b>${formatarBytes_(d.usado)}</b> · Livre: <b>${d.livre===null?'—':formatarBytes_(d.livre)}</b> · <b style="color:${cor};">${d.percentual===null?'—':d.percentual+'%'} (${escBk_(d.nivel)})</b></div>
+      ${d.nivel==='Crítico'?'<div class="obs-line" style="color:#ffb3ab;margin-top:4px;">⚠️ Drive da contingência quase cheio: novas cópias de backup e fotos podem ser recusadas. Libere espaço nessa conta.</div>':d.nivel==='Atenção'?'<div class="obs-line" style="margin-top:4px;">Atenção: acima de 70% do espaço.</div>':''}
+      <table style="width:100%;border-collapse:collapse;white-space:nowrap;margin-top:6px;"><thead><tr><th align="left">Guardado lá</th><th align="right">Arquivos</th><th align="right">Tamanho</th></tr></thead><tbody>${cats}</tbody></table>
+      <div class="obs-line" style="margin-top:4px;">Última cópia de backup: <b>${ult ? formatarDataHoraISO(ult.criadoEm)+' ('+formatarBytes_(ult.tamanho)+')' : 'nenhuma ainda'}</b></div>`;
+    sistemaAlertas_.driveCont = d.nivel==='Crítico' ? ('Drive da conta da contingência quase cheio ('+d.percentual+'% usado). Libere espaço nessa conta.') : '';
+    marcarAlertaAdmin_(d.nivel==='Crítico'); renderNotificacoes();
+  } catch(e){ box.innerHTML = '<span style="color:var(--muted);">Não foi possível consultar o espaço da contingência agora.</span>'; }
+}
+async function sincronizarContingenciaUI(){
+  showMsg('contingenciaMsg','Sincronizando espelho (produtos, preços, clientes)... pode levar alguns segundos.','ok');
+  try{
+    const r = await apiCall('sincronizarContingenciaAgora', {});
+    showMsg('contingenciaMsg', r.message || (r.ok?'Sincronizado.':'Falhou.'), r.ok?'ok':'warn');
+    carregarStatusContingencia();
+  } catch(e){ showMsg('contingenciaMsg','Não foi possível sincronizar agora.','warn'); }
+}
+async function reconciliarContingenciaUI(){
+  if(!confirm('Isso vai buscar as vendas feitas na contingência (enquanto o servidor esteve fora do ar) e lançar aqui. Continuar?')) return;
+  showMsg('contingenciaMsg','Buscando e reaplicando vendas pendentes...','ok');
+  try{
+    const r = await apiCall('reconciliarContingenciaAgora', {});
+    showMsg('contingenciaMsg', r.message || (r.ok?'Concluído.':'Falhou.'), r.ok?'ok':'warn');
+    carregarStatusContingencia();
+    if(r.ok) init();
+  } catch(e){ showMsg('contingenciaMsg','Não foi possível reconciliar agora.','warn'); }
+}
+function resumoTaxaForma(f){
+  const partes = [];
+  if(f.taxaPct>0) partes.push(String(f.taxaPct).replace('.',',')+'%');
+  if(f.taxaFixa>0) partes.push(formatarMoeda(f.taxaFixa));
+  return partes.length ? partes.join(' + ') : 'sem taxa';
+}
+function resumoAcrescimoForma(f){
+  const partes = [];
+  if(f.acrescimoPct>0) partes.push('+'+String(f.acrescimoPct).replace('.',',')+'%');
+  if(f.acrescimoFixo>0) partes.push('+'+formatarMoeda(f.acrescimoFixo));
+  return partes.length ? partes.join(' ') : '—';
+}
+function renderFormasPagamento(){
+  const tbody = document.getElementById('fpTable');
+  if(!tbody) return;
+  if(formasPagamento.length===0){ tbody.innerHTML = '<tr class="empty-row"><td colspan="5">Nenhuma forma cadastrada.</td></tr>'; return; }
+  tbody.innerHTML = formasPagamento.map(f=>`<tr>
+    <td>${escH(f.nome)}${f.permiteTroco?' <span class="badge">troco</span>':''}${f.ativa?'':' <span class="badge">inativa</span>'}</td>
+    <td>${resumoTaxaForma(f)}</td>
+    <td>${resumoAcrescimoForma(f)}</td>
+    <td>${f.prazoDias>0 ? f.prazoDias+'d' : 'na hora'}</td>
+    <td><button class="small-gold" onclick="abrirModalForma('${f.id}')">Editar</button></td>
+  </tr>`).join('');
+}
+async function registrarFormaPagamento(){
+  const nome = document.getElementById('fpNome').value.trim();
+  if(!nome){ showMsg('fpMsg','Informe o nome da forma de pagamento.','warn'); return; }
+  const taxaPct = Number(document.getElementById('fpTaxaPct').value)||0;
+  const taxaFixa = Number(document.getElementById('fpTaxaFixa').value)||0;
+  const prazoDias = Number(document.getElementById('fpPrazo').value)||0;
+  const permiteTroco = document.getElementById('fpTroco').checked;
+  const acrescimoPct = Number(document.getElementById('fpAcrPct').value)||0;
+  const acrescimoFixo = Number(document.getElementById('fpAcrFixo').value)||0;
+  if(acrescimoPct<0||acrescimoPct>100){ showMsg('fpMsg','O acréscimo % deve ficar entre 0 e 100.','warn'); return; }
+  if(acrescimoFixo<0||acrescimoFixo>1000){ showMsg('fpMsg','O acréscimo fixo deve ficar entre R$ 0,00 e R$ 1.000,00.','warn'); return; }
+  if(taxaPct<0||taxaPct>100){ showMsg('fpMsg','A taxa % deve ficar entre 0 e 100.','warn'); return; }
+  if(taxaFixa<0){ showMsg('fpMsg','A taxa fixa não pode ser negativa.','warn'); return; }
+  if(prazoDias<0||!Number.isInteger(prazoDias)){ showMsg('fpMsg','O prazo deve ser um número inteiro de dias.','warn'); return; }
+  if(!iniciarOperacaoUnica('addForma')) return;
+  try{
+    const r = await apiCall('addFormaPagamento', { nome, taxaPct, taxaFixa, prazoDias, permiteTroco, acrescimoPct, acrescimoFixo, precoProprio: !!(document.getElementById('fpPrecoProprio')||{}).checked });
+    if(r.ok){
+      formasPagamento = r.formasPagamento || formasPagamento;
+      produtoPrecos = r.produtoPrecos || produtoPrecos;
+      comboPrecos = r.comboPrecos || comboPrecos;
+      ['fpNome','fpTaxaPct','fpTaxaFixa','fpPrazo','fpAcrPct','fpAcrFixo'].forEach(id=>document.getElementById(id).value='');
+      document.getElementById('fpTroco').checked = false;
+      renderFormasPagamento(); renderFormaCuradoria(); salvarCache();
+      showMsg('fpMsg', r.message, 'ok');
+    } else showMsg('fpMsg', r.message, 'warn');
+  } catch(e){ showMsg('fpMsg','Não foi possível cadastrar.','warn'); }
+  finally { finalizarOperacaoUnica('addForma'); }
+}
+function abrirModalForma(id){
+  const f = formasPagamento.find(x=>x.id===id); if(!f) return;
+  document.getElementById('fmId').value = f.id;
+  document.getElementById('fmNome').value = f.nome;
+  document.getElementById('fmTaxaPct').value = f.taxaPct;
+  document.getElementById('fmTaxaFixa').value = f.taxaFixa;
+  document.getElementById('fmPrazo').value = f.prazoDias;
+  document.getElementById('fmOrdem').value = f.ordem;
+  document.getElementById('fmAcrPct').value = f.acrescimoPct||0;
+  document.getElementById('fmAcrFixo').value = f.acrescimoFixo||0;
+  document.getElementById('fmTroco').checked = !!f.permiteTroco;
+  const fpp = document.getElementById('fmPrecoProprio'); if(fpp) fpp.checked = !!f.precoProprio;
+  document.getElementById('fmAtiva').checked = !!f.ativa;
+  const usada = pagamentosVenda.some(p=>p.forma===f.nome);
+  document.getElementById('fmNome').disabled = usada;
+  const aviso = document.getElementById('fmAviso');
+  aviso.style.display = usada ? 'block' : 'none';
+  aviso.textContent = usada ? '• Já usada em vendas: o nome fica travado. Mudanças de taxa e de acréscimo valem só para vendas novas.' : '';
+  document.getElementById('fmMsg').innerHTML = '';
+  document.getElementById('formaModal').classList.add('open');
+}
+function fecharModalForma(){ document.getElementById('formaModal').classList.remove('open'); }
+async function salvarFormaModal(){
+  const id = document.getElementById('fmId').value;
+  const novoNome = document.getElementById('fmNome').value.trim();
+  const novaTaxaPct = Number(document.getElementById('fmTaxaPct').value)||0;
+  const novaTaxaFixa = Number(document.getElementById('fmTaxaFixa').value)||0;
+  const novoPrazoDias = Number(document.getElementById('fmPrazo').value)||0;
+  const novaOrdem = Number(document.getElementById('fmOrdem').value)||0;
+  const novoAcrescimoPct = Number(document.getElementById('fmAcrPct').value)||0;
+  const novoAcrescimoFixo = Number(document.getElementById('fmAcrFixo').value)||0;
+  if(novoAcrescimoPct<0||novoAcrescimoPct>100){ showMsg('fmMsg','O acréscimo % deve ficar entre 0 e 100.','warn'); return; }
+  if(novoAcrescimoFixo<0||novoAcrescimoFixo>1000){ showMsg('fmMsg','O acréscimo fixo deve ficar entre R$ 0,00 e R$ 1.000,00.','warn'); return; }
+  if(!novoNome){ showMsg('fmMsg','Informe o nome.','warn'); return; }
+  if(novaTaxaPct<0||novaTaxaPct>100){ showMsg('fmMsg','A taxa % deve ficar entre 0 e 100.','warn'); return; }
+  if(novaTaxaFixa<0){ showMsg('fmMsg','A taxa fixa não pode ser negativa.','warn'); return; }
+  if(novoPrazoDias<0||!Number.isInteger(novoPrazoDias)){ showMsg('fmMsg','O prazo deve ser um número inteiro de dias.','warn'); return; }
+  if(!iniciarOperacaoUnica('editForma')) return;
+  try{
+    const r = await apiCall('editarFormaPagamento', {
+      id, novoNome, novoAtivo: document.getElementById('fmAtiva').checked,
+      novaTaxaPct, novaTaxaFixa, novoPrazoDias, novaOrdem, novoAcrescimoPct, novoAcrescimoFixo,
+      novoPermiteTroco: document.getElementById('fmTroco').checked,
+      novoPrecoProprio: !!(document.getElementById('fmPrecoProprio')||{}).checked
+    });
+    if(r.ok){
+      formasPagamento = r.formasPagamento || formasPagamento;
+      renderFormasPagamento(); renderFormaCuradoria(); salvarCache();
+      if(formaPrecoSelect_()) popularSelectFormaPreco();
+      fecharModalForma();
+    } else showMsg('fmMsg', r.message, 'warn');
+  } catch(e){ showMsg('fmMsg','Não foi possível salvar.','warn'); }
+  finally { finalizarOperacaoUnica('editForma'); }
+}
+function renderFormaCuradoria(){
+  const tbody = document.getElementById('formaCuradoriaTable');
+  if(!tbody) return;
+  tbody.innerHTML = formasPagamento.length ? formasPagamento.map(f=>`<tr>
+    <td>${escH(f.nome)}${f.ativa?'':' <span class="badge">inativa</span>'}</td>
+    <td><label style="display:flex;align-items:center;gap:6px;justify-content:center;"><input type="checkbox" style="width:auto;" ${f.visivelCardapio?'checked':''} onchange="toggleFormaVisivelCardapio('${f.id}', this.checked)"></label></td>
+  </tr>`).join('') : '<tr class="empty-row"><td colspan="2">Nenhuma forma cadastrada.</td></tr>';
+}
+async function toggleFormaVisivelCardapio(id, novoValor){
+  try{
+    const r = await apiCall('editarFormaPagamento', { id, novoVisivelCardapio: novoValor });
+    if(r.ok){ formasPagamento = r.formasPagamento || formasPagamento; salvarCache(); renderFormaCuradoria(); }
+  } catch(e){}
+}
+async function editarMeta(tipo){
+  const atual = tipo==='MetaMensal' ? metas.mensal : metas.diaria;
+  const novaMeta = prompt('Nova ' + (tipo==='MetaMensal'?'meta mensal':'meta diária') + ' (R$):', atual);
+  if(novaMeta === null) return;
+  const valorMeta = Number(String(novaMeta).replace(',','.'));
+  if(!(valorMeta > 0)){ alert('Informe um valor maior que zero (ex.: 15000 ou 15000,50).'); return; }
+  try{ const r = await apiCall('salvarMeta', { tipo, valor: valorMeta }); if(!r || !r.ok){ alert((r && r.message) || 'Não foi possível salvar a meta.'); return; } metas = r.metas || metas; salvarCache(); atualizarMetaUI(); } catch(e){ alert('Não foi possível salvar a meta agora.'); }
+}
+function atualizarMetaUI(){
+  document.getElementById('metaMensalTexto').textContent = formatarMoeda(metas.mensal);
+  document.getElementById('metaDiariaTexto').textContent = formatarMoeda(metas.diaria);
+  const hoje = new Date();
+  const vendasMesAtual = vendas.filter(v=>{ const d = new Date(v.timestamp); return v.status==='Confirmada' && d.getFullYear()===hoje.getFullYear() && d.getMonth()===hoje.getMonth(); });
+  const totalMes = vendasMesAtual.reduce((s,v)=>s+Number(v.valorTotal),0);
+  const pctMes = metas.mensal>0 ? Math.min(100, (totalMes/metas.mensal*100)) : 0;
+  document.getElementById('metaMensalBar').style.width = pctMes+'%';
+  document.getElementById('metaMensalTextoProgresso').textContent = formatarMoeda(totalMes) + ' / ' + formatarMoeda(metas.mensal) + ' (' + pctMes.toFixed(0) + '%)';
+
+  const hojeISO = dataLocalISO(hoje);
+  const vendasHoje = vendas.filter(v=>v.status==='Confirmada' && dataLocalISO(new Date(v.timestamp))===hojeISO);
+  const totalHoje = vendasHoje.reduce((s,v)=>s+Number(v.valorTotal),0);
+  const pctDia = metas.diaria>0 ? Math.min(100, (totalHoje/metas.diaria*100)) : 0;
+  document.getElementById('metaDiariaBar').style.width = pctDia+'%';
+  document.getElementById('metaDiariaTextoProgresso').textContent = formatarMoeda(totalHoje) + ' / ' + formatarMoeda(metas.diaria) + ' (' + pctDia.toFixed(0) + '%)';
+}
+function atualizarResumoHoje(){
+  const hoje = dataLocalISO(new Date());
+  const vendasHoje = vendas.filter(v=>dataLocalISO(new Date(v.timestamp))===hoje && v.status==='Confirmada');
+  const despesasHoje = despesas.filter(d=>dataLocalISO(new Date(d.timestamp))===hoje && despesaEfetiva(d));
+  const totalV = vendasHoje.reduce((s,v)=>s+Number(v.valorTotal),0);
+  const totalD = despesasHoje.reduce((s,d)=>s+Number(d.valor),0);
+  document.getElementById('fHojeEntradas').textContent = formatarMoeda(totalV);
+  document.getElementById('fHojeSaidas').textContent = formatarMoeda(totalD);
+  document.getElementById('fHojeSaldo').textContent = formatarMoeda(totalV-totalD);
+}
+/* D17 — caixas fechados e sangrias arquivados: leitura sob demanda, um mês por vez, com cache na sessão. */
+const _hcArqCache_ = {};
+async function hcCarregarArquivo_(){
+  const box = document.getElementById('hcArqBox'), ym = (document.getElementById('hcMesArq')||{}).value; if(!box) return;
+  if(!ym){ box.innerHTML = '<div class="notif-empty">Escolha o mês.</div>'; return; }
+  let c = _hcArqCache_[ym];
+  if(!c){
+    box.innerHTML = '<div class="notif-empty">Buscando o mês na planilha…</div>';
+    try{ const j = await sb410Edge_('planilha-admin', { acao:'arquivoCaixa', mes: ym }, 120000); if(!j || !j.ok) throw new Error('arquivo'); c = _hcArqCache_[ym] = j; }
+    catch(e){ box.innerHTML = '<div class="notif-empty">Não foi possível ler este mês arquivado agora. Os dados continuam salvos na planilha.<br><button type="button" class="ghost" onclick="hcCarregarArquivo_()">Tentar de novo</button></div>'; return; }
+  }
+  const d = x => x ? sbDataBr_(x) : '', n = x => formatarMoeda(Number(x)||0);
+  const cx = c.caixas || [], sg = c.sangrias || [], totS = sg.reduce((s,x)=>s+(Number(x.valor)||0),0);
+  box.innerHTML = (cx.length ? '<div style="overflow-x:auto;"><table style="width:100%;font-size:12.5px;"><thead><tr><th>Abertura</th><th>Fechamento</th><th>Saldo</th><th>Dif.</th></tr></thead><tbody>' +
+    cx.map(h=>'<tr><td>'+escR(d(h.abertura))+'</td><td>'+escR(d(h.fechamento))+'</td><td>'+n(h.saldo_final)+'</td><td>'+(h.diferenca===''||h.diferenca==null?'—':n(h.diferenca))+'</td></tr>').join('') + '</tbody></table></div>'
+    : '<div class="notif-empty">Nenhuma sessão arquivada neste mês.</div>') +
+    '<div class="info-line">• Sangrias arquivadas no mês: ' + sg.length + ' · total ' + n(totS) + '</div>';
+}
+function renderHistoricoCaixa(){
+  const tbody = document.getElementById('hcTable');
+  if(!historicoCaixa.length){ tbody.innerHTML = '<tr class="empty-row"><td colspan="5">Nenhuma sessão registrada ainda.</td></tr>'; return; }
+  const difCell = h => {
+    if(h.diferenca===null || h.diferenca===undefined) return '<span class="obs-line">—</span>';
+    if(Math.abs(h.diferenca)<0.005) return '<span style="color:#bfe0ae;">confere</span>';
+    return `<span style="color:${h.diferenca>0?'var(--gold)':'#ffb3ab'};">${h.diferenca>0?'+':'−'}${formatarMoeda(Math.abs(h.diferenca))}</span><span class="obs-line">${h.diferenca>0?'sobra':'falta'}</span>`;
+  };
+  tbody.innerHTML = historicoCaixa.map(h=>`<tr><td>${h.abertura}</td><td>${h.fechamento||'<span class="badge pend">Aberto</span>'}</td><td>${formatarMoeda(h.saldoFinal)}${h.valorContado!==null&&h.valorContado!==undefined?`<span class="obs-line">contado ${formatarMoeda(h.valorContado)}</span>`:''}${h.reconciliadasQtd>0?`<span class="obs-line">inclui ${h.reconciliadasQtd} venda(s) reconciliada(s) após o fechamento${h.reconciliadoDinheiro?' ('+formatarMoeda(h.reconciliadoDinheiro)+' em dinheiro)':''}</span>`:''}</td><td>${difCell(h)}</td><td>${h.usuarioFechamento||h.usuarioAbertura||''}</td></tr>`).join('');
+}
+/* ---------- FASE 8C — DRE, FLUXO PREVISTO E CONFERÊNCIA DE CAIXA ---------- */
+function arred2c(n){ return Math.round((Number(n)||0)*100)/100; }
+function pctDe(parte, total){ return total>0 ? (parte/total*100) : 0; }
+function fmtPct(n){ return n.toFixed(1).replace('.',',')+'%'; }
+function noMes(ts, ano, mes){ const d=new Date(ts); return d.getFullYear()===ano && (d.getMonth()+1)===mes; }
+/* Vendas por competência (data da venda). Despesas e perdas pelo que efetivamente saiu no mês. */
+function calcularDRE(ano, mes){
+  const ini = new Date(ano, mes, 1).getTime();
+  const fim = new Date(ano, mes + 1, 1).getTime();
+  const vendasMes = vendas.filter(v=>v.status==='Confirmada' && noMes(v.timestamp, ano, mes));
+  const ids = new Set(vendasMes.map(v=>v.id));
+  const receitaBruta = arred2c(vendasMes.reduce((s,v)=>s+(Number(v.valorOriginal)||Number(v.valorTotal)||0),0));
+  const descontos = arred2c(vendasMes.reduce((s,v)=>s+(Number(v.valorDesconto)||0),0));
+  const receitaLiquida = arred2c(vendasMes.reduce((s,v)=>s+(Number(v.valorTotal)||0),0));
+  const aReceber = arred2c(vendasMes.filter(v=>v.statusPagamento==='A Receber').reduce((s,v)=>s+(Number(v.valorTotal)||0),0));
+  const taxasPag = arred2c(pagamentosVenda.filter(p=>ids.has(p.vendaId)).reduce((s,p)=>s+(Number(p.taxa)||0),0));
+  const cmv = arred2c(vendasMes.reduce((s,v)=>s+(Number(v.custoTotal)||0),0));
+  const custoPorNome = {}; estoque.forEach(e=>{ custoPorNome[e.nome] = Number(e.custo)||0; });
+  const perdas = arred2c(movimentacoesEstoque.filter(m=>m.tipo==='Perda' && noMes(m.data, ano, mes)).reduce((s,m)=>s+Math.abs(Number(m.quantidade)||0)*(custoPorNome[m.ingredienteNome]||0),0));
+  /* ITEM 2.6: despesas geradas por Ajuste pós-venda ficam FORA daqui — a fonte única é a lista de ajustes (evita contar duas vezes). */
+  const despMes = despesas.filter(d=>despesaEfetiva(d) && d.categoria!=='Ajuste pós-venda' && noMes(d.timestamp, ano, mes));
+  const ajMes = (ajustesPosVenda||[]).filter(a=>a.status==='Ativo' && noMes(a.timestamp, ano, mes));
+  const ajustesTotal = arred2c(ajMes.filter(a=>a.tipo!=='Crédito para próxima compra').reduce((s,a)=>s+Number(a.valor),0));
+  const creditosConcedidos = arred2c(ajMes.filter(a=>a.tipo==='Crédito para próxima compra').reduce((s,a)=>s+Number(a.valor),0));
+  const despPorCat = {}; despMes.forEach(d=>{ const c=d.categoria||'Outros'; despPorCat[c]=(despPorCat[c]||0)+Number(d.valor); });
+  const despesasTotal = arred2c(despMes.reduce((s,d)=>s+Number(d.valor),0));
+  const lucroBruto = arred2c(receitaLiquida - taxasPag - cmv);
+  /* Fase 4: imposto ESTIMADO sobre a venda — só existe com a Nota fiscal ligada; desligada, impostos = 0 e nada muda */
+  const impostos = (window.INTEG_ && INTEG_.nfce && INTEG_.impostoPct > 0) ? arred2c(receitaLiquida * INTEG_.impostoPct / 100) : 0;
+  const resultado = arred2c(lucroBruto - perdas - despesasTotal - ajustesTotal - impostos);
+  const evs = (eventos||[]).filter(e=>{ const t=new Date(e.data).getTime(); return !isNaN(t) && t>=ini && t<fim && e.status!=='Orçamento' && e.status!=='Cancelado'; });
+  const receitaEventos = somaR(evs,e=>e.valorContratado), custosEventos = somaR(evs,e=>e.custoTotal);
+  const aReceberEventos = somaR(evs,e=>e.valorAReceber);
+  const lucroBrutoComEventos = arred2c(lucroBruto + receitaEventos - custosEventos);
+  const resultadoComEventos = arred2c(lucroBrutoComEventos - perdas - despesasTotal - ajustesTotal - impostos);
+  return { vendasMes, impostos, ajustesTotal, creditosConcedidos, receitaBruta, descontos, receitaLiquida, aReceber:aReceber+aReceberEventos, taxasPag, cmv, perdas, despPorCat, despesasTotal, lucroBruto:lucroBrutoComEventos, resultado:resultadoComEventos, receitaEventos, custosEventos,
+    margemBruta: pctDe(lucroBrutoComEventos, receitaLiquida+receitaEventos), margemLiquida: pctDe(resultadoComEventos, receitaLiquida+receitaEventos), taxasPct: pctDe(taxasPag, receitaLiquida+receitaEventos),
+    ticket: vendasMes.length ? receitaLiquida/vendasMes.length : 0 };
+}
+function renderDRE(dre, deltaTxt){
+  const L = (rotulo, valor, o={})=>`<tr${o.forte?' style="font-weight:700;"':''}><td style="${o.recuo?'padding-left:16px;color:var(--muted);':''}">${rotulo}</td><td style="text-align:right;${o.cor?'color:'+o.cor+';':''}">${o.neg?'− ':''}${formatarMoeda(valor)}</td><td style="text-align:right;color:var(--muted);font-size:11px;">${o.pct!==undefined?fmtPct(o.pct):''}</td></tr>`;
+  const cats = Object.entries(dre.despPorCat).sort((a,b)=>b[1]-a[1]).map(([c,v])=>L(c, v, {recuo:true, neg:true, pct:pctDe(v, dre.receitaLiquida)})).join('');
+  const corRes = dre.resultado>=0 ? '#bfe0ae' : '#ffb3ab';
+  document.getElementById('rDRE').innerHTML = `<table><tbody>
+    ${L('Vendas (antes do desconto)', dre.receitaBruta)}
+    ${L('Descontos', dre.descontos, {recuo:true, neg:true})}
+    ${L('Receita líquida', dre.receitaLiquida, {forte:true, pct:100})}
+    ${L('Faturamento de eventos', dre.receitaEventos||0, {forte:true})}
+    ${L('Custos de eventos', dre.custosEventos||0, {neg:true})}
+    ${L('Taxas de pagamento', dre.taxasPag, {neg:true, pct:dre.taxasPct})}
+    ${L('Custo dos produtos vendidos', dre.cmv, {neg:true, pct:pctDe(dre.cmv, dre.receitaLiquida)})}
+    ${L('Lucro bruto', dre.lucroBruto, {forte:true, pct:dre.margemBruta})}
+    ${dre.impostos>0 ? L('Impostos sobre vendas (estimado)', dre.impostos, {neg:true, pct:pctDe(dre.impostos, dre.receitaLiquida)}) : ''}
+    ${L('Perdas de estoque', dre.perdas, {neg:true, pct:pctDe(dre.perdas, dre.receitaLiquida)})}
+    ${L('Despesas pagas', dre.despesasTotal, {neg:true, pct:pctDe(dre.despesasTotal, dre.receitaLiquida)})}
+    ${cats}
+    ${L('Ajustes pós-venda', dre.ajustesTotal||0, {neg:true, pct:pctDe(dre.ajustesTotal||0, dre.receitaLiquida)})}
+    ${L('Resultado do mês', dre.resultado, {forte:true, cor:corRes, pct:dre.margemLiquida})}
+  </tbody></table>
+  <div class="stat-row" style="margin-top:12px;">
+    <div class="stat-box"><b style="color:var(--gold);">${fmtPct(dre.margemLiquida)}</b><span>MARGEM LÍQUIDA</span></div>
+    <div class="stat-box"><b style="color:var(--gold);">${formatarMoeda(dre.ticket)}</b><span>TICKET MÉDIO</span></div>
+    <div class="stat-box"><b style="color:var(--gold);">${fmtPct(dre.taxasPct)}</b><span>TAXAS / RECEITA</span></div>
+  </div>
+  ${deltaTxt?`<div class="info-line">${deltaTxt}</div>`:''}
+  ${dre.creditosConcedidos>0?`<div class="info-line">• Créditos concedidos no mês (ainda a usar, não descontados do resultado): ${formatarMoeda(dre.creditosConcedidos)}.</div>`:''}
+  ${dre.aReceber>0?`<div class="info-line">• Desta receita, ${formatarMoeda(dre.aReceber)} ainda está a receber (não pago).</div>`:''}
+  <div class="info-line">• Vendas contam pela data da venda; despesas e perdas, pelo mês em que saíram. Taxa de entrega é repasse ao entregador e fica fora. Perdas usam o custo atual do ingrediente. Vendas antigas, de antes das taxas, aparecem sem taxa.</div>`;
+}
+/* Fluxo dos próximos 30 dias: recebimentos de cartão/app com prazo (líquidos de taxa) × contas a pagar. */
+function renderFluxoPrevisto(){
+  const tb = document.getElementById('fluxoTable'); if(!tb) return;
+  const agoraMs = Date.now(), DIA = 86400000;
+  const faixas = [{n:'Vencidas / hoje',ent:0,sai:0},{n:'1 a 7 dias',ent:0,sai:0},{n:'8 a 14 dias',ent:0,sai:0},{n:'15 a 30 dias',ent:0,sai:0}];
+  const idxFaixa = dias => dias<=0 ? 0 : dias<=7 ? 1 : dias<=14 ? 2 : dias<=30 ? 3 : -1;
+  const prazoPorForma = {}; formasPagamento.forEach(f=>{ prazoPorForma[f.nome] = Number(f.prazoDias)||0; });
+  const vendasPagas = new Map(vendas.filter(v=>v.status==='Confirmada' && v.statusPagamento!=='A Receber').map(v=>[v.id, v]));
+  pagamentosVenda.forEach(p=>{
+    const v = vendasPagas.get(p.vendaId); if(!v) return;
+    const prazo = prazoPorForma[p.forma]||0; if(prazo<=0) return;
+    const quando = (v.timestampRecebimento||v.timestamp) + prazo*DIA;
+    if(quando <= agoraMs) return;
+    const i = idxFaixa(Math.ceil((quando-agoraMs)/DIA)); if(i<0) return;
+    faixas[i].ent += Math.max(0, Number(p.valor) - (Number(p.taxa)||0));
+  });
+  const hojeISO = dataLocalISO(new Date());
+  despesas.filter(d=>d.status==='Confirmada' && d.situacao==='A pagar' && d.vencimento).forEach(d=>{
+    const dias = Math.round((new Date(d.vencimento+'T12:00:00') - new Date(hojeISO+'T12:00:00'))/DIA);
+    const i = idxFaixa(dias); if(i<0) return;
+    faixas[i].sai += Number(d.valor);
+  });
+  let acum = 0, totE = 0, totS = 0;
+  tb.innerHTML = faixas.map(f=>{
+    const saldo = f.ent - f.sai; acum += saldo; totE += f.ent; totS += f.sai;
+    return `<tr><td>${f.n}</td><td style="text-align:right;">${formatarMoeda(f.ent)}</td><td style="text-align:right;">${formatarMoeda(f.sai)}</td><td style="text-align:right;color:${acum>=0?'#bfe0ae':'#ffb3ab'};">${formatarMoeda(acum)}</td></tr>`;
+  }).join('') + `<tr style="font-weight:700;"><td>Total 30 dias</td><td style="text-align:right;">${formatarMoeda(totE)}</td><td style="text-align:right;">${formatarMoeda(totS)}</td><td style="text-align:right;">${formatarMoeda(totE-totS)}</td></tr>`;
+  const fiado = arred2c(vendas.filter(v=>v.status==='Confirmada' && v.statusPagamento==='A Receber').reduce((s,v)=>s+(Number(v.valorTotal)||0),0));
+  document.getElementById('fluxoFiado').textContent = fiado>0 ? `• Vendas a receber sem data (fiado/conta): ${formatarMoeda(fiado)} — não entram na projeção.` : '';
+}
+/* Saldo de dinheiro físico esperado na gaveta agora (mesma conta do backend). */
+function saldoEsperadoGaveta(){
+  if(!sessaoCaixa) return 0;
+  const abertura = sessaoCaixa.aberturaTimestamp;
+  // Alinhado ao servidor (api_fechar_caixa): dinheiro conta na sessão em que ENTROU (recebido_em), não na em que a venda foi criada.
+  const idsVendas = new Set(vendas.filter(v=>{
+    if(v.status !== 'Confirmada' || v.statusPagamento === 'A Receber') return false;
+    const quando = v.timestampRecebimento || v.timestamp;
+    return quando >= abertura;
+  }).map(v=>v.id));
+  const { totalDinheiro } = totaisPorFormaNaSessao(idsVendas);
+  const desp = despesas.filter(d=>despesaEfetiva(d) && d.saiuDoCaixa!==false && d.timestamp>=abertura).reduce((s,d)=>s+Number(d.valor),0);
+  const sang = sangrias.filter(s=>s.timestamp>=abertura).reduce((s,sg)=>s+Number(sg.valor),0);
+  return arred2c(sessaoCaixa.fundoCaixa + totalDinheiro - desp - sang);
+}
+
+function gerarRelatorio(){
+  const mesInput = document.getElementById('rMes').value;
+  if(!mesInput) return;
+  const [ano, mes] = mesInput.split('-').map(Number);
+  const dre = calcularDRE(ano, mes);
+  const vendasMes = dre.vendasMes;
+  let anoAnt = ano, mesAnt = mes-1; if(mesAnt===0){ mesAnt=12; anoAnt=ano-1; }
+  const totalAnterior = calcularDRE(anoAnt, mesAnt).receitaLiquida;
+  let deltaTxt = '';
+  if(totalAnterior>0){
+    const pct = ((dre.receitaLiquida-totalAnterior)/totalAnterior*100);
+    deltaTxt = (pct>=0?'▲ ':'▼ ') + Math.abs(pct).toFixed(0) + '% de receita vs mês anterior';
+  }
+  renderDRE(dre, deltaTxt);
+  document.getElementById('rContagem').textContent = vendasMes.length+' venda(s) confirmada(s) no período.';
+
+  const idsVendasMes = new Set(vendasMes.map(v=>v.id));
+  const pagamentosMes = pagamentosVenda.filter(p=>idsVendasMes.has(p.vendaId));
+  const porPagamento = {};
+  const taxaPorForma = {};
+  pagamentosMes.forEach(p=>{ porPagamento[p.forma] = (porPagamento[p.forma]||0) + Number(p.valor); taxaPorForma[p.forma] = (taxaPorForma[p.forma]||0) + (Number(p.taxa)||0); });
+  document.getElementById('rPagamentos').innerHTML = Object.keys(porPagamento).length ? Object.entries(porPagamento).map(([forma,val])=>`<div class="info-line">${forma}: <b>${formatarMoeda(val)}</b>${taxaPorForma[forma]>0?` <span style="color:var(--muted);">(taxa ${formatarMoeda(taxaPorForma[forma])})</span>`:''}</div>`).join('') : '<div class="notif-empty">Sem vendas no período.</div>';
+
+  const itensDoMes = itensVenda.filter(it=>idsVendasMes.has(it.vendaId));
+  const ranking = {};
+  itensDoMes.forEach(it=>{ ranking[it.descricao] = (ranking[it.descricao]||0) + Number(it.quantidade); });
+  const rankingOrdenado = Object.entries(ranking).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  document.getElementById('rRanking').innerHTML = rankingOrdenado.length ? rankingOrdenado.map(([nome,qtd],idx)=>`<tr><td>${idx+1}º ${escH(nome)}</td><td style="text-align:right;">${qtd}x</td></tr>`).join('') : '<tr class="empty-row"><td>Sem vendas no período.</td></tr>';
+
+  renderizarGrafico(vendasMes, ano, mes);
+}
+function renderizarGrafico(vendasMes, ano, mes){
+  const diasNoMes = new Date(ano, mes, 0).getDate();
+  if(!Number.isFinite(diasNoMes) || diasNoMes < 28 || diasNoMes > 31){
+    document.getElementById('rGrafico').innerHTML = '<div class="notif-empty">Período inválido para o gráfico.</div>';
+    return;
+  }
+  const totalPorDia = new Array(diasNoMes+1).fill(0);
+  vendasMes.forEach(v=>{ const d = new Date(v.timestamp).getDate(); totalPorDia[d] += Number(v.valorTotal); });
+  const max = Math.max(...totalPorDia, 1);
+  const largura = 300, altura = 90, barW = largura/diasNoMes;
+  let svg = `<svg viewBox="0 0 ${largura} ${altura+16}" style="width:100%;height:auto;">`;
+  for(let d=1; d<=diasNoMes; d++){
+    const h = (totalPorDia[d]/max) * altura;
+    svg += `<rect x="${(d-1)*barW+1}" y="${altura-h}" width="${barW-1.5}" height="${h}" fill="#e0b53a" rx="1"></rect>`;
+    if(d % 5 === 0 || d === 1 || d === diasNoMes) svg += `<text x="${(d-1)*barW+barW/2}" y="${altura+12}" font-size="7" fill="#bfae8f" text-anchor="middle">${d}</text>`;
+  }
+  svg += `</svg>`;
+  document.getElementById('rGrafico').innerHTML = svg;
+}
+
+/* ============================================================
+   NOTIFICAÇÕES
+   ============================================================ */
+function renderNotificacoes(){
+  const fidBox = document.getElementById('notifFidelidade');
+  const quase = fidelidadeClientes.filter(f=>f.carimbos===9);
+  fidBox.innerHTML = quase.length ? quase.map(f=>`<div class="notif-card"><b>${escH(f.nome)}</b> — ${escH(f.telefone)} — está com 9/10 marcas. No próximo pedido ganha o prêmio!</div>`).join('') : '<div class="notif-empty">Nenhum cliente perto de completar.</div>';
+
+  const indBox = document.getElementById('notifIndicacoes');
+  const pendentes = indicacoes.filter(i=>!i.resgatado);
+  indBox.innerHTML = pendentes.length ? pendentes.map(i=>`<div class="notif-card"><b>${escH(i.nomeIndicador)}</b> — ${i.telIndicador} — indicou ${escH(i.nomeIndicado)} e ainda não recebeu o prêmio.<br><button class="ghost" style="margin-top:6px;" onclick="abrirPerfilClientePorTelefone('${i.telIndicador}')">abrir cadastro do cliente</button></div>`).join('') : '<div class="notif-empty">Nenhuma indicação pendente.</div>';
+
+  const estBox = document.getElementById('notifEstoque');
+  const baixos = estoque.filter(e=>e.ativo!==false && Number(e.minimo)>0 && e.quantidade<=e.minimo);
+  estBox.innerHTML = baixos.length ? baixos.map(e=>`<div class="notif-card"><b>${escH(e.nome)}</b> — restam ${e.quantidade} ${e.unidade||'un'} (mínimo ${e.minimo} ${e.unidade||'un'})</div>`).join('') : '<div class="notif-empty">Estoque em dia.</div>';
+
+  /* MELHORIA 4.4 — estes dois cartões percorrem todos os clientes e NÃO entram na contagem do alerta: só são montados com a aba aberta. */
+  const _notifAtiva = ((document.querySelector('section.tab.active')||{}).id === 'tab-notificacoes') || window.__avisosAberto_ === true;
+  const agora = Date.now();
+  if(_notifAtiva){
+  const aniBox = document.getElementById('notifAniversario');
+  const mesAtual = new Date().getMonth()+1;
+  const aniversariantes = clientes.filter(c=>{ if(!c.dataNascimento) return false; const partes = String(c.dataNascimento).split('-'); if(partes.length<2) return false; return Number(partes[1]) === mesAtual; });
+  aniBox.innerHTML = aniversariantes.length ? aniversariantes.map(c=>`<div class="notif-card"><b>${escH(c.nome)}</b> — ${escH(c.telefone)} — aniversário em ${c.dataNascimento.split('-').reverse().join('/')}</div>`).join('') : '<div class="notif-empty">Nenhum aniversariante este mês.</div>';
+
+  const inatBox = document.getElementById('notifInativos');
+  const inativos = clientes.filter(c=>{ const u = ultimaAtividadeCliente(c); return !u || (agora-u)/86400000 > 30; });
+  inatBox.innerHTML = inativos.length ? inativos.slice(0,10).map(c=>`<div class="notif-card"><b>${escH(c.nome)}</b> — ${escH(c.telefone)}</div>`).join('') + (inativos.length>10?`<div class="notif-empty">+ ${inativos.length-10} outro(s).</div>`:'') : '<div class="notif-empty">Nenhum cliente inativo.</div>';
+  }
+
+  const alertasEntrega = alertasDeEntregas();
+  const entBox = document.getElementById('notifEntregas');
+  if(entBox) entBox.innerHTML = alertasEntrega.length ? alertasEntrega.map(a=>`<div class="notif-card">${a}</div>`).join('') : '<div class="notif-empty">Entregas em dia.</div>';
+  const ocBox = document.getElementById('notifOcorrencias');
+  const ocAbertas = ocorrenciasAbertas_();
+  if(ocBox) ocBox.innerHTML = ocAbertas.length ? ocAbertas.slice().sort((a,b)=>b.numero-a.numero).map(o=>`<div class="notif-card"><b>#${o.numero}</b> — ${escOc_(o.tipo)} · ${escOc_(o.status)}<div class="obs-line">${escOc_(o.descricao)}</div>${podeTratarOcorrencia_()?`<button class="ghost" style="margin-top:6px;" onclick="abrirGerirOcorrencia('${o.id}')">Tratar</button>`:''}</div>`).join('') : '<div class="notif-empty">Nenhuma ocorrência aberta.</div>';
+  /* ITENS 64/65: novos avisos (pedidos, financeiro, sistema) + filtro por evento/perfil configurado pelo Admin */
+  const pedBox = document.getElementById('notifPedidos');
+  const pedidosNovos = vendas.filter(v=>v.status==='Confirmada' && v.statusPedido==='Recebido');
+  if(pedBox) pedBox.innerHTML = pedidosNovos.length ? pedidosNovos.map(v=>`<div class="notif-card"><b>#${rotuloPedido(v)}</b> — ${escOc_(v.cliente||'Sem nome')} · ${escOc_(v.tipoEntrega||'')}</div>`).join('') : '<div class="notif-empty">Nenhum pedido esperando.</div>';
+  const finBox = document.getElementById('notifFinanceiro');
+  const hojeISO = dataLocalISO(new Date());
+  const vencidas = despesas.filter(d=>d.status!=='Cancelada' && d.situacao==='A pagar' && d.vencimento && d.vencimento<hojeISO);
+  if(finBox) finBox.innerHTML = vencidas.length ? vencidas.slice(0,10).map(d=>`<div class="notif-card"><b>${escOc_(d.descricao)}</b> — R$ ${Number(d.valor).toFixed(2).replace('.',',')} · venceu em ${String(d.vencimento).split('-').reverse().join('/')}</div>`).join('') + (vencidas.length>10?`<div class="notif-empty">+ ${vencidas.length-10} outra(s).</div>`:'') : '<div class="notif-empty">Nenhuma despesa vencida.</div>';
+  const sisBox = document.getElementById('notifSistema');
+  const sisItens = [];
+  const errosFila = (typeof _fila!=='undefined' ? _fila : []).filter(i=>i.estado==='erro').length;
+  if(errosFila) sisItens.push(`<b>${errosFila}</b> item(ns) da fila de envio com erro. Toque em "na fila" no topo para tentar de novo.`);
+  if(sistemaAlertas_.backup) sisItens.push(escOc_(sistemaAlertas_.backup));
+  if(sistemaAlertas_.drive) sisItens.push(escOc_(sistemaAlertas_.drive));
+  if(sistemaAlertas_.driveCont) sisItens.push(escOc_(sistemaAlertas_.driveCont));
+  if(sistemaAlertas_.copiaBackup) sisItens.push(escOc_(sistemaAlertas_.copiaBackup));
+  if(sisBox) sisBox.innerHTML = sisItens.length ? sisItens.map(t=>`<div class="notif-card">${t}</div>`).join('') : '<div class="notif-empty">Sistema em ordem.</div>';
+  const contagem = { pedido:pedidosNovos.length, entrega:alertasEntrega.length, estoque:baixos.length, financeiro:vencidas.length, ocorrencia:ocAbertas.length, sistema:sisItens.length, fidelidade:quase.length, indicacao:pendentes.length, aniversario:0, inativos:0 };
+  let totalAlertas = 0;
+  Object.keys(NOTIF_CARDS_).forEach(ev=>{
+    const box = document.getElementById(NOTIF_CARDS_[ev]); if(!box || !box.parentElement) return;
+    const visivel = notifAtivoParaMim_(ev);
+    box.parentElement.style.display = visivel ? '' : 'none';
+    if(visivel) totalAlertas += contagem[ev] || 0;
+  });
+  document.getElementById('notifDot').parentElement.classList.toggle('has-alert', totalAlertas>0);
+  try{ if(window.balaoAvisosRender_) window.balaoAvisosRender_(totalAlertas); }catch(e){}
+}
+/* ---------- NOTIFICAÇÕES ADMINISTRATIVAS: catálogo, filtro por perfil e tela de configuração (ITENS 64/65) ---------- */
+const NOTIF_CARDS_ = { pedido:'notifPedidos', entrega:'notifEntregas', estoque:'notifEstoque', financeiro:'notifFinanceiro', ocorrencia:'notifOcorrencias', sistema:'notifSistema', fidelidade:'notifFidelidade', indicacao:'notifIndicacoes', aniversario:'notifAniversario', inativos:'notifInativos' };
+const NOTIF_EVENTOS_UI_ = [
+  { id:'pedido', grupo:'Pedidos', rotulo:'Pedidos novos aguardando aceite', padrao:['Admin','Operador'] },
+  { id:'entrega', grupo:'Entregas', rotulo:'Entregas sem entregador, paradas ou fechamento pendente', padrao:['Admin','Operador'] },
+  { id:'estoque', grupo:'Estoque', rotulo:'Estoque baixo', padrao:['Admin','Operador','Cozinha'] },
+  { id:'financeiro', grupo:'Financeiro', rotulo:'Despesas vencidas a pagar', padrao:['Admin'] },
+  { id:'ocorrencia', grupo:'Ocorrências', rotulo:'Ocorrências abertas', padrao:['Admin','Operador'] },
+  { id:'sistema', grupo:'Sistema', rotulo:'Falha de backup, Drive crítico e fila de envio com erro', padrao:['Admin'] },
+  { id:'fidelidade', grupo:'Clientes', rotulo:'Cliente prestes a completar o cartão fidelidade', padrao:['Admin','Operador'] },
+  { id:'indicacao', grupo:'Clientes', rotulo:'Indicações pendentes de resgate', padrao:['Admin','Operador'] },
+  { id:'aniversario', grupo:'Clientes', rotulo:'Aniversariantes do mês', padrao:['Admin','Operador'] },
+  { id:'inativos', grupo:'Clientes', rotulo:'Clientes inativos (30+ dias)', padrao:['Admin','Operador'] }
+];
+const NOTIF_PERFIS_UI_ = ['Admin','Operador','Cozinha'];
+function notifConfigDe_(ev){
+  const c = configNotificacoes && configNotificacoes[ev.id];
+  return c ? { ativo:c.ativo!==false, perfis:(c.perfis||[]) } : { ativo:true, perfis:ev.padrao };
+}
+function notifAtivoParaMim_(evId){
+  let nivel = currentUser && currentUser.nivel; if(!nivel) return false;
+  if(nivel === 'Desenvolvedor') nivel = 'Admin';
+  const ev = NOTIF_EVENTOS_UI_.find(e=>e.id===evId); if(!ev) return false;
+  const c = notifConfigDe_(ev);
+  return c.ativo && c.perfis.indexOf(nivel) !== -1;
+}
+function renderConfigNotificacoes(){
+  const box = document.getElementById('notifCfgLista'); if(!box) return;
+  let grupo = '', linhas = '';
+  NOTIF_EVENTOS_UI_.forEach(ev=>{
+    const c = notifConfigDe_(ev);
+    if(ev.grupo !== grupo){ grupo = ev.grupo; linhas += `<tr><td colspan="5" style="padding-top:10px;font-weight:700;color:var(--gold);">${grupo}</td></tr>`; }
+    linhas += `<tr><td style="white-space:normal;min-width:170px;">${ev.rotulo}</td>
+      <td align="center"><input type="checkbox" data-nev="${ev.id}" data-ncampo="ativo" ${c.ativo?'checked':''}></td>` +
+      NOTIF_PERFIS_UI_.map(p=>`<td align="center"><input type="checkbox" data-nev="${ev.id}" data-ncampo="${p}" ${c.perfis.indexOf(p)!==-1?'checked':''}></td>`).join('') + '</tr>';
+  });
+  box.innerHTML = `<table><thead><tr><th align="left">Aviso</th><th>Ligado</th>${NOTIF_PERFIS_UI_.map(p=>`<th>${p}</th>`).join('')}</tr></thead><tbody>${linhas}</tbody></table>`;
+}
+async function salvarConfigNotificacoesUI(){
+  const eventos = {};
+  NOTIF_EVENTOS_UI_.forEach(ev=>{
+    const q = campo => document.querySelector(`[data-nev="${ev.id}"][data-ncampo="${campo}"]`);
+    eventos[ev.id] = { ativo: !!(q('ativo')&&q('ativo').checked), perfis: NOTIF_PERFIS_UI_.filter(p=>q(p)&&q(p).checked) };
+  });
+  try{
+    const r = await apiCall('salvarConfigNotificacoes', { eventos });
+    if(r.ok){ configNotificacoes = r.config || configNotificacoes; salvarCache(); renderConfigNotificacoes(); renderNotificacoes(); showMsg('notifCfgMsg', r.message, 'ok'); }
+    else showMsg('notifCfgMsg', r.message || 'Não foi possível salvar.', 'warn');
+  } catch(e){ showMsg('notifCfgMsg', 'Sem conexão com o servidor. Tente novamente.', 'warn'); }
+}
+function abrirPerfilClientePorTelefone(tel){
+  const c = clientes.find(x=>normTel(x.telefone)===normTel(tel));
+  if(!c){ alert('Cliente não encontrado no cadastro.'); return; }
+  abrirPerfilCliente(c.id);
+}
+
+/* ============================================================
+   USUÁRIOS (ADMIN)
+   ============================================================ */
+async function criarUsuarioApp(){
+  const novoLogin = document.getElementById('uNovoLogin').value.trim();
+  const novaSenha = document.getElementById('uNovaSenha').value;
+  const nivel = document.getElementById('uNovoNivel').value;
+  const senhaAdminConfirmacao = document.getElementById('uSenhaAdminNovo').value;
+  if(!novoLogin || !novaSenha){ showMsg('uMsg','Preencha login e senha.','warn'); return; }
+  if(nivel==='Entregador' && !telefoneWhatsApp_(document.getElementById('uNovoTelefone').value)){
+    showMsg('uMsg','Para entregador, informe o telefone com DDD. É para esse número que as entregas são enviadas pelo WhatsApp.','warn'); return;
+  }
+  try{
+    const nome = document.getElementById('uNovoNome').value.trim(), telefone = document.getElementById('uNovoTelefone').value.trim();
+    const r = await apiCall('criarUsuario', { novoLogin, novaSenha, nivel, senhaAdminConfirmacao, nome, telefone });
+    usuarios = r.usuarios || usuarios; salvarCache();
+    if(r.ok){ fecharFormModal('usuarioNovoModal'); showMsg('uMsgLista', r.message, 'ok'); ['uNovoLogin','uNovoNome','uNovoTelefone','uNovaSenha','uSenhaAdminNovo'].forEach(id=>document.getElementById(id).value=''); renderUsuarios(); }
+    else showMsg('uMsg', r.message, 'warn');
+  } catch(e){ showMsg('uMsg','Não foi possível criar.','warn'); }
+}
+/* formulário de edição de usuário (substitui os três prompt() soltos). Sobre si mesmo, o Admin não muda o próprio perfil,
+   não se desativa e troca a senha pelo botão "🔑 Senha" (trocar a senha por aqui derrubaria a própria sessão). */
+let uEditLogin = '', uEditOriginal = null, uEditOcupado = false;
+const PERFIS_USUARIO_ = [['Admin','Admin'],['Operador','Operador de caixa'],['Garçom','Garçom'],['Cozinha','Cozinha'],['Entregador','Entregador']];
+function ehMeuLogin_(login){ return !!(currentUser && String(currentUser.login).toLowerCase()===String(login).toLowerCase()); }
+function editarUsuarioPrompt(login){
+  const u = usuarios.find(x=>x.login===login); if(!u) return;
+  if(u.nivel === 'Desenvolvedor' && !(currentUser && currentUser.nivelReal === 'Desenvolvedor')){
+    alert('Este acesso é protegido: só o próprio Desenvolvedor pode editá-lo. Nada foi alterado.');
+    return;
+  }
+  uEditLogin = u.login; uEditOriginal = { nome:u.nome||'', telefone:u.telefone||'', nivel:u.nivel, ativo:!!u.ativo };
+  const eu = ehMeuLogin_(u.login);
+  document.getElementById('ueTitulo').textContent = 'Editar usuário — '+u.login;
+  document.getElementById('ueNome').value = uEditOriginal.nome;
+  document.getElementById('ueTelefone').value = uEditOriginal.telefone;
+  const selN = document.getElementById('ueNivel');
+  selN.innerHTML = PERFIS_USUARIO_.concat(u.nivel === 'Desenvolvedor' ? [['Desenvolvedor','Desenvolvedor (acesso total)']] : []).map(p=>`<option value="${p[0]}">${p[1]}</option>`).join('');
+  selN.value = u.nivel; selN.disabled = eu;
+  const selA = document.getElementById('ueAtivo');
+  selA.value = u.ativo ? 'Sim' : 'Não'; selA.disabled = eu;
+  document.getElementById('ueSenha').value = '';
+  document.getElementById('ueSenhaBox').style.display = eu ? 'none' : '';
+  document.getElementById('ueAviso').style.display = eu ? '' : 'none';
+  const msg = document.getElementById('ueMsg'); msg.textContent = ''; msg.className = 'msg';
+  document.getElementById('ueBtn').disabled = false; uEditOcupado = false;
+  document.getElementById('ueModal').classList.add('open');
+}
+function fecharModalEditarUsuario(){ document.getElementById('ueSenha').value = ''; document.getElementById('ueModal').classList.remove('open'); }
+async function confirmarEditarUsuario(){
+  if(uEditOcupado || !uEditOriginal) return;
+  const msg = document.getElementById('ueMsg'), btn = document.getElementById('ueBtn');
+  const erro = (t)=>{ msg.textContent = t; msg.className = 'msg warn'; };
+  const nome = document.getElementById('ueNome').value.trim(), telefone = document.getElementById('ueTelefone').value.trim();
+  const nivel = document.getElementById('ueNivel').value, ativo = document.getElementById('ueAtivo').value==='Sim';
+  const senha = document.getElementById('ueSenha').value;
+  if(senha && senha.length<8){ erro('A nova senha precisa ter ao menos 8 caracteres.'); return; }
+  if(nivel==='Entregador' && !telefoneWhatsApp_(telefone)){ erro('Para entregador, informe o telefone com DDD (as entregas são enviadas pelo WhatsApp).'); return; }
+  const payload = { loginAlvo: uEditLogin };
+  if(nome !== uEditOriginal.nome) payload.nome = nome;
+  if(telefone !== uEditOriginal.telefone) payload.telefone = telefone;
+  if(nivel !== uEditOriginal.nivel) payload.novoNivel = nivel;
+  if(ativo !== uEditOriginal.ativo) payload.novoAtivo = ativo;
+  if(senha) payload.novaSenha = senha;
+  if(Object.keys(payload).length===1){ erro('Nada foi alterado.'); return; }
+  if(payload.novoNivel==='Admin' && !confirm('Dar acesso de ADMINISTRADOR a "'+uEditLogin+'"? Essa pessoa poderá ver e alterar tudo, inclusive o financeiro.')) return;
+  const sensivel = ('novaSenha' in payload) || ('novoNivel' in payload) || ('novoAtivo' in payload);
+  if(sensivel){
+    abrirModalSenhaAdmin(function(senhaAdm){ payload.senhaAdminConfirmacao = senhaAdm; enviarEdicaoUsuario_(payload, msg, btn, erro); });
+    return;
+  }
+  enviarEdicaoUsuario_(payload, msg, btn, erro);
+}
+async function enviarEdicaoUsuario_(payload, msg, btn, erro){
+  uEditOcupado = true; btn.disabled = true; msg.textContent = 'Salvando...'; msg.className = 'msg';
+  try{
+    const r = await apiCall('editarUsuario', payload);
+    if(r && r.usuarios){ usuarios = r.usuarios; salvarCache(); }
+    if(r && r.ok){ renderUsuarios(); fecharModalEditarUsuario(); showMsg('uMsg', r.message || 'Usuário atualizado.', 'ok'); }
+    else { erro((r && r.message) || 'Não foi possível salvar.'); uEditOcupado = false; btn.disabled = false; }
+  } catch(e){ erro('Sem conexão com o servidor. Tente de novo.'); uEditOcupado = false; btn.disabled = false; }
+}
+function toggleAtivoUsuario(login, ativoAtual){
+  abrirModalSenhaAdmin(function(senha){
+    apiCall('editarUsuario', { loginAlvo: login, novoAtivo: !ativoAtual, senhaAdminConfirmacao: senha }).then(r=>{
+      usuarios = r.usuarios || usuarios; salvarCache();
+      if(r.ok) renderUsuarios(); else alert(r.message);
+    }).catch(()=>alert('Não foi possível atualizar.'));
+  });
+}
+function excluirUsuarioPrompt(login){
+  const alvo = usuarios.find(x=>x.login===login);
+  if(alvo && alvo.nivel === 'Desenvolvedor'){
+    alert('O acesso de Desenvolvedor não pode ser excluído por aqui. Nada foi alterado.');
+    return;
+  }
+  if(!confirm('Excluir o usuário "'+login+'"?')) return;
+  abrirModalSenhaAdmin(function(senha){
+    apiCall('excluirUsuario', { loginAlvo: login, senhaAdminConfirmacao: senha }).then(r=>{
+      usuarios = r.usuarios || usuarios; salvarCache();
+      if(r.ok) renderUsuarios(); else alert(r.message);
+    }).catch(()=>alert('Não foi possível excluir.'));
+  });
+}
