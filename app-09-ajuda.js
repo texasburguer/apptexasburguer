@@ -122,8 +122,14 @@ Admin:{ nome:'Administrador', secoes:[
   { t:'Menu de baixo (celular)', itens:[
     'No celular, o menu fica fixo na parte de baixo da tela: Início, Caixa, Pedidos e as outras telas do seu perfil. A aba aberta fica em dourado.',
     'Quando há mais telas do que cabem, aparece "Mais" com as demais. Uma bolinha vermelha avisa que há algo novo naquela aba.',
-    'No computador o menu continua no topo.' ],
+    'No computador as abas ficam no topo (veja "No computador").' ],
     comuns:['O botão do Assistente é o rosto do Tex no canto de baixo; ele fica acima do menu, e a página tem um espaço no fim para nada ficar escondido atrás dele.'] },
+
+  { t:'No computador', itens:[
+    'Notebook ou monitor (tela a partir de 900 px de largura): o topo fica numa linha só, com o logo à esquerda e o usuário e os botões à direita. As abas ficam sempre à vista no alto, mesmo rolando a página.',
+    'Administrador: as telas aparecem num menu ao lado, com todos os grupos abertos (Painel, Financeiro, Catálogo, Campanhas, Operação e Sistema). Um clique abre a tela. Se o menu não couber na tela, role dentro dele.',
+    'Pedidos: os pedidos ficam lado a lado (2 ou 3 por linha). Caixa: a escolha fica à esquerda; carrinho, total e pagamento ficam à direita.',
+    'No celular nada muda.' ] },
 
   { t:'Modo reserva e Saúde do sistema', itens:[
     'Se o Supabase cair, aparece uma faixa laranja "Modo reserva" no topo. Ela diz o que funciona, o que fica na fila e o que espera a volta.',
@@ -344,8 +350,14 @@ Operador:{ nome:'Caixa', secoes:[
   { t:'Menu de baixo (celular)', itens:[
     'No celular, o menu fica fixo na parte de baixo da tela: Início, Caixa, Pedidos e as outras telas do seu perfil. A aba aberta fica em dourado.',
     'Quando há mais telas do que cabem, aparece "Mais" com as demais. Uma bolinha vermelha avisa que há algo novo naquela aba.',
-    'No computador o menu continua no topo.' ],
+    'No computador as abas ficam no topo (veja "No computador").' ],
     comuns:['O botão do Assistente é o rosto do Tex no canto de baixo; ele fica acima do menu, e a página tem um espaço no fim para nada ficar escondido atrás dele.'] },
+
+  { t:'No computador', itens:[
+    'Notebook ou monitor: o topo fica numa linha só e as abas ficam sempre à vista no alto, mesmo rolando a página.',
+    'Pedidos: os pedidos ficam lado a lado (2 ou 3 por linha). Caixa: a escolha fica à esquerda; carrinho, total e pagamento ficam à direita.',
+    'Na aba Operação, as telas (Ocorrências e Feedbacks) aparecem num menu ao lado.',
+    'No celular nada muda.' ] },
 
   { t:'Modo reserva (quando o sistema cai)', itens:[
     'Uma faixa laranja "Modo reserva" no topo avisa que o servidor principal está fora.',

@@ -274,7 +274,7 @@ function cdAtualizarAvisoForma_(){
   el.innerHTML = '⚠️ <b>Atenção:</b> pagando em <b>' + escH(f.nome) + '</b> você paga <b>' + cdFormatarPreco(acr) + ' a mais</b> (acréscimo da forma de pagamento). Total com acréscimo: <b>' + cdFormatarPreco(totalCarrinhoCd()) + '</b>.'
     + (semAcr.length ? ' Em ' + semAcr.map(x=>escH(x.nome)).join(' ou ') + ' não há acréscimo.' : '');
 }
-function cdFormatarPreco(v){ return v==null ? 'Consulte' : 'R$ '+v.toFixed(2).replace('.',','); }
+function cdFormatarPreco(v){ return v==null ? 'Consulte' : formatarMoeda(v); }
 
 function cdEsgotado_(tipo, id){ const e = (cdDados && cdDados.esgotados) || {}; return ((tipo==='produto' ? e.produtos : e.combos) || []).indexOf(id) !== -1; }
 function cdCardHTML(tipo, item){

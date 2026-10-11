@@ -19,6 +19,8 @@ window.APP_VERSAO = APP_VERSAO;
 const APP_NOVIDADES = {
   Admin: [
     { v:'1.0', em:'09/10/2026', itens:[
+      'No computador: o topo ficou numa linha só e as abas ficam sempre à vista; o Administrador ganhou um menu ao lado com todas as telas (um clique); os pedidos ficam lado a lado; o Caixa mostra carrinho e pagamento à direita; nos relatórios, os títulos das colunas ficam em cima dos números e o gráfico do DRE ficou do tamanho certo. No celular nada muda.',
+      'Valores com ponto de milhar e o sinal de negativo na frente: R$ 1.475,90 e −R$ 3.691,11.',
       'Novo: imposto sobre vendas estimado, com ou sem nota fiscal. Em Painel → Relatórios, no cartão DRE, informe a alíquota do mês que o contador passar (vale para os meses seguintes até mudar). O imposto aparece no DRE, na Visão Geral, nos relatórios e na margem do produto, do combo e da Calculadora; o custo do produto não muda. Nova categoria de despesa "Imposto das vendas (DAS)": com alíquota cadastrada, o DAS não conta duas vezes. O DRE também mostra a taxa de entrega cobrada e corrige os eventos do mês.',
       'iFood (ainda desligado) revisado: a venda grava o que fica para a loja (cupom pago pelo iFood, taxa de serviço do iFood e entrega feita pelo iFood ficam fora), a comissão entra nas taxas (estimada pela taxa % da forma "iFood" em Pagamentos e trocada pela real no repasse), "a receber do iFood" já vem sem a comissão, pedido cancelado não cria reembolso e "Saiu para entrega" só avisa o iFood quando a loja entrega.',
       'Mais simples: entrada, perda e inventário do estoque, suspender e recusar pedido, receber e cancelar compra, meta de vendas, fechar o cardápio e marcar reembolso agora abrem uma janela só, com motivos prontos para tocar. Ao receber uma compra, escolha "Já paguei" ou "Vou pagar depois" (com calendário).',
@@ -75,6 +77,8 @@ const APP_NOVIDADES = {
   ],
   Operador: [
     { v:'1.0', em:'09/10/2026', itens:[
+      'No computador: o topo ficou numa linha só e as abas ficam sempre à vista; os pedidos ficam lado a lado e o Caixa mostra carrinho e pagamento à direita. No celular nada muda.',
+      'Valores com ponto de milhar: R$ 1.475,90.',
       'Mais simples: suspender e recusar pedido agora abrem uma janela com motivos prontos para tocar (ex.: "Cliente não atende", "Sem estoque").',
       'Novo: quando a nota fiscal for ligada, o Caixa ganha o campo "CPF na nota (só se o cliente pedir)". Enquanto estiver desligada, nada muda.',
       'Novo: o cliente que aceitou os avisos recebe no celular cada mudança de status que você faz no pedido (confirmado, pronto, saiu para entrega, entregue). Em Feedbacks aparece se veio pelo aviso ou pelo chat.',
@@ -190,7 +194,7 @@ function clienteCombinaBusca_(c, termo){
   const d = normTel(termo);
   return d.length > 0 && normTel(c.telefone).includes(d);
 }
-function formatarMoeda(v){ return 'R$ ' + (Number(v)||0).toFixed(2).replace('.',','); }
+function formatarMoeda(v){ const n = Math.round((Number(v)||0)*100)/100, p = Math.abs(n).toFixed(2).split('.'); return (n < 0 ? '−R$ ' : 'R$ ') + p[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ',' + p[1]; }
 /* Converte o que vier da planilha em número: aceita número, "51", "51,5", "R$ 51,50", "1.234,56", "1,234.56", "(51,5)" e "-51,5".
    Vazio, texto que não é número, data e booleano viram 0. Ponto sozinho: "1.234" / "1.234.567" = milhar; "0.250" e "51.5" = decimal.
    Vírgula sozinha é decimal ("51,5"), a não ser que se repita ("1,234,567" = milhar). Mesma regra do backend (numPlanilha_). */

@@ -748,7 +748,7 @@ async function negIfood_(id, acao, alternativaId){
   try{ const r = await apiCall('ifoodNegociacaoResponder', { id, acao, alternativaId }); showMsg('integMsg', (r && r.message) || 'Não foi possível.', r && r.ok ? 'ok' : 'warn'); carregarIfoodNeg_(); }catch(e){ showMsg('integMsg','Sem conexão.','warn'); }
 }
 
-const R$_ = v => 'R$ ' + Number(v||0).toFixed(2).replace('.',',');
+const R$_ = v => formatarMoeda(v);
 let ifoodPrecosDados_ = null;
 async function carregarIfoodPrecos_(){
   const box = document.getElementById('ifoodPrecos'); if(!box) return;

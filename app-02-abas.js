@@ -23,6 +23,9 @@ function montarBarrasAdmin_(alvo, grupoIdx){
   const subs = ativo ? (`<div class="admin-grupo">${grupos.length>1 ? ativo.nome : (ativo.nome+' — o que você pode tratar aqui')}</div>` + ativo.subs.map(id=>`<button data-sub="${id}" class="${id===alvo?'active':''}" onclick="abrirAdministrador('${id}')">${ADMIN_SUBABAS_ROTULOS[id]}</button>`).join('')) : '';
   document.querySelectorAll('.admin-subnav[data-admin-nav]').forEach(nav=>{ nav.innerHTML = abas + subs; });
   _adminGrupoAtivo_ = ativo ? grupos.indexOf(ativo) : null;
+  /* Computador: menu lateral com todos os grupos e telas à vista (um clique). No celular ele fica escondido (CSS). */
+  const lat = document.getElementById('adminLateral');
+  if(lat) lat.innerHTML = grupos.map(g=>`<div class="al-grupo">${g.nome}</div>` + g.subs.map(id=>`<button type="button" data-sub="${id}" class="${id===alvo?'active':''}" onclick="abrirAdministrador('${id}')">${ADMIN_SUBABAS_ROTULOS[id]}</button>`).join('')).join('');
 }
 let _adminGrupoAtivo_ = null;
 /* Entrar no Admin: só os grupos, nenhuma tela aberta. Tocar num grupo mostra as telas dele; a tela abre só quando você toca nela. */
@@ -37,6 +40,8 @@ function abrirAdminInicio_(){ abrirAdminGrupo_(null); }
 montarBarrasAdmin_('visaogeral');
 (function(){ const inicial=document.querySelector('section.tab.active'); if(inicial) ativarApenasSecao_(inicial.id); })();
 function ativarApenasSecao_(id){
+  /* telas do Administrador: no computador ganham o menu lateral (estilo-14-computador.css) */
+  try{ document.body.classList.toggle('adm-ativo', id === 'tab-admininicio' || (typeof ADMIN_SUBABAS !== 'undefined' && ADMIN_SUBABAS.indexOf(String(id).replace(/^tab-/,'')) !== -1)); }catch(e){}
   document.querySelectorAll('section.tab').forEach(sec=>{
     const ativa = sec.id === id;
     sec.classList.toggle('active', ativa);

@@ -360,6 +360,7 @@
     <button class="tab-btn" data-tab="notificacoes">Notificações<span class="dot" id="notifDot"></span></button>
     <button class="tab-btn" data-tab="administrador" data-admin="1">Administrador<span class="dot" id="adminDot"></span></button>
   </nav>
+  <nav id="adminLateral" aria-label="Telas do Administrador"></nav>
 
   <!-- =========================== CLIENTES =========================== -->
   <section class="tab active" id="tab-inicio">
@@ -538,6 +539,7 @@
 
       <!-- PAINEL 1: CLIENTE & ENTREGA -->
       <div id="painelCliente" class="painel-caixa">
+        <div class="cx-2col"><div class="cx-col">
         <div class="btnrow" style="margin-top:10px;">
           <button type="button" class="toggle-mode active" id="modoClienteBtn" onclick="setModoCliente('com')">Cliente cadastrado</button>
           <button type="button" class="toggle-mode" id="modoSemClienteBtn" onclick="setModoCliente('sem')">Venda sem cadastro</button>
@@ -552,7 +554,7 @@
             <button class="ghost" style="float:right;" onclick="limparClienteVenda()">trocar</button>
           </div>
         </div>
-
+        </div><div class="cx-col">
         <div class="modal-section">
           <h3>Retirada, entrega ou mesa</h3>
           <div class="btnrow" style="margin-top:0;">
@@ -596,6 +598,7 @@
             <p class="sub" style="margin-top:6px;">O pedido fica na conta da mesa. O pagamento é escolhido só ao fechar a conta (“Receber conta”, ou o caixa).</p>
           </div>
         </div>
+        </div></div>
         <button type="button" class="small-gold" style="width:100%;margin-top:14px;padding:10px;" onclick="mudarPainelCaixa('itens')">Próximo: Itens →</button>
       </div>
 
@@ -607,6 +610,7 @@
       <!-- PAINEL 3: ITENS & CARRINHO -->
       <div id="painelItens" class="painel-caixa" style="display:none;">
         <div class="obs-line" id="mesaAtualResumo" style="margin-top:10px;"></div>
+        <div class="cx-2col"><div class="cx-col">
         <div class="modal-section" style="margin-top:10px;">
           <h3>Adicionar item</h3>
           <div id="atalhosProdutos" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;max-height:110px;overflow-y:auto;"></div>
@@ -628,7 +632,7 @@
           <button class="small-gold" style="margin-top:8px;width:100%;padding:10px;" onclick="adicionarItemCarrinho()">+ Adicionar ao carrinho</button>
           <div class="msg" id="itemEstoqueAviso"></div>
         </div>
-
+        </div><div class="cx-col cx-lado">
         <div class="modal-section">
           <h3>Carrinho</h3>
           <div id="carrinhoLista" style="max-height:220px;overflow-y:auto;"><div class="notif-empty">Nenhum item ainda.</div></div>
@@ -638,10 +642,12 @@
         <div id="garcomFormaBox" style="display:none;margin-top:8px;"><label for="garcomFormaPag">Como o cliente vai pagar?</label><select id="garcomFormaPag"></select><div class="obs-line">O pagamento é confirmado pelo caixa ou pelo entregador.</div></div>
         <button type="button" class="small-gold" id="btnEnviarCozinha" style="width:100%;margin-top:4px;padding:12px;" onclick="garcomEnviarPedido()">🍳 Lançar na mesa (enviar à cozinha)</button>
         <button type="button" class="ghost" id="btnFecharContaItens" style="width:100%;margin-top:6px;" onclick="fecharContaMesaUI()">💳 Fechar conta desta mesa</button>
+        </div></div>
       </div>
 
       <!-- PAINEL 4: FINALIZAR (desconto + pago/a receber + valores) -->
       <div id="painelFinalizar" class="painel-caixa" style="display:none;">
+        <div class="cx-2col"><div class="cx-col">
         <div class="modal-section" style="margin-top:10px;">
           <h3>Forma de pagamento</h3>
           <p class="sub" style="margin-bottom:8px;">Se a forma tiver acréscimo (cadastrado em Pagamentos), ele é somado ao total e mostrado abaixo.</p>
@@ -677,7 +683,7 @@
             <button type="button" class="toggle-mode" id="statusAReceberBtn" onclick="setStatusPagamento('A Receber')">A receber na entrega/retirada</button>
           </div>
         </div>
-
+        </div><div class="cx-col cx-lado">
         <div class="modal-section">
           <h3>Pagamento</h3>
           <div id="pagamentosLista" style="max-height:180px;overflow-y:auto;"></div>
@@ -692,6 +698,7 @@
         <div class="msg warn" id="vOfflineAviso" style="display:none;margin-bottom:8px;">🔴 Sem conexão — não é possível finalizar vendas agora. Aguarde a conexão voltar.</div>
         <button class="primary" id="vBtn" onclick="finalizarVenda()">Finalizar venda</button>
         <div class="msg" id="vMsg"></div>
+        </div></div>
       </div>
     </div>
 
@@ -1194,6 +1201,7 @@
 
   <section class="tab" id="tab-admininicio">
     <div class="admin-subnav" data-admin-nav="1"></div>
+    <div class="card so-pc admin-dica">👈 Escolha uma tela no menu ao lado.</div>
   </section>
   <section class="tab" id="tab-visaogeral">
     <div class="admin-subnav" data-admin-nav="1"></div>
@@ -2311,21 +2319,21 @@
   </div>
 </div>
 
-<script src="app-01-base-e-api.js?v=d719f7bb" charset="utf-8" data-origem="__big0__"></script>
-<script src="app-02-abas.js?v=5ea5e795" charset="utf-8" data-origem="__big1__"></script>
+<script src="app-01-base-e-api.js?v=96a230f7" charset="utf-8" data-origem="__big0__"></script>
+<script src="app-02-abas.js?v=19466e08" charset="utf-8" data-origem="__big1__"></script>
 <script src="app-03-cadastros.js?v=7dd3c514" charset="utf-8" data-origem="__big2__"></script>
 <script src="app-04-pedidos-entrega.js?v=d0d4fe5d" charset="utf-8" data-origem="__big3__"></script>
 <script src="app-05-avisos-push.js?v=9f260647" charset="utf-8" data-origem="__big4__"></script>
 <script src="app-06-caixa.js?v=2eb0f13a" charset="utf-8" data-origem="__big5__"></script>
 <script src="app-07-impressao.js?v=d0e63a58" charset="utf-8" data-origem="__big6__"></script>
 <script src="app-08-vendas-despesas.js?v=07159b49" charset="utf-8" data-origem="__big7__"></script>
-<script src="app-09-ajuda.js?v=0f669d2a" charset="utf-8" data-origem="__big8__"></script>
-<script src="app-10-backup-financeiro.js?v=a8ce35d3" charset="utf-8" data-origem="__big9__"></script>
-<script src="app-11-admin-integracoes.js?v=38084813" charset="utf-8" data-origem="__big10__"></script>
+<script src="app-09-ajuda.js?v=92b0c910" charset="utf-8" data-origem="__big8__"></script>
+<script src="app-10-backup-financeiro.js?v=16146730" charset="utf-8" data-origem="__big9__"></script>
+<script src="app-11-admin-integracoes.js?v=949dea9a" charset="utf-8" data-origem="__big10__"></script>
 <script src="app-12-gestao-ia.js?v=19a33ae4" charset="utf-8" data-origem="__big11__"></script>
 <script src="app-13-conexao-sync.js?v=64fab071" charset="utf-8" data-origem="__big12__"></script>
-<script src="app-14-relatorios.js?v=fb96486f" charset="utf-8" data-origem="__big13__"></script>
-<script src="app-15-cardapio-cliente.js?v=9fc5fef4" charset="utf-8" data-origem="__big14__"></script>
+<script src="app-14-relatorios.js?v=3c1364d9" charset="utf-8" data-origem="__big13__"></script>
+<script src="app-15-cardapio-cliente.js?v=33b6fb3a" charset="utf-8" data-origem="__big14__"></script>
 <script src="app-16-sessao-final.js?v=f8a6b211" charset="utf-8" data-origem="__big15__"></script>
 <!-- ═══════════ SINCRONIZAÇÃO, BACKUP, ESPAÇO E INTEGRIDADE ═══════════
      app-17 cria cartões (ids sb410*) nas telas Backup e espaço e Sincronização e contingência. -->
@@ -2381,6 +2389,7 @@
 <link rel="stylesheet" href="estilo-12-cadastro-facil.css?v=d2d12073" data-origem="">
 <script src="app-25-cadastro-facil.js?v=85e7e2f6" charset="utf-8" data-origem=""></script>
 <link rel="stylesheet" href="estilo-13-visual.css?v=e256f776" data-origem="">
+<link rel="stylesheet" href="estilo-14-computador.css?v=a9050474" data-origem="">
 <script src="app-26-visual.js?v=cccee8a5" charset="utf-8" data-origem=""></script>
 </body>
 </html>

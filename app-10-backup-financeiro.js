@@ -579,12 +579,13 @@ function renderizarGrafico(vendasMes, ano, mes){
   const totalPorDia = new Array(diasNoMes+1).fill(0);
   vendasMes.forEach(v=>{ const d = new Date(v.timestamp).getDate(); totalPorDia[d] += Number(v.valorTotal); });
   const max = Math.max(...totalPorDia, 1);
-  const largura = 300, altura = 90, barW = largura/diasNoMes;
-  let svg = `<svg viewBox="0 0 ${largura} ${altura+16}" style="width:100%;height:auto;">`;
+  const caixa = document.getElementById('rGrafico'), larg = caixa ? Math.round(caixa.clientWidth) : 0;
+  const largura = larg >= 200 ? larg : 300, altura = larg >= 200 ? 110 : 90, barW = largura/diasNoMes, fonte = larg >= 200 ? 10 : 7;
+  let svg = larg >= 200 ? `<svg viewBox="0 0 ${largura} ${altura+16}" width="${largura}" height="${altura+16}" style="display:block;max-width:100%;">` : `<svg viewBox="0 0 ${largura} ${altura+16}" style="width:100%;height:auto;">`;
   for(let d=1; d<=diasNoMes; d++){
     const h = (totalPorDia[d]/max) * altura;
     svg += `<rect x="${(d-1)*barW+1}" y="${altura-h}" width="${barW-1.5}" height="${h}" fill="#e0b53a" rx="1"></rect>`;
-    if(d % 5 === 0 || d === 1 || d === diasNoMes) svg += `<text x="${(d-1)*barW+barW/2}" y="${altura+12}" font-size="7" fill="#bfae8f" text-anchor="middle">${d}</text>`;
+    if((d % 5 === 0 && diasNoMes - d >= 2) || d === 1 || d === diasNoMes) svg += `<text x="${(d-1)*barW+barW/2}" y="${altura+13}" font-size="${fonte}" fill="#bfae8f" text-anchor="middle">${d}</text>`;
   }
   svg += `</svg>`;
   document.getElementById('rGrafico').innerHTML = svg;
