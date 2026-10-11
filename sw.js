@@ -6,11 +6,11 @@
    - BACKEND: NADA de Apps Script (script.google.com) nem de Supabase (*.supabase.co) é guardado aqui.
      Dados, pedidos, login e RPCs nunca passam pelo cache do service worker — sempre vão direto para a rede.
    - O único cache de dados é o de fotos (FOTOS) e o da casca/ícones (SHELL/ASSETS). Não adicionar outros. */
-const SHELL = 'texas-shell-v19';
+const SHELL = 'texas-shell-v21';
 const ASSETS = 'texas-assets-v6';   // trocou ícone/logo/manifest/leaflet? suba para v5
 const FOTOS = 'texas-fotos-v1';
 const FOTOS_MAX = 150;
-const PRE = ['manifest.webmanifest', 'icon-192.png', 'apple-touch-icon.png', 'logo-texas-burger.webp', 'logo-impressao-cor.png'];
+const PRE = ['manifest.webmanifest', 'icon-192.png', 'badge-96.png', 'apple-touch-icon.png', 'logo-texas-burger.webp', 'logo-impressao-cor.png'];
 const HOSTS_FOTO = ['drive.google.com', 'lh3.googleusercontent.com'];
 
 self.addEventListener('install', e => e.waitUntil((async () => {
@@ -111,7 +111,7 @@ self.addEventListener('push', e => {
   const titulo = String(d.titulo || 'Texas Burger').slice(0, 80);
   e.waitUntil(self.registration.showNotification(titulo, {
     body: String(d.texto || '').slice(0, 140), tag: String(d.tag || 'texas'), renotify: true,
-    icon: 'icon-192.png', badge: 'icon-192.png', vibrate: [250, 120, 250, 120, 400], requireInteraction: d.tipo === 'pedido',
+    icon: 'icon-192.png', badge: 'badge-96.png', vibrate: [250, 120, 250, 120, 400], requireInteraction: d.tipo === 'pedido',
     data: { url: String(d.url || './') }
   }));
 });
