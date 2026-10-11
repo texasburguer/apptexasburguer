@@ -551,9 +551,10 @@ async function salvarOrdemCardapioProduto(id, ordem){
 function atualizarMargemPreviewCombo(){
   const preco = Number(document.getElementById('koPreco').value) || 0;
   const custo = Number(document.getElementById('koCusto').value) || 0;
-  const margem = preco - custo;
+  const pctImp = (typeof impostoPctHoje_ === 'function') ? impostoPctHoje_() : 0;   // imposto sobre a venda sai da margem
+  const margem = preco - custo - preco * pctImp / 100;
   const pct = preco>0 ? (margem/preco*100) : 0;
-  document.getElementById('koMargemPreview').textContent = formatarMoeda(margem) + ' (' + pct.toFixed(0) + '%)';
+  document.getElementById('koMargemPreview').textContent = formatarMoeda(margem) + ' (' + pct.toFixed(0) + '%)' + (pctImp > 0 ? ' · já tirado o imposto de ' + String(pctImp).replace('.',',') + '%' : '');
 }
 async function registrarCombo(){
   const nome = document.getElementById('koNome').value.trim();

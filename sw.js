@@ -6,7 +6,7 @@
    - BACKEND: NADA de Apps Script (script.google.com) nem de Supabase (*.supabase.co) é guardado aqui.
      Dados, pedidos, login e RPCs nunca passam pelo cache do service worker — sempre vão direto para a rede.
    - O único cache de dados é o de fotos (FOTOS) e o da casca/ícones (SHELL/ASSETS). Não adicionar outros. */
-const SHELL = 'texas-shell-v27';
+const SHELL = 'texas-shell-v28';
 const ASSETS = 'texas-assets-v6';   // trocou ícone/logo/manifest/leaflet? suba para v5
 const FOTOS = 'texas-fotos-v1';
 /* Código do app dividido em arquivos (app-*.js e estilo-*.css). Cada arquivo tem ?v=<impressão digital> na página; o cache guarda
@@ -16,20 +16,20 @@ const CODIGO = 'texas-codigo-v1';
 const LISTA = [/*LISTA-INICIO*/
   'estilo-01-base.css?v=460bec22',
   'estilo-02-chat-publico.css?v=b0374956',
-  'app-01-base-e-api.js?v=03a38894',
-  'app-02-abas.js?v=1c06834e',
-  'app-03-cadastros.js?v=b31742a7',
+  'app-01-base-e-api.js?v=d719f7bb',
+  'app-02-abas.js?v=5ea5e795',
+  'app-03-cadastros.js?v=7dd3c514',
   'app-04-pedidos-entrega.js?v=d0d4fe5d',
   'app-05-avisos-push.js?v=9f260647',
   'app-06-caixa.js?v=2eb0f13a',
   'app-07-impressao.js?v=d0e63a58',
-  'app-08-vendas-despesas.js?v=7b0341b0',
-  'app-09-ajuda.js?v=bbcf8d0d',
-  'app-10-backup-financeiro.js?v=e8704271',
-  'app-11-admin-integracoes.js?v=ca968d85',
+  'app-08-vendas-despesas.js?v=07159b49',
+  'app-09-ajuda.js?v=0f669d2a',
+  'app-10-backup-financeiro.js?v=a8ce35d3',
+  'app-11-admin-integracoes.js?v=38084813',
   'app-12-gestao-ia.js?v=19a33ae4',
   'app-13-conexao-sync.js?v=64fab071',
-  'app-14-relatorios.js?v=f3a2869e',
+  'app-14-relatorios.js?v=fb96486f',
   'app-15-cardapio-cliente.js?v=9fc5fef4',
   'app-16-sessao-final.js?v=f8a6b211',
   'app-17-sessao-supabase.js?v=add7fc79',
@@ -50,7 +50,7 @@ const LISTA = [/*LISTA-INICIO*/
   'app-23-janelas-popup.js?v=6f031891',
   'app-24-acessibilidade.js?v=1567f2c1',
   'estilo-12-cadastro-facil.css?v=d2d12073',
-  'app-25-cadastro-facil.js?v=0920f0cd',
+  'app-25-cadastro-facil.js?v=85e7e2f6',
   'estilo-13-visual.css?v=e256f776',
   'app-26-visual.js?v=cccee8a5',
 /*LISTA-FIM*/];

@@ -135,7 +135,7 @@ async function salvarDespesaModal(){
   finally { setBotoesOcupados(false); }
 }
 /* ---------- FASE 8B — CONTAS A PAGAR E DESPESAS MENSAIS ---------- */
-const CATEGORIAS_DESPESA_PADRAO = ['Insumos','Aluguel','Energia','Água','Gás','Internet/Telefone','Salários','Impostos','Manutenção','Marketing','Embalagens','Entregadores','Brindes','Outros'];
+const CATEGORIAS_DESPESA_PADRAO = ['Insumos','Aluguel','Energia','Água','Gás','Internet/Telefone','Salários','Impostos','Imposto das vendas (DAS)','Manutenção','Marketing','Embalagens','Entregadores','Brindes','Outros'];
 function listaCategoriasDespesa(){ return (categoriasDespesa && categoriasDespesa.length) ? categoriasDespesa : CATEGORIAS_DESPESA_PADRAO; }
 function ehAdminAtual(){ return !!currentUser && currentUser.nivel === 'Admin'; }
 function despesaEfetiva(d){ return d.status==='Confirmada' && d.situacao!=='A pagar'; }

@@ -365,54 +365,83 @@ function arred2c(n){ return Math.round((Number(n)||0)*100)/100; }
 function pctDe(parte, total){ return total>0 ? (parte/total*100) : 0; }
 function fmtPct(n){ return n.toFixed(1).replace('.',',')+'%'; }
 function noMes(ts, ano, mes){ const d=new Date(ts); return d.getFullYear()===ano && (d.getMonth()+1)===mes; }
+/* ---------- IMPOSTO SOBRE AS VENDAS (estimado) ----------
+   Alíquota do mês (Relatórios → DRE) ou, sem ela, a do mês anterior mais próximo; sem nenhuma, a dos dados fiscais da empresa.
+   Vale com ou sem nota fiscal ligada. Não muda o custo do produto: entra no resultado e nas margens. */
+function ymDe_(ts){ const d = new Date(ts); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0'); }
+function impostoPctYm_(ym){
+  const I = window.INTEG_ || {}, m = I.impostoMeses || {};
+  const ks = Object.keys(m).filter(k=>k<=ym).sort();
+  if(ks.length) return Number(m[ks[ks.length-1]])||0;
+  return Number(I.impostoPadrao)||0;
+}
+function impostoPctMes_(ano, mes){ return impostoPctYm_(ano + '-' + String(mes).padStart(2,'0')); }
+function impostoPctHoje_(){ return impostoPctYm_(ymDe_(Date.now())); }
+/* Soma o imposto de uma lista, cada item pela alíquota do mês dele. */
+function impostoDoPeriodo_(lista, fTs, fValor){
+  return arred2c((lista||[]).reduce((s,x)=>{ const t = fTs(x); if(!t || isNaN(t)) return s; const pct = impostoPctYm_(ymDe_(t)); return s + (pct>0 ? (Number(fValor(x))||0)*pct/100 : 0); }, 0));
+}
+/* DAS pago: refere-se ao mês anterior ao pagamento (ou à competência, se informada). Se aquele mês tem alíquota, o imposto
+   já está estimado na linha de imposto — o DAS não entra de novo como despesa (senão o imposto contaria duas vezes). */
+function despesaEhDas_(d){ return !!d && d.categoria === 'Imposto das vendas (DAS)'; }
+function dasJaEstimado_(d){
+  if(!despesaEhDas_(d)) return false;
+  let ym = /^\d{4}-\d{2}/.test(d.competencia||'') ? String(d.competencia).slice(0,7) : '';
+  if(!ym){ const t = new Date(d.timestamp); t.setDate(1); t.setMonth(t.getMonth()-1); ym = ymDe_(t.getTime()); }
+  return impostoPctYm_(ym) > 0;
+}
 /* Vendas por competência (data da venda). Despesas e perdas pelo que efetivamente saiu no mês. */
 function calcularDRE(ano, mes){
-  const ini = new Date(ano, mes, 1).getTime();
-  const fim = new Date(ano, mes + 1, 1).getTime();
+  const ini = new Date(ano, mes - 1, 1).getTime();   // mes vem de 1 a 12
+  const fim = new Date(ano, mes, 1).getTime();
   const vendasMes = vendas.filter(v=>v.status==='Confirmada' && noMes(v.timestamp, ano, mes));
   const ids = new Set(vendasMes.map(v=>v.id));
   const receitaBruta = arred2c(vendasMes.reduce((s,v)=>s+(Number(v.valorOriginal)||Number(v.valorTotal)||0),0));
   const descontos = arred2c(vendasMes.reduce((s,v)=>s+(Number(v.valorDesconto)||0),0));
   const receitaLiquida = arred2c(vendasMes.reduce((s,v)=>s+(Number(v.valorTotal)||0),0));
+  const entregaAcresc = arred2c(receitaLiquida - receitaBruta + descontos);   // taxa de entrega e acréscimo da forma cobrados do cliente
   const aReceber = arred2c(vendasMes.filter(v=>v.statusPagamento==='A Receber').reduce((s,v)=>s+(Number(v.valorTotal)||0),0));
   const taxasPag = arred2c(pagamentosVenda.filter(p=>ids.has(p.vendaId)).reduce((s,p)=>s+(Number(p.taxa)||0),0));
   const cmv = arred2c(vendasMes.reduce((s,v)=>s+(Number(v.custoTotal)||0),0));
   const custoPorNome = {}; estoque.forEach(e=>{ custoPorNome[e.nome] = Number(e.custo)||0; });
   const perdas = arred2c(movimentacoesEstoque.filter(m=>m.tipo==='Perda' && noMes(m.data, ano, mes)).reduce((s,m)=>s+Math.abs(Number(m.quantidade)||0)*(custoPorNome[m.ingredienteNome]||0),0));
   /* ITEM 2.6: despesas geradas por Ajuste pós-venda ficam FORA daqui — a fonte única é a lista de ajustes (evita contar duas vezes). */
-  const despMes = despesas.filter(d=>despesaEfetiva(d) && d.categoria!=='Ajuste pós-venda' && noMes(d.timestamp, ano, mes));
+  const despTodas = despesas.filter(d=>despesaEfetiva(d) && d.categoria!=='Ajuste pós-venda' && noMes(d.timestamp, ano, mes));
+  const dasPago = arred2c(despTodas.filter(dasJaEstimado_).reduce((s,d)=>s+Number(d.valor),0));
+  const despMes = despTodas.filter(d=>!dasJaEstimado_(d));
   const ajMes = (ajustesPosVenda||[]).filter(a=>a.status==='Ativo' && noMes(a.timestamp, ano, mes));
   const ajustesTotal = arred2c(ajMes.filter(a=>a.tipo!=='Crédito para próxima compra').reduce((s,a)=>s+Number(a.valor),0));
   const creditosConcedidos = arred2c(ajMes.filter(a=>a.tipo==='Crédito para próxima compra').reduce((s,a)=>s+Number(a.valor),0));
   const despPorCat = {}; despMes.forEach(d=>{ const c=d.categoria||'Outros'; despPorCat[c]=(despPorCat[c]||0)+Number(d.valor); });
   const despesasTotal = arred2c(despMes.reduce((s,d)=>s+Number(d.valor),0));
-  const lucroBruto = arred2c(receitaLiquida - taxasPag - cmv);
-  /* Fase 4: imposto ESTIMADO sobre a venda — só existe com a Nota fiscal ligada; desligada, impostos = 0 e nada muda */
-  const impostos = (window.INTEG_ && INTEG_.nfce && INTEG_.impostoPct > 0) ? arred2c(receitaLiquida * INTEG_.impostoPct / 100) : 0;
-  const resultado = arred2c(lucroBruto - perdas - despesasTotal - ajustesTotal - impostos);
   const evs = (eventos||[]).filter(e=>{ const t=new Date(e.data).getTime(); return !isNaN(t) && t>=ini && t<fim && e.status!=='Orçamento' && e.status!=='Cancelado'; });
   const receitaEventos = somaR(evs,e=>e.valorContratado), custosEventos = somaR(evs,e=>e.custoTotal);
   const aReceberEventos = somaR(evs,e=>e.valorAReceber);
-  const lucroBrutoComEventos = arred2c(lucroBruto + receitaEventos - custosEventos);
-  const resultadoComEventos = arred2c(lucroBrutoComEventos - perdas - despesasTotal - ajustesTotal - impostos);
-  return { vendasMes, impostos, ajustesTotal, creditosConcedidos, receitaBruta, descontos, receitaLiquida, aReceber:aReceber+aReceberEventos, taxasPag, cmv, perdas, despPorCat, despesasTotal, lucroBruto:lucroBrutoComEventos, resultado:resultadoComEventos, receitaEventos, custosEventos,
+  const lucroBrutoComEventos = arred2c(receitaLiquida - taxasPag - cmv + receitaEventos - custosEventos);
+  /* imposto ESTIMADO sobre tudo o que foi faturado no mês (vendas + eventos), pela alíquota do mês — com ou sem nota fiscal */
+  const impostoPct = impostoPctMes_(ano, mes);
+  const impostos = impostoPct > 0 ? arred2c((receitaLiquida + receitaEventos) * impostoPct / 100) : 0;
+  const resultadoComEventos = arred2c(lucroBrutoComEventos - impostos - perdas - despesasTotal - ajustesTotal);
+  return { vendasMes, impostos, impostoPct, dasPago, entregaAcresc, ajustesTotal, creditosConcedidos, receitaBruta, descontos, receitaLiquida, aReceber:aReceber+aReceberEventos, taxasPag, cmv, perdas, despPorCat, despesasTotal, lucroBruto:lucroBrutoComEventos, resultado:resultadoComEventos, receitaEventos, custosEventos,
     margemBruta: pctDe(lucroBrutoComEventos, receitaLiquida+receitaEventos), margemLiquida: pctDe(resultadoComEventos, receitaLiquida+receitaEventos), taxasPct: pctDe(taxasPag, receitaLiquida+receitaEventos),
     ticket: vendasMes.length ? receitaLiquida/vendasMes.length : 0 };
 }
 function renderDRE(dre, deltaTxt){
-  const L = (rotulo, valor, o={})=>`<tr${o.forte?' style="font-weight:700;"':''}><td style="${o.recuo?'padding-left:16px;color:var(--muted);':''}">${rotulo}</td><td style="text-align:right;${o.cor?'color:'+o.cor+';':''}">${o.neg?'− ':''}${formatarMoeda(valor)}</td><td style="text-align:right;color:var(--muted);font-size:11px;">${o.pct!==undefined?fmtPct(o.pct):''}</td></tr>`;
+  const L = (rotulo, valor, o={})=>`<tr${o.forte?' style="font-weight:700;"':''}><td style="${o.recuo?'padding-left:16px;color:var(--muted);':''}">${rotulo}</td><td style="text-align:right;${o.cor?'color:'+o.cor+';':''}">${o.neg?'− ':''}${o.pos?'+ ':''}${formatarMoeda(valor)}</td><td style="text-align:right;color:var(--muted);font-size:11px;">${o.pct!==undefined?fmtPct(o.pct):''}</td></tr>`;
   const cats = Object.entries(dre.despPorCat).sort((a,b)=>b[1]-a[1]).map(([c,v])=>L(c, v, {recuo:true, neg:true, pct:pctDe(v, dre.receitaLiquida)})).join('');
   const corRes = dre.resultado>=0 ? '#bfe0ae' : '#ffb3ab';
+  const pctTxt = n => String(Number(n)||0).replace('.',',');
   document.getElementById('rDRE').innerHTML = `<table><tbody>
     ${L('Vendas (antes do desconto)', dre.receitaBruta)}
     ${L('Descontos', dre.descontos, {recuo:true, neg:true})}
+    ${Math.abs(dre.entregaAcresc||0)>0.009 ? L('Taxa de entrega e acréscimos cobrados', dre.entregaAcresc, {recuo:true, pos:true}) : ''}
     ${L('Receita líquida', dre.receitaLiquida, {forte:true, pct:100})}
     ${L('Faturamento de eventos', dre.receitaEventos||0, {forte:true})}
     ${L('Custos de eventos', dre.custosEventos||0, {neg:true})}
-    ${L('Taxas de pagamento', dre.taxasPag, {neg:true, pct:dre.taxasPct})}
+    ${L('Taxas de pagamento e comissões', dre.taxasPag, {neg:true, pct:dre.taxasPct})}
     ${L('Custo dos produtos vendidos', dre.cmv, {neg:true, pct:pctDe(dre.cmv, dre.receitaLiquida)})}
     ${L('Lucro bruto', dre.lucroBruto, {forte:true, pct:dre.margemBruta})}
-    ${dre.impostos>0 ? L('Impostos sobre vendas (estimado)', dre.impostos, {neg:true, pct:pctDe(dre.impostos, dre.receitaLiquida)}) : ''}
+    ${dre.impostoPct>0 ? L('Imposto sobre vendas (estimado, ' + pctTxt(dre.impostoPct) + '%)', dre.impostos, {neg:true, pct:pctDe(dre.impostos, dre.receitaLiquida)}) : ''}
     ${L('Perdas de estoque', dre.perdas, {neg:true, pct:pctDe(dre.perdas, dre.receitaLiquida)})}
     ${L('Despesas pagas', dre.despesasTotal, {neg:true, pct:pctDe(dre.despesasTotal, dre.receitaLiquida)})}
     ${cats}
@@ -427,7 +456,41 @@ function renderDRE(dre, deltaTxt){
   ${deltaTxt?`<div class="info-line">${deltaTxt}</div>`:''}
   ${dre.creditosConcedidos>0?`<div class="info-line">• Créditos concedidos no mês (ainda a usar, não descontados do resultado): ${formatarMoeda(dre.creditosConcedidos)}.</div>`:''}
   ${dre.aReceber>0?`<div class="info-line">• Desta receita, ${formatarMoeda(dre.aReceber)} ainda está a receber (não pago).</div>`:''}
-  <div class="info-line">• Vendas contam pela data da venda; despesas e perdas, pelo mês em que saíram. Taxa de entrega é repasse ao entregador e fica fora. Perdas usam o custo atual do ingrediente. Vendas antigas, de antes das taxas, aparecem sem taxa.</div>`;
+  ${dre.dasPago>0?`<div class="info-line">• DAS pago neste mês: ${formatarMoeda(dre.dasPago)}. Ele não entra de novo nas despesas, porque o imposto já é estimado mês a mês pela alíquota (o DAS pago agora é o do mês anterior — compare com a linha de imposto daquele mês). Se ficar muito diferente, confira a alíquota com o contador.</div>`:''}
+  ${dre.impostoPct>0?'':'<div class="info-line">• Imposto sobre vendas: sem alíquota cadastrada. Informe abaixo a alíquota que o contador passar; enquanto isso, o DAS que você paga entra como despesa comum.</div>'}
+  <div class="info-line">• Vendas contam pela data da venda; despesas e perdas, pelo mês em que saíram. A taxa de entrega cobrada do cliente entra na receita; o repasse ao entregador entra nas despesas (Entregadores) quando o fechamento das entregas é pago. Perdas usam o custo atual do ingrediente. Vendas antigas, de antes das taxas, aparecem sem taxa.</div>`;
+}
+/* Caixa "Imposto sobre vendas deste mês" (só Admin): mostra a alíquota própria do mês ou de qual mês ela está vindo. */
+function aliqBoxAtualizar_(ano, mes){
+  const box = document.getElementById('rAliqBox'); if(!box) return;
+  const admin = !!(currentUser && currentUser.nivel === 'Admin');
+  box.style.display = admin ? '' : 'none'; if(!admin) return;
+  const ym = ano + '-' + String(mes).padStart(2,'0'), m = (window.INTEG_ && INTEG_.impostoMeses) || {};
+  const inp = document.getElementById('rAliquota'), nota = document.getElementById('rAliqNota');
+  const proprio = Object.prototype.hasOwnProperty.call(m, ym);
+  if(inp && document.activeElement !== inp) inp.value = proprio ? String(m[ym]).replace('.',',') : '';
+  if(nota){
+    const pct = impostoPctYm_(ym), ks = Object.keys(m).filter(k=>k<ym).sort(), de = ks.length ? ks[ks.length-1] : '';
+    nota.textContent = proprio ? 'Alíquota própria deste mês. Apague e salve para voltar a usar a do mês anterior.'
+      : (pct > 0 ? 'Sem alíquota própria: usando ' + String(pct).replace('.',',') + '% ' + (de ? '(de ' + de.slice(5) + '/' + de.slice(0,4) + ')' : '(dos dados fiscais da empresa)') + '. Vale também para os meses seguintes até você mudar.'
+                 : 'Nenhuma alíquota cadastrada: o imposto não é estimado. O contador informa a alíquota efetiva do Simples (ex.: 6).');
+  }
+}
+async function salvarAliquotaMes_(){
+  const ym = (document.getElementById('rMes')||{}).value, v = String((document.getElementById('rAliquota')||{}).value||'').trim();
+  if(!ym) return showMsg('rAliqMsg','Escolha o mês primeiro.','warn');
+  if(v && !/^\d{1,2}([.,]\d{1,2})?$/.test(v)) return showMsg('rAliqMsg','Use só o número, por exemplo 6 ou 6,5.','warn');
+  if(!iniciarOperacaoUnica('aliquotaMes')) return;
+  try{
+    const r = await apiCall('salvarAliquotaMes', { competencia: ym, aliquota: v });
+    if(r && r.ok){
+      window.INTEG_ = Object.assign({}, window.INTEG_ || {}, { impostoPct:Number(r.impostoPct)||0, impostoPadrao:Number(r.impostoPadrao)||0, impostoMeses:r.impostoMeses||{} });
+      showMsg('rAliqMsg', r.message || 'Salvo.', 'ok');
+      try{ document.getElementById('rAliquota').blur(); }catch(e){}
+      gerarRelatorio();
+    } else showMsg('rAliqMsg', (r && r.message) || 'Não foi possível salvar.', 'warn');
+  }catch(e){ showMsg('rAliqMsg','Sem conexão. Tente de novo.','warn'); }
+  finally{ finalizarOperacaoUnica('aliquotaMes'); }
 }
 /* Fluxo dos próximos 30 dias: recebimentos de cartão/app com prazo (líquidos de taxa) × contas a pagar. */
 function renderFluxoPrevisto(){
@@ -489,6 +552,7 @@ function gerarRelatorio(){
     deltaTxt = (pct>=0?'▲ ':'▼ ') + Math.abs(pct).toFixed(0) + '% de receita vs mês anterior';
   }
   renderDRE(dre, deltaTxt);
+  try{ aliqBoxAtualizar_(ano, mes); }catch(e){}
   document.getElementById('rContagem').textContent = vendasMes.length+' venda(s) confirmada(s) no período.';
 
   const idsVendasMes = new Set(vendasMes.map(v=>v.id));

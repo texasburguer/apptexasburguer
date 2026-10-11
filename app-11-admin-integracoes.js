@@ -311,9 +311,16 @@ function salvarChaveIaUI_(){
 }
 
 /* ---------- INTEGRAÇÕES (iFood e Nota fiscal): nascem DESLIGADAS; desligado = sistema idêntico ao de antes ---------- */
-window.INTEG_ = window.INTEG_ || { ifood:false, nfce:false, nfceModo:'homologacao', impostoPct:0 };
+window.INTEG_ = window.INTEG_ || { ifood:false, nfce:false, nfceModo:'homologacao', impostoPct:0, impostoPadrao:0, impostoMeses:{} };
 async function carregarIntegFlags_(){
-  try{ const r = await apiCall('integracoesFlags', {}); if(r && r.ok){ window.INTEG_ = { ifood:!!r.ifood, nfce:!!r.nfce, nfceModo:r.nfceModo||'homologacao', impostoPct:Number(r.impostoPct)||0 }; try{ atualizarCpfBox_(); }catch(e){} } }catch(e){}
+  try{ const r = await apiCall('integracoesFlags', {}); if(r && r.ok){
+    window.INTEG_ = { ifood:!!r.ifood, nfce:!!r.nfce, nfceModo:r.nfceModo||'homologacao', impostoPct:Number(r.impostoPct)||0, impostoPadrao:Number(r.impostoPadrao)||0, impostoMeses:(r.impostoMeses && typeof r.impostoMeses==='object') ? r.impostoMeses : {} };
+    try{ atualizarCpfBox_(); }catch(e){}
+    /* a alíquota do imposto chega depois do login: redesenha o que já estiver aberto com ela */
+    try{ const at = (document.querySelector('section.tab.active')||{}).id || '';
+      if(at==='tab-visaogeral') renderVisaoGeral();
+      if(at==='tab-relatorios'){ gerarRelatorio(); renderRelatorio(); } }catch(e){}
+  } }catch(e){}
   return window.INTEG_;
 }
 const INTEG_INFO_ = {
@@ -461,7 +468,7 @@ function fiscalExtraHtml_(it){
 const FISCAL_CAMPOS_ = [['razaoSocial','razao_social','Razão social'],['nomeFantasia','nome_fantasia','Nome fantasia'],['cnpj','cnpj','CNPJ (só números)'],['inscricaoEstadual','inscricao_estadual','Inscrição estadual'],
   ['cep','cep','CEP'],['logradouro','logradouro','Rua / avenida'],['numero','numero','Número'],['complemento','complemento','Complemento'],['bairro','bairro','Bairro'],['municipio','municipio','Cidade'],
   ['codigoMunicipio','codigo_municipio','Código do município (7 números — o contador informa)'],['uf','uf','Estado (ex.: SP)'],['telefone','telefone','Telefone'],['cscId','csc_id','Número do CSC (identificador, não o código secreto)'],
-  ['serie','serie','Série das notas (normalmente 1)'],['aliquotaSimples','aliquota_simples','Alíquota efetiva do Simples em % (o contador informa; só para estimar o imposto no resultado)']];
+  ['serie','serie','Série das notas (normalmente 1)'],['aliquotaSimples','aliquota_simples','Alíquota padrão do imposto em % (vale para os meses sem alíquota própria em Painel → Relatórios, cartão DRE; só para estimar o imposto no resultado e nas margens)']];
 async function carregarFiscalEmpresa_(){
   const box = document.getElementById('fiscalEmpresa'); if(!box) return;
   try{
@@ -477,7 +484,7 @@ async function carregarFiscalEmpresa_(){
 async function salvarFiscalEmpresa_(){
   const p = { regime: document.getElementById('fiscRegime').value };
   FISCAL_CAMPOS_.forEach(([k])=>{ p[k] = document.getElementById('fisc_'+k).value.trim(); });
-  try{ const r = await apiCall('fiscalEmpresaSalvar', p); showMsg('fiscEmpMsg', (r && r.message) || 'Não foi possível salvar.', r && r.ok ? 'ok' : 'warn'); if(r && r.ok){ carregarIntegracoes_(); } }
+  try{ const r = await apiCall('fiscalEmpresaSalvar', p); showMsg('fiscEmpMsg', (r && r.message) || 'Não foi possível salvar.', r && r.ok ? 'ok' : 'warn'); if(r && r.ok){ carregarIntegracoes_(); carregarIntegFlags_(); } }
   catch(e){ showMsg('fiscEmpMsg','Sem conexão.','warn'); }
 }
 let fiscalPerfisCache_ = null;
@@ -701,6 +708,7 @@ function ifoodExtraHtml_(it){
       <button class="ghost" onclick="reprocessarIfood_()">Refazer pedidos sem ligação</button>
       ${dev?'<button class="ghost" onclick="simularIfood_()">🧪 Simular pedido do iFood (treino)</button>':''}
     </div>
+    ${(()=>{ const f = (formasPagamento||[]).find(x=>String(x.nome||'').toLowerCase()==='ifood'); return (f && (Number(f.taxaPct)>0 || Number(f.taxaFixa)>0)) ? '' : '<div class="obs-line">⚠️ Cadastre a comissão do iFood em Operação → Pagamentos, na forma "iFood" (taxa %). Ela é tirada de cada pedido nos relatórios até o repasse trazer a comissão real.</div>'; })()}
     <div id="ifoodLoja"></div><div id="ifoodNeg"></div><div id="ifoodPedidos"></div><div id="ifoodItens"></div><div id="ifoodPrecos"></div><div id="ifoodFin"></div><div id="ifoodAval"></div><div id="ifoodRel"></div></div>`;
 }
 const IFOOD_ESTADO_ROT_ = { novo:'aguardando confirmação', confirmado:'confirmado', em_preparo:'em preparo', pronto:'pronto', despachado:'saiu para entrega', concluido:'concluído', cancelado:'cancelado' };
@@ -776,7 +784,8 @@ async function carregarIfoodFin_(){
   try{
     const r = await apiCall('ifoodFinanceiro', {});
     if(!r || !r.ok){ box.innerHTML = '<div class="obs-line">' + escH((r && r.message) || 'Não foi possível carregar.') + '</div>'; return; }
-    box.innerHTML = `<div class="notif-card"><b>A receber do iFood:</b> ${R$_(r.aReceber.valor)} em ${r.aReceber.pedidos} pedido(s) pagos no app, ainda sem repasse.
+    box.innerHTML = `<div class="notif-card"><b>A receber do iFood:</b> ${R$_(r.aReceber.valor)} em ${r.aReceber.pedidos} pedido(s) pagos no app, ainda sem repasse (já sem a comissão${Number(r.aReceber.bruto)>Number(r.aReceber.valor)?'; valor dos pedidos '+R$_(r.aReceber.bruto):''}).
+      <div class="obs-line">Até o repasse chegar, a comissão é a estimada (taxa % da forma "iFood" em Pagamentos); quando o repasse chega, o sistema troca pela comissão real.</div>
       <div class="obs-line">Recebido nos últimos 30 dias: ${R$_(r.recebido30d.valor)} em ${r.recebido30d.repasses} repasse(s) · comissão real registrada: ${R$_(r.comissao30d)}</div></div>` +
       ((r.repasses||[]).map(x=>`<div class="obs-line">${escH(x.pagoEm||'')} · ${R$_(x.valor)} · ${x.pedidos} pedido(s)</div>`).join(''));
   }catch(e){ box.innerHTML = '<div class="obs-line">Sem conexão.</div>'; }
@@ -800,7 +809,7 @@ async function carregarIfoodRel_(){
     const r = await apiCall('ifoodRelatorio', { dias: 30 });
     if(!r || !r.ok){ box.innerHTML = '<div class="obs-line">' + escH((r && r.message) || 'Não foi possível carregar.') + '</div>'; return; }
     const f = r.ifood || {};
-    box.innerHTML = `<div class="notif-card"><b>Vendas por canal — últimos ${r.dias} dias</b>` + (r.canais||[]).map(c=>`<div class="obs-line">${escH(c.canal)}: ${c.pedidos} pedido(s) · ${R$_(c.total)} · ticket ${R$_(c.ticket)} · margem ${c.margemPct}% · cancelados ${c.cancelados}</div>`).join('') + `</div>
+    box.innerHTML = `<div class="notif-card"><b>Vendas por canal — últimos ${r.dias} dias</b>` + (r.canais||[]).map(c=>`<div class="obs-line">${escH(c.canal)}: ${c.pedidos} pedido(s) · ${R$_(c.total)} · ticket ${R$_(c.ticket)} · margem ${c.margemPct}% · cancelados ${c.cancelados}</div>`).join('') + `<div class="obs-line" style="color:var(--muted);">Margem = total − custo dos produtos − taxas e comissões − imposto estimado.</div></div>
       <div class="notif-card"><b>iFood</b><div class="obs-line">Tempo médio para confirmar: ${f.confirmacaoMediaMin!=null?f.confirmacaoMediaMin+' min':'—'} · itens sem ligação: ${f.itensSemLigacao||0} · comissão real: ${R$_(f.comissaoReal)}</div>
       ${(f.cancelamentos||[]).length?'<div class="obs-line">Cancelamentos: '+f.cancelamentos.map(x=>escH(x.motivo)+' ('+x.qtd+')').join('; ')+'</div>':''}
       ${(f.maisVendidos||[]).length?'<div class="obs-line">Mais vendidos no iFood: '+f.maisVendidos.map(x=>escH(x.nome)+' ('+x.qtd+')').join('; ')+'</div>':''}</div>`;

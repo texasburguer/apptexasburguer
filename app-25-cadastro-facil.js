@@ -138,8 +138,10 @@ function cfAtualizarMargem(pre){
   const el = document.getElementById(pre + 'MargemPreview'); if(!el) return;
   const preco = cfNum_(cfVal_(pre + 'Preco')), custo = cfNum_(cfVal_(pre + 'Custo'));
   if(!(custo > 0)){ el.textContent = 'custo não informado'; return; }
-  const m = preco - custo;
-  el.textContent = formatarMoeda(m) + ' (' + (preco > 0 ? (m / preco * 100) : 0).toFixed(0) + '%)';
+  /* imposto sobre a venda (alíquota do mês) sai da margem; o custo do produto continua só ingredientes/compra */
+  const pctImp = (typeof impostoPctHoje_ === 'function') ? impostoPctHoje_() : 0, imp = preco * pctImp / 100;
+  const m = preco - custo - imp;
+  el.textContent = formatarMoeda(m) + ' (' + (preco > 0 ? (m / preco * 100) : 0).toFixed(0) + '%)' + (pctImp > 0 ? ' · já tirado o imposto de ' + String(pctImp).replace('.',',') + '%' : '');
 }
 /* custo enviado junto com o estoque próprio ("Comprado pronto") */
 function cfCustoEstoqueProprio(pre){ return cfCustoPronto_(pre); }
