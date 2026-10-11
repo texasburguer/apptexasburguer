@@ -2961,6 +2961,7 @@ const APP_NOVIDADES = {
     { v:'1.0', em:'09/10/2026', itens:[
       'Novo: o Assistente (chat) agora também registra despesa, pagamento de conta, entrada/perda/contagem de estoque, ingrediente, cliente, ocorrência, sangria, ajuste pós-venda, brinde e recebimento/cancelamento de compra. Ele nunca grava sozinho: mostra um cartão e só grava ao tocar em "Confirmar e gravar". Cancelar despesa e ajuste pós-venda pedem a sua senha de administrador. Excluir, mexer em venda/caixa/usuários/preços ele não faz.',
       'Novo: conheça o Tex, o mascote do Assistente. Ele aparece no botão, no título e nas respostas do chat da equipe.',
+      'Melhorado: os botões de Nota fiscal e de iFood (Dados fiscais, Perfis fiscais, Conferência, Pedidos do iFood etc.) agora abrem em janela (pop-up) com botão de fechar, em vez de alongar a página. Salvar e conferir funcionam igual.',
       'Novo: botão "Testar" em cada IA (Gemini, Groq, NVIDIA, Cloudflare), em Contas e acessos e na tela "Assistente de IA" (toque na bolinha das estrelas). Mostra se a chave responde e, se não, o motivo em português. Não gasta as consultas do dia.',
       'Novo: a bolinha do topo agora também avisa a Saúde do sistema — fica amarela quando algo pede atenção e rosa quando precisa de cuidado (a conexão com problema continua vermelha/laranja). Toque nela para ver o que é.',
       'Mudou: a "Saúde do sistema" saiu do Painel e agora fica só dentro de "Conexão e servidores" (toque na bolinha colorida do topo), junto com os servidores.',
@@ -9018,6 +9019,7 @@ Admin:{ nome:'Administrador', secoes:[
     'iFood ligado: os pedidos entram sozinhos como venda normal (marca "iFood #número"), com aviso no celular da equipe e baixa dos ingredientes. Em "Itens do iFood" ligue cada item do iFood a um produto do sistema (o sistema sugere pelo nome); item sem ligação entra com o aviso "SEM LIGAÇÃO" e dá para refazer depois em "Refazer pedidos sem ligação". Ao mudar o status do pedido (em preparo, pronta, saiu para entrega) o iFood é avisado sozinho; se ele não confirmar, aparece o alerta "Ação não confirmada no iFood". Se o iFood cancelar, a venda é cancelada e o estoque volta. Desenvolvedor: "Simular pedido do iFood (treino)" cria um pedido de mentira.',
     'iFood — Preços, financeiro e avaliações: em Integrações → iFood, "Preços" compara o preço do sistema com o do iFood (importe o cardápio do iFood primeiro); "Gravar preços do iFood no sistema" atualiza o campo "Preço no iFood"; "Enviar nossos preços ao iFood" só aparece com o ajuste ligado, bloqueia variações acima do limite e tem histórico com "Desfazer". "Financeiro" mostra quanto falta receber do iFood e os repasses. "Avaliações" traz as notas e permite responder. "Relatório por canal" compara balcão, cardápio e iFood. Com o ajuste "Pausar no iFood o item que acabar no estoque", o item some do iFood quando um ingrediente acaba e volta quando repõe.',
     'iFood — Negociações: quando o cliente pede cancelamento ou reembolso, a equipe recebe um aviso no celular. Em Integrações → iFood → "Negociações" toque em Aceitar, Recusar ou numa alternativa antes do prazo (o iFood decide se o prazo acabar). "Loja no iFood": Pausar 30 min / 1 h, Retomar, Fechar e Abrir; com o ajuste "Abrir e fechar a loja junto com o caixa" ligado, abrir o caixa abre a loja e fechar o caixa fecha.',
+    'Janelas: os botões de Nota fiscal e de iFood abrem em uma janela por cima da tela, com rolagem só dentro dela. Para voltar, toque no ✕ do topo ou em "Fechar" no fim; salvar continua no botão de salvar de cada janela.',
     'Nota fiscal — cadastro: em Integrações → Nota fiscal, "Dados fiscais da empresa" (CNPJ, inscrição estadual, endereço, código do município, número do CSC, alíquota do Simples) e "Perfis fiscais" (NCM, CFOP, CSOSN que o contador informa). Crie poucos perfis, marque um como padrão e ligue só as exceções. "Itens sem perfil" mostra o que falta e "Baixar planilha do contador" / "Enviar planilha preenchida" fazem tudo de uma vez. O CSC secreto é digitado no botão do cartão (nunca por mensagem). Com a nota fiscal ligada, o Resultado (DRE) ganha a linha "Impostos sobre vendas (estimado)"; desligada, nada muda.',
     'Nota fiscal — emissão: em Integrações → Nota fiscal escolha onde emitir (Balcão, Cardápio, iFood, Mesa) e quando (ao pagar ou na entrega). Cada venda gera a nota sozinha cerca de 1 minuto depois. "Notas fiscais" lista as notas: autorizadas, rejeitadas (com o motivo em português), pendências (ex.: item sem perfil fiscal) e contingência; toque em "Reemitir" depois de corrigir. "Abrir DANFE" mostra o cupom com QR Code e "Enviar ao cliente" abre o WhatsApp com o link. Ligue primeiro em TESTE (homologação) e peça ao contador para conferir. O Desenvolvedor tem "Nota de treino" (não fala com a Focus).',
     'Nota fiscal — fechamento: se você cancela uma venda que já tem nota, a nota é cancelada sozinha dentro de 30 minutos; depois disso fica "cancelamento para o contador orientar". "Conferência" mostra vendas sem nota (com botão Emitir), notas com problema e números pulados (botão Inutilizar, pede a sua senha). "Pacote do contador" baixa a planilha do mês e lista os XML. A tela de notas mostra quantas notas já saíram no mês (plano de 500) e a Saúde do sistema avisa a 80%.',
@@ -10729,9 +10731,9 @@ async function testarChaveIa_(prov, alvoId, btn){
   if(btn){ btn.disabled = false; }
   return ok;
 }
-async function testarTodasIas_(provs, btn){
+async function testarTodasIas_(provs, btn, pref){
   if(btn) btn.disabled = true;
-  for(const pv of provs){ await testarChaveIa_(pv, 'testeIa_' + pv); }
+  for(const pv of provs){ await testarChaveIa_(pv, (pref || 'testeIa_') + pv); }
   if(btn) btn.disabled = false;
 }
 function salvarIaExtras_(marcado){
@@ -12242,6 +12244,7 @@ function seguroParaSincronizar(){
   if(usuarioNoMeioDeFormulario) return false;
   if(carrinhoAtual.length>0) return false; // venda em andamento no caixa
   if(document.querySelector('.modal-overlay.open')) return false; // algum cadastro/edição aberto
+  if(window.POP_SEL_ && document.querySelector(window.POP_SEL_.split(',').map(function(x){return x+':not(:empty)';}).join(','))) return false; // janela de Integrações aberta
   return true;
 }
 /* ITEM 19 — Admin/Operador: pergunta "mudou algo?" (sem ler planilha) e baixa só a parte que mudou.
@@ -14939,10 +14942,10 @@ async function sb5SairReserva_(){
     if(!lista.length){ box.innerHTML = '<p class="ia-sub">Nenhuma chave de IA cadastrada para testar (Administrador → Contas e acessos).</p>'; return; }
     const nomes = { gemini:'Gemini (Google)', groq:'Groq', nvidia:'NVIDIA (reserva)', cloudflare:'Cloudflare (reserva)' };
     box.innerHTML = '<h3 style="margin:14px 0 4px;">🧪 Testar as IAs</h3><p class="ia-sub">Faz uma pergunta mínima a cada IA para ver se a chave está funcionando. Não gasta as consultas do dia.</p>' +
-      lista.map(pv => '<div class="notif-card"><div><b>' + esc(nomes[pv] || pv) + '</b></div><div class="obs-line" id="testeIa_' + pv + '">Ainda não testada nesta tela.</div><div class="btnrow" style="margin-top:6px;"><button class="ghost" type="button" data-teste-ia="' + pv + '">Testar</button></div></div>').join('') +
+      lista.map(pv => '<div class="notif-card"><div><b>' + esc(nomes[pv] || pv) + '</b></div><div class="obs-line" id="testeIaM_' + pv + '">Ainda não testada nesta tela.</div><div class="btnrow" style="margin-top:6px;"><button class="ghost" type="button" data-teste-ia="' + pv + '">Testar</button></div></div>').join('') +
       '<div class="btnrow"><button class="primary" type="button" id="iaTesteTodas">Testar todas</button></div>';
-    box.querySelectorAll('[data-teste-ia]').forEach(b => b.addEventListener('click', () => testarChaveIa_(b.getAttribute('data-teste-ia'), 'testeIa_' + b.getAttribute('data-teste-ia'), b)));
-    $('iaTesteTodas').addEventListener('click', e => testarTodasIas_(lista, e.currentTarget));
+    box.querySelectorAll('[data-teste-ia]').forEach(b => b.addEventListener('click', () => testarChaveIa_(b.getAttribute('data-teste-ia'), 'testeIaM_' + b.getAttribute('data-teste-ia'), b)));
+    $('iaTesteTodas').addEventListener('click', e => testarTodasIas_(lista, e.currentTarget, 'testeIaM_'));
   };
   IA.abrirAba = async function(){
     criarAbaAdmin();
@@ -16283,5 +16286,37 @@ label:has(>input[type=checkbox]){ display:flex; gap:10px; align-items:center; fo
 <div id="balaoIa" class="balao-ia" style="display:none">
     <button type="button" onclick="balaoIaAbrir_()" aria-label="Balão de atendimento e assistente Texas Burger"><span id="balaoIaIcone"><span class="tex-av g" role="img" aria-label="Tex"></span></span><span id="balaoIaRot">Atendimento</span><span class="balao-ia-cont" id="balaoIaContador" hidden>0</span><span class="balao-ia-avisos" id="balaoIaAvisos" hidden title="Avisos">🔔 0</span></button>
   </div>
+<style id="popBoxCss">
+/* Janelas (pop-ups) para os painéis de Integrações: o conteúdo abre por cima da tela, com rolagem só dentro dela */
+:is(#nfceLista,#nfceConf,#nfcePac,#fiscalEmpresa,#fiscalPerfis,#fiscalSem,#ifoodLoja,#ifoodNeg,#ifoodPedidos,#ifoodItens,#ifoodPrecos,#ifoodFin,#ifoodAval,#ifoodRel):not(:empty){position:fixed;inset:0;z-index:85;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;background:rgba(0,0,0,.86);padding:0 14px calc(40px + env(safe-area-inset-bottom,0px));margin:0;}
+:is(#nfceLista,#nfceConf,#nfcePac,#fiscalEmpresa,#fiscalPerfis,#fiscalSem,#ifoodLoja,#ifoodNeg,#ifoodPedidos,#ifoodItens,#ifoodPrecos,#ifoodFin,#ifoodAval,#ifoodRel):not(:empty) > *{max-width:560px;margin-left:auto;margin-right:auto;}
+:is(#nfceLista,#nfceConf,#nfcePac,#fiscalEmpresa,#fiscalPerfis,#fiscalSem,#ifoodLoja,#ifoodNeg,#ifoodPedidos,#ifoodItens,#ifoodPrecos,#ifoodFin,#ifoodAval,#ifoodRel):not(:empty) > .pop-cab{position:sticky;top:0;z-index:2;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 0 10px;background:#0f0a06;border-bottom:1px solid var(--gold-dim);margin-bottom:12px;}
+.pop-cab h2{margin:0;font-size:1.05rem;color:var(--gold);}
+.pop-cab .close-btn{flex:none;}
+.pop-rod{margin-top:14px;} .pop-rod button{width:100%;}
+</style>
+<script>
+(function(){
+  var T={"nfceLista": "Notas fiscais", "nfceConf": "Conferência", "nfcePac": "Pacote do contador", "fiscalEmpresa": "Dados fiscais da empresa", "fiscalPerfis": "Perfis fiscais", "fiscalSem": "Itens sem perfil", "ifoodLoja": "Loja no iFood", "ifoodNeg": "Negociações", "ifoodPedidos": "Pedidos do iFood", "ifoodItens": "Itens do iFood", "ifoodPrecos": "Preços", "ifoodFin": "Financeiro", "ifoodAval": "Avaliações", "ifoodRel": "Relatório por canal"};
+  var SEL=Object.keys(T).map(function(k){return '#'+k;}).join(',');
+  window.POP_SEL_=SEL;
+  function fechar(b){ b.innerHTML=''; }
+  function decorar(){
+    document.querySelectorAll(SEL).forEach(function(b){
+      if(!b.firstElementChild || b.firstElementChild.classList.contains('pop-cab')) return;
+      var cab=document.createElement('div'); cab.className='pop-cab';
+      var h=document.createElement('h2'); h.textContent=T[b.id]||'';
+      var x=document.createElement('button'); x.type='button'; x.className='close-btn'; x.setAttribute('aria-label','Fechar'); x.textContent='\u2715';
+      x.addEventListener('click',function(){fechar(b);});
+      cab.appendChild(h); cab.appendChild(x); b.insertBefore(cab,b.firstChild);
+      var rod=document.createElement('div'); rod.className='pop-rod';
+      var f=document.createElement('button'); f.type='button'; f.className='ghost'; f.textContent='Fechar';
+      f.addEventListener('click',function(){fechar(b);}); rod.appendChild(f); b.appendChild(rod);
+    });
+  }
+  var agenda=false;
+  new MutationObserver(function(){ if(agenda) return; agenda=true; requestAnimationFrame(function(){ agenda=false; try{decorar();}catch(e){} }); }).observe(document.body,{childList:true,subtree:true});
+})();
+</script>
 </body>
 </html>
