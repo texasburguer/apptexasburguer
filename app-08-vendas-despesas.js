@@ -339,6 +339,7 @@ function ajAtualizarForm(){
 function renderAjustes(){
   const tb = document.getElementById('ajLista'); if(!tb) return;
   ajRenderVendas();
+  try{ rbCarregar(); }catch(e){}
   const lista = (ajustesPosVenda||[]).slice().sort((a,b)=>b.timestamp-a.timestamp).slice(0,25);
   tb.innerHTML = lista.length ? lista.map(a=>`<tr class="${a.status==='Cancelado'?'cancelada':''}">
     <td>${escH(a.tipo)}<span class="obs-line">${escH(a.data)} · pedido ${a.numero?('nº '+escH(a.numero)):escH(String(a.vendaId).slice(-8))} · ${escH(a.clienteNome||'')} · ${escH(a.motivo)}${a.detalhe?' — '+escH(a.detalhe):''} · ${escH(a.saida)}</span></td>
@@ -380,6 +381,44 @@ async function cancelarAjusteUI(id){
     if(r && r.ok){ ajustesPosVenda = r.ajustesPosVenda || ajustesPosVenda; despesas = r.despesas || despesas; salvarCache(); renderAjustes(); renderDespesas(); atualizarResumoHoje(); renderStatusCaixa(); if(((document.querySelector('section.tab.active')||{}).id||'')==='tab-relatorios') gerarRelatorio(); showMsg('ajMsg', r.message, 'ok'); }
     else showMsg('ajMsg', (r && r.message) || 'Não foi possível cancelar.', 'warn');
   } catch(e){ showMsg('ajMsg','Sem conexão com o servidor.','warn'); }
+}
+
+/* ---------- REEMBOLSOS DE VENDAS CANCELADAS ----------
+   O banco cria o reembolso sozinho quando uma venda JÁ PAGA é cancelada. Aqui só se lista e se dá baixa (Admin). */
+let _rbItens_ = [], _rbUltima_ = 0, _rbOcupado_ = false;
+async function rbCarregar(forcar){
+  if(!document.getElementById('rbLista')) return;
+  if(!forcar && Date.now() - _rbUltima_ < 15000) return;
+  _rbUltima_ = Date.now();
+  try{
+    const r = await apiCall('listarReembolsos', {});
+    if(r && r.ok){ _rbItens_ = r.itens || []; rbRender(); }
+  }catch(e){ /* sem conexão: mantém o que já estava na tela */ }
+}
+function rbRender(){
+  const tb = document.getElementById('rbLista'); if(!tb) return;
+  const pend = _rbItens_.filter(x=>x.status==='Pendente');
+  document.getElementById('rbPendenteTotal').textContent = formatarMoeda(pend.reduce((s,x)=>s+Number(x.valor||0),0));
+  document.getElementById('rbPendenteQtd').textContent = String(pend.length);
+  const admin = currentUser && currentUser.nivel === 'Admin';
+  tb.innerHTML = _rbItens_.length ? _rbItens_.slice(0,40).map(x=>`<tr class="${x.status==='Devolvido'?'cancelada':''}">
+    <td>Pedido ${x.numero?('nº '+escH(x.numero)):''} · ${escH(x.cliente||'Sem nome')}<span class="obs-line">${escH(String(x.criadoEm||'').slice(0,10).split('-').reverse().join('/'))} · pago em ${escH(x.forma||'—')} · ${escH(x.motivo||'sem motivo')}${x.observacao?' — '+escH(x.observacao):''}</span></td>
+    <td>${formatarMoeda(x.valor)}</td>
+    <td>${x.status==='Pendente' ? (admin ? `<button class="ghost" onclick="confirmarReembolsoUI('${escH(x.id)}')">marcar devolvido</button>` : '<span class="obs-line">pendente</span>') : '<span class="obs-line">devolvido</span>'}</td></tr>`).join('')
+    : '<tr class="empty-row"><td colspan="3">Nenhum reembolso registrado.</td></tr>';
+}
+async function confirmarReembolsoUI(id){
+  if(_rbOcupado_) return;
+  const x = _rbItens_.find(i=>i.id===id); if(!x) return;
+  const obs = prompt('Devolveu ' + formatarMoeda(x.valor) + ' ao cliente. Como foi (Pix, dinheiro, estorno)? Pode deixar em branco.');
+  if(obs === null) return;
+  _rbOcupado_ = true;
+  try{
+    const r = await apiCall('confirmarReembolso', { id, observacao: obs });
+    if(r && r.ok){ showMsg('rbMsg', r.message || 'Devolução registrada.', 'ok'); await rbCarregar(true); }
+    else showMsg('rbMsg', (r && r.message) || 'Não foi possível registrar.', 'warn');
+  }catch(e){ showMsg('rbMsg','Sem conexão com o servidor. Confira se a devolução foi registrada antes de tentar de novo.','warn'); }
+  finally{ _rbOcupado_ = false; }
 }
 
 /* ---------- CANCELAMENTO ---------- */

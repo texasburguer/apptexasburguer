@@ -861,6 +861,14 @@
   <section class="tab" id="tab-ajustes">
         <div class="admin-subnav" data-admin-nav="1"></div>
 
+    <div class="card" id="cardReembolsos">
+      <h2>Reembolsos de vendas canceladas</h2>
+      <p class="sub">Quando uma venda já paga é cancelada, o sistema cria aqui um reembolso pendente. Devolva o dinheiro ao cliente (Pix, dinheiro ou estorno no cartão) e depois marque como devolvido. Só o Administrador marca.</p>
+      <div class="stat-row"><div class="stat-box saida"><b id="rbPendenteTotal">R$ 0,00</b><span>A DEVOLVER</span></div><div class="stat-box"><b id="rbPendenteQtd">0</b><span>PENDENTES</span></div></div>
+      <table style="margin-top:12px;"><tbody id="rbLista"></tbody></table>
+      <div class="msg" id="rbMsg"></div>
+    </div>
+
     <div class="card" id="cardAjustesPosVenda">
       <h2>Ajustes pós-venda</h2>
       <p class="sub">Cliente reclamou depois de receber? Registre aqui em vez de cancelar a venda: a venda original continua como está e o ajuste aparece no DRE como uma linha separada. Só vale para pedido já entregue.</p>
@@ -2282,15 +2290,15 @@
   </div>
 </div>
 
-<script src="app-01-base-e-api.js?v=bfda5c15" charset="utf-8" data-origem="__big0__"></script>
+<script src="app-01-base-e-api.js?v=ef856325" charset="utf-8" data-origem="__big0__"></script>
 <script src="app-02-abas.js?v=4ce035a6" charset="utf-8" data-origem="__big1__"></script>
 <script src="app-03-cadastros.js?v=2ed86749" charset="utf-8" data-origem="__big2__"></script>
 <script src="app-04-pedidos-entrega.js?v=384bd48f" charset="utf-8" data-origem="__big3__"></script>
 <script src="app-05-avisos-push.js?v=9f260647" charset="utf-8" data-origem="__big4__"></script>
 <script src="app-06-caixa.js?v=2f82c220" charset="utf-8" data-origem="__big5__"></script>
 <script src="app-07-impressao.js?v=d0e63a58" charset="utf-8" data-origem="__big6__"></script>
-<script src="app-08-vendas-despesas.js?v=7f5a357a" charset="utf-8" data-origem="__big7__"></script>
-<script src="app-09-ajuda.js?v=bb654d6a" charset="utf-8" data-origem="__big8__"></script>
+<script src="app-08-vendas-despesas.js?v=1ce91e20" charset="utf-8" data-origem="__big7__"></script>
+<script src="app-09-ajuda.js?v=b0dac2f7" charset="utf-8" data-origem="__big8__"></script>
 <script src="app-10-backup-financeiro.js?v=f5674e07" charset="utf-8" data-origem="__big9__"></script>
 <script src="app-11-admin-integracoes.js?v=c7ad3db0" charset="utf-8" data-origem="__big10__"></script>
 <script src="app-12-gestao-ia.js?v=a1be99b7" charset="utf-8" data-origem="__big11__"></script>
@@ -2361,5 +2369,6 @@
   </div>
 <link rel="stylesheet" href="estilo-11-janelas-popup.css?v=61617ec5" data-origem="popBoxCss">
 <script src="app-23-janelas-popup.js?v=6f031891" charset="utf-8" data-origem=""></script>
+<script src="app-24-acessibilidade.js?v=1567f2c1" charset="utf-8" data-origem=""></script>
 </body>
 </html>

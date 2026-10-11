@@ -284,6 +284,14 @@ Admin:{ nome:'Administrador', secoes:[
       'Crédito não reduz o resultado na hora: quando o cliente usar, aplique como desconto no Caixa.',
       'Reembolso e desconto retroativo não passam do valor da venda (somando ajustes já feitos).'] },
 
+  { t:'Reembolsos de vendas canceladas', passos:[
+    'Cancelou uma venda que já estava paga? O sistema cria sozinho um reembolso "pendente".',
+    'Administrador → Financeiro → Ajustes pós-venda → "Reembolsos de vendas canceladas".',
+    'Devolva o dinheiro ao cliente (Pix, dinheiro ou estorno no cartão).',
+    'Toque em "marcar devolvido" e, se quiser, escreva como foi devolvido.' ],
+    comuns:['Só o Administrador marca como devolvido; o Operador consegue ver a lista.',
+      'Venda cancelada que ainda não estava paga não gera reembolso.'] },
+
   { t:'🛠️ Desenvolvedor (exclusivo)', soDev:true, itens:[
     'Esta seção só aparece para quem entrou com acesso de nível Desenvolvedor (e sem "Ver como"). Ninguém mais vê.',
     'Barra "Modo Desenvolvedor — vendo o sistema como:". Escolha um perfil (Operador, Garçom, Cozinha, Entregador) ou uma PESSOA específica e a tela muda para a dela. Suas ações continuam com acesso total.',
