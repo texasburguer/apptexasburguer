@@ -511,6 +511,8 @@ header.brand .userbar #connDot{padding:0;width:30px;height:30px;border-radius:50
 #connDot.syncing i{background:#f0c93c;animation:connPulse 1s infinite;}
 #connDot.contingencia i{background:#f5902e;box-shadow:0 0 8px #f5902e99;}
 #connDot.offline i{background:#e0443a;box-shadow:0 0 8px #e0443a99;}
+#connDot.online.saude-atencao i{background:#f0a500;box-shadow:0 0 8px #f0a50099;}
+#connDot.online.saude-problema i{background:#d6336c;box-shadow:0 0 8px #d6336c99;}
 @keyframes connPulse{50%{opacity:.35}}
 .conn-linha{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);}
 .conn-bolha{flex:0 0 auto;width:12px;height:12px;border-radius:50%;margin-top:4px;background:#7a7a7a;}
@@ -1332,6 +1334,7 @@ body:has(.cd-fab-carrinho.show) .balao-ia{bottom:84px;}
           </div>
         </div>
 
+        <div id="vCpfBox" style="display:none;margin-bottom:8px;"><label for="vCpfNota">CPF na nota (só se o cliente pedir)</label><input id="vCpfNota" inputmode="numeric" maxlength="14" autocomplete="off" placeholder="000.000.000-00"></div>
         <div class="msg warn" id="vOfflineAviso" style="display:none;margin-bottom:8px;">🔴 Sem conexão — não é possível finalizar vendas agora. Aguarde a conexão voltar.</div>
         <button class="primary" id="vBtn" onclick="finalizarVenda()">Finalizar venda</button>
         <div class="msg" id="vMsg"></div>
@@ -2071,7 +2074,14 @@ body:has(.cd-fab-carrinho.show) .balao-ia{bottom:84px;}
       <h2>🤖 Chaves das IAs</h2>
       <p class="sub">Chaves que os assistentes de IA usam. Para ver ou trocar, o app pede a sua senha de administrador. A chave nova vale na hora.</p>
       <div id="chavesIaLista"><div class="notif-empty">Carregando…</div></div>
+      <div id="iaExtrasBox" style="margin-top:8px;"></div>
       <div class="msg" id="chavesIaMsg"></div>
+    </div>
+    <div class="card" id="integCard">
+      <h2>🔌 Integrações (iFood e Nota fiscal)</h2>
+      <p class="sub">Já vêm prontas no sistema, mas DESLIGADAS. Desligado, tudo funciona exatamente como antes. Siga o guia de cada uma, preencha o checklist e só então ligue. Chaves são digitadas só aqui, nunca por mensagem.</p>
+      <div id="integLista"><div class="notif-empty">Carregando…</div></div>
+      <div class="msg" id="integMsg"></div>
     </div>
   </section>
 
@@ -2719,9 +2729,21 @@ body:has(.cd-fab-carrinho.show) .balao-ia{bottom:84px;}
     <div class="modal-header"><h2 id="chaveIaTitulo">Trocar chave</h2><button class="close-btn" onclick="fecharFormModal('chaveIaModal')" aria-label="Fechar">✕</button></div>
     <input type="hidden" id="ciProvedor">
     <p class="sub" id="ciAjuda"></p>
+    <div id="ciContaBox" style="display:none;"><label for="ciConta">Account ID da Cloudflare (32 letras e números)</label><input type="text" id="ciConta" maxlength="40" autocomplete="off" placeholder="Ex.: a1b2c3… (só na primeira vez ou se mudar)"></div>
     <label for="ciChave">Chave nova</label><input type="password" id="ciChave" maxlength="300" autocomplete="off" placeholder="Cole aqui a chave inteira">
     <button class="primary" onclick="salvarChaveIaUI_()">Salvar (pede a senha de administrador)</button>
     <div class="msg" id="ciMsg"></div>
+  </div>
+</div>
+<!-- POP-UP: chave/token de integração (iFood / Nota fiscal) -->
+<div class="modal-overlay" id="integSegredoModal">
+  <div class="modal-box">
+    <div class="modal-header"><h2 id="isTitulo">Chave</h2><button class="close-btn" onclick="fecharFormModal('integSegredoModal')" aria-label="Fechar">✕</button></div>
+    <input type="hidden" id="isChave">
+    <p class="sub">Digite ou cole aqui. Fica guardado com segurança e só aparece de novo com a sua senha de administrador.</p>
+    <input type="password" id="isValor" maxlength="400" autocomplete="off" placeholder="Cole aqui, sem espaços">
+    <button class="primary" onclick="salvarIntegSegredo_()">Salvar (pede a senha de administrador)</button>
+    <div class="msg" id="isMsg"></div>
   </div>
 </div>
 <div class="modal-overlay" id="senhaAdminModal">
@@ -2937,11 +2959,20 @@ window.APP_VERSAO = APP_VERSAO;
 const APP_NOVIDADES = {
   Admin: [
     { v:'1.0', em:'09/10/2026', itens:[
+      'Novo: o Assistente (chat) agora também registra despesa, pagamento de conta, entrada/perda/contagem de estoque, ingrediente, cliente, ocorrência, sangria, ajuste pós-venda, brinde e recebimento/cancelamento de compra. Ele nunca grava sozinho: mostra um cartão e só grava ao tocar em "Confirmar e gravar". Cancelar despesa e ajuste pós-venda pedem a sua senha de administrador. Excluir, mexer em venda/caixa/usuários/preços ele não faz.',
+      'Novo: a bolinha do topo agora também avisa a Saúde do sistema — fica amarela quando algo pede atenção e rosa quando precisa de cuidado (a conexão com problema continua vermelha/laranja). Toque nela para ver o que é.',
       'Mudou: a "Saúde do sistema" saiu do Painel e agora fica só dentro de "Conexão e servidores" (toque na bolinha colorida do topo), junto com os servidores.',
       'Novo: o cliente pode receber no celular os avisos do pedido (confirmado, pronto, saiu para entrega, entregue) e, 30 min depois da entrega, "Como foi seu pedido?". Saem sozinhos quando a equipe muda o status. Em Feedbacks aparece se veio pelo aviso ou pelo chat.',
       'Nada abre sozinho: a Ajuda e os avisos do Assistente vêm fechados (toque no título para abrir) e, ao entrar no Admin, aparecem só os grupos — toque no grupo e depois na tela.',
       'Cardápio do cliente: no fim da página aparecem nome, cidade, telefone e Instagram (edite em Cardápio Digital → Dados do restaurante) e o versículo 1 Coríntios 10:31.',
       'Novo: preço próprio por produto para o iFood. Em Pagamentos, a forma iFood está marcada como "preço próprio por produto"; em cada produto e combo aparece o campo "Preço no iFood" (em branco = preço base). Os preços do iFood de antes foram recolocados. No Caixa, ao escolher iFood, os itens usam o preço do iFood.',
+      'Novo: nota fiscal — cancelamento automático da nota (até 30 min), conferência Vendas × Notas, numeração pulada (inutilizar), pacote do contador por mês e aviso do limite de 500 notas do plano (tudo ainda desligado).',
+      'Novo: emissão da nota fiscal (NFC-e) pela Focus NFe (ainda desligada): a nota sai sozinha após a venda, com lista de notas, reemissão, DANFE, CPF na nota e treino para o Desenvolvedor.',
+      'Novo: cadastro da Nota fiscal (ainda desligada): dados fiscais da empresa, perfis fiscais (NCM/CFOP/CSOSN) por produto ou categoria e planilha para o contador preencher. Com a nota ligada, o Resultado (DRE) mostra o imposto estimado.',
+      'Novo: preços do iFood (importar/enviar), pausa por estoque, financeiro, avaliações e relatório por canal, ainda desligados.',
+      'Novo: negociação de cancelamento e controle da loja no iFood (pausar, abrir, fechar), ainda desligados.',
+      'Novo: integração com o iFood pronta no sistema (desligada): pedidos entram como venda, itens ligados aos produtos, status avisado ao iFood. Só funciona depois de ligada em Contas e acessos → Integrações.',
+      'Novo em Contas e acessos: campos das IAs de reserva (NVIDIA e Cloudflare) e o cartão "Integrações" (iFood e Nota fiscal), ainda desligados.',
       'Contas e acessos agora mostra também as chaves das IAs (Gemini e Groq): ver e trocar pedem a senha de administrador.',
       'Novo: Administrador → Sistema → Contas e acessos, com e-mails, links e senhas das contas do sistema. A senha fica no cofre e só aparece com a sua senha de administrador.',
       'Primeira versão estável do sistema. O servidor principal é o Supabase; a planilha principal é a reserva e a planilha de contingência é o último recurso.',
@@ -2969,6 +3000,7 @@ const APP_NOVIDADES = {
   ],
   Operador: [
     { v:'1.0', em:'09/10/2026', itens:[
+      'Novo: quando a nota fiscal for ligada, o Caixa ganha o campo "CPF na nota (só se o cliente pedir)". Enquanto estiver desligada, nada muda.',
       'Novo: o cliente que aceitou os avisos recebe no celular cada mudança de status que você faz no pedido (confirmado, pronto, saiu para entrega, entregue). Em Feedbacks aparece se veio pelo aviso ou pelo chat.',
       'Nada abre sozinho: a Ajuda e os avisos do Assistente vêm fechados (toque no título para abrir) e, ao entrar no Admin, aparecem só as telas para você escolher.',
       'Novo: menu fixo embaixo no celular (Início, Caixa, Pedidos e "Mais"), com bolinha vermelha nos avisos. No computador continua no topo.',
@@ -3570,7 +3602,7 @@ const SB_ESCRITAS_ = {
   aplicarPrecoCalculadora:['produtoPrecos']
 };
 /* chamadas que só pedem ao banco e devolvem a resposta dele como está (sem reler as listas) */
-const SB_RPC_DIRETO_ = ['listarChavesIa','verChaveIa','salvarChaveIa','listarContas','salvarConta','excluirConta','verSenhaConta','saudeSistema','pushInscrever','pushCancelar','listarAuditoria','listarCompras','salvarFornecedor','cancelarCompra','listarSessoes','encerrarSessaoRemota','verificarSenhaAdmin','trocarMinhaSenha','fecharCaixa','previewFechamentoEntrega','getQrMesas','gerarNovoCodigoMesa','detectarNovosPedidos','simularPrecificacao'];
+const SB_RPC_DIRETO_ = ['listarChavesIa','verChaveIa','salvarChaveIa','salvarIaExtras','integracoesFlags','integracoesStatus','integracoesMarcar','integracoesConfig','integracoesSalvarSegredo','integracoesVerSegredo','integracoesLigar','integracoesDesligar','integracoesLog','fiscalEmpresaLer','fiscalEmpresaSalvar','fiscalPerfis','fiscalPerfilSalvar','fiscalPerfilExcluir','fiscalAtribuir','fiscalSemPerfil','fiscalExportar','fiscalImportar','nfceLista','nfceReemitir','nfceEmitirVenda','nfceCpf','nfceSimular','nfceConferencia','nfceInutilizar','nfcePacote','ifoodPedidos','ifoodItens','ifoodPrecos','ifoodPrecosPedirCatalogo','ifoodPrecosAplicar','ifoodPrecosEnviar','ifoodPrecosDesfazer','ifoodFinanceiro','ifoodAvaliacoes','ifoodAvaliacaoResponder','ifoodRelatorio','ifoodLoja','ifoodLojaAcao','ifoodNegociacoes','ifoodNegociacaoResponder','ifoodLigarItem','ifoodReprocessar','ifoodSimular','listarContas','salvarConta','excluirConta','verSenhaConta','saudeSistema','pushInscrever','pushCancelar','listarAuditoria','listarCompras','salvarFornecedor','cancelarCompra','listarSessoes','encerrarSessaoRemota','verificarSenhaAdmin','trocarMinhaSenha','fecharCaixa','previewFechamentoEntrega','getQrMesas','gerarNovoCodigoMesa','detectarNovosPedidos','simularPrecificacao'];
 function sbNomeFuncao_(action){ return 'api_' + action.replace(/[A-Z]/g, m=>'_' + m.toLowerCase()); }
 async function sbRpc_(fn, corpo){
   let s = sbSessaoLer_(); if(!s) throw new SbSessaoExpirada_();
@@ -3715,7 +3747,7 @@ function mostrarManutencao_(msg){
   }
 }
 /* MODO RESERVA: funções que só existem no Supabase (sem equivalente na planilha). Com o Supabase fora, respondem NA HORA, sem esperar tempo esgotar. */
-const RESERVA_INDISPONIVEL_ = { listarChavesIa:'Contas e acessos', verChaveIa:'Contas e acessos', salvarChaveIa:'Contas e acessos', listarContas:'Contas e acessos', salvarConta:'Contas e acessos', excluirConta:'Contas e acessos', verSenhaConta:'Contas e acessos', saudeSistema:'Saúde do sistema', salvarCardapioFechamento:'Abrir ou fechar o cardápio', listarCompras:'Compras e fornecedores', registrarCompra:'Compras e fornecedores', receberCompra:'Compras e fornecedores', cancelarCompra:'Compras e fornecedores', salvarFornecedor:'Compras e fornecedores',
+const RESERVA_INDISPONIVEL_ = { salvarIaExtras:'Contas e acessos', integracoesFlags:'Integrações', integracoesStatus:'Integrações', integracoesMarcar:'Integrações', integracoesConfig:'Integrações', integracoesSalvarSegredo:'Integrações', integracoesVerSegredo:'Integrações', integracoesLigar:'Integrações', integracoesDesligar:'Integrações', integracoesLog:'Integrações', fiscalEmpresaLer:'Integrações', fiscalEmpresaSalvar:'Integrações', fiscalPerfis:'Integrações', fiscalPerfilSalvar:'Integrações', fiscalPerfilExcluir:'Integrações', fiscalAtribuir:'Integrações', fiscalSemPerfil:'Integrações', fiscalExportar:'Integrações', fiscalImportar:'Integrações', nfceLista:'Integrações', nfceReemitir:'Integrações', nfceEmitirVenda:'Integrações', nfceCpf:'Integrações', nfceSimular:'Integrações', nfceConferencia:'Integrações', nfceInutilizar:'Integrações', nfcePacote:'Integrações', ifoodPedidos:'Integrações', ifoodPrecos:'Integrações', ifoodPrecosPedirCatalogo:'Integrações', ifoodPrecosAplicar:'Integrações', ifoodPrecosEnviar:'Integrações', ifoodPrecosDesfazer:'Integrações', ifoodFinanceiro:'Integrações', ifoodAvaliacoes:'Integrações', ifoodAvaliacaoResponder:'Integrações', ifoodRelatorio:'Integrações', ifoodLoja:'Integrações', ifoodLojaAcao:'Integrações', ifoodNegociacoes:'Integrações', ifoodNegociacaoResponder:'Integrações', ifoodItens:'Integrações', ifoodLigarItem:'Integrações', ifoodReprocessar:'Integrações', ifoodSimular:'Integrações', listarChavesIa:'Contas e acessos', verChaveIa:'Contas e acessos', salvarChaveIa:'Contas e acessos', listarContas:'Contas e acessos', salvarConta:'Contas e acessos', excluirConta:'Contas e acessos', verSenhaConta:'Contas e acessos', saudeSistema:'Saúde do sistema', salvarCardapioFechamento:'Abrir ou fechar o cardápio', listarCompras:'Compras e fornecedores', registrarCompra:'Compras e fornecedores', receberCompra:'Compras e fornecedores', cancelarCompra:'Compras e fornecedores', salvarFornecedor:'Compras e fornecedores',
   pushInscrever:'Avisos com o app fechado', pushCancelar:'Avisos com o app fechado', listarAuditoria:'Auditoria', listarSessoes:'Sessões abertas', encerrarSessaoRemota:'Sessões abertas', simularPrecificacao:'Calculadora de preço', salvarCupom:'Cupons', salvarEvento:'Eventos' };
 async function _apiCallRaw(action, payload, _tentativa, _idemChave){
   if(RESERVA_INDISPONIVEL_[action] && typeof _sb5Reserva_ !== 'undefined' && _sb5Reserva_) return { ok:false, reserva:true, message:'Modo reserva: "' + RESERVA_INDISPONIVEL_[action] + '" fica indisponível até o Supabase voltar. Nada foi gravado.' };
@@ -4006,6 +4038,7 @@ function entrarNoApp(){
   }
   sbFaixa_();
   init();
+  try{ if(!currentUser.emergencia && typeof carregarIntegFlags_==='function') carregarIntegFlags_(); }catch(e){}
   try{ if(typeof sb410IniciarAlertaBackup_==='function') sb410IniciarAlertaBackup_(); }catch(e){}
   setTimeout(oferecerRecuperarCarrinho_, 800);  // ITEM 2.7
 }
@@ -4258,7 +4291,7 @@ function abrirAdministrador(sub){
   if(alvo==='eventos'){ renderEventosUI(); }
   if(alvo==='custosprecificacao'){ prepararCalculadoraUI(); }
   if(alvo==='compras') carregarCompras_();
-  if(alvo==='contas'){ carregarContas_(); carregarChavesIa_(); }
+  if(alvo==='contas'){ carregarContas_(); carregarChavesIa_(); carregarIntegracoes_(); }
   if(alvo==='auditoria') carregarAuditoria_();
   if(alvo==='visaogeral') carregarSaude_();
   if(alvo==='ocorrencias') renderOcorrencias();
@@ -8060,6 +8093,7 @@ function reqIdPersist_(escopo, conteudo){ try{ return idemId_(idemChave_('req_'+
 function reqIdConfirmado_(escopo, conteudo){ try{ idemLimpar_(idemChave_('req_'+escopo, conteudo)); }catch(e){} }
 async function finalizarVendaConfirmada(total, desconto, senhaAdminConfirmacao){
   const valorDescontoReal = desconto ? valorDescontoCalculado() : 0;
+  const cpfNota_ = ((document.getElementById('vCpfNota')||{}).value || '').replace(/\D/g,'');
   const clienteNome = modoCliente==='com' && clienteVendaSelecionado ? clienteVendaSelecionado.nome : '';
   const clienteTelefone = modoCliente==='com' && clienteVendaSelecionado ? clienteVendaSelecionado.telefone : '';
   const mesaEscolhidaId = tipoEntregaAtual==='Mesa' ? document.getElementById('vMesaSelect').value : null;
@@ -8106,6 +8140,7 @@ async function finalizarVendaConfirmada(total, desconto, senhaAdminConfirmacao){
       ultimaVendaItens = carrinhoParaComprovante.map(it=>({...it}));
       ultimaVendaCliente = clienteTelefone ? { nome: clienteNome, telefone: clienteTelefone } : null;
       ultimaVendaId = r.id || null;
+      if(cpfNota_ && r.id && window.INTEG_ && INTEG_.nfce){ try{ document.getElementById('vCpfNota').value = ''; apiCall('nfceCpf', { vendaId:r.id, cpf:cpfNota_ }).then(x=>{ if(x && !x.ok) showMsg('vMsg', 'Venda registrada, mas o CPF não entrou na nota: ' + (x.message||''), 'warn'); }).catch(()=>{}); }catch(e){} }
       if(!souGarcom_() && !eraMesa) mostrarComprovante(carrinhoParaComprovante, (Number(r.valorTotal)||(total+acrVenda_)), pagamentosParaEnviar.map(p=>({forma:p.forma, valor:(Number(p.valor)||0)+acrescimoForma_(p.forma,p.valor)})), clienteNome, clienteTelefone, totalCarrinho(), valorDescontoReal, null, acrVenda_);
       carrinhoAtual = []; pagamentosAtuais = []; renderCarrinho(); limparClienteVenda();
       limparCamposEntrega();
@@ -8975,7 +9010,14 @@ Admin:{ nome:'Administrador', secoes:[
     'Administrador → Sistema → Contas e acessos: lista das contas que fazem o sistema funcionar (Supabase, GitHub, planilhas, etc.), com e-mail, link e observação.',
     '"+ Nova conta" cadastra; "Editar" muda os dados ou a senha; "Excluir" apaga a conta e a senha guardada.',
     'A senha fica no cofre criptografado do Supabase. Para ver, toque em "Ver senha" e digite a SUA senha de administrador; ela aparece por 30 segundos. Cada visualização fica na Auditoria.',
-    'Chaves das IAs (Gemini e Groq): ficam na mesma tela. "Ver chave" e "Trocar chave" pedem a sua senha de administrador. A chave nova vale na hora para os assistentes. Cada card tem o link de onde pegar uma chave nova.',
+    'Chaves das IAs (Gemini, Groq, NVIDIA e Cloudflare): ficam na mesma tela. "Ver chave" e "Trocar chave" pedem a sua senha de administrador. A chave nova vale na hora. NVIDIA e Cloudflare são IAs de RESERVA: sem chave nada muda; com chave, entram quando Gemini e Groq falham ou esgotam o limite grátis. A Cloudflare pede também o Account ID. Para usá-las no atendimento ao cliente do cardápio, marque a opção abaixo da lista (só depois de conferir a privacidade do provedor).',
+    'Cartão "Integrações (iFood e Nota fiscal)": guia passo a passo, chaves, checklist e interruptor Ligar/Desligar de cada uma. Nascem DESLIGADAS: desligado, o sistema funciona como sempre. Ligar e desligar pedem a sua senha de administrador.',
+    'iFood ligado: os pedidos entram sozinhos como venda normal (marca "iFood #número"), com aviso no celular da equipe e baixa dos ingredientes. Em "Itens do iFood" ligue cada item do iFood a um produto do sistema (o sistema sugere pelo nome); item sem ligação entra com o aviso "SEM LIGAÇÃO" e dá para refazer depois em "Refazer pedidos sem ligação". Ao mudar o status do pedido (em preparo, pronta, saiu para entrega) o iFood é avisado sozinho; se ele não confirmar, aparece o alerta "Ação não confirmada no iFood". Se o iFood cancelar, a venda é cancelada e o estoque volta. Desenvolvedor: "Simular pedido do iFood (treino)" cria um pedido de mentira.',
+    'iFood — Preços, financeiro e avaliações: em Integrações → iFood, "Preços" compara o preço do sistema com o do iFood (importe o cardápio do iFood primeiro); "Gravar preços do iFood no sistema" atualiza o campo "Preço no iFood"; "Enviar nossos preços ao iFood" só aparece com o ajuste ligado, bloqueia variações acima do limite e tem histórico com "Desfazer". "Financeiro" mostra quanto falta receber do iFood e os repasses. "Avaliações" traz as notas e permite responder. "Relatório por canal" compara balcão, cardápio e iFood. Com o ajuste "Pausar no iFood o item que acabar no estoque", o item some do iFood quando um ingrediente acaba e volta quando repõe.',
+    'iFood — Negociações: quando o cliente pede cancelamento ou reembolso, a equipe recebe um aviso no celular. Em Integrações → iFood → "Negociações" toque em Aceitar, Recusar ou numa alternativa antes do prazo (o iFood decide se o prazo acabar). "Loja no iFood": Pausar 30 min / 1 h, Retomar, Fechar e Abrir; com o ajuste "Abrir e fechar a loja junto com o caixa" ligado, abrir o caixa abre a loja e fechar o caixa fecha.',
+    'Nota fiscal — cadastro: em Integrações → Nota fiscal, "Dados fiscais da empresa" (CNPJ, inscrição estadual, endereço, código do município, número do CSC, alíquota do Simples) e "Perfis fiscais" (NCM, CFOP, CSOSN que o contador informa). Crie poucos perfis, marque um como padrão e ligue só as exceções. "Itens sem perfil" mostra o que falta e "Baixar planilha do contador" / "Enviar planilha preenchida" fazem tudo de uma vez. O CSC secreto é digitado no botão do cartão (nunca por mensagem). Com a nota fiscal ligada, o Resultado (DRE) ganha a linha "Impostos sobre vendas (estimado)"; desligada, nada muda.',
+    'Nota fiscal — emissão: em Integrações → Nota fiscal escolha onde emitir (Balcão, Cardápio, iFood, Mesa) e quando (ao pagar ou na entrega). Cada venda gera a nota sozinha cerca de 1 minuto depois. "Notas fiscais" lista as notas: autorizadas, rejeitadas (com o motivo em português), pendências (ex.: item sem perfil fiscal) e contingência; toque em "Reemitir" depois de corrigir. "Abrir DANFE" mostra o cupom com QR Code e "Enviar ao cliente" abre o WhatsApp com o link. Ligue primeiro em TESTE (homologação) e peça ao contador para conferir. O Desenvolvedor tem "Nota de treino" (não fala com a Focus).',
+    'Nota fiscal — fechamento: se você cancela uma venda que já tem nota, a nota é cancelada sozinha dentro de 30 minutos; depois disso fica "cancelamento para o contador orientar". "Conferência" mostra vendas sem nota (com botão Emitir), notas com problema e números pulados (botão Inutilizar, pede a sua senha). "Pacote do contador" baixa a planilha do mês e lista os XML. A tela de notas mostra quantas notas já saíram no mês (plano de 500) e a Saúde do sistema avisa a 80%.',
     'Só Administrador e Desenvolvedor veem esta tela. Nunca mande senhas por mensagem: digite direto aqui.' ]},
 
   { t:'Auditoria e acessos (IP)', itens:[
@@ -8990,6 +9032,7 @@ Admin:{ nome:'Administrador', secoes:[
     'Compra "Recebida" já soma no estoque e atualiza o custo médio do insumo; "Pedido" só guarda o pedido e você marca como recebida quando chegar. Toda compra recebida vira uma despesa (Paga ou A pagar, com vencimento).',
     'Marque "saiu do caixa" só se o dinheiro saiu da gaveta. Compra já recebida não é cancelada: corrija pelo estoque ou pela despesa. Pedido ainda não recebido pode ser cancelado com motivo.',
     'Assistente (balão ✨): diga, por exemplo, "comprei 30kg de picanha do fornecedor X por R$ 900". A IA só monta um cartão; nada é gravado até você tocar em "Confirmar e gravar". Use "Revisar na tela" para ajustar antes. Fornecedor ou item que a IA não achar bloqueia o botão: cadastre antes.',
+    'O Assistente também registra: despesa nova, pagar despesa, cancelar despesa, entrada/perda/contagem de estoque, cadastrar ou editar ingrediente, cliente, ocorrência, sangria, ajuste pós-venda, brinde e receber ou cancelar pedido de compra. Sempre com cartão e "Confirmar e gravar". Se faltar algo ou o nome for ambíguo, o cartão avisa em laranja e o botão fica travado. Cancelar despesa e ajuste pós-venda pedem a sua senha de administrador no cartão. Ele NUNCA exclui nada, nem mexe em venda, caixa, usuários, contas, preços, cardápio ou configurações: isso é pelas telas.',
     'Relatórios → "Análise avançada": margem líquida por forma de pagamento, vendas por dia da semana e comparação com o mesmo período do ano passado. Também há os períodos "Últimos 90 dias" e "Últimos 12 meses".' ],
     comuns:['Compras e a gravação pela IA são só do Administrador e do Desenvolvedor.'] },
 
@@ -9013,6 +9056,7 @@ Admin:{ nome:'Administrador', secoes:[
     'Em "Iniciar venda": 1. Cliente → 2. Itens → 3. Pagamento e finalizar.',
     'Depois escolha 58mm, 80mm ou A4 e toque em Imprimir, Copiar ou WhatsApp.',
     'Para encerrar, feche o caixa, informe o dinheiro contado e confira a diferença.',
+    'CPF na nota: quando a nota fiscal está ligada, aparece o campo "CPF na nota (só se o cliente pedir)" antes de Finalizar. Preencha só se o cliente pedir; a nota sai cerca de 1 minuto depois da venda e, depois que sai, não dá mais para incluir o CPF.',
     'Mesas: o botão "🍽️ Mesas" mostra todas as mesas e quem pediu a conta.',
     'Pedido de mesa no Caixa: "Pagar ao sair" deixa na conta; "Pagar agora" cobra na hora.',
     'Se a forma de pagamento tem acréscimo (ex.: iFood), o Caixa mostra o valor a mais e já soma no total e no comprovante. Em pagamento dividido, o acréscimo vale só para a parte paga naquela forma.',
@@ -9165,6 +9209,7 @@ Operador:{ nome:'Caixa', secoes:[
     '1. Cliente: busque por nome ou telefone, ou "Venda sem cadastro". Escolha Retirada, Entrega ou Mesa.',
     '2. Itens: toque nos produtos; adicionais abrem numa janela.',
     '3. Pagamento e finalizar: escolha a forma. Em dinheiro, informe o recebido e veja o troco. Para dividir, marque "Dividir pagamento". Confira o total, escolha 58mm, 80mm ou A4 e toque em Imprimir, Copiar ou WhatsApp.',
+    'CPF na nota: quando a nota fiscal está ligada, aparece o campo "CPF na nota (só se o cliente pedir)" antes de Finalizar. Preencha só se o cliente pedir; a nota sai cerca de 1 minuto depois da venda e, depois que sai, não dá mais para incluir o CPF.',
     '"↺ Repetir última venda" recarrega o carrinho anterior.' ],
     comuns:['"Abra o caixa antes de registrar uma venda."',
       '"A soma dos pagamentos precisa bater com o total".',
@@ -10057,13 +10102,15 @@ function calcularDRE(ano, mes){
   const despPorCat = {}; despMes.forEach(d=>{ const c=d.categoria||'Outros'; despPorCat[c]=(despPorCat[c]||0)+Number(d.valor); });
   const despesasTotal = arred2c(despMes.reduce((s,d)=>s+Number(d.valor),0));
   const lucroBruto = arred2c(receitaLiquida - taxasPag - cmv);
-  const resultado = arred2c(lucroBruto - perdas - despesasTotal - ajustesTotal);
+  /* Fase 4: imposto ESTIMADO sobre a venda — só existe com a Nota fiscal ligada; desligada, impostos = 0 e nada muda */
+  const impostos = (window.INTEG_ && INTEG_.nfce && INTEG_.impostoPct > 0) ? arred2c(receitaLiquida * INTEG_.impostoPct / 100) : 0;
+  const resultado = arred2c(lucroBruto - perdas - despesasTotal - ajustesTotal - impostos);
   const evs = (eventos||[]).filter(e=>{ const t=new Date(e.data).getTime(); return !isNaN(t) && t>=ini && t<fim && e.status!=='Orçamento' && e.status!=='Cancelado'; });
   const receitaEventos = somaR(evs,e=>e.valorContratado), custosEventos = somaR(evs,e=>e.custoTotal);
   const aReceberEventos = somaR(evs,e=>e.valorAReceber);
   const lucroBrutoComEventos = arred2c(lucroBruto + receitaEventos - custosEventos);
-  const resultadoComEventos = arred2c(lucroBrutoComEventos - perdas - despesasTotal - ajustesTotal);
-  return { vendasMes, ajustesTotal, creditosConcedidos, receitaBruta, descontos, receitaLiquida, aReceber:aReceber+aReceberEventos, taxasPag, cmv, perdas, despPorCat, despesasTotal, lucroBruto:lucroBrutoComEventos, resultado:resultadoComEventos, receitaEventos, custosEventos,
+  const resultadoComEventos = arred2c(lucroBrutoComEventos - perdas - despesasTotal - ajustesTotal - impostos);
+  return { vendasMes, impostos, ajustesTotal, creditosConcedidos, receitaBruta, descontos, receitaLiquida, aReceber:aReceber+aReceberEventos, taxasPag, cmv, perdas, despPorCat, despesasTotal, lucroBruto:lucroBrutoComEventos, resultado:resultadoComEventos, receitaEventos, custosEventos,
     margemBruta: pctDe(lucroBrutoComEventos, receitaLiquida+receitaEventos), margemLiquida: pctDe(resultadoComEventos, receitaLiquida+receitaEventos), taxasPct: pctDe(taxasPag, receitaLiquida+receitaEventos),
     ticket: vendasMes.length ? receitaLiquida/vendasMes.length : 0 };
 }
@@ -10080,6 +10127,7 @@ function renderDRE(dre, deltaTxt){
     ${L('Taxas de pagamento', dre.taxasPag, {neg:true, pct:dre.taxasPct})}
     ${L('Custo dos produtos vendidos', dre.cmv, {neg:true, pct:pctDe(dre.cmv, dre.receitaLiquida)})}
     ${L('Lucro bruto', dre.lucroBruto, {forte:true, pct:dre.margemBruta})}
+    ${dre.impostos>0 ? L('Impostos sobre vendas (estimado)', dre.impostos, {neg:true, pct:pctDe(dre.impostos, dre.receitaLiquida)}) : ''}
     ${L('Perdas de estoque', dre.perdas, {neg:true, pct:pctDe(dre.perdas, dre.receitaLiquida)})}
     ${L('Despesas pagas', dre.despesasTotal, {neg:true, pct:pctDe(dre.despesasTotal, dre.receitaLiquida)})}
     ${cats}
@@ -10515,7 +10563,7 @@ async function carregarSaude_(){
   const nivel = currentUser && currentUser.nivel; const pode = (nivel==='Admin' || nivel==='Desenvolvedor');
   if(card) card.style.display = pode ? '' : 'none';
   if(sec) sec.style.display = pode ? '' : 'none';
-  if(!pode) return;
+  if(!pode){ window._saudeGeral_ = null; return; }
   try{ const sb = document.getElementById('reservaSimBtn'); if(sb){ sb.style.display = nivel==='Desenvolvedor' ? '' : 'none'; sb.textContent = window._sb5Simulado_ ? '✅ Encerrar simulação' : '🧪 Simular queda (treino)'; } }catch(e){}
   const dots = ['saudeDot','saudeDotModal'].map(i=>document.getElementById(i)).filter(Boolean), ress = ['saudeResumo','saudeResumoModal'].map(i=>document.getElementById(i)).filter(Boolean), lis = document.getElementById('saudeLista');
   const pintar = (cor, txt)=>{ dots.forEach(d=>d.style.background = cor); ress.forEach(r=>r.textContent = txt); };
@@ -10523,10 +10571,13 @@ async function carregarSaude_(){
     const r = await apiCall('saudeSistema', {});
     if(!r || !r.ok){ pintar('#888', (r && r.message) || 'Não foi possível verificar agora.'); if(lis) lis.innerHTML = ''; return; }
     const ruins = (r.itens||[]).filter(i=>i.nivel!=='ok');
+    window._saudeGeral_ = r.geral; try{ atualizarConnDot_(); }catch(e){}
     pintar(SAUDE_COR_[r.geral] || '#888', SAUDE_ROT_[r.geral] + (ruins.length ? ': ' + ruins.map(i=>i.titulo).join(', ') : '.') + ' · verificado às ' + String(r.em||'').split(' ')[1]);
     if(lis) lis.innerHTML = (r.itens||[]).map(i=>`<div class="notif-card" style="border-left:4px solid ${SAUDE_COR_[i.nivel]||'#888'};"><b>${escH(i.titulo)}</b><div class="obs-line">${escH(i.texto)}</div></div>`).join('');
   }catch(e){ pintar('#888', 'Sem conexão para verificar.'); }
 }
+/* confere a Saúde de tempos em tempos para a bolinha do topo (só Admin/Desenvolvedor, só com a tela aberta) */
+setInterval(()=>{ try{ const n = currentUser && currentUser.nivel; if((n==='Admin'||n==='Desenvolvedor') && !document.hidden) carregarSaude_(); }catch(e){} }, 300000);
 async function carregarAuditoria_(){
   const box = document.getElementById('logLista'); if(!box) return;
   box.innerHTML = '<div class="notif-empty">Carregando…</div>';
@@ -10621,15 +10672,17 @@ function verSenhaConta_(id){
 /* ---------- CHAVES DAS IAs (Contas e acessos): ficam em ai_segredos, onde os assistentes já leem. Ver e trocar pedem senha de administrador. ---------- */
 const CHAVES_IA_INFO_ = {
   gemini: { nome:'Gemini (Google)', link:'https://aistudio.google.com/apikey' },
-  groq:   { nome:'Groq', link:'https://console.groq.com/keys' }
+  groq:   { nome:'Groq', link:'https://console.groq.com/keys' },
+  nvidia: { nome:'NVIDIA (reserva)', link:'https://build.nvidia.com/settings/api-keys', extra:true, dica:'IA de reserva: só entra quando o Gemini e a Groq falham. Precisa de conta gratuita no NVIDIA Developer Program.' },
+  cloudflare: { nome:'Cloudflare (reserva)', link:'https://dash.cloudflare.com/profile/api-tokens', extra:true, conta:true, dica:'IA de reserva: precisa de DOIS dados — o Account ID e um token com permissão "Workers AI".' }
 };
-let chavesIaLista_ = [];
+let chavesIaLista_ = [], iaExtrasPublico_ = false;
 async function carregarChavesIa_(){
   const box = document.getElementById('chavesIaLista'); if(!box) return;
   try{
     const r = await apiCall('listarChavesIa', {});
     if(!r || !r.ok){ box.innerHTML = '<div class="notif-empty">' + escH((r && r.message) || 'Não foi possível carregar agora.') + '</div>'; return; }
-    chavesIaLista_ = r.chaves || []; renderChavesIa_();
+    chavesIaLista_ = r.chaves || []; iaExtrasPublico_ = !!r.extrasPublico; renderChavesIa_();
   }catch(e){ box.innerHTML = '<div class="notif-empty">Sem conexão para carregar as chaves.</div>'; }
 }
 function renderChavesIa_(){
@@ -10641,10 +10694,23 @@ function renderChavesIa_(){
       ${c.temChave
         ? `<div class="obs-line">🔑 <span id="ciVer_${c.provedor}">••••••••${escH(c.final||'')}</span> <button ${bt} onclick="verChaveIa_('${c.provedor}')">Ver chave</button></div>
            <div class="obs-line">Trocada em ${escH(c.atualizadoEm ? fmtDiaHoraBr_(c.atualizadoEm) : '—')}</div>`
-        : `<div class="obs-line">⚠️ Sem chave cadastrada: esta IA não funciona.</div>`}
+        : (info.extra ? `<div class="obs-line">Sem chave: tudo segue como hoje (Gemini e Groq).</div>` : `<div class="obs-line">⚠️ Sem chave cadastrada: esta IA não funciona.</div>`)}
+      ${info.dica?`<div class="obs-line">${escH(info.dica)}</div>`:''}
+      ${c.descansando?`<div class="obs-line">😴 Descansando: deu erros agora há pouco; o sistema usa as outras IAs e tenta de novo sozinho.</div>`:''}
       ${info.link?`<div class="obs-line">🔗 <a href="${info.link}" target="_blank" rel="noopener noreferrer" style="color:var(--gold);">Onde pegar uma chave nova</a></div>`:''}
       <div class="btnrow" style="margin-top:8px;"><button class="ghost" onclick="abrirChaveIaModal_('${c.provedor}')">Trocar chave</button></div>
     </div>`; }).join('') || '<div class="notif-empty">Nenhuma IA configurada.</div>';
+  const eb = document.getElementById('iaExtrasBox');
+  if(eb) eb.innerHTML = `<div class="notif-card"><label style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;"><input type="checkbox" id="iaExtrasPub" ${iaExtrasPublico_?'checked':''} onchange="salvarIaExtras_(this.checked)" style="width:auto;margin-top:4px;"> <span><b>Usar as IAs de reserva também no atendimento ao cliente (cardápio)</b><div class="obs-line">Deixe desligado até confirmar os termos de privacidade de cada provedor: as conversas dos clientes passariam por ele. Desligado, NVIDIA e Cloudflare atendem só o uso interno (equipe).</div></span></label></div>`;
+}
+function salvarIaExtras_(marcado){
+  abrirModalSenhaAdmin(async function(senhaAdm){
+    try{
+      const r = await apiCall('salvarIaExtras', { publico: !!marcado, senhaAdmin: senhaAdm });
+      if(r && r.ok){ iaExtrasPublico_ = !!marcado; chavesIaLista_ = r.chaves || chavesIaLista_; renderChavesIa_(); showMsg('chavesIaMsg', r.message || 'Salvo.', 'ok'); }
+      else { showMsg('chavesIaMsg', (r && r.message) || 'Não foi possível salvar.', 'warn'); renderChavesIa_(); }
+    }catch(e){ showMsg('chavesIaMsg', 'Sem conexão. Tente de novo.', 'warn'); renderChavesIa_(); }
+  });
 }
 function verChaveIa_(prov){
   abrirModalSenhaAdmin(async function(senhaAdm){
@@ -10653,7 +10719,7 @@ function verChaveIa_(prov){
       const r = await apiCall('verChaveIa', { provedor: prov, senhaAdmin: senhaAdm });
       if(!r || !r.ok){ showMsg('chavesIaMsg', (r && r.message) || 'Não foi possível mostrar a chave.', 'warn'); return; }
       const antes = el.textContent;
-      el.textContent = r.chave; el.style.fontFamily = 'monospace'; el.style.color = 'var(--cream)'; el.style.overflowWrap = 'anywhere';
+      el.textContent = r.chave + (r.contaId ? ' · conta ' + r.contaId : ''); el.style.fontFamily = 'monospace'; el.style.color = 'var(--cream)'; el.style.overflowWrap = 'anywhere';
       clearTimeout(el._t); el._t = setTimeout(()=>{ el.textContent = antes; el.style.fontFamily = ''; }, 30000);   // esconde de novo em 30 s
     }catch(e){ showMsg('chavesIaMsg', 'Sem conexão. Tente de novo.', 'warn'); }
   });
@@ -10665,6 +10731,8 @@ function abrirChaveIaModal_(prov){
   document.getElementById('ciChave').value = '';
   document.getElementById('ciAjuda').textContent = 'Cole a chave nova inteira. A antiga deixa de ser usada assim que você salvar.';
   document.getElementById('ciMsg').className = 'msg';
+  document.getElementById('ciConta').value = ''; document.getElementById('ciContaBox').style.display = info.conta ? '' : 'none';
+  if(info.conta) document.getElementById('ciAjuda').textContent = 'Cole o token novo inteiro. O Account ID só precisa ser digitado na primeira vez (ou se mudar).';
   abrirFormModal('chaveIaModal');
 }
 function salvarChaveIaUI_(){
@@ -10673,12 +10741,568 @@ function salvarChaveIaUI_(){
   abrirModalSenhaAdmin(async function(senhaAdm){
     if(!iniciarOperacaoUnica('salvarChaveIa')) return;
     try{
-      const r = await apiCall('salvarChaveIa', { provedor: prov, chave, senhaAdmin: senhaAdm });
+      const r = await apiCall('salvarChaveIa', { provedor: prov, chave, contaId: (document.getElementById('ciConta').value||'').trim(), senhaAdmin: senhaAdm });
       if(r && r.ok){ document.getElementById('ciChave').value = ''; chavesIaLista_ = r.chaves || chavesIaLista_; renderChavesIa_(); fecharFormModal('chaveIaModal'); showMsg('chavesIaMsg', r.message || 'Chave salva.', 'ok'); }
       else showMsg('ciMsg', (r && r.message) || 'Não foi possível salvar.', 'warn');
     }catch(e){ showMsg('ciMsg', 'Sem conexão. Tente de novo.', 'warn'); }
     finally{ finalizarOperacaoUnica('salvarChaveIa'); }
   });
+}
+
+/* ---------- INTEGRAÇÕES (iFood e Nota fiscal): nascem DESLIGADAS; desligado = sistema idêntico ao de antes ---------- */
+window.INTEG_ = window.INTEG_ || { ifood:false, nfce:false, nfceModo:'homologacao', impostoPct:0 };
+async function carregarIntegFlags_(){
+  try{ const r = await apiCall('integracoesFlags', {}); if(r && r.ok){ window.INTEG_ = { ifood:!!r.ifood, nfce:!!r.nfce, nfceModo:r.nfceModo||'homologacao', impostoPct:Number(r.impostoPct)||0 }; try{ atualizarCpfBox_(); }catch(e){} } }catch(e){}
+  return window.INTEG_;
+}
+const INTEG_INFO_ = {
+  ifood: { nome:'iFood', icone:'🛵',
+    segredos:[['ifood_client_id','Client ID'],['ifood_client_secret','Client Secret'],['ifood_merchant_id','Código da loja (Merchant ID)']],
+    guia:[
+      'Quem faz: o DONO do restaurante (precisa do CNPJ e do acesso ao Portal do Parceiro do iFood).',
+      '1) Entre no portal de desenvolvedores do iFood (developer.ifood.com.br) com o login do restaurante e crie a conta de desenvolvedor.',
+      '2) Crie um aplicativo do tipo "Distribuído" (ou o tipo que o iFood indicar para a sua loja) e peça os módulos: Pedidos, Catálogo, Loja (Merchant), Financeiro e Avaliações.',
+      '3) O iFood mostra o Client ID e o Client Secret. Copie e digite aqui (botões abaixo). NUNCA mande por mensagem.',
+      '4) O código da loja (Merchant ID) aparece no Portal do Parceiro. Digite aqui também.',
+      '5) O iFood exige uma HOMOLOGAÇÃO (testes obrigatórios) antes de liberar para valer. Quando ele aprovar, marque o passo no checklist.',
+      '6) Na aba Itens do iFood (quando ligado), ligue cada item do iFood ao seu produto.',
+      '⚠️ Esta parte ainda não foi testada com o iFood de verdade: os detalhes podem pedir ajuste na primeira ligação.'],
+    opcoes:[['confirmacaoAutomatica','Confirmar pedidos do iFood automaticamente (o iFood cancela sozinho se demorar mais de ~8 min)'],['abrirFecharComCaixa','Abrir e fechar a loja no iFood junto com o caixa'],['pausarSemEstoque','Pausar no iFood o item que acabar no estoque'],['enviarPrecos','Permitir enviar nossos preços ao iFood (com trava de variação e histórico)']] },
+  nfce: { nome:'Nota fiscal (NFC-e)', icone:'🧾',
+    segredos:[['nfce_token_homologacao','Token da Focus NFe — TESTE (homologação)'],['nfce_token_producao','Token da Focus NFe — PRODUÇÃO'],['nfce_csc','CSC — código de segurança secreto (Sefaz)']],
+    guia:[
+      'Quem faz: o dono e o contador do restaurante.',
+      '1) O contador define, para cada tipo de produto: NCM, CFOP e situação tributária (CSOSN). Sem isso nenhuma nota sai certa.',
+      '2) Certificado digital A1 (arquivo) em nome da empresa, comprado numa certificadora.',
+      '3) Credenciamento na Sefaz do estado para emitir NFC-e e obtenção do CSC (código de segurança) — o contador faz.',
+      '4) Crie a conta na Focus NFe (focusnfe.com.br; há 30 dias de teste), cadastre a empresa lá enviando o certificado. A Focus dá um token de teste e outro de produção.',
+      '5) Digite os tokens e o CSC aqui (botões "Chaves") e preencha, nos botões do cartão, os "Dados fiscais da empresa" e os "Perfis fiscais". Dica: "Baixar planilha do contador" gera uma planilha com todos os produtos para ele preencher; depois use "Enviar planilha preenchida".',
+      '6) Ligue primeiro em TESTE (homologação), emita uma nota de teste e peça ao contador para conferir. Só depois passe para PRODUÇÃO.',
+      '⚠️ Esta parte ainda não foi testada com a Focus NFe de verdade.'],
+    opcoes:[] }
+};
+let integStatus_ = [];
+async function carregarIntegracoes_(){
+  const box = document.getElementById('integLista'); if(!box) return;
+  try{
+    const r = await apiCall('integracoesStatus', {});
+    if(!r || !r.ok){ box.innerHTML = '<div class="notif-empty">' + escH((r && r.message) || 'Não foi possível carregar agora.') + '</div>'; return; }
+    integStatus_ = r.integracoes || []; renderIntegracoes_();
+  }catch(e){ box.innerHTML = '<div class="notif-empty">Sem conexão para carregar.</div>'; }
+}
+function renderIntegracoes_(){
+  const box = document.getElementById('integLista'); if(!box) return;
+  const bt = 'class="ghost" style="width:auto;padding:4px 10px;min-height:32px;margin-left:6px;"';
+  box.innerHTML = integStatus_.map(it=>{ const inf = INTEG_INFO_[it.provedor]; if(!inf) return '';
+    const seg = it.segredos || {};
+    return `<div class="notif-card" style="border-left:4px solid ${it.ligado?'#2e9e5b':'#888'};">
+      <div><b>${inf.icone} ${escH(inf.nome)}</b> — ${it.ligado?'<span style="color:#2e9e5b;">LIGADO'+(it.provedor==='nfce'?' ('+(it.modo==='producao'?'produção':'teste')+')':'')+'</span>':'<span style="color:#aaa;">desligado</span>'}</div>
+      <details style="margin-top:6px;"><summary style="cursor:pointer;color:var(--gold);">📖 Guia passo a passo</summary>${inf.guia.map(g=>`<div class="obs-line">${escH(g)}</div>`).join('')}</details>
+      <div style="margin-top:8px;"><b>Chaves</b>${inf.segredos.map(([k,r])=>`<div class="obs-line">${seg[k]?'✅':'⬜'} ${escH(r)} ${seg[k]?'<span id="isVer_'+k+'">••••'+escH(seg[k].final||'')+'</span> <button '+bt+' onclick="verIntegSegredo_(\''+k+'\')">Ver</button>':''} <button ${bt} onclick="abrirIntegSegredo_('${k}','${escH(r)}')">${seg[k]?'Trocar':'Digitar'}</button></div>`).join('')}</div>
+      <div style="margin-top:8px;"><b>Checklist</b>${(it.checklist||[]).map(c=>`<label class="obs-line" style="display:flex;gap:8px;align-items:flex-start;${c.auto?'':'cursor:pointer;'}"><input type="checkbox" ${c.feito?'checked':''} ${c.auto?'disabled':''} onchange="marcarIntegPasso_('${it.provedor}','${c.id}',this.checked)" style="width:auto;margin-top:3px;"> <span>${escH(c.titulo)}${c.auto?' <i>(o sistema marca sozinho)</i>':''}</span></label>`).join('')}</div>
+      ${inf.opcoes.length?`<div style="margin-top:8px;"><b>Ajustes</b>${inf.opcoes.map(([k,t])=>`<label class="obs-line" style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;"><input type="checkbox" ${(it.config||{})[k]?'checked':''} onchange="salvarIntegOpcao_('${it.provedor}','${k}',this.checked)" style="width:auto;margin-top:3px;"> <span>${escH(t)}</span></label>`).join('')}</div>`:''}
+      <div class="btnrow" style="margin-top:10px;">
+        ${it.ligado
+          ? `<button class="ghost" onclick="desligarInteg_('${it.provedor}')">Desligar</button>`
+          : (it.provedor==='nfce'
+              ? `<button class="primary" ${it.podeLigar?'':'disabled'} onclick="ligarInteg_('nfce','homologacao')">Ligar em TESTE</button><button class="ghost" ${it.podeLigar?'':'disabled'} onclick="ligarInteg_('nfce','producao')">Ligar em PRODUÇÃO</button>`
+              : `<button class="primary" ${it.podeLigar?'':'disabled'} onclick="ligarInteg_('${it.provedor}','producao')">Ligar</button>`)}
+        <button class="ghost" onclick="verLogInteg_('${it.provedor}')">Ver registro</button>
+      </div>
+      ${(!it.ligado && !it.podeLigar)?`<div class="obs-line">Ainda falta: ${escH((it.pendencias||[]).join('; '))}</div>`:''}
+      ${it.provedor==='ifood'?ifoodExtraHtml_(it):''}
+      ${it.provedor==='nfce'?fiscalExtraHtml_(it):''}
+      <div id="integLog_${it.provedor}"></div>
+    </div>`; }).join('') || '<div class="notif-empty">Nada disponível.</div>';
+}
+async function marcarIntegPasso_(prov, item, feito){
+  try{ const r = await apiCall('integracoesMarcar', { provedor:prov, item, feito:!!feito }); if(r && r.ok){ integStatus_ = r.integracoes||integStatus_; } else showMsg('integMsg', (r&&r.message)||'Não foi possível salvar.', 'warn'); }catch(e){ showMsg('integMsg','Sem conexão.','warn'); }
+  renderIntegracoes_();
+}
+async function salvarIntegOpcao_(prov, chave, valor){
+  try{ const r = await apiCall('integracoesConfig', { provedor:prov, config:{ [chave]: !!valor } }); if(r && r.ok){ integStatus_ = r.integracoes||integStatus_; } else showMsg('integMsg', (r&&r.message)||'Não foi possível salvar.', 'warn'); }catch(e){ showMsg('integMsg','Sem conexão.','warn'); }
+  renderIntegracoes_();
+}
+function abrirIntegSegredo_(chave, rotulo){
+  document.getElementById('isChave').value = chave; document.getElementById('isTitulo').textContent = rotulo;
+  document.getElementById('isValor').value = ''; document.getElementById('isMsg').className = 'msg'; abrirFormModal('integSegredoModal');
+}
+function salvarIntegSegredo_(){
+  const chave = document.getElementById('isChave').value, valor = document.getElementById('isValor').value.trim();
+  if(valor.length < 8 || /\s/.test(valor)) return showMsg('isMsg', 'Valor inválido. Copie inteiro, sem espaços.', 'warn');
+  abrirModalSenhaAdmin(async function(senhaAdm){
+    if(!iniciarOperacaoUnica('integSegredo')) return;
+    try{
+      const r = await apiCall('integracoesSalvarSegredo', { chave, valor, senhaAdmin: senhaAdm });
+      if(r && r.ok){ document.getElementById('isValor').value=''; integStatus_ = r.integracoes||integStatus_; renderIntegracoes_(); fecharFormModal('integSegredoModal'); showMsg('integMsg', r.message||'Salvo.', 'ok'); }
+      else showMsg('isMsg', (r&&r.message)||'Não foi possível salvar.', 'warn');
+    }catch(e){ showMsg('isMsg','Sem conexão. Tente de novo.','warn'); }
+    finally{ finalizarOperacaoUnica('integSegredo'); }
+  });
+}
+function verIntegSegredo_(chave){
+  abrirModalSenhaAdmin(async function(senhaAdm){
+    const el = document.getElementById('isVer_'+chave); if(!el) return;
+    try{
+      const r = await apiCall('integracoesVerSegredo', { chave, senhaAdmin: senhaAdm });
+      if(!r || !r.ok){ showMsg('integMsg', (r&&r.message)||'Não foi possível mostrar.', 'warn'); return; }
+      const antes = el.textContent; el.textContent = r.valor; el.style.fontFamily='monospace'; el.style.overflowWrap='anywhere';
+      clearTimeout(el._t); el._t = setTimeout(()=>{ el.textContent = antes; el.style.fontFamily=''; }, 30000);
+    }catch(e){ showMsg('integMsg','Sem conexão.','warn'); }
+  });
+}
+function ligarInteg_(prov, modo){
+  const nome = INTEG_INFO_[prov].nome;
+  if(!confirm('Ligar ' + nome + (prov==='nfce' ? (modo==='producao'?' em PRODUÇÃO (notas valem de verdade)':' em TESTE') : '') + '?\n\nA partir daqui o sistema passa a usar essa integração. Dá para desligar a qualquer momento.')) return;
+  abrirModalSenhaAdmin(async function(senhaAdm){
+    try{
+      const r = await apiCall('integracoesLigar', { provedor:prov, modo, senhaAdmin: senhaAdm });
+      if(r && r.ok){ integStatus_ = r.integracoes||integStatus_; renderIntegracoes_(); carregarIntegFlags_(); showMsg('integMsg', r.message||'Ligado.', 'ok'); }
+      else showMsg('integMsg', (r&&r.message)||'Não foi possível ligar.', 'warn');
+    }catch(e){ showMsg('integMsg','Sem conexão. Tente de novo.','warn'); }
+  });
+}
+function desligarInteg_(prov){
+  if(!confirm('Desligar ' + INTEG_INFO_[prov].nome + '? O sistema volta a funcionar como antes; o que já foi gravado fica guardado.')) return;
+  abrirModalSenhaAdmin(async function(senhaAdm){
+    try{
+      const r = await apiCall('integracoesDesligar', { provedor:prov, senhaAdmin: senhaAdm });
+      if(r && r.ok){ integStatus_ = r.integracoes||integStatus_; renderIntegracoes_(); carregarIntegFlags_(); showMsg('integMsg', r.message||'Desligado.', 'ok'); }
+      else showMsg('integMsg', (r&&r.message)||'Não foi possível desligar.', 'warn');
+    }catch(e){ showMsg('integMsg','Sem conexão. Tente de novo.','warn'); }
+  });
+}
+async function verLogInteg_(prov){
+  const el = document.getElementById('integLog_'+prov); if(!el) return;
+  try{
+    const r = await apiCall('integracoesLog', { provedor:prov });
+    const it = (r && r.itens) || [];
+    el.innerHTML = it.length ? '<div style="margin-top:8px;max-height:220px;overflow:auto;">' + it.map(x=>`<div class="obs-line">${escH(x.em)} · ${x.nivel==='erro'?'❌':x.nivel==='aviso'?'⚠️':'•'} ${escH(x.texto)}</div>`).join('') + '</div>' : '<div class="obs-line">Nenhum registro ainda.</div>';
+  }catch(e){ el.innerHTML = '<div class="obs-line">Sem conexão.</div>'; }
+}
+
+/* ---- Nota fiscal (Fase 4): dados da empresa, perfis fiscais, itens sem perfil, planilha do contador. Só aparece no cartão "Nota fiscal". ---- */
+function fiscalExtraHtml_(it){
+  return `<div style="margin-top:10px;border-top:1px solid var(--gold);padding-top:8px;">
+    <div class="btnrow">
+      <button class="ghost" onclick="carregarFiscalEmpresa_()">Dados fiscais da empresa</button>
+      <button class="ghost" onclick="carregarFiscalPerfis_()">Perfis fiscais</button>
+      <button class="ghost" onclick="carregarFiscalSem_()">Itens sem perfil</button>
+      <button class="ghost" onclick="carregarNfceLista_('')">Notas fiscais</button>
+      <button class="ghost" onclick="carregarNfceConf_()">Conferência</button>
+      <button class="ghost" onclick="carregarNfcePacote_()">Pacote do contador</button>
+      <button class="ghost" onclick="baixarPlanilhaFiscal_()">Baixar planilha do contador</button>
+      <button class="ghost" onclick="document.getElementById('fiscalArq').click()">Enviar planilha preenchida</button>
+      <input type="file" id="fiscalArq" accept=".csv,text/csv,text/plain" style="display:none;" onchange="enviarPlanilhaFiscal_(this)">
+    </div>
+    ${nfceOpcoesHtml_(it)}<div id="nfceLista"></div><div id="nfceConf"></div><div id="nfcePac"></div><div id="fiscalEmpresa"></div><div id="fiscalPerfis"></div><div id="fiscalSem"></div></div>`;
+}
+const FISCAL_CAMPOS_ = [['razaoSocial','razao_social','Razão social'],['nomeFantasia','nome_fantasia','Nome fantasia'],['cnpj','cnpj','CNPJ (só números)'],['inscricaoEstadual','inscricao_estadual','Inscrição estadual'],
+  ['cep','cep','CEP'],['logradouro','logradouro','Rua / avenida'],['numero','numero','Número'],['complemento','complemento','Complemento'],['bairro','bairro','Bairro'],['municipio','municipio','Cidade'],
+  ['codigoMunicipio','codigo_municipio','Código do município (7 números — o contador informa)'],['uf','uf','Estado (ex.: SP)'],['telefone','telefone','Telefone'],['cscId','csc_id','Número do CSC (identificador, não o código secreto)'],
+  ['serie','serie','Série das notas (normalmente 1)'],['aliquotaSimples','aliquota_simples','Alíquota efetiva do Simples em % (o contador informa; só para estimar o imposto no resultado)']];
+async function carregarFiscalEmpresa_(){
+  const box = document.getElementById('fiscalEmpresa'); if(!box) return;
+  try{
+    const r = await apiCall('fiscalEmpresaLer', {});
+    if(!r || !r.ok){ box.innerHTML = '<div class="obs-line">' + escH((r && r.message) || 'Não foi possível carregar.') + '</div>'; return; }
+    const e = r.empresa || {};
+    box.innerHTML = `<div class="notif-card"><b>Dados fiscais da empresa</b> ${r.completa?'✅ completos':'⬜ incompletos'}${r.temCsc?'':' · falta digitar o CSC secreto (cartão Chaves, acima)'}
+      <label for="fiscRegime">Regime</label><select id="fiscRegime"><option value="simples" ${e.regime==='simples'?'selected':''}>Simples Nacional</option><option value="mei" ${e.regime==='mei'?'selected':''}>MEI</option><option value="normal" ${e.regime==='normal'?'selected':''}>Lucro presumido/real</option></select>
+      ${FISCAL_CAMPOS_.map(([k,c,t])=>`<label for="fisc_${k}">${escH(t)}</label><input id="fisc_${k}" maxlength="120" value="${escH(e[c]==null?'':e[c])}">`).join('')}
+      <div class="btnrow" style="margin-top:8px;"><button class="primary" onclick="salvarFiscalEmpresa_()">Salvar dados fiscais</button></div><div class="msg" id="fiscEmpMsg"></div></div>`;
+  }catch(err){ box.innerHTML = '<div class="obs-line">Sem conexão.</div>'; }
+}
+async function salvarFiscalEmpresa_(){
+  const p = { regime: document.getElementById('fiscRegime').value };
+  FISCAL_CAMPOS_.forEach(([k])=>{ p[k] = document.getElementById('fisc_'+k).value.trim(); });
+  try{ const r = await apiCall('fiscalEmpresaSalvar', p); showMsg('fiscEmpMsg', (r && r.message) || 'Não foi possível salvar.', r && r.ok ? 'ok' : 'warn'); if(r && r.ok){ carregarIntegracoes_(); } }
+  catch(e){ showMsg('fiscEmpMsg','Sem conexão.','warn'); }
+}
+let fiscalPerfisCache_ = null;
+async function carregarFiscalPerfis_(){
+  const box = document.getElementById('fiscalPerfis'); if(!box) return;
+  try{
+    const r = await apiCall('fiscalPerfis', {});
+    if(!r || !r.ok){ box.innerHTML = '<div class="obs-line">' + escH((r && r.message) || 'Não foi possível carregar.') + '</div>'; return; }
+    fiscalPerfisCache_ = r; renderFiscalPerfis_();
+  }catch(e){ box.innerHTML = '<div class="obs-line">Sem conexão.</div>'; }
+}
+function renderFiscalPerfis_(editar){
+  const box = document.getElementById('fiscalPerfis'); const r = fiscalPerfisCache_; if(!box || !r) return;
+  const ps = r.perfis || [], opts = sel => '<option value="">(herdar / nenhum)</option>' + ps.filter(x=>x.ativo).map(x=>`<option value="${x.id}" ${sel===x.id?'selected':''}>${escH(x.nome)}</option>`).join('');
+  const e = editar || {}; const g = (k, d)=> escH(e[k]==null ? (d||'') : e[k]);
+  box.innerHTML = `<div class="notif-card"><b>Perfis fiscais</b> · ${r.semPerfil>0?'⚠️ '+r.semPerfil+' item(ns) ainda sem perfil':'✅ todos os itens têm perfil'}
+    ${ps.map(x=>`<div class="obs-line">${x.id===r.padraoId?'⭐ ':''}<b>${escH(x.nome)}</b> — NCM ${escH(x.ncm)} · CFOP ${escH(x.cfop)} · ${x.csosn?'CSOSN '+escH(x.csosn):'CST '+escH(x.cstIcms||'')} · ${x.usos} uso(s)${x.ativo?'':' · desativado'}
+      <button class="ghost" style="width:auto;padding:4px 10px;min-height:32px;" onclick="editarFiscalPerfil_('${x.id}')">Editar</button>
+      <button class="ghost" style="width:auto;padding:4px 10px;min-height:32px;" onclick="atribuirFiscal_('padrao',null,'${x.id}')">Usar como padrão</button>
+      <button class="ghost" style="width:auto;padding:4px 10px;min-height:32px;" onclick="excluirFiscalPerfil_('${x.id}')">Excluir</button></div>`).join('') || '<div class="obs-line">Nenhum perfil ainda. Crie abaixo (o contador informa NCM e CSOSN).</div>'}
+    ${r.padraoId?`<div class="obs-line"><button class="ghost" style="width:auto;padding:4px 10px;min-height:32px;" onclick="atribuirFiscal_('padrao',null,'')">Tirar o perfil padrão</button></div>`:''}
+    <div style="margin-top:8px;"><b>Perfis por categoria</b>${(r.categorias||[]).map(c=>`<div class="obs-line">${escH(c.nome)}: <select onchange="atribuirFiscal_('categoria','${c.id}',this.value)">${opts(c.perfilId)}</select></div>`).join('')}</div>
+    <div style="margin-top:8px;"><b>${e.id?'Editar perfil':'Novo perfil'}</b>
+      <input type="hidden" id="fscId" value="${g('id')}">
+      <label for="fscNome">Nome (ex.: Lanches)</label><input id="fscNome" maxlength="60" value="${g('nome')}">
+      <label for="fscNcm">NCM (8 números)</label><input id="fscNcm" maxlength="12" value="${g('ncm')}">
+      <label for="fscCest">CEST (7 números, se o contador pedir)</label><input id="fscCest" maxlength="9" value="${g('cest')}">
+      <label for="fscCfop">CFOP</label><input id="fscCfop" maxlength="4" value="${g('cfop','5102')}">
+      <label for="fscCsosn">CSOSN (Simples/MEI, ex.: 102)</label><input id="fscCsosn" maxlength="4" value="${g('csosn')}">
+      <label for="fscCst">CST do ICMS (só regime normal)</label><input id="fscCst" maxlength="2" value="${g('cstIcms')}">
+      <label for="fscOrigem">Origem da mercadoria (0 = nacional)</label><input id="fscOrigem" maxlength="1" value="${g('origem','0')}">
+      <label for="fscUn">Unidade</label><input id="fscUn" maxlength="6" value="${g('unidade','UN')}">
+      <label class="obs-line" style="display:flex;gap:8px;"><input type="checkbox" id="fscAtivo" ${e.id && e.ativo===false?'':'checked'} style="width:auto;"> Perfil ativo</label>
+      <div class="btnrow" style="margin-top:8px;"><button class="primary" onclick="salvarFiscalPerfil_()">Salvar perfil</button>${e.id?'<button class="ghost" onclick="renderFiscalPerfis_()">Cancelar</button>':''}</div><div class="msg" id="fscMsg"></div></div></div>`;
+}
+function editarFiscalPerfil_(id){ const x = ((fiscalPerfisCache_||{}).perfis||[]).find(p=>p.id===id); if(x) renderFiscalPerfis_(x); }
+async function salvarFiscalPerfil_(){
+  const v = id => document.getElementById(id).value.trim();
+  const p = { id:v('fscId')||null, nome:v('fscNome'), ncm:v('fscNcm'), cest:v('fscCest'), cfop:v('fscCfop'), csosn:v('fscCsosn'), cstIcms:v('fscCst'), origem:v('fscOrigem'), unidade:v('fscUn'), ativo:document.getElementById('fscAtivo').checked };
+  try{ const r = await apiCall('fiscalPerfilSalvar', p);
+    if(r && r.ok){ fiscalPerfisCache_ = r; renderFiscalPerfis_(); showMsg('fscMsg', r.message||'Salvo.', 'ok'); carregarIntegracoes_(); } else showMsg('fscMsg', (r&&r.message)||'Não foi possível salvar.', 'warn');
+  }catch(e){ showMsg('fscMsg','Sem conexão.','warn'); }
+}
+async function excluirFiscalPerfil_(id){
+  if(!confirm('Excluir este perfil fiscal?')) return;
+  try{ const r = await apiCall('fiscalPerfilExcluir', { id }); if(r && r.ok){ fiscalPerfisCache_ = r; renderFiscalPerfis_(); carregarIntegracoes_(); } else alert((r&&r.message)||'Não foi possível excluir.'); }catch(e){ alert('Sem conexão.'); }
+}
+async function atribuirFiscal_(alvo, id, perfilId){
+  try{ const r = await apiCall('fiscalAtribuir', { alvo, id, perfilId: perfilId||null });
+    if(r && r.ok){ fiscalPerfisCache_ = r; renderFiscalPerfis_(); carregarIntegracoes_(); if(document.getElementById('fiscalSem') && document.getElementById('fiscalSem').innerHTML) carregarFiscalSem_(); } else alert((r&&r.message)||'Não foi possível salvar.');
+  }catch(e){ alert('Sem conexão.'); }
+}
+async function carregarFiscalSem_(){
+  const box = document.getElementById('fiscalSem'); if(!box) return;
+  try{
+    const [a, b] = await Promise.all([apiCall('fiscalSemPerfil', {}), apiCall('fiscalPerfis', {})]);
+    if(!a || !a.ok){ box.innerHTML = '<div class="obs-line">' + escH((a && a.message) || 'Não foi possível carregar.') + '</div>'; return; }
+    if(b && b.ok) fiscalPerfisCache_ = b;
+    const ps = ((b && b.perfis) || []).filter(x=>x.ativo), it = a.itens || [];
+    if(!it.length){ box.innerHTML = '<div class="notif-card">✅ Todos os produtos e combos têm perfil fiscal.</div>'; return; }
+    const opt = '<option value="">Escolher perfil…</option>' + ps.map(x=>`<option value="${x.id}">${escH(x.nome)}</option>`).join('');
+    window._fiscalSem = it;
+    box.innerHTML = `<div class="notif-card"><b>${it.length} item(ns) sem perfil fiscal</b>
+      <div class="obs-line">Aplicar a todos: <select id="fsTodos">${opt}</select> <button class="ghost" style="width:auto;padding:4px 10px;min-height:32px;" onclick="aplicarFiscalTodos_()">Aplicar</button></div>
+      ${it.map((x,i)=>`<div class="obs-line">${x.tipo==='combo'?'🍱':'🍔'} ${escH(x.nome)} <span style="color:var(--muted);">${escH(x.categoria||'')}</span> <select onchange="atribuirFiscal_('${x.tipo}','${x.id}',this.value)">${opt}</select></div>`).join('')}</div>`;
+  }catch(e){ box.innerHTML = '<div class="obs-line">Sem conexão.</div>'; }
+}
+async function aplicarFiscalTodos_(){
+  const pid = document.getElementById('fsTodos').value; if(!pid) return alert('Escolha o perfil.');
+  if(!confirm('Aplicar este perfil a todos os itens da lista?')) return;
+  try{ const r = await apiCall('fiscalAtribuir', { alvo:'lote', perfilId:pid, ids:(window._fiscalSem||[]).map(x=>({ tipo:x.tipo, id:x.id })) });
+    if(r && r.ok){ fiscalPerfisCache_ = r; carregarFiscalSem_(); carregarIntegracoes_(); } else alert((r&&r.message)||'Não foi possível salvar.'); }catch(e){ alert('Sem conexão.'); }
+}
+const FISCAL_PLAN_COLS_ = ['tipo','id','nome','categoria','perfil','ncm','cest','cfop','csosn','cstIcms','origem','unidade'];
+async function baixarPlanilhaFiscal_(){
+  try{ const r = await apiCall('fiscalExportar', {});
+    if(!r || !r.ok) return alert((r&&r.message)||'Não foi possível gerar.');
+    baixarCsv_('planilha-fiscal.csv', FISCAL_PLAN_COLS_, (r.linhas||[]).map(l=>FISCAL_PLAN_COLS_.map(c=>l[c]==null?'':l[c])));
+  }catch(e){ alert('Sem conexão.'); }
+}
+function csvLinhas_(txt){
+  txt = String(txt||'').replace(/^﻿/, ''); const sep = (txt.split('\n')[0].match(/;/g)||[]).length >= (txt.split('\n')[0].match(/,/g)||[]).length ? ';' : ',';
+  const out = []; let l = [], c = '', q = false;
+  for(let i=0;i<txt.length;i++){ const ch = txt[i];
+    if(q){ if(ch==='"'){ if(txt[i+1]==='"'){ c+='"'; i++; } else q=false; } else c+=ch; }
+    else if(ch==='"') q=true; else if(ch===sep){ l.push(c); c=''; }
+    else if(ch==='\n'||ch==='\r'){ if(ch==='\r'&&txt[i+1]==='\n') i++; l.push(c); c=''; if(l.some(x=>x!=='')) out.push(l); l=[]; }
+    else c+=ch; }
+  l.push(c); if(l.some(x=>x!=='')) out.push(l); return out;
+}
+async function enviarPlanilhaFiscal_(inp){
+  const f = inp.files && inp.files[0]; inp.value = ''; if(!f) return;
+  try{
+    const linhas = csvLinhas_(await f.text()); if(linhas.length < 2) return alert('Planilha vazia.');
+    const cab = linhas[0].map(x=>x.trim().toLowerCase().replace(/[^a-z]/g,'')), ix = n => cab.indexOf(n.toLowerCase());
+    const col = { tipo:ix('tipo'), id:ix('id'), nome:ix('nome'), perfil:ix('perfil'), ncm:ix('ncm'), cest:ix('cest'), cfop:ix('cfop'), csosn:ix('csosn'), cstIcms:ix('csticms'), origem:ix('origem'), unidade:ix('unidade') };
+    if(col.perfil < 0 || col.ncm < 0) return alert('Não achei as colunas "perfil" e "ncm". Use a planilha baixada aqui.');
+    const dados = linhas.slice(1).map(l=>{ const o = {}; Object.keys(col).forEach(k=>{ o[k] = col[k] >= 0 ? (l[col[k]]||'').trim() : ''; }); return o; });
+    if(!confirm('Aplicar ' + dados.length + ' linha(s) da planilha? Isso cria/atualiza perfis e liga os itens a eles.')) return;
+    const r = await apiCall('fiscalImportar', { linhas: dados });
+    if(r && r.ok){ fiscalPerfisCache_ = r; alert(r.message || 'Aplicado.'); carregarIntegracoes_(); if(document.getElementById('fiscalPerfis')) renderFiscalPerfis_(); } else alert((r&&r.message)||'Não foi possível aplicar.');
+  }catch(e){ alert('Não consegui ler o arquivo.'); }
+}
+
+/* ---- Nota fiscal (Fase 5): onde/quando emitir, lista de notas, reemitir, DANFE, treino. Só aparece no cartão "Nota fiscal". ---- */
+function nfceOpcoesHtml_(it){
+  const c = it.config || {}, canais = Array.isArray(c.canais) ? c.canais : ['balcao'], quando = c.emitirQuando || 'pagamento';
+  return `<div style="margin-top:8px;"><b>Onde e quando emitir a nota</b>
+    ${[['balcao','Balcão (Caixa)'],['cardapio','Cardápio online'],['ifood','iFood'],['mesa','Mesa / Garçom']].map(([k,t])=>`<label class="obs-line" style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;"><input type="checkbox" ${canais.indexOf(k)!==-1?'checked':''} onchange="salvarNfceCanal_('${k}',this.checked)" style="width:auto;margin-top:3px;"> ${t}</label>`).join('')}
+    <label class="obs-line" for="nfceQuando">Emitir a nota</label>
+    <select id="nfceQuando" onchange="salvarNfceConfig_({ emitirQuando:this.value })"><option value="pagamento" ${quando==='pagamento'?'selected':''}>quando a venda for paga (recomendado no balcão)</option><option value="entrega" ${quando==='entrega'?'selected':''}>quando o pedido for entregue (recomendado no delivery)</option></select>
+    <div class="obs-line">Dica: comece só com o Balcão e confira com o contador antes de incluir os outros.</div></div>`;
+}
+async function salvarNfceConfig_(config){
+  try{ const r = await apiCall('integracoesConfig', { provedor:'nfce', config }); if(r && r.ok){ integStatus_ = r.integracoes||integStatus_; } else showMsg('integMsg', (r&&r.message)||'Não foi possível salvar.', 'warn'); }catch(e){ showMsg('integMsg','Sem conexão.','warn'); }
+  renderIntegracoes_();
+}
+function salvarNfceCanal_(canal, marcado){
+  const it = (integStatus_||[]).find(x=>x.provedor==='nfce'); const atual = ((it && it.config && it.config.canais) || ['balcao']).filter(x=>x!==canal);
+  if(marcado) atual.push(canal);
+  return salvarNfceConfig_({ canais: atual });
+}
+const NFCE_ESTADO_ROT_ = { pendente:'⏳ aguardando emissão', emitindo:'⏳ emitindo', duvida:'⏳ conferindo com a Focus', autorizada:'✅ autorizada', rejeitada:'❌ rejeitada', contingencia:'🟠 em contingência', pendencia:'⚠️ parada (pendência)', cancelando:'⏳ cancelando', cancelada:'⛔ cancelada', erro:'❌ erro de comunicação', dispensada:'— sem nota (valor zero)' };
+let nfceFiltro_ = '';
+async function carregarNfceLista_(estado){
+  const box = document.getElementById('nfceLista'); if(!box) return;
+  if(estado !== undefined) nfceFiltro_ = estado || '';
+  try{
+    const r = await apiCall('nfceLista', { estado: nfceFiltro_ });
+    if(!r || !r.ok){ box.innerHTML = '<div class="obs-line">' + escH((r && r.message) || 'Não foi possível carregar.') + '</div>'; return; }
+    const ct = r.contagem || {}, dev = currentUser && currentUser.nivelReal === 'Desenvolvedor';
+    const chip = (k,t)=>`<button class="ghost" style="width:auto;padding:4px 10px;min-height:32px;${nfceFiltro_===k?'border-color:var(--gold);':''}" onclick="carregarNfceLista_('${k}')">${t}${k&&ct[k]?' ('+ct[k]+')':''}</button>`;
+    box.innerHTML = `<div class="notif-card"><b>Notas fiscais</b> · neste mês: ${r.mes||0} de 500 do plano (produção)
+      <div class="btnrow" style="margin-top:6px;">${chip('','Todas')}${chip('autorizada','Autorizadas')}${chip('rejeitada','Rejeitadas')}${chip('pendencia','Pendências')}${chip('contingencia','Contingência')}${chip('pendente','Aguardando')}${dev?'<button class="ghost" onclick="simularNfce_()">🧪 Nota de treino</button>':''}</div>
+      ${(r.itens||[]).map(n=>`<div class="obs-line" style="border-top:1px solid var(--line,#333);padding-top:6px;margin-top:6px;">
+        <b>#${escH(n.pedido==null?'?':n.pedido)}</b> ${escH(n.cliente||'')} — ${formatarMoeda(Number(n.valor)||0)} — ${NFCE_ESTADO_ROT_[n.estado]||escH(n.estado)}${n.ambiente!=='producao'?' <span style="color:#d9a441;">['+(n.ambiente==='simulado'?'treino':'teste')+']</span>':''}${n.numero?' · nº '+escH(n.numero)+'/'+escH(n.serie||1):''}${n.cpf?' · com CPF':''}
+        ${n.erro?`<div style="color:#ffb3ab;">${escH(n.erro)}</div>`:''}
+        <div class="btnrow" style="margin-top:4px;">
+          ${['rejeitada','pendencia','erro','duvida','dispensada'].indexOf(n.estado)!==-1?`<button class="ghost" style="width:auto;padding:4px 10px;min-height:32px;" onclick="reemitirNfce_(${n.id})">Reemitir</button>`:''}
+          ${n.estado==='autorizada'&&n.danfe?`<a class="ghost" style="padding:4px 10px;" href="${escH(n.danfe)}" target="_blank" rel="noopener">Abrir DANFE (cupom)</a>`:''}
+          ${n.estado==='autorizada'&&n.xml?`<a class="ghost" style="padding:4px 10px;" href="${escH(n.xml)}" target="_blank" rel="noopener">XML</a>`:''}
+          ${n.estado==='autorizada'&&(n.consulta||n.danfe)?`<a class="ghost" style="padding:4px 10px;" href="https://wa.me/?text=${encodeURIComponent('Sua nota fiscal: '+(n.consulta||n.danfe))}" target="_blank" rel="noopener">Enviar ao cliente</a>`:''}
+        </div></div>`).join('') || '<div class="obs-line">Nenhuma nota nesta lista ainda.</div>'}</div>`;
+  }catch(e){ box.innerHTML = '<div class="obs-line">Sem conexão.</div>'; }
+}
+async function reemitirNfce_(id){
+  if(!confirm('Tentar emitir esta nota de novo?')) return;
+  try{ const r = await apiCall('nfceReemitir', { id }); showMsg('integMsg', (r&&r.message)||'Não foi possível.', r&&r.ok?'ok':'warn'); setTimeout(()=>carregarNfceLista_(), 5000); carregarNfceLista_(); }catch(e){ showMsg('integMsg','Sem conexão.','warn'); }
+}
+async function simularNfce_(){
+  try{ const r = await apiCall('nfceSimular', {}); showMsg('integMsg', (r&&r.message)||'Não foi possível.', r&&r.ok?'ok':'warn'); setTimeout(()=>carregarNfceLista_(), 8000); }catch(e){ showMsg('integMsg','Sem conexão.','warn'); }
+}
+function atualizarCpfBox_(){ const b = document.getElementById('vCpfBox'); if(b) b.style.display = (window.INTEG_ && INTEG_.nfce && !(typeof souGarcom_==='function' && souGarcom_())) ? '' : 'none'; }
+
+/* ---- Nota fiscal (Fase 6): conferência Vendas × Notas, numeração pulada (inutilizar), pacote do contador ---- */
+async function carregarNfceConf_(){
+  const box = document.getElementById('nfceConf'); if(!box) return;
+  try{
+    const r = await apiCall('nfceConferencia', {});
+    if(!r || !r.ok){ box.innerHTML = '<div class="obs-line">' + escH((r && r.message) || 'Não foi possível carregar.') + '</div>'; return; }
+    const bt = 'class="ghost" style="width:auto;padding:4px 10px;min-height:32px;"';
+    const t = r.totais || {};
+    box.innerHTML = `<div class="notif-card"><b>Conferência (últimos ${r.dias} dias)</b>
+      <div class="obs-line">Vendas dos canais escolhidos: ${formatarMoeda(Number(t.vendas)||0)} · notas autorizadas: ${formatarMoeda(Number(t.notas)||0)}</div>
+      <div class="obs-line">${(r.semNota||[]).length ? '⚠️ '+r.semNota.length+' venda(s) que deveriam ter nota e não têm:' : '✅ Nenhuma venda sem nota.'}</div>
+      ${(r.semNota||[]).map(v=>`<div class="obs-line">#${escH(v.pedido)} ${escH(v.cliente||'')} — ${formatarMoeda(Number(v.valor)||0)} <button ${bt} onclick="emitirVendaNfce_('${v.vendaId}')">Emitir nota</button></div>`).join('')}
+      <div class="obs-line">${r.comProblema ? '❌ '+r.comProblema+' nota(s) com problema (veja a lista "Rejeitadas"/"Pendências").' : '✅ Nenhuma nota com problema.'}</div>
+      ${(r.cancelarManual||[]).length ? '<div class="obs-line">⚠️ Cancelamentos que o contador precisa orientar:</div>' + r.cancelarManual.map(n=>`<div class="obs-line">#${escH(n.pedido==null?'?':n.pedido)} nota ${escH(n.numero||'')} — ${escH(n.motivo||'')}</div>`).join('') : ''}
+      <div class="obs-line">${(r.buracos||[]).length ? '⚠️ Numeração pulada:' : '✅ Sem números pulados.'}</div>
+      ${(r.buracos||[]).map(g=>`<div class="obs-line">Série ${g.serie}: números ${g.ini}${g.fim!==g.ini?' a '+g.fim:''} <button ${bt} onclick="inutilizarNfce_(${g.serie},${g.ini},${g.fim})">Inutilizar</button></div>`).join('')}
+      ${(r.inutilizacoes||[]).length ? '<div class="obs-line">Últimas inutilizações: '+r.inutilizacoes.map(i=>`série ${i.serie} ${i.ini}-${i.fim} (${escH(i.estado)})`).join('; ')+'</div>' : ''}
+      <div class="msg" id="nfceConfMsg"></div></div>`;
+  }catch(e){ box.innerHTML = '<div class="obs-line">Sem conexão.</div>'; }
+}
+async function emitirVendaNfce_(vendaId){
+  if(!confirm('Criar a nota desta venda agora?')) return;
+  try{ const r = await apiCall('nfceEmitirVenda', { vendaId }); showMsg('nfceConfMsg', (r&&r.message)||'Não foi possível.', r&&r.ok?'ok':'warn'); setTimeout(carregarNfceConf_, 6000); }catch(e){ showMsg('nfceConfMsg','Sem conexão.','warn'); }
+}
+function inutilizarNfce_(serie, ini, fim){
+  const just = prompt('Motivo da inutilização (mínimo 15 letras):', 'Numeração pulada por falha de emissão');
+  if(!just || just.trim().length < 15) return alert('Escreva um motivo com pelo menos 15 letras.');
+  abrirModalSenhaAdmin(async function(senhaAdm){
+    try{ const r = await apiCall('nfceInutilizar', { serie, ini, fim, justificativa:just.trim(), senhaAdmin:senhaAdm }); showMsg('nfceConfMsg', (r&&r.message)||'Não foi possível.', r&&r.ok?'ok':'warn'); setTimeout(carregarNfceConf_, 6000); }
+    catch(e){ showMsg('nfceConfMsg','Sem conexão.','warn'); }
+  });
+}
+async function carregarNfcePacote_(){
+  const box = document.getElementById('nfcePac'); if(!box) return;
+  const hoje = new Date(); const mesPad = hoje.getFullYear() + '-' + String(hoje.getMonth()+1).padStart(2,'0');
+  box.innerHTML = `<div class="notif-card"><b>Pacote do contador</b>
+    <label for="nfcePacMes">Mês</label><input type="month" id="nfcePacMes" value="${mesPad}">
+    <div class="btnrow" style="margin-top:6px;"><button class="primary" onclick="baixarPacoteNfce_()">Baixar planilha do mês</button></div>
+    <div id="nfcePacLinks"></div><div class="obs-line">A Focus também baixa todos os XML do mês no painel dela.</div></div>`;
+}
+async function baixarPacoteNfce_(){
+  const v = (document.getElementById('nfcePacMes')||{}).value || ''; const [ano, mes] = v.split('-').map(Number);
+  try{
+    const r = await apiCall('nfcePacote', { ano, mes });
+    if(!r || !r.ok) return alert((r&&r.message)||'Não foi possível gerar.');
+    const cab = ['Pedido','Emitida em','Número','Série','Chave','Valor','Situação','Cancelada em','CPF informado','XML'];
+    baixarCsv_('notas-fiscais-' + ano + '-' + String(mes).padStart(2,'0') + '.csv', cab, (r.notas||[]).map(n=>[n.pedido==null?'':n.pedido, n.emitidaEm||'', n.numero||'', n.serie||'', n.chave||'', csvNum_(n.valor), n.estado, n.canceladaEm||'', n.comCpf?'sim':'não', n.xml||'']));
+    const el = document.getElementById('nfcePacLinks');
+    if(el) el.innerHTML = (r.notas||[]).length ? '<div class="obs-line">'+r.notas.length+' nota(s) no mês ('+escH(r.ambiente==='producao'?'produção':'teste')+')'+((r.inutilizacoes||[]).length?' · '+r.inutilizacoes.length+' inutilização(ões)':'')+'</div>' + r.notas.filter(n=>n.xml).map(n=>`<div class="obs-line"><a href="${escH(n.xml)}" target="_blank" rel="noopener">XML nº ${escH(n.numero||'')}</a></div>`).join('') : '<div class="obs-line">Nenhuma nota neste mês.</div>';
+  }catch(e){ alert('Sem conexão.'); }
+}
+
+/* ---- iFood: pedidos, itens ligados, simulação (aparecem dentro do cartão Integrações) ---- */
+function ifoodExtraHtml_(it){
+  const dev = currentUser && currentUser.nivelReal === 'Desenvolvedor';
+  return `<div style="margin-top:10px;border-top:1px solid var(--gold);padding-top:8px;">
+    <div class="btnrow">
+      <button class="ghost" onclick="carregarIfoodLoja_()">Loja no iFood</button>
+      <button class="ghost" onclick="carregarIfoodNeg_()">Negociações</button>
+      <button class="ghost" onclick="carregarIfoodPedidos_()">Pedidos do iFood</button>
+      <button class="ghost" onclick="carregarIfoodItens_()">Itens do iFood</button>
+      <button class="ghost" onclick="carregarIfoodPrecos_()">Preços</button>
+      <button class="ghost" onclick="carregarIfoodFin_()">Financeiro</button>
+      <button class="ghost" onclick="carregarIfoodAval_()">Avaliações</button>
+      <button class="ghost" onclick="carregarIfoodRel_()">Relatório por canal</button>
+      <button class="ghost" onclick="reprocessarIfood_()">Refazer pedidos sem ligação</button>
+      ${dev?'<button class="ghost" onclick="simularIfood_()">🧪 Simular pedido do iFood (treino)</button>':''}
+    </div>
+    <div id="ifoodLoja"></div><div id="ifoodNeg"></div><div id="ifoodPedidos"></div><div id="ifoodItens"></div><div id="ifoodPrecos"></div><div id="ifoodFin"></div><div id="ifoodAval"></div><div id="ifoodRel"></div></div>`;
+}
+const IFOOD_ESTADO_ROT_ = { novo:'aguardando confirmação', confirmado:'confirmado', em_preparo:'em preparo', pronto:'pronto', despachado:'saiu para entrega', concluido:'concluído', cancelado:'cancelado' };
+
+async function carregarIfoodLoja_(){
+  const box = document.getElementById('ifoodLoja'); if(!box) return;
+  try{
+    const r = await apiCall('ifoodLoja', {});
+    if(!r || !r.ok){ box.innerHTML = '<div class="obs-line">' + escH((r && r.message) || 'Não foi possível carregar.') + '</div>'; return; }
+    const l = r.loja || {}; const pausa = l.pausada_ate && new Date(l.pausada_ate) > new Date();
+    box.innerHTML = `<div class="notif-card" style="border-left:4px solid ${l.verificado_em?(l.disponivel?'#2e9e5b':'#c0392b'):'#888'};">
+      <b>Loja no iFood:</b> ${l.verificado_em?(l.disponivel?'🟢 aberta':'🔴 fechada/indisponível'):'ainda não verificada'}${l.situacao?' ('+escH(l.situacao)+')':''}${pausa?' · pausada até '+escH(fmtDiaHoraBr_(l.pausada_ate)):''}
+      ${l.motivo?`<div class="obs-line">${escH(l.motivo)}</div>`:''}
+      <div class="btnrow" style="margin-top:6px;"><button class="ghost" onclick="lojaIfoodAcao_('pausar',30)">Pausar 30 min</button><button class="ghost" onclick="lojaIfoodAcao_('pausar',60)">Pausar 1 h</button><button class="ghost" onclick="lojaIfoodAcao_('retomar')">Retomar</button><button class="ghost" onclick="lojaIfoodAcao_('fechar')">Fechar</button><button class="ghost" onclick="lojaIfoodAcao_('abrir')">Abrir</button></div></div>`;
+  }catch(e){ box.innerHTML = '<div class="obs-line">Sem conexão.</div>'; }
+}
+async function lojaIfoodAcao_(acao, minutos){
+  try{ const r = await apiCall('ifoodLojaAcao', { acao, minutos }); showMsg('integMsg', (r && r.message) || 'Não foi possível.', r && r.ok ? 'ok' : 'warn'); setTimeout(carregarIfoodLoja_, 4000); carregarIfoodLoja_(); }catch(e){ showMsg('integMsg','Sem conexão.','warn'); }
+}
+async function carregarIfoodNeg_(){
+  const box = document.getElementById('ifoodNeg'); if(!box) return;
+  try{
+    const r = await apiCall('ifoodNegociacoes', {});
+    if(!r || !r.ok){ box.innerHTML = '<div class="obs-line">' + escH((r && r.message) || 'Não foi possível carregar.') + '</div>'; return; }
+    box.innerHTML = (r.itens||[]).map(n=>{ const aberta = n.estado==='aberta' && n.segundos>0;
+      return `<div class="notif-card" style="border-left:4px solid ${aberta?'#e0a800':'#888'};">
+        <b>Pedido iFood #${escH(n.pedido||'')}</b> — ${escH(n.tipo||'cancelamento')} · ${escH(n.estado)}
+        <div class="obs-line">${escH(n.motivo||'')}</div>
+        ${aberta?`<div class="obs-line">⏱ Responder em até ${Math.floor(n.segundos/60)} min ${n.segundos%60} s</div>
+          <div class="btnrow"><button class="primary" onclick="negIfood_('${escH(n.id)}','aceitar')">Aceitar</button><button class="ghost" onclick="negIfood_('${escH(n.id)}','recusar')">Recusar</button>
+          ${(n.alternativas||[]).map(a=>`<button class="ghost" onclick="negIfood_('${escH(n.id)}','alternativa','${escH(a.id||'')}')">${escH(a.type||a.id||'Alternativa')}</button>`).join('')}</div>`:''}
+      </div>`; }).join('') || '<div class="obs-line">Nenhuma negociação.</div>';
+  }catch(e){ box.innerHTML = '<div class="obs-line">Sem conexão.</div>'; }
+}
+async function negIfood_(id, acao, alternativaId){
+  if(acao==='recusar' && !confirm('Recusar o pedido do cliente? O iFood pode decidir por ele depois.')) return;
+  try{ const r = await apiCall('ifoodNegociacaoResponder', { id, acao, alternativaId }); showMsg('integMsg', (r && r.message) || 'Não foi possível.', r && r.ok ? 'ok' : 'warn'); carregarIfoodNeg_(); }catch(e){ showMsg('integMsg','Sem conexão.','warn'); }
+}
+
+const R$_ = v => 'R$ ' + Number(v||0).toFixed(2).replace('.',',');
+let ifoodPrecosDados_ = null;
+async function carregarIfoodPrecos_(){
+  const box = document.getElementById('ifoodPrecos'); if(!box) return;
+  try{
+    const r = await apiCall('ifoodPrecos', {});
+    if(!r || !r.ok){ box.innerHTML = '<div class="obs-line">' + escH((r && r.message) || 'Não foi possível carregar.') + '</div>'; return; }
+    ifoodPrecosDados_ = r;
+    box.innerHTML = `<div class="notif-card"><b>Preços: sistema × iFood</b>
+      <div class="btnrow" style="margin-top:6px;"><button class="ghost" onclick="pedirCatalogoIfood_()">Importar cardápio do iFood</button><button class="ghost" onclick="aplicarPrecosIfood_()">Gravar preços do iFood no sistema</button>${r.enviarLigado?'<button class="ghost" onclick="enviarPrecosIfood_()">Enviar nossos preços ao iFood</button>':''}</div>
+      <div class="obs-line">${r.enviarLigado?'Envio ligado. Variação máxima por envio: '+r.limitePct+'%.':'Para enviar preços ao iFood, ligue antes o ajuste "Enviar nossos preços ao iFood".'}</div></div>` +
+      ((r.itens||[]).map((i,ix)=>`<div class="notif-card" style="border-left:4px solid ${i.pct>20?'#e0a800':'#2e9e5b'};"><label style="display:flex;gap:8px;align-items:flex-start;"><input type="checkbox" class="ifPrecoSel" value="${escH(i.chave)}" style="width:auto;margin-top:4px;"> <span><b>${escH(i.nome||i.nomeIfood)}</b><div class="obs-line">Sistema ${i.precoSistema!=null?R$_(i.precoSistema):'—'} · iFood ${i.precoIfood!=null?R$_(i.precoIfood):'não importado'}${i.pct!=null?' · diferença '+(i.diff>0?'+':'')+R$_(i.diff)+' ('+i.pct+'%)':''}${i.pct>20?' ⚠️ fora do padrão':''}</div></span></label></div>`).join('') || '<div class="obs-line">Ligue itens do iFood a produtos e importe o cardápio para comparar.</div>') +
+      ((r.historico||[]).length?'<div class="notif-card"><b>Histórico</b>'+r.historico.map(h=>`<div class="obs-line">${escH(fmtDiaHoraBr_(h.quando))} · ${escH(h.nome||'')} · ${h.antes!=null?R$_(h.antes):'—'} → ${R$_(h.depois)} · ${escH(h.origem)} (${escH(h.estado)})${h.erro?' ❗'+escH(h.erro):''} ${h.origem==='enviar'&&h.estado==='ok'?'<button class="ghost" style="width:auto;padding:2px 8px;min-height:28px;" onclick="desfazerPrecoIfood_('+h.id+')">Desfazer</button>':''}</div>`).join('')+'</div>':'');
+  }catch(e){ box.innerHTML = '<div class="obs-line">Sem conexão.</div>'; }
+}
+const selPrecosIfood_ = ()=>[...document.querySelectorAll('.ifPrecoSel:checked')].map(x=>x.value);
+async function pedirCatalogoIfood_(){ try{ const r = await apiCall('ifoodPrecosPedirCatalogo', {}); showMsg('integMsg',(r&&r.message)||'Não foi possível.', r&&r.ok?'ok':'warn'); }catch(e){ showMsg('integMsg','Sem conexão.','warn'); } }
+async function aplicarPrecosIfood_(){
+  const ch = selPrecosIfood_(); if(!ch.length) return showMsg('integMsg','Marque os itens que quer gravar no sistema.','warn');
+  if(!confirm('Gravar no sistema o preço do iFood de '+ch.length+' item(ns)? (muda o campo "Preço no iFood")')) return;
+  try{ const r = await apiCall('ifoodPrecosAplicar', { chaves: ch }); showMsg('integMsg',(r&&r.message)||'Não foi possível.', r&&r.ok?'ok':'warn'); carregarIfoodPrecos_(); }catch(e){ showMsg('integMsg','Sem conexão.','warn'); }
+}
+async function enviarPrecosIfood_(){
+  const ch = selPrecosIfood_(); if(!ch.length) return showMsg('integMsg','Marque os itens que quer enviar ao iFood.','warn');
+  if(!confirm('ENVIAR ao iFood o nosso preço de '+ch.length+' item(ns)? Os clientes do iFood passarão a ver o novo preço. Dá para desfazer pelo histórico.')) return;
+  try{ const r = await apiCall('ifoodPrecosEnviar', { chaves: ch, confirmar: 'true' }); showMsg('integMsg',(r&&r.message)||'Não foi possível.', r&&r.ok?'ok':'warn'); carregarIfoodPrecos_(); }catch(e){ showMsg('integMsg','Sem conexão.','warn'); }
+}
+async function desfazerPrecoIfood_(id){
+  if(!confirm('Reenviar o preço anterior ao iFood?')) return;
+  try{ const r = await apiCall('ifoodPrecosDesfazer', { id }); showMsg('integMsg',(r&&r.message)||'Não foi possível.', r&&r.ok?'ok':'warn'); carregarIfoodPrecos_(); }catch(e){ showMsg('integMsg','Sem conexão.','warn'); }
+}
+async function carregarIfoodFin_(){
+  const box = document.getElementById('ifoodFin'); if(!box) return;
+  try{
+    const r = await apiCall('ifoodFinanceiro', {});
+    if(!r || !r.ok){ box.innerHTML = '<div class="obs-line">' + escH((r && r.message) || 'Não foi possível carregar.') + '</div>'; return; }
+    box.innerHTML = `<div class="notif-card"><b>A receber do iFood:</b> ${R$_(r.aReceber.valor)} em ${r.aReceber.pedidos} pedido(s) pagos no app, ainda sem repasse.
+      <div class="obs-line">Recebido nos últimos 30 dias: ${R$_(r.recebido30d.valor)} em ${r.recebido30d.repasses} repasse(s) · comissão real registrada: ${R$_(r.comissao30d)}</div></div>` +
+      ((r.repasses||[]).map(x=>`<div class="obs-line">${escH(x.pagoEm||'')} · ${R$_(x.valor)} · ${x.pedidos} pedido(s)</div>`).join(''));
+  }catch(e){ box.innerHTML = '<div class="obs-line">Sem conexão.</div>'; }
+}
+async function carregarIfoodAval_(){
+  const box = document.getElementById('ifoodAval'); if(!box) return;
+  try{
+    const r = await apiCall('ifoodAvaliacoes', {});
+    if(!r || !r.ok){ box.innerHTML = '<div class="obs-line">' + escH((r && r.message) || 'Não foi possível carregar.') + '</div>'; return; }
+    box.innerHTML = `<div class="obs-line">Nota média (30 dias): ${r.media30d!=null?r.media30d:'—'}</div>` + ((r.itens||[]).map(a=>`<div class="notif-card" style="border-left:4px solid ${a.nota<=2?'#c0392b':'#2e9e5b'};">⭐ ${a.nota} ${a.pedido?'· pedido #'+escH(a.pedido):''} <div class="obs-line">${escH(a.comentario||'(sem comentário)')}</div>
+      ${a.resposta?`<div class="obs-line">↩ ${escH(a.resposta)}</div>`:`<input type="text" id="avR_${escH(a.id)}" maxlength="600" placeholder="Sua resposta"> <button class="ghost" onclick="responderAvalIfood_('${escH(a.id)}')">Responder</button>`}</div>`).join('') || '<div class="obs-line">Nenhuma avaliação ainda.</div>');
+  }catch(e){ box.innerHTML = '<div class="obs-line">Sem conexão.</div>'; }
+}
+async function responderAvalIfood_(id){
+  const t = (document.getElementById('avR_'+id)||{}).value || '';
+  try{ const r = await apiCall('ifoodAvaliacaoResponder', { id, texto: t }); showMsg('integMsg',(r&&r.message)||'Não foi possível.', r&&r.ok?'ok':'warn'); carregarIfoodAval_(); }catch(e){ showMsg('integMsg','Sem conexão.','warn'); }
+}
+async function carregarIfoodRel_(){
+  const box = document.getElementById('ifoodRel'); if(!box) return;
+  try{
+    const r = await apiCall('ifoodRelatorio', { dias: 30 });
+    if(!r || !r.ok){ box.innerHTML = '<div class="obs-line">' + escH((r && r.message) || 'Não foi possível carregar.') + '</div>'; return; }
+    const f = r.ifood || {};
+    box.innerHTML = `<div class="notif-card"><b>Vendas por canal — últimos ${r.dias} dias</b>` + (r.canais||[]).map(c=>`<div class="obs-line">${escH(c.canal)}: ${c.pedidos} pedido(s) · ${R$_(c.total)} · ticket ${R$_(c.ticket)} · margem ${c.margemPct}% · cancelados ${c.cancelados}</div>`).join('') + `</div>
+      <div class="notif-card"><b>iFood</b><div class="obs-line">Tempo médio para confirmar: ${f.confirmacaoMediaMin!=null?f.confirmacaoMediaMin+' min':'—'} · itens sem ligação: ${f.itensSemLigacao||0} · comissão real: ${R$_(f.comissaoReal)}</div>
+      ${(f.cancelamentos||[]).length?'<div class="obs-line">Cancelamentos: '+f.cancelamentos.map(x=>escH(x.motivo)+' ('+x.qtd+')').join('; ')+'</div>':''}
+      ${(f.maisVendidos||[]).length?'<div class="obs-line">Mais vendidos no iFood: '+f.maisVendidos.map(x=>escH(x.nome)+' ('+x.qtd+')').join('; ')+'</div>':''}</div>`;
+  }catch(e){ box.innerHTML = '<div class="obs-line">Sem conexão.</div>'; }
+}
+async function carregarIfoodPedidos_(){
+  const box = document.getElementById('ifoodPedidos'); if(!box) return;
+  try{
+    const r = await apiCall('ifoodPedidos', {});
+    if(!r || !r.ok){ box.innerHTML = '<div class="obs-line">' + escH((r && r.message) || 'Não foi possível carregar.') + '</div>'; return; }
+    const e = r.estado || {};
+    const cab = `<div class="obs-line">Última consulta ao iFood: ${e.ultimaConsultaOk ? escH(fmtDiaHoraBr_(e.ultimaConsultaOk)) : 'nunca'}${e.ultimoPedido ? ' · último pedido: ' + escH(fmtDiaHoraBr_(e.ultimoPedido)) : ''}${e.ultimoErro ? ' · ⚠️ ' + escH(e.ultimoErro) : ''}</div>`;
+    box.innerHTML = cab + ((r.pedidos||[]).map(p=>`<div class="notif-card" style="border-left:4px solid ${p.cancelado?'#c0392b':(p.semLigacao?'#e0a800':'#2e9e5b')};">
+      <b>iFood #${escH(p.numero||'')}</b> ${p.simulado?'<i>(teste)</i>':''} → venda #${escH(String(p.venda||'—'))} · R$ ${Number(p.total||0).toFixed(2).replace('.',',')} · ${escH(IFOOD_ESTADO_ROT_[p.estado]||p.estado)}${p.cancelado?' · venda cancelada':''}
+      ${p.semLigacao?`<div class="obs-line">⚠️ ${p.semLigacao} item(ns) sem ligação: custo e estoque pendentes.</div>`:''}
+      ${p.acaoErro?`<div class="obs-line">❗ Ação não confirmada no iFood: ${escH(p.acaoErro)}</div>`:''}
+      <div class="obs-line">${escH(fmtDiaHoraBr_(p.em))}</div></div>`).join('') || '<div class="obs-line">Nenhum pedido do iFood ainda.</div>');
+  }catch(er){ box.innerHTML = '<div class="obs-line">Sem conexão.</div>'; }
+}
+let ifoodItensDados_ = null;
+async function carregarIfoodItens_(){
+  const box = document.getElementById('ifoodItens'); if(!box) return;
+  try{
+    const r = await apiCall('ifoodItens', {});
+    if(!r || !r.ok){ box.innerHTML = '<div class="obs-line">' + escH((r && r.message) || 'Não foi possível carregar.') + '</div>'; return; }
+    ifoodItensDados_ = r; renderIfoodItens_();
+  }catch(er){ box.innerHTML = '<div class="obs-line">Sem conexão.</div>'; }
+}
+function renderIfoodItens_(){
+  const box = document.getElementById('ifoodItens'); const r = ifoodItensDados_; if(!box || !r) return;
+  const op = (tipo, lista)=> (lista||[]).map(x=>`<option value="${tipo}:${escH(x.id)}">${escH(x.nome)}</option>`).join('');
+  box.innerHTML = '<p class="sub" style="margin-top:8px;">Cada item do iFood precisa estar ligado a um produto do sistema para baixar os ingredientes e calcular o custo. Itens aparecem aqui quando chegam em pedidos.</p>' +
+    ((r.itens||[]).map((i,ix)=>{
+      const pend = !i.ligado && !i.ignorar;
+      return `<div class="notif-card" style="border-left:4px solid ${pend?'#e0a800':'#2e9e5b'};">
+        <b>${escH(i.nome)}</b> <span class="obs-line" style="display:inline;">(${i.tipo==='opcao'?'opção/adicional':'item'} · código ${escH(i.chave)})</span>
+        ${i.ligado?`<div class="obs-line">✅ Ligado a: ${escH(i.ligadoNome||'—')} (${escH(i.ligado)}) <button class="ghost" style="width:auto;padding:2px 8px;min-height:28px;" onclick="ligarIfoodItem_(${ix},'desligar')">Desfazer</button></div>`:''}
+        ${i.ignorar?`<div class="obs-line">🚫 Ignorado (não baixa estoque) <button class="ghost" style="width:auto;padding:2px 8px;min-height:28px;" onclick="ligarIfoodItem_(${ix},'desligar')">Desfazer</button></div>`:''}
+        ${pend?`<div class="obs-line">⚠️ Sem ligação.</div>
+          ${i.sugestao?`<div class="obs-line">Sugestão: <b>${escH(i.sugestao.nome)}</b> <button class="small-gold" onclick="ligarIfoodItem_(${ix},'sugestao')">Usar sugestão</button></div>`:''}
+          <select id="ifSel_${ix}"><option value="">Escolher no sistema…</option>${i.tipo==='opcao'?'<optgroup label="Adicionais">'+op('adicional',r.adicionais)+'</optgroup>':''}<optgroup label="Produtos">${op('produto',r.produtos)}</optgroup><optgroup label="Combos">${op('combo',r.combos)}</optgroup></select>
+          <div class="btnrow" style="margin-top:6px;"><button class="ghost" onclick="ligarIfoodItem_(${ix},'escolha')">Ligar</button><button class="ghost" onclick="ligarIfoodItem_(${ix},'ignorar')">Ignorar este item</button></div>`:''}
+      </div>`; }).join('') || '<div class="obs-line">Nenhum item do iFood conhecido ainda.</div>');
+}
+async function ligarIfoodItem_(ix, modo){
+  const r0 = ifoodItensDados_; const i = r0 && r0.itens[ix]; if(!i) return;
+  let corpo = { chave: i.chave };
+  if(modo==='sugestao' && i.sugestao){ corpo.tipo = i.sugestao.tipo; corpo.id = i.sugestao.id; }
+  else if(modo==='escolha'){ const v = (document.getElementById('ifSel_'+ix)||{}).value || ''; if(!v) return showMsg('integMsg','Escolha um item do sistema.','warn'); const p = v.split(':'); corpo.tipo = p[0]; corpo.id = p[1]; }
+  else if(modo==='ignorar'){ corpo.ignorar = true; }
+  else if(modo==='desligar'){ corpo.tipo = 'desligar'; }
+  try{
+    const r = await apiCall('ifoodLigarItem', corpo);
+    if(r && r.ok){ ifoodItensDados_ = r; renderIfoodItens_(); showMsg('integMsg','Salvo. Pedidos antigos sem ligação podem ser refeitos com "Refazer pedidos sem ligação".','ok'); }
+    else showMsg('integMsg',(r&&r.message)||'Não foi possível salvar.','warn');
+  }catch(e){ showMsg('integMsg','Sem conexão.','warn'); }
+}
+async function reprocessarIfood_(){
+  if(!confirm('Refazer os pedidos do iFood que ficaram sem ligação, com as ligações atuais? (corrige custo e estoque)')) return;
+  try{ const r = await apiCall('ifoodReprocessar', {}); if(r && r.ok){ showMsg('integMsg', r.message||'Pronto.','ok'); carregarIfoodPedidos_(); } else showMsg('integMsg',(r&&r.message)||'Não foi possível.','warn'); }catch(e){ showMsg('integMsg','Sem conexão.','warn'); }
+}
+async function simularIfood_(){
+  if(!confirm('Criar um pedido de TESTE do iFood? Ele vira uma venda de verdade (marcada como teste) — cancele depois. Nada é enviado ao iFood.')) return;
+  try{ const r = await apiCall('ifoodSimular', { pagoNoApp: true }); if(r && r.ok){ showMsg('integMsg', r.message||'Criado.','ok'); carregarIfoodPedidos_(); } else showMsg('integMsg',(r&&r.message)||'Não foi possível.','warn'); }catch(e){ showMsg('integMsg','Sem conexão.','warn'); }
 }
 
 /* ---------- FEEDBACKS (ADMIN) — ITEM 34 ---------- */
@@ -10933,6 +11557,7 @@ function iaAchar_(lista, nome, campo){
 }
 function iaUnidOk_(a, b){ const g = { kg:'m', g:'m', l:'v', ml:'v', un:'u' }; return !!g[a] && g[a]===g[b]; }
 async function iaPropPreparar_(p){
+  if(p && IA_ACOES_[p.tipo]) return iaAcaoPreparar_(p);
   if(!p || (p.tipo!=='registrar_compra' && p.tipo!=='cadastrar_fornecedor')) return null;
   try{ if(!_compras_.fornecedores.length){ const r = await apiCall('listarCompras', {}); if(r && r.ok) _compras_ = { fornecedores:r.fornecedores||[], compras:r.compras||[] }; } }catch(e){}
   const id = 'p' + (++_iaPropSeq_), pend = [];
@@ -10956,6 +11581,7 @@ async function iaPropPreparar_(p){
 }
 function iaPropHtml_(o){
   if(!o) return '';
+  if(o.generico) return iaAcaoHtml_(o);
   const p = o.bruto, L = [];
   if(o.tipo==='cadastrar_fornecedor'){
     L.push('<b>Cadastrar fornecedor</b>: ' + escH(p.nome) + (p.telefone ? ' · ' + escH(p.telefone) : '') + (p.observacao ? '<br>' + escH(p.observacao) : ''));
@@ -10975,6 +11601,10 @@ async function iaPropAgir_(btn){
   const card = btn.closest('[data-prop]'); if(!card) return;
   const o = _iaProps_[card.getAttribute('data-prop')]; if(!o || o.feito) return;
   const ac = btn.getAttribute('data-prop-ac'), msg = card.querySelector('[data-prop-msg]');
+  if(o.generico){
+    if(ac==='no'){ msg.textContent = 'Descartado. Nada foi gravado.'; card.querySelectorAll('button').forEach(b=>{ b.disabled = true; }); o.feito = true; return; }
+    return iaAcaoAgir_(card, o, msg);
+  }
   const fim = (t, ok) => { msg.textContent = t; card.querySelectorAll('button').forEach(b=>{ b.disabled = true; }); o.feito = true; };
   if(ac==='no'){ fim('Descartado. Nada foi gravado.'); return; }
   if(ac==='rev'){
@@ -11006,6 +11636,148 @@ function cpAplicarPend_(){
   if(p.vencimento) document.getElementById('cpVenc').value = p.vencimento;
   document.getElementById('cpObs').value = p.observacao || '';
   showMsg('cpMsg', 'Sugestão da IA carregada. Confira e toque em registrar.' + (o.pend.length ? ' ' + o.pend.join(' ') : ''), o.pend.length ? 'warn' : 'ok');
+}
+/* ---------- OUTRAS AÇÕES DA IA (só Admin/Dev): sempre cartão + Confirmar; quem grava é o app, pelas mesmas funções das telas ---------- */
+const IA_FATOR_UN_ = { kg:{kg:1,g:1000}, g:{g:1,kg:0.001}, l:{l:1,ml:1000}, ml:{ml:1,l:0.001}, un:{un:1} };
+function iaConvQtd_(qtd, de, para){ de = String(de||'').toLowerCase(); para = String(para||'').toLowerCase(); if(!de || de===para) return qtd; const f = IA_FATOR_UN_[de] && IA_FATOR_UN_[de][para]; return f ? Math.round(qtd*f*1000)/1000 : null; }
+function iaNum_(n){ return String(Math.round(Number(n)*1000)/1000).replace('.', ','); }
+function iaDataBR_(d){ return String(d||'').split('-').reverse().join('/'); }
+function iaAchar2_(lista, nome, campo, nomeLista){
+  /* devolve {item} ou {erro}. Mais de um parecido = erro (nunca escolhe no chute). */
+  const n = iaNorm_(nome); if(!n) return { erro:'Informe o nome.' };
+  let m = lista.filter(x=>iaNorm_(x[campo])===n);
+  if(!m.length) m = lista.filter(x=>{ const k = iaNorm_(x[campo]); return k && (k.includes(n) || n.includes(k)); });
+  if(m.length===1) return { item:m[0] };
+  if(!m.length) return { erro:'Não encontrei "' + nome + '"' + (nomeLista ? ' em ' + nomeLista : '') + '.' };
+  return { erro:'Mais de um combina com "' + nome + '": ' + m.slice(0,4).map(x=>x[campo]).join(', ') + '. Diga qual.' };
+}
+const IA_ACOES_ = {
+  receber_compra: { titulo:'Receber pedido de compra', admin:true,
+    async prep(p, o){ await iaCarregarCompras_();
+      const r = iaAchar2_(_compras_.compras.filter(c=>c.status==='Pedido'), p.fornecedor, 'fornecedor', 'pedidos de compra pendentes'); if(r.erro){ o.pend.push(r.erro); return; }
+      o.compra = r.item; o.linhas.push('Pedido de ' + escH(r.item.fornecedor) + ' · ' + formatarMoeda(r.item.total) + ' · ' + escH(iaDataBR_(r.item.data)));
+      o.linhas.push('Pagamento: ' + escH(p.pagamento) + (p.vencimento ? ' (vence ' + escH(iaDataBR_(p.vencimento)) + ')' : '') + ' · entra no estoque agora');
+      if(p.pagamento==='A pagar' && !p.vencimento) o.pend.push('Falta a data de vencimento.'); },
+    exec(p, o){ return apiCall('receberCompra', { id:o.compra.id, pagamento:p.pagamento, vencimento:p.vencimento, saiuDoCaixa:false }); } },
+  cancelar_compra: { titulo:'Cancelar pedido de compra', admin:true,
+    async prep(p, o){ await iaCarregarCompras_();
+      const r = iaAchar2_(_compras_.compras.filter(c=>c.status==='Pedido'), p.fornecedor, 'fornecedor', 'pedidos de compra pendentes'); if(r.erro){ o.pend.push(r.erro); return; }
+      o.compra = r.item; o.linhas.push('Pedido de ' + escH(r.item.fornecedor) + ' · ' + formatarMoeda(r.item.total) + ' · ' + escH(iaDataBR_(r.item.data))); o.linhas.push('Motivo: ' + escH(p.motivo)); },
+    exec(p, o){ return apiCall('cancelarCompra', { id:o.compra.id, motivo:p.motivo }); } },
+  lancar_despesa: { titulo:'Lançar despesa',
+    async prep(p, o){
+      const cats = (typeof CATEGORIAS_DESPESA_PADRAO!=='undefined' ? CATEGORIAS_DESPESA_PADRAO : []);
+      const c = cats.find(x=>iaNorm_(x)===iaNorm_(p.categoria)); o.categoria = c || 'Outros';
+      o.linhas.push(escH(p.descricao) + ' · <b>' + formatarMoeda(p.valor) + '</b> · ' + escH(o.categoria) + (c ? '' : ' (categoria não reconhecida: vai como Outros)'));
+      o.linhas.push(escH(p.situacao) + (p.situacao==='A pagar' ? ' · vence ' + escH(iaDataBR_(p.vencimento)) : '') + (p.situacao==='Paga' ? (p.saiuDoCaixa ? ' · sai do caixa' : ' · fora do caixa') : ''));
+      if(p.situacao==='A pagar' && !p.vencimento) o.pend.push('Falta a data de vencimento.');
+      if(p.situacao==='Paga' && p.saiuDoCaixa && !sessaoCaixa) o.pend.push('Abra o caixa para lançar uma despesa que sai do caixa.'); },
+    exec(p, o){ return apiCall('addDespesa', { descricao:p.descricao, valor:p.valor, observacao:p.observacao, categoria:o.categoria, situacao:p.situacao, vencimento:p.vencimento, saiuDoCaixa:p.situacao==='Paga' ? p.saiuDoCaixa : false }); } },
+  pagar_despesa: { titulo:'Pagar despesa',
+    async prep(p, o){ const r = iaAchar2_((despesas||[]).filter(d=>d.status==='Confirmada' && d.situacao==='A pagar'), p.busca, 'descricao', 'contas a pagar'); if(r.erro){ o.pend.push(r.erro); return; }
+      o.desp = r.item; o.valorPago = p.valorPago || Number(r.item.valor);
+      o.linhas.push(escH(r.item.descricao) + ' · vence ' + escH(iaDataBR_(r.item.vencimento)) + ' · valor ' + formatarMoeda(r.item.valor));
+      o.linhas.push('Pagar <b>' + formatarMoeda(o.valorPago) + '</b>' + (p.saiuDoCaixa ? ' · sai do caixa' : ' · fora do caixa'));
+      if(p.saiuDoCaixa && !sessaoCaixa) o.pend.push('Abra o caixa para pagar com dinheiro do caixa.'); },
+    exec(p, o){ return apiCall('pagarDespesa', { id:o.desp.id, saiuDoCaixa:p.saiuDoCaixa, valorPago:o.valorPago }); } },
+  cancelar_despesa: { titulo:'Cancelar despesa', senha:true,
+    async prep(p, o){ const r = iaAchar2_((despesas||[]).filter(d=>d.status==='Confirmada'), p.busca, 'descricao', 'despesas'); if(r.erro){ o.pend.push(r.erro); return; }
+      o.desp = r.item; o.linhas.push(escH(r.item.descricao) + ' · ' + formatarMoeda(r.item.valor) + ' · ' + escH(r.item.situacao||'')); o.linhas.push('Motivo: ' + escH(p.motivo)); },
+    exec(p, o, senha){ return apiCall('cancelarDespesa', { id:o.desp.id, motivo:p.motivo, senhaAdminConfirmacao:senha }); } },
+  estoque_entrada: { titulo:'Entrada de estoque', async prep(p, o){ return iaPrepEstoque_(p, o, 'entrada'); },
+    exec(p, o){ return apiCall('registrarEntradaEstoque', { ingredienteId:o.ing.id, quantidade:o.qtd, motivo:p.motivo || 'Entrada pelo Assistente' }); } },
+  estoque_perda: { titulo:'Perda de estoque', async prep(p, o){ return iaPrepEstoque_(p, o, 'perda'); },
+    exec(p, o){ return apiCall('registrarPerdaEstoque', { ingredienteId:o.ing.id, quantidade:o.qtd, motivo:p.motivo || 'Perda registrada pelo Assistente' }); } },
+  estoque_inventario: { titulo:'Inventário de estoque (contagem)', async prep(p, o){ return iaPrepEstoque_(p, o, 'inventario'); },
+    exec(p, o){ return apiCall('registrarInventarioEstoque', { ingredienteId:o.ing.id, novaQuantidade:o.qtd, motivo:p.motivo || 'Contagem pelo Assistente' }); } },
+  cadastrar_ingrediente: { titulo:'Cadastrar ingrediente',
+    async prep(p, o){ const ja = iaAchar_((estoque||[]), p.nome, 'nome'); if(ja) o.pend.push('Já existe um ingrediente parecido: ' + ja.nome + '.');
+      o.linhas.push('<b>' + escH(p.nome) + '</b> · unidade ' + escH(p.unidade) + ' · em estoque ' + iaNum_(p.quantidade) + ' · mínimo ' + iaNum_(p.minimo) + ' · custo ' + formatarMoeda(p.custo) + ' por ' + escH(p.unidade)); },
+    exec(p){ return apiCall('addIngrediente', { nome:p.nome, quantidade:p.quantidade, minimo:p.minimo, unidade:p.unidade, custo:p.custo }); } },
+  editar_ingrediente: { titulo:'Editar ingrediente',
+    async prep(p, o){ const r = iaAchar2_((estoque||[]), p.ingrediente, 'nome', 'estoque'); if(r.erro){ o.pend.push(r.erro); return; }
+      const e = r.item; o.ing = e; o.novo = { nome:p.nome!=null ? p.nome : e.nome, minimo:p.minimo!=null ? p.minimo : Number(e.minimo)||0, custo:p.custo!=null ? p.custo : Number(e.custo)||0, unidade:p.unidade || e.unidade, ativo:typeof p.ativo==='boolean' ? p.ativo : e.ativo!==false };
+      if(p.unidade && p.unidade!==e.unidade) o.pend.push('Trocar a unidade de ' + e.unidade + ' para ' + p.unidade + ' muda o significado da quantidade em estoque. Faça pela tela de Estoque.');
+      const mud = []; if(p.nome!=null) mud.push('nome: ' + escH(e.nome) + ' → ' + escH(p.nome)); if(p.minimo!=null) mud.push('mínimo: ' + iaNum_(e.minimo) + ' → ' + iaNum_(p.minimo)); if(p.custo!=null) mud.push('custo: ' + formatarMoeda(e.custo) + ' → ' + formatarMoeda(p.custo)); if(typeof p.ativo==='boolean') mud.push(p.ativo ? 'reativar' : 'desativar');
+      o.linhas.push('<b>' + escH(e.nome) + '</b>: ' + (mud.join(' · ') || 'sem mudanças')); if(!mud.length) o.pend.push('Nada para mudar.'); },
+    exec(p, o){ const e = o.ing, n = o.novo; return apiCall('editarIngrediente', { id:e.id, nome:n.nome, quantidade:Number(e.quantidade)||0, minimo:n.minimo, unidade:n.unidade, custo:n.custo, ativo:n.ativo }); } },
+  salvar_cliente: { titulo:'Cadastrar ou atualizar cliente',
+    async prep(p, o){ const dig = normTel(p.telefone); const ja = (clientes||[]).find(c=>normTel(c.telefone)===dig); o.cliExistente = ja || null;
+      o.linhas.push('<b>' + escH(p.nome) + '</b> · ' + escH(p.telefone) + (p.dataNascimento ? ' · nasc. ' + escH(iaDataBR_(p.dataNascimento)) : '') + (p.endereco ? '<br>' + escH(p.endereco) : '') + (p.observacao ? '<br>' + escH(p.observacao) : ''));
+      o.linhas.push(ja ? 'Já existe o cliente <b>' + escH(ja.nome || '(sem nome)') + '</b> com esse telefone: os dados serão atualizados.' : 'Cliente novo.'); },
+    exec(p, o){ const ja = o.cliExistente; return apiCallFila('salvarCliente', { id: ja ? ja.id : '', nome:p.nome, telefone:p.telefone, dataNascimento:p.dataNascimento || (ja && ja.dataNascimento) || '', endereco:p.endereco || (ja && ja.endereco) || '', comoConheceu:(ja && ja.comoConheceu) || '', observacao:p.observacao || (ja && ja.observacao) || '' }); } },
+  registrar_ocorrencia: { titulo:'Registrar ocorrência',
+    async prep(p, o){ let vid = null;
+      if(p.pedido){ const v = (vendas||[]).find(x=>String(rotuloPedido(x))===String(p.pedido).replace(/^#/,'')); if(v) vid = v.id; else o.pend.push('Pedido ' + p.pedido + ' não encontrado.'); }
+      o.vendaId = vid; o.linhas.push('Tipo: ' + escH(p.tipoOcorrencia) + (p.pedido ? ' · pedido ' + escH(p.pedido) : '')); o.linhas.push(escH(p.descricao)); },
+    exec(p, o){ return apiCallFila('registrarOcorrencia', { tipo:p.tipoOcorrencia, vendaId:o.vendaId, descricao:p.descricao }, 'Ocorrência'); } },
+  registrar_sangria: { titulo:'Sangria do caixa',
+    async prep(p, o){ o.linhas.push('Retirar <b>' + formatarMoeda(p.valor) + '</b> do caixa · ' + escH(p.motivo)); if(!sessaoCaixa) o.pend.push('O caixa está fechado. Abra o caixa primeiro.'); },
+    exec(p){ return apiCall('addSangria', { valor:p.valor, motivo:p.motivo }); } },
+  ajuste_pos_venda: { titulo:'Ajuste pós-venda', senha:true,
+    async prep(p, o){ const v = (vendas||[]).find(x=>String(rotuloPedido(x))===String(p.pedido).replace(/^#/,'')); if(!v){ o.pend.push('Pedido ' + p.pedido + ' não encontrado.'); return; }
+      o.venda = v; o.linhas.push('Pedido ' + escH(rotuloPedido(v)) + ' · ' + escH(v.clienteNome||'') + ' · total ' + formatarMoeda(v.valorTotal));
+      o.linhas.push(escH(p.tipoAjuste) + ' de <b>' + formatarMoeda(p.valor) + '</b> · motivo: ' + escH(p.motivo) + (p.detalhe ? ' — ' + escH(p.detalhe) : '') + (AJ_TIPOS_COM_SAIDA_.indexOf(p.tipoAjuste)!==-1 ? ' · sai ' + escH(p.saida.toLowerCase()) : ''));
+      if(p.valor > Number(v.valorTotal) + 0.001) o.pend.push('O ajuste não pode ser maior que o valor da venda (' + formatarMoeda(v.valorTotal) + ').');
+      if(p.motivo==='Outro' && !p.detalhe) o.pend.push('Descreva o motivo (detalhe).');
+      if(AJ_TIPOS_COM_SAIDA_.indexOf(p.tipoAjuste)!==-1 && p.saida==='Do caixa' && !sessaoCaixa) o.pend.push('Abra o caixa para uma saída do caixa.'); },
+    exec(p, o, senha){ return apiCall('registrarAjustePosVenda', { vendaId:o.venda.id, tipo:p.tipoAjuste, valor:p.valor, motivo:p.motivo, detalhe:p.detalhe, saida:p.saida, senhaAdminConfirmacao:senha }); } },
+  registrar_brinde: { titulo:'Brinde (prêmio) do cliente',
+    async prep(p, o){ const r = iaAchar2_((produtos||[]).filter(x=>x.ativo!==false), p.produto, 'nome', 'produtos'); if(r.erro) o.pend.push(r.erro); else o.prod = r.item;
+      const dig = normTel(p.telefone); const cli = (clientes||[]).find(c=>normTel(c.telefone)===dig);
+      o.linhas.push('Brinde ' + escH(p.tipoBrinde) + ': <b>' + escH(o.prod ? o.prod.nome : p.produto) + '</b> para ' + escH(cli ? (cli.nome||p.telefone) : p.telefone) + ' · zera o cartão (ou marca a indicação) e baixa o estoque');
+      if(!cli) o.pend.push('Cliente com esse telefone não encontrado.');
+      if(!sessaoCaixa) o.pend.push('Abra o caixa antes de lançar o brinde.');
+      if(p.tipoBrinde==='Indicação'){ const ind = (indicacoes||[]).find(i=>normTel(i.telIndicador)===dig && !i.resgatado); if(!ind) o.pend.push('Indicação pendente não encontrada.'); else o.telIndicado = ind.telIndicado; } },
+    exec(p, o){ return apiCall('registrarBrinde', { tipo:p.tipoBrinde, produtoId:o.prod.id, telefone:p.telefone, telIndicado:o.telIndicado || null }); } }
+};
+async function iaCarregarCompras_(){ try{ if(!_compras_.compras.length){ const r = await apiCall('listarCompras', {}); if(r && r.ok) _compras_ = { fornecedores:r.fornecedores||[], compras:r.compras||[] }; } }catch(e){} }
+async function iaPrepEstoque_(p, o, modo){
+  const r = iaAchar2_((estoque||[]).filter(e=>e.ativo!==false), p.ingrediente, 'nome', 'estoque'); if(r.erro){ o.pend.push(r.erro); return; }
+  const e = r.item; o.ing = e; const bruto = modo==='inventario' ? p.novaQuantidade : p.quantidade;
+  const q = iaConvQtd_(bruto, p.unidade || e.unidade, e.unidade);
+  if(q===null){ o.pend.push('A unidade ' + p.unidade + ' não combina com ' + e.unidade + ' (unidade do estoque).'); return; }
+  o.qtd = q; const atual = Number(e.quantidade) || 0;
+  if(modo==='entrada') o.linhas.push('Entrada de <b>' + iaNum_(q) + ' ' + escH(e.unidade) + '</b> em ' + escH(e.nome) + ' (hoje ' + iaNum_(atual) + ' → ' + iaNum_(atual+q) + ')');
+  else if(modo==='perda'){ o.linhas.push('Perda de <b>' + iaNum_(q) + ' ' + escH(e.unidade) + '</b> de ' + escH(e.nome) + ' (hoje ' + iaNum_(atual) + ' → ' + iaNum_(Math.max(0, atual-q)) + ')'); if(q>atual+0.0001) o.pend.push('A perda é maior que o estoque atual (' + iaNum_(atual) + ' ' + e.unidade + ').'); }
+  else o.linhas.push('Contagem de <b>' + escH(e.nome) + '</b>: de ' + iaNum_(atual) + ' para <b>' + iaNum_(q) + ' ' + escH(e.unidade) + '</b>');
+  if(p.motivo) o.linhas.push('Motivo: ' + escH(p.motivo));
+}
+async function iaAcaoPreparar_(p){
+  const def = IA_ACOES_[p.tipo], id = 'p' + (++_iaPropSeq_), o = { id, tipo:p.tipo, bruto:p, pend:[], linhas:[], feito:false, generico:true, def };
+  try{ await def.prep(p, o); }catch(e){ o.pend.push('Não consegui conferir os dados agora. Use a tela correspondente.'); }
+  _iaProps_[id] = o; return o;
+}
+function iaAcaoHtml_(o){
+  const def = o.def; let h = '<b>' + escH(def.titulo) + '</b><br>' + o.linhas.join('<br>');
+  if(o.pend.length) h += '<br><span style="color:#b45309;">' + o.pend.map(escH).join('<br>') + '</span>';
+  if(def.senha) h += '<label style="display:block;margin-top:8px;font-size:13px;">Sua senha de Administrador, para confirmar</label><input type="password" data-prop-senha autocomplete="current-password" style="width:100%;">';
+  return '<div class="notif-card" data-prop="' + o.id + '" style="margin-top:8px;">' + h +
+    '<div class="btnrow" style="margin-top:8px;"><button type="button" class="small-gold" data-prop-ac="ok"' + (o.pend.length ? ' disabled' : '') + '>Confirmar e gravar</button> <button type="button" class="ghost" data-prop-ac="no">Descartar</button></div><div class="obs-line" data-prop-msg></div></div>';
+}
+async function iaAcaoAgir_(card, o, msg){
+  const def = o.def; let senha = '';
+  if(def.senha){ const inp = card.querySelector('[data-prop-senha]'); senha = inp ? inp.value : ''; if(!senha){ msg.textContent = 'Digite a sua senha de Administrador para confirmar.'; return; } }
+  card.querySelectorAll('button').forEach(b=>{ b.disabled = true; }); msg.textContent = 'Gravando…';
+  try{
+    const r = await def.exec(o.bruto, o, senha);
+    if(r && r.ok){
+      iaAplicarResposta_(r); o.feito = true;
+      const inp = card.querySelector('[data-prop-senha]'); if(inp) inp.value = '';
+      msg.textContent = '✅ ' + (r.message || 'Gravado.');
+    }else{ msg.textContent = '⚠️ ' + ((r && r.message) || 'Não foi possível gravar.'); card.querySelectorAll('button').forEach(b=>{ b.disabled = false; }); }
+  }catch(e){ msg.textContent = '⚠️ Não foi possível gravar agora. Confira na tela antes de tentar de novo.'; card.querySelectorAll('button').forEach(b=>{ b.disabled = false; }); }
+}
+/* atualiza as listas em memória com o que o servidor devolveu (igual às telas) e redesenha o que existir */
+function iaAplicarResposta_(r){
+  try{
+    if(r.estoque) estoque = r.estoque; if(r.movimentacoesEstoque) movimentacoesEstoque = r.movimentacoesEstoque; if(r.despesas) despesas = r.despesas;
+    if(r.clientes) clientes = r.clientes; if(r.ocorrencias) ocorrencias = r.ocorrencias; if(r.ajustesPosVenda) ajustesPosVenda = r.ajustesPosVenda;
+    if(r.fidelidade) fidelidadeClientes = r.fidelidade; if(r.indicacoes) indicacoes = r.indicacoes; if(r.sangrias) sangrias = r.sangrias;
+    _compras_ = { fornecedores:[], compras:[] };
+    if(typeof salvarCache==='function') salvarCache();
+    ['renderEstoque','renderMovimentacoesEstoque','renderDespesas','renderContasPagar','renderClientes','renderStatusCaixa','atualizarResumoHoje'].forEach(f=>{ try{ if(typeof window[f]==='function') window[f](); }catch(e){} });
+  }catch(e){}
 }
 /* ---------- BUSCA GLOBAL (clientes, pedidos, produtos) ---------- */
 function bgNivel_(){ return currentUser ? currentUser.nivel : ''; }
@@ -11154,6 +11926,8 @@ function atualizarConnDot_(){
   const el = document.getElementById('connStatus');
   const est = (currentUser && currentUser.emergencia) ? 'contingencia' : conexaoAtual;
   d.className = 'conn-dot ' + (['online','syncing','contingencia','offline'].indexOf(est) >= 0 ? est : 'offline');
+  /* Saúde do sistema (só Admin/Desenvolvedor): com a conexão normal, a bolinha amarela/rosa avisa que algo pede atenção */
+  if(est === 'online' && (window._saudeGeral_ === 'atencao' || window._saudeGeral_ === 'problema')) d.classList.add('saude-' + window._saudeGeral_);
   const txt = el ? el.textContent : '';
   d.title = txt + ' — toque para ver os detalhes'; d.setAttribute('aria-label', 'Status da conexão: ' + txt);
 }
@@ -11514,8 +12288,8 @@ function resumoPeriodo(p){
   const receitaEventos = somaR(evs,e=>e.valorContratado), custosEventos = somaR(evs,e=>e.custoTotal);
   /* Ajustes pós-venda (reembolso, desconto, cortesia) contam pela lista de ajustes — mesma regra do DRE mensal; a despesa espelho 'Ajuste pós-venda' não entra de novo. Crédito para a próxima compra não é custo agora. */
   const ajustesTotal = arred2c((ajustesPosVenda||[]).filter(a=>a.status==='Ativo' && a.timestamp>=p.ini && a.timestamp<p.fim && a.tipo!=='Crédito para próxima compra').reduce((s,a)=>s+(Number(a.valor)||0),0));
-  const despTot = arred2c(somaR(dsp.filter(d=>d.categoria!=='Ajuste pós-venda'), d=>d.valor) + ajustesTotal), lucroBruto = arred2c(liq + receitaEventos - taxas - cmv - custosEventos), resultado = arred2c(lucroBruto - perdas - despTot);
-  return { vs, its, pgs, evs, perdasL, dsp, ajustesTotal, liq, receitaEventos, custosEventos, taxas, cmv, perdas, despTot, lucroBruto, resultado,
+  const despTot = arred2c(somaR(dsp.filter(d=>d.categoria!=='Ajuste pós-venda'), d=>d.valor) + ajustesTotal), lucroBruto = arred2c(liq + receitaEventos - taxas - cmv - custosEventos), impostos = (window.INTEG_ && INTEG_.nfce && INTEG_.impostoPct > 0) ? arred2c(liq * INTEG_.impostoPct / 100) : 0, resultado = arred2c(lucroBruto - perdas - despTot - impostos);
+  return { vs, its, pgs, evs, perdasL, dsp, impostos, ajustesTotal, liq, receitaEventos, custosEventos, taxas, cmv, perdas, despTot, lucroBruto, resultado,
     bruta: somaR(vs, v=>v.valorOriginal||v.valorTotal), desc: somaR(vs, v=>v.valorDesconto),
     margem: pctDe(resultado, liq+receitaEventos), ticket: vs.length ? liq/vs.length : 0, faturamentoTotal: arred2c(liq+receitaEventos),
     aReceber: somaR(vs.filter(v=>v.statusPagamento==='A Receber'), v=>v.valorTotal) + somaR(evs,e=>e.valorAReceber) };
@@ -11588,7 +12362,7 @@ const REL = {
     const rows = r.perdasL.slice(0,60).map(m=>[dataLocalISO(new Date(m.data)).split('-').reverse().join('/'), m.ingredienteNome, Math.abs(m.quantidade), formatarMoeda(Math.abs(m.quantidade)*(custoNome[m.ingredienteNome]||0)), m.motivo||'—']);
     return { cols:['Data','Ingrediente','Qtd','Custo','Motivo'], rows, total:['Total','','', formatarMoeda(r.perdas), ''], nota:'Perdas = '+fmtPct(pctDe(r.perdas, r.liq))+' da receita líquida do período.' }; } },
   financeiro:{ g:'Financeiro', t:'Resultado do período (DRE)', f:(p,r)=>{ const P = v => fmtPct(pctDe(v, r.liq));
-    return { cols:['Linha','Valor','% da receita'], rows:[['Vendas (antes do desconto)', formatarMoeda(r.bruta), ''],['(−) Descontos', formatarMoeda(r.desc), P(r.desc)],['Receita líquida', formatarMoeda(r.liq), '100,0%'],['Faturamento de eventos', formatarMoeda(r.receitaEventos||0), P(r.receitaEventos||0)],['Custos de eventos', formatarMoeda(r.custosEventos||0), P(r.custosEventos||0)],['Faturamento total', formatarMoeda(r.faturamentoTotal||r.liq), P(r.faturamentoTotal||r.liq)],['(−) Taxas de pagamento', formatarMoeda(r.taxas), P(r.taxas)],['(−) Custo dos produtos', formatarMoeda(r.cmv), P(r.cmv)],['Lucro bruto', formatarMoeda(r.lucroBruto), P(r.lucroBruto)],['(−) Perdas de estoque', formatarMoeda(r.perdas), P(r.perdas)],['(−) Despesas pagas', formatarMoeda(r.despTot), P(r.despTot)],['Resultado', formatarMoeda(r.resultado), P(r.resultado)]],
+    return { cols:['Linha','Valor','% da receita'], rows:[['Vendas (antes do desconto)', formatarMoeda(r.bruta), ''],['(−) Descontos', formatarMoeda(r.desc), P(r.desc)],['Receita líquida', formatarMoeda(r.liq), '100,0%'],['Faturamento de eventos', formatarMoeda(r.receitaEventos||0), P(r.receitaEventos||0)],['Custos de eventos', formatarMoeda(r.custosEventos||0), P(r.custosEventos||0)],['Faturamento total', formatarMoeda(r.faturamentoTotal||r.liq), P(r.faturamentoTotal||r.liq)],['(−) Taxas de pagamento', formatarMoeda(r.taxas), P(r.taxas)],['(−) Custo dos produtos', formatarMoeda(r.cmv), P(r.cmv)],['Lucro bruto', formatarMoeda(r.lucroBruto), P(r.lucroBruto)],...(r.impostos>0?[['(−) Impostos sobre vendas (estimado)', formatarMoeda(r.impostos), P(r.impostos)]]:[]),['(−) Perdas de estoque', formatarMoeda(r.perdas), P(r.perdas)],['(−) Despesas pagas', formatarMoeda(r.despTot), P(r.despTot)],['Resultado', formatarMoeda(r.resultado), P(r.resultado)]],
       nota:'Ticket médio '+formatarMoeda(r.ticket)+' · a receber (ainda não pago): '+formatarMoeda(r.aReceber) }; } },
   despesas:{ g:'Financeiro', t:'Despesas por categoria', f:(p,r)=>{ const g = grp(r.dsp, d=>d.categoria||'Outros');
     const rows = Object.keys(g).sort((a,b)=>somaR(g[b],d=>d.valor)-somaR(g[a],d=>d.valor)).map(k=>[k, g[k].length, formatarMoeda(somaR(g[k],d=>d.valor)), fmtPct(pctDe(somaR(g[k],d=>d.valor), r.despTot))]);
