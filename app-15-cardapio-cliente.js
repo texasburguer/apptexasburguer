@@ -161,7 +161,23 @@ function cdPintar_(deCache){
   onMudarFormaPagamentoCd();
   if(mesaQr && !_modoMesaIniciado){ _modoMesaIniciado = true; iniciarModoMesa_(); }
 }
+/* Visitas ao cardápio: 1 por aparelho por dia. Aparelho que já entrou no sistema interno (equipe) nunca conta. */
+function cdContarVisita_(){
+  setTimeout(async ()=>{
+    try{
+      if(typeof currentUser !== 'undefined' && currentUser) return;
+      if(localStorage.getItem('cdAparelhoEquipe') === '1' || localStorage.getItem(SESSAO_KEY)) return;
+      const hoje = dataLocalISO(new Date());
+      if(localStorage.getItem('cdVisitaDia') === hoje) return;
+      let ap = localStorage.getItem('cdAparelhoId');
+      if(!ap || !/^[a-z0-9]{16,40}$/.test(ap)){ ap = Array.from(crypto.getRandomValues(new Uint8Array(12)), b=>b.toString(16).padStart(2,'0')).join(''); localStorage.setItem('cdAparelhoId', ap); }
+      const r = await sbRpcPublico_('api_registrar_visita_cardapio', { p:{ aparelho: ap } });
+      if(r && r.ok) localStorage.setItem('cdVisitaDia', hoje);
+    }catch(e){}
+  }, 3000);
+}
 async function carregarCardapioPublico(){
+  if(!window._cdVisitaChamada_){ window._cdVisitaChamada_ = true; cdContarVisita_(); }
   try{ if(!mesaQr && window.cdCapturarLocalSilenciosa_) window.cdCapturarLocalSilenciosa_(); }catch(e){}
   if(!window._cdAvisosChamado_){ window._cdAvisosChamado_ = true; setTimeout(()=>{ if(window.cdAvisosIniciar_) window.cdAvisosIniciar_(); }, 1200); }
   const cache = cdLerCache_();

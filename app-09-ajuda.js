@@ -125,6 +125,13 @@ Admin:{ nome:'Administrador', secoes:[
     'No computador as abas ficam no topo (veja "No computador").' ],
     comuns:['O botão do Assistente é o rosto do Tex no canto de baixo; ele fica acima do menu, e a página tem um espaço no fim para nada ficar escondido atrás dele.'] },
 
+  { t:'Tela Início e visitas ao cardápio', itens:[
+    'Ordem do resumo: alerta numa faixa fina no topo (só aparece quando há algo; toque para ver), pedidos em andamento, caixa e vendas de hoje, visitas ao cardápio e mesas (com o valor a receber das mesas).',
+    '"Cardápio hoje" conta os clientes que abriram o cardápio eletrônico hoje: cada celular ou computador conta 1 vez por dia, mesmo abrindo várias vezes. Zera à meia-noite.',
+    'Aparelhos da equipe não contam: depois que alguém entra no sistema interno naquele aparelho, ele nunca mais conta, mesmo depois de sair.',
+    'É uma estimativa: a mesma pessoa em dois aparelhos conta duas vezes; aba anônima ou navegador limpo contam de novo.' ],
+    comuns:['Administrador e Operador veem as visitas.'] },
+
   { t:'No computador', itens:[
     'Notebook ou monitor (tela a partir de 900 px de largura): o topo fica numa linha só, com o logo à esquerda e o usuário e os botões à direita. As abas ficam sempre à vista no alto, mesmo rolando a página.',
     'Administrador: as telas aparecem num menu ao lado, com todos os grupos abertos (Painel, Financeiro, Catálogo, Campanhas, Operação e Sistema). Um clique abre a tela. Se o menu não couber na tela, role dentro dele.',

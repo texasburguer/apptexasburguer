@@ -6,6 +6,13 @@
 /* TODOS: título de coluna alinhado com os números (o atributo align="right" perdia para o CSS) */
 th[align="right"]{ text-align:right; }
 
+/* TODOS: Início — alerta numa faixa fina no topo */
+.resumo-faixa{ grid-column:1 / -1; display:flex; align-items:center; gap:8px; width:100%; text-align:left; font:inherit; font-size:13px; color:var(--cream);
+  background:rgba(210,8,7,.12); border:1px solid var(--red-dim); border-left:3px solid var(--red-hi); border-radius:10px; padding:7px 10px; cursor:pointer; }
+.resumo-faixa span{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.resumo-faixa small{ color:var(--gold); font-weight:700; }
+.resumo-faixa i{ font-style:normal; color:var(--muted); }
+
 /* menu lateral do Administrador e a dica só existem no computador */
 #adminLateral{ display:none; }
 .so-pc{ display:none; }

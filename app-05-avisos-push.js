@@ -512,16 +512,18 @@ function renderInicio(){
   atualizarAtalhosInicio_({ retNovos: ativos.filter(v=>v.tipoEntrega==='Retirada' && v.statusPedido==='Recebido').length, retProntos: ativos.filter(v=>v.tipoEntrega==='Retirada' && v.statusPedido==='Pronta').length, nivel, entregasAtivas: ativos.filter(v=>v.tipoEntrega==='Entrega').length });
   const clique = (js)=>`onclick="${js}"`;
 
+  // 1) Alertas: faixa fina no topo, só quando houver (toque abre o detalhe)
   if(staff){
-    // Caixa e vendas do dia
-    const caixaTxt = sessaoCaixa ? '🟢 Aberto' : '🔒 Fechado';
-    const caixaSub = sessaoCaixa ? ('desde '+String(sessaoCaixa.abertura||'').split(' ').pop()) : 'toque para abrir';
-    blocos.push(`<button type="button" class="resumo-box ${sessaoCaixa?'':'atencao'}" ${clique("document.querySelector('[data-tab=caixa]').click();abrirCaixaStatus_()")}><span class="rot">Caixa</span><b>${caixaTxt}</b><small>${escH(caixaSub)}</small></button>`);
-    const hoje = vendas.filter(v=>v.status==='Confirmada' && v.timestamp>=inicioDia);
-    const faturado = hoje.filter(v=>v.statusPagamento!=='A Receber').reduce((t,v)=>t+(Number(v.valorTotal)||0),0);
-    const aReceber = hoje.filter(v=>v.statusPagamento==='A Receber').reduce((t,v)=>t+(Number(v.valorTotal)||0),0);
-    blocos.push(`<div class="resumo-box" ${nivel==='Admin' ? clique("abrirAdministrador('visaogeral')") : ''}><span class="rot">Vendas hoje</span><b>${fmt(faturado)}</b><small>${hoje.length} pedido(s)${aReceber>0?' · '+fmt(aReceber)+' a receber':''}</small></div>`);
+    const alertas = [];
+    const baixos = estoque.filter(e=>Number(e.minimo)>0 && e.quantidade<=e.minimo).length; if(baixos) alertas.push(`📦 ${baixos} item(ns) de estoque no mínimo`);
+    const ocs = ocorrenciasAbertas_().length; if(ocs) alertas.push(`⚠️ ${ocs} ocorrência(s) aberta(s)`);
+    const hojeISO = dataLocalISO(new Date());
+    const venc = despesas.filter(d=>d.status!=='Cancelada' && d.situacao==='A pagar' && d.vencimento && d.vencimento<hojeISO).length; if(venc) alertas.push(`💸 ${venc} conta(s) vencida(s)`);
+    alertasDeEntregas().forEach(a=>alertas.push('🛵 '+a.replace(/<[^>]+>/g,'')));
+    const errosFila = (typeof _fila!=='undefined' ? _fila : []).filter(i=>i.estado==='erro').length; if(errosFila) alertas.push(`📡 ${errosFila} envio(s) com erro na fila`);
+    if(alertas.length) blocos.push(`<button type="button" class="resumo-faixa" ${clique("(window.balaoIaPode_&&balaoIaPode_())?balaoIaAbrir_('avisos'):document.querySelector('[data-tab=notificacoes]').click()")}><span>${escH(alertas[0])}</span>${alertas.length>1?`<small>+${alertas.length-1}</small>`:''}<i>›</i></button>`);
   }
+  // 2) Pedidos em andamento
   if(nivel!=='Entregador'){
     blocos.push(`<div class="resumo-box largo"><span class="rot">Pedidos em andamento</span>
       <div class="resumo-etapas">
@@ -533,24 +535,38 @@ function renderInicio(){
   } else {
     blocos.push(`<button type="button" class="resumo-box largo" ${clique("abrirPedidosPainel_('entregas')")}><span class="rot">Minhas entregas</span><b>${meusAtivos.length}</b><small>${prontos} pronta(s) para sair · ${naRua} na rua</small></button>`);
   }
+  // 3) Caixa | Vendas hoje
+  if(staff){
+    const caixaTxt = sessaoCaixa ? '🟢 Aberto' : '🔒 Fechado';
+    const caixaSub = sessaoCaixa ? ('desde '+String(sessaoCaixa.abertura||'').split(' ').pop()) : 'toque para abrir';
+    blocos.push(`<button type="button" class="resumo-box ${sessaoCaixa?'':'atencao'}" ${clique("document.querySelector('[data-tab=caixa]').click();abrirCaixaStatus_()")}><span class="rot">Caixa</span><b>${caixaTxt}</b><small>${escH(caixaSub)}</small></button>`);
+    const hoje = vendas.filter(v=>v.status==='Confirmada' && v.timestamp>=inicioDia);
+    const faturado = hoje.filter(v=>v.statusPagamento!=='A Receber').reduce((t,v)=>t+(Number(v.valorTotal)||0),0);
+    const aReceber = hoje.filter(v=>v.statusPagamento==='A Receber').reduce((t,v)=>t+(Number(v.valorTotal)||0),0);
+    blocos.push(`<div class="resumo-box" ${nivel==='Admin' ? clique("abrirAdministrador('visaogeral')") : ''}><span class="rot">Vendas hoje</span><b>${fmt(faturado)}</b><small>${hoje.length} pedido(s)${aReceber>0?' · '+fmt(aReceber)+' a receber':''}</small></div>`);
+  }
+  // 4) Cardápio hoje (visitas) | Mesas (com a conta das mesas junto)
+  if(staff){
+    const vh = window._visitasCd_;
+    blocos.push(`<div class="resumo-box"><span class="rot">Cardápio hoje</span><b>${vh && vh.n != null ? vh.n : '—'}</b><small>visita(s) de clientes</small></div>`);
+    if(!currentUser.emergencia && (!vh || Date.now() - vh.t > 60000)) inicioCarregarVisitas_();
+  }
   if(nivel==='Admin' || nivel==='Operador' || nivel==='Garçom'){
     const ocup = (mesas||[]).filter(m=>m.status==='Ocupada').length;
     const aguard = (mesas||[]).filter(m=>m.status==='Aguardando fechamento').length;
     const contaMesas = vendas.filter(v=>v.status==='Confirmada' && v.tipoEntrega==='Mesa' && v.statusPagamento==='A Receber').reduce((t,v)=>t+(Number(v.valorTotal)||0),0);
-    blocos.push(`<button type="button" class="resumo-box ${aguard?'atencao':''}" ${clique("abrirMesasPopup_()")}><span class="rot">Mesas</span><b>${ocup+aguard} de ${(mesas||[]).length}</b><small>${ocup} ocupada(s)${aguard?' · '+aguard+' pedindo a conta':''}</small></button>`);
-    if(staff) blocos.push(`<div class="resumo-box"><span class="rot">Contas das mesas</span><b>${fmt(contaMesas)}</b><small>a receber no caixa</small></div>`);
-  }
-  if(staff){
-    const alertas = [];
-    const baixos = estoque.filter(e=>Number(e.minimo)>0 && e.quantidade<=e.minimo).length; if(baixos) alertas.push(`📦 ${baixos} item(ns) de estoque no mínimo`);
-    const ocs = ocorrenciasAbertas_().length; if(ocs) alertas.push(`⚠️ ${ocs} ocorrência(s) aberta(s)`);
-    const hojeISO = dataLocalISO(new Date());
-    const venc = despesas.filter(d=>d.status!=='Cancelada' && d.situacao==='A pagar' && d.vencimento && d.vencimento<hojeISO).length; if(venc) alertas.push(`💸 ${venc} conta(s) vencida(s)`);
-    alertasDeEntregas().forEach(a=>alertas.push('🛵 '+a.replace(/<[^>]+>/g,'')));
-    const errosFila = (typeof _fila!=='undefined' ? _fila : []).filter(i=>i.estado==='erro').length; if(errosFila) alertas.push(`📡 ${errosFila} envio(s) com erro na fila`);
-    blocos.push(`<button type="button" class="resumo-box largo ${alertas.length?'atencao':''}" ${clique("(window.balaoIaPode_&&balaoIaPode_())?balaoIaAbrir_('avisos'):document.querySelector('[data-tab=notificacoes]').click()")}><span class="rot">Alertas</span>${alertas.length ? alertas.slice(0,5).map(a=>`<div class="resumo-alerta">${escH(a)}</div>`).join('')+(alertas.length>5?`<small>+ ${alertas.length-5} outro(s)</small>`:'') : '<div class="resumo-alerta">✅ Tudo em ordem.</div>'}</button>`);
+    const sub = `${ocup} ocupada(s)${aguard?' · '+aguard+' pedindo a conta':''}${staff?' · '+fmt(contaMesas)+' a receber':''}`;
+    blocos.push(`<button type="button" class="resumo-box ${aguard?'atencao':''}${staff?'':' largo'}" ${clique("abrirMesasPopup_()")}><span class="rot">Mesas</span><b>${ocup+aguard} de ${(mesas||[]).length}</b><small>${sub}</small></button>`);
   }
   box.innerHTML = '<div class="resumo-grid">'+blocos.join('')+'</div>';
+}
+/* visitas ao cardápio hoje (Admin e Operador): busca no máximo 1 vez por minuto e redesenha o Início */
+let _visitasCdBuscando_ = false;
+async function inicioCarregarVisitas_(){
+  if(_visitasCdBuscando_) return; _visitasCdBuscando_ = true;
+  try{ const r = await apiCall('visitasCardapioHoje', {}); window._visitasCd_ = { n: (r && r.ok) ? (Number(r.hoje)||0) : null, t: Date.now() }; if(r && r.ok) renderInicio(); }
+  catch(e){ window._visitasCd_ = { n:null, t: Date.now() }; }
+  finally{ _visitasCdBuscando_ = false; }
 }
 function renderStatusCaixa(){
   _rotuloBotaoCaixa_();
