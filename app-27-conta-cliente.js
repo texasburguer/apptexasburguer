@@ -481,10 +481,10 @@ async function abaIndique(){
   var r = estado.cupons && estado.cupons.ok ? estado.cupons : await carregarCupons(); if(!r.ok) return erroAba(r);
   var b = await carregarBrindes();
   var ind = r.indicacao || {}, temPremio = b.ok && (b.produtosInd || []).length > 0;
-  if(!temPremio && !ind.indicado) return '<p class="sub">O programa “Indique e ganhe” não está ativo agora. Fique de olho — quando começar, seu link aparece aqui.</p>';
+  if(!temPremio && !ind.indicador && !ind.indicado) return '<p class="sub">O programa “Indique e ganhe” não está ativo agora. Fique de olho — quando começar, seu link aparece aqui.</p>';
   var l = linkIndicacao(), h = '';
   h += '<div class="ct-card"><div class="ct-cab"><b>Indique e ganhe</b></div><p class="sub" style="font-size:13px;margin:4px 0 8px;">Mande seu link para um amigo. Quando ele fizer o <b>primeiro pedido</b> com a conta dele e o pedido for concluído, ' +
-    (temPremio ? 'você ganha <b>1 brinde à sua escolha</b>' : '') + (temPremio && ind.indicado ? ' e ' : '') + (ind.indicado ? 'ele ganha <b>' + esc(textoRecompensa(ind.indicado)) + '</b>' : '') + '.</p>' +
+    ((ind.indicador || temPremio) ? 'você ganha ' : '') + (ind.indicador ? '<b>' + esc(textoRecompensa(ind.indicador)) + '</b>' + (temPremio ? ' e ' : '') : '') + (temPremio ? '<b>1 brinde à sua escolha</b>' : '') + (ind.indicado ? ((ind.indicador || temPremio) ? ' e ' : '') + 'ele ganha <b>' + esc(textoRecompensa(ind.indicado)) + '</b>' : '') + '.</p>' +
     '<input type="text" readonly id="ctLinkInd" value="' + esc(l) + '" onclick="this.select()">' +
     '<div class="ct-linha"><button type="button" class="ghost" onclick="contaCopiarLink_()">Copiar link</button><button type="button" class="small-gold" onclick="contaZapLink_()">Enviar no WhatsApp</button></div></div>';
   if(temPremio && (b.indicacao || []).length){

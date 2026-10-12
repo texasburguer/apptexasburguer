@@ -206,6 +206,7 @@ function faixasResumo_(c){ return (c.faixas||[]).map(f=>'R$ '+Number(f.desconto)
 const CUP_AUTO_ = {
   boas_vindas:{ t:'🎉 Boas-vindas', d:'Quem cria a conta recebe este cupom.' },
   aniversario:{ t:'🎂 Aniversário', d:'No dia do aniversário (conta com data de nascimento e criada há mais de 30 dias).' },
+  indicacao_indicador:{ t:'🎁 Indique e ganhe — quem indicou', d:'Quando o amigo indicado conclui o primeiro pedido. Pode valer junto com o produto-prêmio de indicação (Editar produto › Mais opções): quem indicou ganha o cupom e o brinde.' },
   indicacao_indicado:{ t:'🎁 Indique e ganhe — quem foi indicado', d:'Quando o indicado conclui o primeiro pedido com a conta.' }
 };
 function cupBeneficio_(c){ return c.tipo==='percentual'?c.valor+'%':c.tipo==='fixo'?'R$ '+Number(c.valor).toFixed(2).replace('.',','):c.tipo==='progressivo'?faixasResumo_(c):'Frete grátis'; }
@@ -216,7 +217,6 @@ function renderCuponsUI(){
   const ab=document.getElementById('cupAutoLista');
   if(ab) ab.innerHTML=Object.keys(CUP_AUTO_).map(k=>{ const c=autos.find(x=>x.automatico===k); if(!c) return `<div class="notif-card"><b>${CUP_AUTO_[k].t}</b><div class="obs-line">Ainda não configurado no banco.</div></div>`;
     return `<div class="notif-card"><b>${CUP_AUTO_[k].t}</b> · ${c.ativa?'<b>LIGADO</b>':'desligado'}<div class="obs-line">${escH(CUP_AUTO_[k].d)}</div><div class="obs-line">Benefício: ${escH(cupBeneficio_(c))}${c.valorMinimo?' · pedido mínimo R$ '+Number(c.valorMinimo).toFixed(2).replace('.',','):''} · vale ${c.validadeDias} dias${c.mensagem?' · “'+escH(c.mensagem)+'”':''}</div><button class="small-gold" onclick="abrirCupomUI('${c.id}')">Editar</button> <button class="ghost" onclick="alternarCupomUI('${c.id}',${!c.ativa})">${c.ativa?'Desligar':'Ligar'}</button></div>`; }).join('');
-  if(ab) ab.innerHTML+=`<div class="notif-card"><b>🎁 Indique e ganhe — quem indicou</b><div class="obs-line">Quem indicou ganha 1 <b>produto-prêmio</b> quando o amigo conclui o 1º pedido. Marque quais produtos valem em <b>Editar produto › Mais opções › Prêmio de indicação</b>. Sem produto marcado, ninguém ganha.</div></div>`;
   box.innerHTML=comuns.length?comuns.map(c=>{
     const tags=[c.somenteConta?'🔐 só com conta':'',c.clienteId?'👤 só para '+escH(cupClienteNome_(c.clienteId)):'',c.visivelConta?'👁 visível na conta':''].filter(Boolean).join(' · ');
     return `<div class="notif-card"><b>${escH(c.codigo)}</b> — ${escH(c.nome)} · ${escH(cupBeneficio_(c))} · ${c.ativa?'ATIVO':'INATIVO'}<div class="obs-line">Uso: ${c.limiteTotal?c.limiteTotal:'ilimitado'} · por cliente: ${c.limitePorCliente?c.limitePorCliente:'ilimitado'} · mínimo: R$ ${Number(c.valorMinimo).toFixed(2)}${tags?' · '+tags:''}</div><button class="small-gold" onclick="abrirCupomUI('${c.id}')">Editar</button> <button class="ghost" onclick="alternarCupomUI('${c.id}',${!c.ativa})">${c.ativa?'Desativar':'Ativar'}</button></div>`; }).join(''):'<div class="notif-empty">Nenhum cupom cadastrado.</div>';
