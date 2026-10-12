@@ -1,8 +1,23 @@
 @charset "utf-8";
 /* Conta do cliente (login com Google): botão do cardápio, Minha conta, aceite e aviso de privacidade */
-.cd-banner{position:relative;}
-.cd-conta-btn{position:absolute;top:10px;right:10px;z-index:3;width:auto;margin:0;background:rgba(0,0,0,.55);color:var(--cream);border:1px solid var(--gold-dim);border-radius:999px;padding:6px 12px;font-size:12.5px;font-weight:700;cursor:pointer;max-width:55%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.cd-conta-btn:active{background:var(--red-dim);}
+.cd-contabar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 4px 10px;padding:7px 8px 7px 14px;border:1px solid var(--gold-dim);border-radius:999px;background:rgba(224,181,58,.08);}
+.cd-contabar-txt{font-size:12.5px;color:var(--cream);line-height:1.25;min-width:0;}
+.cd-contabar-txt b{color:var(--gold);}
+.cd-contabar.logada{background:rgba(224,181,58,.14);}
+.cd-conta-btn{flex:0 0 auto;width:auto;margin:0;background:var(--gold);color:#241a10;border:none;border-radius:999px;padding:8px 14px;font-size:13px;font-weight:800;cursor:pointer;max-width:52%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.cd-conta-btn:active{background:var(--red-dim);color:#fff;}
+@media (min-width:900px){ .cd-contabar{max-width:760px;margin-left:auto;margin-right:auto;} }
+/* calendário do campo de data: ícone claro em fundo escuro */
+.ct-box input[type=date]{color-scheme:light;}
+.ct-box input[type=date]::-webkit-calendar-picker-indicator{filter:invert(1) brightness(1.4);opacity:1;cursor:pointer;width:22px;height:22px;}
+.ct-fid .punch{margin-top:8px;}
+.ct-brinde{border:1px solid var(--gold);background:rgba(224,181,58,.1);border-radius:10px;padding:10px 11px;margin:10px 0;}
+.ct-prod{display:flex;align-items:center;gap:10px;justify-content:space-between;padding:7px 0;border-top:1px solid var(--line);}
+.ct-prod:first-of-type{border-top:none;}
+.ct-prod span{font-size:13.5px;min-width:0;}
+.ct-prod button{width:auto;margin:0;flex:0 0 auto;}
+#cdContaBrindes{border:1px solid var(--gold);background:rgba(224,181,58,.1);border-radius:10px;padding:9px 11px;margin-bottom:10px;}
+#cdContaBrindes select{margin:4px 0 0;}
 .ct-box{max-width:520px;max-height:92vh;overflow-y:auto;}
 .ct-lista{margin:0 0 12px;padding-left:18px;font-size:13.5px;line-height:1.7;color:var(--cream);}
 .ct-google{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;background:#fff;color:#1f1f1f;border:none;border-radius:6px;padding:12px;font-size:14.5px;font-weight:700;cursor:pointer;}

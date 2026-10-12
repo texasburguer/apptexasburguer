@@ -9,7 +9,7 @@
 'use strict';
 var KEY = 'txbContaSb_v1', IND_KEY = 'txbIndicacao', VOLTA_KEY = 'txbContaVolta';
 var FID_META = 10;                                   // carimbos para completar o cartão (o prêmio é entregue pelo restaurante)
-var estado = { conta:null, cupons:null, enderecos:null, pedidos:null, aba:'pedidos', cupomPendente:'', iniciando:false };
+var estado = { brindes:null, escolhas:[], conta:null, cupons:null, enderecos:null, pedidos:null, aba:'pedidos', cupomPendente:'', iniciando:false };
 var refreshP = null;
 
 function $(id){ return document.getElementById(id); }
@@ -79,8 +79,9 @@ function sair(silencioso){
   var s = lerSessao();
   gravarSessao(null);
   if(s && s.access_token){ try{ sbJson_(SUPABASE_URL_ + '/auth/v1/logout', { method:'POST', headers:{ 'apikey': SUPABASE_CHAVE_, 'Authorization': 'Bearer ' + s.access_token } }, 8000).catch(function(){}); }catch(e){} }
-  estado.conta = null; estado.cupons = null; estado.enderecos = null; estado.pedidos = null;
+  estado.conta = null; estado.cupons = null; estado.enderecos = null; estado.pedidos = null; estado.brindes = null; estado.escolhas = [];
   fecharTodos();
+  atualizaCarrinho();
   atualizarBotao();
   limparCheckout();
   if(!silencioso) toast('Você saiu da sua conta.');
@@ -114,11 +115,70 @@ function confirmar(titulo, texto, okTxt, perigo, extraHtml){
 }
 
 /* ---------- botão do cardápio ---------- */
+function qtdBrindes(){
+  var b = estado.brindes; if(!b || !b.ok) return 0;
+  return (b.fidelidadeDisponivel && (b.produtosFid || []).length ? 1 : 0) + ((b.produtosInd || []).length ? (b.indicacao || []).length : 0);
+}
 function atualizarBotao(){
   var b = $('cdContaBtn'); if(!b) return;
-  if(estado.conta) b.textContent = '👤 ' + (primeiroNome(estado.conta.nome) || 'Minha conta');
-  else if(lerSessao()) b.textContent = '👤 Minha conta';
+  var bar = $('cdContaBar'), t = $('cdContaTxt'), logada = !!(estado.conta || lerSessao());
+  if(estado.conta) b.textContent = 'Minha conta';
+  else if(logada) b.textContent = 'Minha conta';
   else b.textContent = '👤 Entrar';
+  if(bar) bar.classList.toggle('logada', logada);
+  if(t){
+    if(estado.conta){
+      var n = qtdBrindes();
+      t.innerHTML = '👤 Olá, <b>' + esc(primeiroNome(estado.conta.nome) || 'cliente') + '</b>' + (n ? ' · <b>🎁 ' + n + (n === 1 ? ' brinde' : ' brindes') + ' para você</b>' : '');
+    }else if(logada) t.textContent = '👤 Sua conta';
+    else t.innerHTML = 'Entre para usar <b>cupons</b> e juntar <b>carimbos</b>';
+  }
+}
+async function carregarBrindes(){
+  var r = await rpc('api_conta_beneficios', {});
+  estado.brindes = r.ok ? r : null;
+  /* tira escolhas que não valem mais */
+  estado.escolhas = estado.escolhas.filter(function(e){
+    if(!estado.brindes) return false;
+    if(e.tipo === 'Fidelidade') return !!estado.brindes.fidelidadeDisponivel;
+    return (estado.brindes.indicacao || []).some(function(x){ return x.id === e.id; });
+  });
+  atualizarBotao();
+  return r;
+}
+/* brindes escolhidos para o pedido (lidos pelo carrinho) */
+window.contaBrindesEscolhidos_ = function(){ return estado.conta ? estado.escolhas : []; };
+function atualizaCarrinho(){
+  try{ if(typeof renderCdCarrinho === 'function') renderCdCarrinho(); if(typeof atualizarFabCarrinho === 'function') atualizarFabCarrinho(); }catch(e){}
+}
+function nomeProd(lista, id){ var p = (lista || []).filter(function(x){ return x.id === id; })[0]; return p ? p.nome : ''; }
+function definirEscolha(tipo, id, produtoId){
+  estado.escolhas = estado.escolhas.filter(function(e){ return e.chave !== (tipo + ':' + (id || '')); });
+  if(produtoId){
+    var b = estado.brindes || {}, nome = nomeProd(tipo === 'Fidelidade' ? b.produtosFid : b.produtosInd, produtoId);
+    if(nome) estado.escolhas.push({ chave: tipo + ':' + (id || ''), tipo: tipo, id: id || null, produtoId: produtoId, nome: nome });
+  }
+}
+window.contaEscolherBrinde_ = function(tipo, id, produtoId){
+  definirEscolha(tipo, id, produtoId);
+  fechar('contaModal');
+  atualizaCarrinho();
+  if(typeof abrirCarrinhoPublico === 'function') abrirCarrinhoPublico();
+};
+window.contaSelBrinde_ = function(tipo, id, produtoId){ definirEscolha(tipo, id, produtoId); atualizaCarrinho(); };
+window.contaRemoverBrinde_ = function(chave){
+  estado.escolhas = estado.escolhas.filter(function(e){ return e.chave !== chave; });
+  var sel = document.querySelectorAll('#cdContaBrindes select'); for(var i = 0; i < sel.length; i++) if(sel[i].getAttribute('data-chave') === chave) sel[i].value = '';
+  atualizaCarrinho();
+};
+window.contaAposPedido_ = function(){
+  estado.escolhas = []; estado.brindes = null; estado.cupons = null; atualizarBotao();
+  if(estado.conta) carregarBrindes();
+};
+function linhasProdutos(tipo, id, lista){
+  return (lista || []).map(function(p){
+    return '<div class="ct-prod"><span>🎁 ' + esc(p.nome) + (p.descricao ? '<br><small style="color:var(--muted);">' + esc(p.descricao) + '</small>' : '') + '</span><button type="button" class="small-gold" onclick="contaEscolherBrinde_(\'' + tipo + '\',\'' + esc(id || '') + '\',\'' + esc(p.id) + '\')">Escolher</button></div>';
+  }).join('');
 }
 window.contaBotao_ = function(){
   if(!lerSessao()) return abrirEntrar();
@@ -152,6 +212,7 @@ async function iniciar(manual){
     try{ localStorage.removeItem(IND_KEY); }catch(e){}
     estado.conta = r.conta; atualizarBotao();
     if(r.precisaAceite){ abrirAceite(r); return; }
+    carregarBrindes();
     var volta = null; try{ volta = JSON.parse(sessionStorage.getItem(VOLTA_KEY) || 'null'); sessionStorage.removeItem(VOLTA_KEY); }catch(e){}
     if(volta && volta.abrir === 'carrinho'){ setTimeout(function(){ if(typeof abrirCarrinhoPublico === 'function') abrirCarrinhoPublico(); }, 400); }
     else if(volta && volta.abrir === 'conta'){ abrirConta(); }
@@ -333,9 +394,15 @@ async function abaFidelidade(){
   var r = await rpc('api_conta_fidelidade', {}); if(!r.ok) return erroAba(r);
   if(!r.vinculada) return '<p class="sub">Seu cartão fidelidade aparece aqui depois do seu <b>primeiro pedido concluído</b> com esta conta (entregue ou retirado).</p>';
   var n = Math.max(0, Math.min(Number(r.carimbos) || 0, FID_META)), bolas = '';
-  for(var i = 1; i <= FID_META; i++) bolas += '<span class="ct-carimbo' + (i <= n ? ' on' : '') + '">' + (i <= n ? '⭐' : i) + '</span>';
-  return '<div class="ct-card"><div class="ct-cab"><b>Cartão fidelidade</b><span>' + n + ' de ' + FID_META + '</span></div><div class="ct-carimbos">' + bolas + '</div>' +
-    '<p class="sub" style="margin:8px 0 0;font-size:12.5px;">' + (n >= FID_META ? '🎉 Cartão completo! Peça seu prêmio no próximo pedido.' : 'Faltam <b>' + (FID_META - n) + '</b> para o seu prêmio.') + '</p>' +
+  for(var i = 1; i <= FID_META; i++) bolas += '<div class="hole' + (i <= n ? ' filled' : '') + '" role="img" aria-label="' + (i <= n ? 'Marca ' + i + ' carimbada' : 'Marca ' + i + ' vazia') + '"></div>';
+  var b = await carregarBrindes(), prem = '';
+  if(n >= FID_META){
+    if(b.ok && (b.produtosFid || []).length){
+      prem = '<div class="ct-brinde"><b>🎉 Cartão completo! Escolha o seu prêmio:</b><p class="sub" style="font-size:12px;margin:4px 0 6px;">Vai junto com um pedido ou sozinho. O prêmio sai grátis; a entrega, se for entrega, é cobrada.</p>' + linhasProdutos('Fidelidade', '', b.produtosFid) + '</div>';
+    }else prem = '<p class="sub" style="margin:8px 0 0;">🎉 Cartão completo! Peça seu prêmio ao restaurante no próximo pedido.</p>';
+  }
+  return '<div class="ct-fid"><div class="ct-cab"><b>Cartão fidelidade</b><span>' + n + ' de ' + FID_META + ' marcas</span></div><div class="punch">' + bolas + '</div>' +
+    (n < FID_META ? '<p class="sub" style="margin:2px 0 0;font-size:12.5px;">Faltam <b>' + (FID_META - n) + '</b> para o seu prêmio.</p>' : '') + prem +
     (Number(r.premios) > 0 ? '<p class="sub" style="font-size:12px;">Prêmios já resgatados: ' + esc(r.premios) + '</p>' : '') + '</div>';
 }
 
@@ -379,13 +446,20 @@ function linkIndicacao(){ return location.origin + location.pathname + '?ind=' +
 function textoRecompensa(c){ if(!c) return ''; return textoBeneficio({ tipo:c.tipo, valor:c.valor, minimo:c.minimo }); }
 async function abaIndique(){
   var r = estado.cupons && estado.cupons.ok ? estado.cupons : await carregarCupons(); if(!r.ok) return erroAba(r);
-  var ind = r.indicacao || {};
-  if(!ind.indicador && !ind.indicado) return '<p class="sub">O programa “Indique e ganhe” não está ativo agora. Fique de olho — quando começar, seu link aparece aqui.</p>';
-  var l = linkIndicacao();
-  return '<div class="ct-card"><div class="ct-cab"><b>Indique e ganhe</b></div><p class="sub" style="font-size:13px;margin:4px 0 8px;">Mande seu link para um amigo. Quando ele fizer o <b>primeiro pedido</b> com a conta dele e o pedido for concluído, ' +
-    (ind.indicador ? 'você ganha <b>' + esc(textoRecompensa(ind.indicador)) + '</b>' : '') + (ind.indicador && ind.indicado ? ' e ' : '') + (ind.indicado ? 'ele ganha <b>' + esc(textoRecompensa(ind.indicado)) + '</b>' : '') + '.</p>' +
+  var b = await carregarBrindes();
+  var ind = r.indicacao || {}, temPremio = b.ok && (b.produtosInd || []).length > 0;
+  if(!temPremio && !ind.indicado) return '<p class="sub">O programa “Indique e ganhe” não está ativo agora. Fique de olho — quando começar, seu link aparece aqui.</p>';
+  var l = linkIndicacao(), h = '';
+  h += '<div class="ct-card"><div class="ct-cab"><b>Indique e ganhe</b></div><p class="sub" style="font-size:13px;margin:4px 0 8px;">Mande seu link para um amigo. Quando ele fizer o <b>primeiro pedido</b> com a conta dele e o pedido for concluído, ' +
+    (temPremio ? 'você ganha <b>1 brinde à sua escolha</b>' : '') + (temPremio && ind.indicado ? ' e ' : '') + (ind.indicado ? 'ele ganha <b>' + esc(textoRecompensa(ind.indicado)) + '</b>' : '') + '.</p>' +
     '<input type="text" readonly id="ctLinkInd" value="' + esc(l) + '" onclick="this.select()">' +
     '<div class="ct-linha"><button type="button" class="ghost" onclick="contaCopiarLink_()">Copiar link</button><button type="button" class="small-gold" onclick="contaZapLink_()">Enviar no WhatsApp</button></div></div>';
+  if(temPremio && (b.indicacao || []).length){
+    h += '<h3 class="ct-h3">Seus brindes de indicação</h3>' + b.indicacao.map(function(x, k){
+      return '<div class="ct-brinde"><b>🎁 Brinde ' + (k + 1) + '</b> <span class="sub" style="font-size:11.5px;">desde ' + esc(dataCurta(x.desde)) + '</span><p class="sub" style="font-size:12px;margin:4px 0 6px;">Vai junto com um pedido ou sozinho. Sai grátis; a entrega, se houver, é cobrada.</p>' + linhasProdutos('Indicação', x.id, b.produtosInd) + '</div>';
+    }).join('');
+  }
+  return h;
 }
 window.contaCopiarLink_ = function(){
   var l = linkIndicacao();
@@ -439,7 +513,18 @@ window.contaApagar_ = async function(){
 };
 
 /* ---------- ganchos do carrinho (checkout) ---------- */
-function limparCheckout(){ var a = $('cdContaChamada'); if(a) a.remove(); var b = $('cdContaCupons'); if(b) b.remove(); var c = $('cdContaEndBox'); if(c) c.remove(); }
+function montarBrindesCheckout(){
+  var f = $('cdCheckoutForm'), b = estado.brindes; if(!f || !b || !b.ok || $('cdContaBrindes')) return;
+  var linhas = [];
+  function opcoes(tipo, id, lista){ var chave = tipo + ':' + (id || ''), at = estado.escolhas.filter(function(e){ return e.chave === chave; })[0]; return '<select data-chave="' + esc(chave) + '" onchange="contaSelBrinde_(\'' + tipo + '\',\'' + esc(id || '') + '\',this.value)"><option value="">Não usar agora</option>' + lista.map(function(p){ return '<option value="' + esc(p.id) + '"' + (at && at.produtoId === p.id ? ' selected' : '') + '>' + esc(p.nome) + '</option>'; }).join('') + '</select>'; }
+  if(b.fidelidadeDisponivel && (b.produtosFid || []).length) linhas.push('<label>🎁 Cartão fidelidade completo — escolha seu prêmio</label>' + opcoes('Fidelidade', '', b.produtosFid));
+  if((b.produtosInd || []).length) (b.indicacao || []).forEach(function(x, k){ linhas.push('<label>🎁 Brinde de indicação' + ((b.indicacao || []).length > 1 ? ' ' + (k + 1) : '') + ' — escolha seu prêmio</label>' + opcoes('Indicação', x.id, b.produtosInd)); });
+  if(!linhas.length) return;
+  var d = document.createElement('div'); d.id = 'cdContaBrindes'; d.className = 'cd-hide-mesa';
+  d.innerHTML = linhas.join('') + '<p class="sub" style="font-size:11.5px;margin:6px 0 0;">O brinde sai grátis e a entrega continua sendo cobrada.</p>';
+  f.insertBefore(d, f.firstChild);
+}
+function limparCheckout(){ var z = $('cdContaBrindes'); if(z) z.remove(); var a = $('cdContaChamada'); if(a) a.remove(); var b = $('cdContaCupons'); if(b) b.remove(); var c = $('cdContaEndBox'); if(c) c.remove(); }
 window.contaPreencherCheckout_ = async function(){
   limparCheckout();
   var form = $('cdCheckoutForm'); if(!form) return;
@@ -463,6 +548,8 @@ window.contaPreencherCheckout_ = async function(){
       estado.enderecos.map(function(e, i){ return '<option value="' + i + '">' + esc((e.apelido ? e.apelido + ' — ' : '') + e.endereco + (e.numero ? ', ' + e.numero : '')) + '</option>'; }).join('') + '</select>';
     box.insertBefore(s, box.firstChild);
   }
+  await carregarBrindes();
+  montarBrindesCheckout();
   var cup = rc.ok ? (rc.recebidos || []) : [];
   var linhaCupom = document.querySelector('#cdCarrinhoModal .row2.cd-hide-mesa');
   if(cup.length && linhaCupom && !$('cdContaCupons')){

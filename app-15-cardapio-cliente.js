@@ -461,6 +461,8 @@ function confirmarAddCarrinho(){
   fecharCdItemModal();
   atualizarFabCarrinho();
 }
+/* Brindes da conta do cliente (cartão fidelidade / indicação): vão no pedido a R$ 0,00; a entrega continua sendo cobrada */
+function cdBrindes_(){ try{ return (!mesaQr && window.contaBrindesEscolhidos_) ? window.contaBrindesEscolhidos_() : []; }catch(e){ return []; } }
 function cdPrecoItemCarrinho(it){ return (it.precoBase + it.adicionais.reduce((s,a)=>s+a.preco,0)) * it.qtd; }
 function subtotalCarrinhoCd(){ return Math.round(cdCarrinho.reduce((s,it)=>s+cdPrecoItemCarrinho(it),0)*100)/100; }
 function taxaEntregaCdAtual(){ const tipo=(document.getElementById('cdTipoEntrega')||{}).value; const taxa=Number(cdDados.config&&cdDados.config.taxaEntrega)||0; return tipo==='Entrega' && !(cdCupomAplicado&&cdCupomAplicado.freteGratis) ? taxa : 0; }
@@ -472,7 +474,7 @@ function acrescimoCdAtual_(){
 function totalCarrinhoCd(){ return Math.round((totalSemAcrescimoCd_() + acrescimoCdAtual_())*100)/100; }
 function cdAtualizarTotal_(){
   const el = document.getElementById('cdCarrinhoTotal');
-  if(el) el.textContent = cdFormatarPreco(cdCarrinho.length ? Math.max(0.01, totalCarrinhoCd()) : 0);
+  if(el) el.textContent = cdFormatarPreco(cdCarrinho.length ? Math.max(0.01, totalCarrinhoCd()) : (cdBrindes_().length ? Math.max(0, totalCarrinhoCd()) : 0));
   cdAtualizarAvisoForma_();
 }
 /* Carrinho guardado só neste aparelho (não vai para o servidor). Vale 24 horas. */
@@ -518,8 +520,9 @@ function cdContinuarCarrinhoSalvo_(){
 function atualizarFabCarrinho(){
   cdSalvarCarrinho_();
   const fab = document.getElementById('cdFabCarrinho');
-  if(!cdCarrinho.length){ fab.classList.remove('show'); return; }
-  const totalQtd = cdCarrinho.reduce((s,it)=>s+it.qtd,0);
+  const nBr = cdBrindes_().length;
+  if(!cdCarrinho.length && !nBr){ fab.classList.remove('show'); return; }
+  const totalQtd = cdCarrinho.reduce((s,it)=>s+it.qtd,0) + nBr;
   const totalValor = cdCarrinho.reduce((s,it)=>s+cdPrecoItemCarrinho(it),0);
   document.getElementById('cdFabQtd').textContent = totalQtd + (totalQtd===1?' item':' itens');
   document.getElementById('cdFabTotal').textContent = cdFormatarPreco(totalValor);
@@ -551,7 +554,7 @@ function abrirCarrinhoPublico(){
 let cdPedidoConcluido = false; // true depois que o pedido foi enviado: ao fechar a janela, o carrinho é esvaziado
 function cdLimparAposPedido_(){
   cdPararContagemWa_();
-  cdCarrinho = []; cdCupomAplicado = null; cdPedidoConcluido = false; try{ localStorage.removeItem(CD_CARRINHO_KEY_); }catch(e){}
+  cdCarrinho = []; cdCupomAplicado = null; cdPedidoConcluido = false; try{ if(window.contaAposPedido_) window.contaAposPedido_(); }catch(e){} try{ localStorage.removeItem(CD_CARRINHO_KEY_); }catch(e){}
   const v = (id, val)=>{ const el=document.getElementById(id); if(el) el.value = val; };
   v('cdCupom',''); v('cdObservacoes',''); v('cdTrocoPara','');
   const pt = document.getElementById('cdPrecisaTroco'); if(pt) pt.checked = false;
@@ -569,11 +572,13 @@ function fecharCarrinhoPublico(){
 }
 function renderCdCarrinho(){
   const cont = document.getElementById('cdCarrinhoItens');
-  if(!cdCarrinho.length){ cont.innerHTML = '<p class="sub">Seu carrinho está vazio.</p>'; }
+  const brs = cdBrindes_();
+  const htmlBr = brs.map(b=>`<div class="cd-adicional-linha"><span>🎁 1x ${escH(b.nome)} <small style="color:var(--muted);">(${b.tipo==='Fidelidade'?'cartão fidelidade':'indicação'})</small></span><span>${cdFormatarPreco(0)} <button class="link-btn" onclick="contaRemoverBrinde_('${escH(b.chave)}')">remover</button></span></div>`).join('');
+  if(!cdCarrinho.length && !brs.length){ cont.innerHTML = '<p class="sub">Seu carrinho está vazio.</p>'; }
   else cont.innerHTML = cdCarrinho.map((it,i)=>`<div class="cd-adicional-linha">
       <span>${it.qtd}x ${escH(it.nome)}${it.adicionais.length?' ('+it.adicionais.map(a=>escH(a.nome)).join(', ')+')':''}${it.obs?'<br><small style="color:var(--muted);">📝 '+escH(it.obs)+'</small>':''}</span>
       <span>${cdFormatarPreco(cdPrecoItemCarrinho(it))} <button class="link-btn" onclick="removerDoCarrinho(${i})">remover</button></span>
-    </div>`).join('');
+    </div>`).join('') + htmlBr;
   cdAtualizarTotal_();
 }
 function removerDoCarrinho(i){ cdCarrinho.splice(i,1); renderCdCarrinho(); atualizarFabCarrinho(); }
@@ -660,7 +665,8 @@ async function finalizarPedidoPublico(){
   const tipoEntrega = document.getElementById('cdTipoEntrega').value;
   const formaPagamentoId = document.getElementById('cdFormaPagamento').value;
   if(!nome || !telefone) return showMsg('cdCheckoutMsg','Informe nome e telefone.','warn');
-  if(!cdCarrinho.length) return showMsg('cdCheckoutMsg','Seu carrinho está vazio.','warn');
+  const brindes = cdBrindes_();
+  if(!cdCarrinho.length && !brindes.length) return showMsg('cdCheckoutMsg','Seu carrinho está vazio.','warn');
   cdGuardarContato_(nome, telefone);
   const dadosEntrega = tipoEntrega==='Entrega' ? {
     endereco: document.getElementById('cdEndereco').value.trim().replace(/[,\s]+$/,''),
@@ -684,8 +690,9 @@ async function finalizarPedidoPublico(){
   const btn = document.getElementById('cdEnviarPedidoBtn');
   btn.disabled = true; btn.textContent = 'Enviando...';
 
-  const _preventivoPublico = !modoContingenciaAtivo && servidorLento_() && !cdCupomAplicado && !!CONTINGENCIA_CHAVE_PUBLICA; // BLOCO 1.2 (com cupom não: a contingência não aplica desconto)
+  const _preventivoPublico = !brindes.length && !modoContingenciaAtivo && servidorLento_() && !cdCupomAplicado && !!CONTINGENCIA_CHAVE_PUBLICA; // BLOCO 1.2 (com cupom não: a contingência não aplica desconto)
   let _contFalhou = false;
+  if(brindes.length && modoContingenciaAtivo){ btn.disabled=false; btn.textContent='Enviar pedido'; return showMsg('cdCheckoutMsg','Com brinde da sua conta o pedido precisa do sistema principal, que está instável agora. Tente de novo em instantes ou tire o brinde do carrinho.','warn'); }
   if(modoContingenciaAtivo || _preventivoPublico){
     try{
       const idFila = (_idFilaContingencia = _idFilaContingencia || ('cd-' + Date.now() + '-' + Math.random().toString(36).slice(2,8))); // mesmo id em toda nova tentativa: a fila da contingência não duplica
@@ -729,9 +736,10 @@ async function finalizarPedidoPublico(){
     adicionaisIds: it.adicionais.map(a=>a.id),
     observacao: it.obs || ''
   }));
-  const _reqCont = { itens, clienteTelefone: telefone, tipoEntrega, formaPagamentoId };
+  const beneficios = brindes.map(b=>({ tipo:b.tipo, id:b.id, produtoId:b.produtoId }));
+  const _reqCont = { itens, clienteTelefone: telefone, tipoEntrega, formaPagamentoId, beneficios };
   try{
-    const r = await apiCall('criarPedidoCardapio', { requisicaoId: reqIdPersist_('pedido_cardapio', _reqCont), itens, clienteNome: nome, clienteTelefone: telefone, tipoEntrega, dadosEntrega, formaPagamentoId, observacaoTroco: trocoParaObs, codigoCupom: cdCupomAplicado ? cdCupomAplicado.codigo : '', observacoes: (document.getElementById('cdObservacoes')||{}).value.trim() });
+    const r = await apiCall('criarPedidoCardapio', { requisicaoId: reqIdPersist_('pedido_cardapio', _reqCont), itens, clienteNome: nome, clienteTelefone: telefone, tipoEntrega, dadosEntrega, formaPagamentoId, observacaoTroco: trocoParaObs, codigoCupom: cdCupomAplicado ? cdCupomAplicado.codigo : '', beneficios, observacoes: (document.getElementById('cdObservacoes')||{}).value.trim() });
     if(r.ok){
       reqIdConfirmado_('pedido_cardapio', _reqCont);
       showMsg('cdCheckoutMsg', r.message, 'ok');

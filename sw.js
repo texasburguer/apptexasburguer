@@ -6,7 +6,7 @@
    - BACKEND: NADA de Apps Script (script.google.com) nem de Supabase (*.supabase.co) é guardado aqui.
      Dados, pedidos, login e RPCs nunca passam pelo cache do service worker — sempre vão direto para a rede.
    - O único cache de dados é o de fotos (FOTOS) e o da casca/ícones (SHELL/ASSETS). Não adicionar outros. */
-const SHELL = 'texas-shell-v31';
+const SHELL = 'texas-shell-v32';
 const ASSETS = 'texas-assets-v6';   // trocou ícone/logo/manifest/leaflet? suba para v5
 const FOTOS = 'texas-fotos-v1';
 /* Código do app dividido em arquivos (app-*.js e estilo-*.css). Cada arquivo tem ?v=<impressão digital> na página; o cache guarda
@@ -16,21 +16,21 @@ const CODIGO = 'texas-codigo-v1';
 const LISTA = [/*LISTA-INICIO*/
   'estilo-01-base.css?v=460bec22',
   'estilo-02-chat-publico.css?v=b0374956',
-  'app-01-base-e-api.js?v=3b567016',
-  'app-02-abas.js?v=3322a850',
+  'app-01-base-e-api.js?v=30addb83',
+  'app-02-abas.js?v=221636b7',
   'app-03-cadastros.js?v=7dd3c514',
   'app-04-pedidos-entrega.js?v=d0d4fe5d',
   'app-05-avisos-push.js?v=67c3b080',
   'app-06-caixa.js?v=2eb0f13a',
   'app-07-impressao.js?v=d0e63a58',
   'app-08-vendas-despesas.js?v=07159b49',
-  'app-09-ajuda.js?v=69d94489',
+  'app-09-ajuda.js?v=9ce92b21',
   'app-10-backup-financeiro.js?v=16146730',
   'app-11-admin-integracoes.js?v=949dea9a',
   'app-12-gestao-ia.js?v=19a33ae4',
   'app-13-conexao-sync.js?v=64fab071',
   'app-14-relatorios.js?v=3c1364d9',
-  'app-15-cardapio-cliente.js?v=ab72ef75',
+  'app-15-cardapio-cliente.js?v=94235605',
   'app-16-sessao-final.js?v=ef1da8ab',
   'app-17-sessao-supabase.js?v=add7fc79',
   'app-18-queda-supabase.js?v=d409c0fe',
@@ -54,8 +54,8 @@ const LISTA = [/*LISTA-INICIO*/
   'estilo-13-visual.css?v=e256f776',
   'estilo-14-computador.css?v=c7050ce4',
   'app-26-visual.js?v=cccee8a5',
-  'estilo-15-conta.css?v=6842e2d5',
-  'app-27-conta-cliente.js?v=4758ee1e',
+  'estilo-15-conta.css?v=84173789',
+  'app-27-conta-cliente.js?v=59dd3c00',
 /*LISTA-FIM*/];
 const FOTOS_MAX = 150;
 const PRE = ['manifest.webmanifest', 'icon-192.png', 'badge-96.png', 'apple-touch-icon.png', 'logo-texas-burger.webp', 'logo-impressao-cor.png'];

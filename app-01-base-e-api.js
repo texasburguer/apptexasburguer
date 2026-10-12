@@ -19,6 +19,7 @@ window.APP_VERSAO = APP_VERSAO;
 const APP_NOVIDADES = {
   Admin: [
     { v:'1.0', em:'09/10/2026', itens:[
+      'Novo: brindes na conta do cliente. Os produtos marcados como prêmio de fidelidade ou de indicação (Editar produto › Mais opções) viram brindes: o cliente escolhe o prêmio na Minha conta ou no carrinho, junto com um pedido ou sozinho. O brinde vai a R$ 0,00 (aparece nos relatórios com o custo e baixa o estoque) e a entrega continua sendo cobrada. Quem indica agora ganha o produto-prêmio quando o amigo conclui o 1º pedido (o cupom de quem indicou foi aposentado; o do indicado continua). Pedido cancelado devolve o brinde.',
       'Novo: conta do cliente com login Google (opcional). O cliente vê pedidos e repete com um toque, guarda endereços, recebe cupons e vê o cartão fidelidade e o link do "indique e ganhe". Tem Aviso de Privacidade (LGPD), "baixar meus dados" e "apagar conta". Sem conta, tudo continua igual.',
       'Novo em Promoções: botão Editar em todo cupom, cupom "só para quem tem conta", "só para um cliente", texto para o cliente e 4 cupons automáticos (boas-vindas, aniversário, indique e ganhe) que já vêm desligados — ajuste e ligue. Cupom de pedido cancelado volta para o cliente. Cartão "Privacidade" para razão social/CNPJ, prazo de anonimização e nova versão do Aviso.',
       'Corrigido: ao abrir o sistema já logado, o cardápio do cliente não aparece mais por um instante antes da tela do sistema (aparece só a logo).',
@@ -131,6 +132,8 @@ const APP_NOVIDADES = {
   ],
   Cliente: [
     { v:'1.0', em:'09/10/2026', itens:[
+      'Novo: brindes! Com o cartão fidelidade completo ou um brinde de indicação, escolha seu prêmio na Minha conta ou no carrinho, junto com um pedido ou sozinho. Ele sai por R$ 0,00 e a entrega, se houver, é cobrada.',
+      'O botão Entrar/Minha conta agora fica numa faixa logo abaixo do banner, o calendário da data de nascimento ficou visível e o cartão fidelidade da conta ficou igual ao do cardápio.',
       'Novo: avisos do pedido no celular (confirmado, pronto, saiu para entrega e entregue) e, depois da entrega, "Como foi seu pedido?". Toque em "Quero receber" no topo do cardápio. No iPhone, instale o app antes.',
       'O atendente do chat agora oferece registrar o seu elogio ou sugestão como feedback.',
       'A Ajuda vem com os tópicos fechados: toque no título para abrir.',
