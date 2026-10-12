@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <!-- SEGURANÇA: mesmo que algum texto malicioso escapasse, a página só consegue falar com o Google Apps Script (planilha e contingência). -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' https: data: blob:; connect-src 'self' https://nominatim.openstreetmap.org https://viacep.com.br https://script.google.com https://script.googleusercontent.com https://awryywtgqfaxppayzpca.supabase.co wss://awryywtgqfaxppayzpca.supabase.co; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none';">
+<!-- Aparelho da equipe com sessão salva: mostra só o fundo e a logo até o sistema abrir (o cardápio público não "pisca" antes do login). Cliente sem login: nada muda. -->
+<style id="txbSplashCss">html.txb-equipe::before{content:"";position:fixed;left:0;top:0;right:0;bottom:0;z-index:2147483000;background:#0b0705 url(logo-texas-burger.webp) center center/min(52vw,210px) auto no-repeat;}</style>
+<script id="txbSplash">(function(){var h=document.documentElement;window.txbSplashFim_=function(){try{h.classList.remove('txb-equipe');}catch(e){}};try{if(localStorage.getItem('texasBurgerSessao_v2')){h.classList.add('txb-equipe');setTimeout(window.txbSplashFim_,8000);}}catch(e){}})();</script>
 <!-- =====================================================================
  TEXAS BURGER — captura de ERROS DE JAVASCRIPT (para o diagnóstico do Desenvolvedor)
  COLAR como PRIMEIRO bloco de script do head do index.html (logo depois da meta de Content-Security-Policy),
@@ -93,6 +96,7 @@
      Funcionários" é discreto e só ele revela a tela de login interna. -->
 <div id="cardapioPublico">
   <div class="cd-banner">
+    <button type="button" class="cd-conta-btn" id="cdContaBtn" onclick="contaBotao_()">👤 Entrar</button>
     <img class="hero-logo" src="logo-texas-burger.webp" alt="Texas Burger" width="470" height="441" decoding="async">
     <h1 class="sr-only">Texas Burger</h1>
     <div class="kicker" id="cdKicker">DELIVERY · SABOR QUE CONQUISTA</div>
@@ -149,6 +153,7 @@
     </div>
     <div class="cd-rl-linha">
       <button onclick="abrirAjudaCliente()">❓ Como pedir / Ajuda</button>
+      <button onclick="abrirAvisoPrivacidade()">🔒 Privacidade</button>
     </div>
     <div class="cd-frase-final">
       <p>“Portanto, quando vocês comem, ou bebem, ou fazem qualquer outra coisa, façam tudo para a glória de Deus.”</p>
@@ -1062,11 +1067,24 @@
     <div class="admin-subnav" data-admin-nav="1"></div>
     <div class="card">
       <h2>🎟️ Central de Promoções e Cupons</h2>
-      <p class="sub">Crie códigos sem editar o HTML. A validação real acontece no servidor.</p>
-      <button type="button" class="primary" onclick="abrirFormModal('cupomNovoModal')">+ Novo cupom</button>
+      <p class="sub">Crie e edite códigos sem mexer no sistema. A validação real acontece no servidor. Cupons “só para conta” valem para quem entrou com o Google.</p>
+      <button type="button" class="primary" onclick="abrirCupomUI()">+ Novo cupom</button>
       <div class="msg" id="cupMsgLista"></div>
     </div>
+    <div class="card"><h2>🤖 Cupons automáticos</h2><p class="sub">Entregues sozinhos para quem tem conta. Todos começam <b>desligados</b>: ajuste o benefício e ative.</p><div id="cupAutoLista"></div></div>
     <div class="card"><h2>Cupons cadastrados</h2><div id="cupLista"></div></div>
+    <div class="card" id="lgpdCard" style="display:none;">
+      <h2>🔒 Privacidade (LGPD) das contas</h2>
+      <p class="sub">O Aviso de Privacidade é montado com os dados do restaurante. Enquanto razão social e CNPJ ficarem em branco, eles não aparecem no aviso.</p>
+      <div id="lgpdResumo" class="obs-line"></div>
+      <div class="row2"><div><label>Razão social</label><input id="lgpdRazao" maxlength="120" placeholder="(opcional por enquanto)"></div><div><label>CNPJ</label><input id="lgpdCnpj" maxlength="20" placeholder="(opcional por enquanto)"></div></div>
+      <button type="button" class="small-gold" onclick="lgpdSalvarResp_()">Salvar dados do responsável</button>
+      <label style="margin-top:12px;">Anonimizar clientes sem pedidos depois de (anos)</label>
+      <div class="row2"><div><input type="number" id="lgpdAnos" min="1" max="10" step="1" value="3"></div><div><button type="button" class="small-gold" onclick="lgpdSalvarAnos_()">Salvar prazo</button></div></div>
+      <button type="button" class="ghost" style="margin-top:12px;" onclick="lgpdNovaVersao_()">Publicar nova versão do Aviso (todos aceitam de novo)</button>
+      <div class="obs-line" id="lgpdLink"></div>
+      <div class="msg" id="lgpdMsg"></div>
+    </div>
   </section>
 
   <!-- =========================== EVENTOS =========================== -->
@@ -2054,15 +2072,25 @@
 <!-- POP-UP: Novo cupom -->
 <div class="modal-overlay" id="cupomNovoModal">
   <div class="modal-box">
-    <div class="modal-header"><h2>Novo cupom</h2><button class="close-btn" onclick="fecharFormModal('cupomNovoModal')" aria-label="Fechar">✕</button></div>
+    <div class="modal-header"><h2 id="cupTitulo">Novo cupom</h2><button class="close-btn" onclick="fecharFormModal('cupomNovoModal')" aria-label="Fechar">✕</button></div>
+      <input type="hidden" id="cupId"><input type="hidden" id="cupAuto">
+      <div id="cupAutoAviso" class="obs-line" style="display:none;margin-bottom:6px;"></div>
       <div class="row2"><div><label>Código</label><input id="cupCodigo" maxlength="40" placeholder="PROMO10"></div><div><label>Nome</label><input id="cupNome" placeholder="Promoção de 10%"></div></div>
       <div class="row2"><div><label>Tipo</label><select id="cupTipo" onchange="onMudarTipoCupom_()"><option value="percentual">Percentual (%)</option><option value="fixo">Valor fixo (R$)</option><option value="progressivo">Progressivo (por faixa)</option><option value="frete">Frete grátis</option></select></div><div id="cupValorBox"><label>Valor</label><input type="number" id="cupValor" min="0" step="0.01"></div></div>
       <div id="cupFaixasBox" style="display:none;"><label>Faixas (uma por linha: pedido mínimo e desconto, em R$)</label><textarea id="cupFaixas" rows="4" placeholder="50 5&#10;100 10"></textarea><div class="obs-line">Ex.: "50 5" = R$ 5 de desconto em pedidos a partir de R$ 50. Vale a maior faixa que o pedido alcança (itens, sem a taxa de entrega).</div></div>
       <div class="row2"><div><label>Início</label><input type="date" id="cupInicio"></div><div><label>Fim</label><input type="date" id="cupFim"></div></div>
       <div class="row2"><div><label>Limite total (0 = ilimitado)</label><input type="number" id="cupLimite" min="0" step="1" value="0"></div><div><label>Limite por cliente</label><input type="number" id="cupLimiteCliente" min="0" step="1" value="1"></div></div>
       <div class="row2"><div><label>Pedido mínimo (R$)</label><input type="number" id="cupMinimo" min="0" step="0.01" value="0"></div><div><label style="margin-top:28px;min-height:46px;"><input type="checkbox" id="cupFrete"> Frete grátis</label></div></div>
+      <div id="cupValidadeBox" style="display:none;"><label>Validade depois de entregue (dias)</label><input type="number" id="cupValidadeDias" min="1" max="365" step="1" value="30"><div class="obs-line">Quanto tempo o cliente tem para usar depois que recebe.</div></div>
+      <label>Texto para o cliente (opcional)</label><input id="cupMensagem" maxlength="200" placeholder="Ex.: Obrigado por criar sua conta!">
+      <div id="cupContaBox">
+        <label style="display:flex;gap:8px;align-items:center;"><input type="checkbox" id="cupSomenteConta" style="width:auto;"> Só vale para quem tem conta</label>
+        <label style="display:flex;gap:8px;align-items:center;"><input type="checkbox" id="cupVisivelConta" style="width:auto;"> Mostrar em “Minha conta” (promoções para o cliente ver)</label>
+        <label>Só para um cliente (opcional)</label><input id="cupCliente" list="cupClienteLista" placeholder="Digite o nome ou o telefone" autocomplete="off"><datalist id="cupClienteLista"></datalist>
+        <div class="obs-line">Cupom para um cliente específico só funciona quando ele entra com a conta dele.</div>
+      </div>
       <div class="row2"><label><input type="checkbox" id="cupAtiva" checked> Ativa</label><span class="sub">Acúmulo com outros cupons ficará reservado para uma futura extensão.</span></div>
-      <button class="primary" onclick="salvarCupomUI()">Criar cupom</button><div class="msg" id="cupMsg"></div>
+      <button class="primary" id="cupSalvarBtn" onclick="salvarCupomUI()">Criar cupom</button><div class="msg" id="cupMsg"></div>
   </div>
 </div>
 
@@ -2319,22 +2347,22 @@
   </div>
 </div>
 
-<script src="app-01-base-e-api.js?v=aee958bb" charset="utf-8" data-origem="__big0__"></script>
-<script src="app-02-abas.js?v=19466e08" charset="utf-8" data-origem="__big1__"></script>
+<script src="app-01-base-e-api.js?v=3b567016" charset="utf-8" data-origem="__big0__"></script>
+<script src="app-02-abas.js?v=3322a850" charset="utf-8" data-origem="__big1__"></script>
 <script src="app-03-cadastros.js?v=7dd3c514" charset="utf-8" data-origem="__big2__"></script>
 <script src="app-04-pedidos-entrega.js?v=d0d4fe5d" charset="utf-8" data-origem="__big3__"></script>
 <script src="app-05-avisos-push.js?v=67c3b080" charset="utf-8" data-origem="__big4__"></script>
 <script src="app-06-caixa.js?v=2eb0f13a" charset="utf-8" data-origem="__big5__"></script>
 <script src="app-07-impressao.js?v=d0e63a58" charset="utf-8" data-origem="__big6__"></script>
 <script src="app-08-vendas-despesas.js?v=07159b49" charset="utf-8" data-origem="__big7__"></script>
-<script src="app-09-ajuda.js?v=bd0e2793" charset="utf-8" data-origem="__big8__"></script>
+<script src="app-09-ajuda.js?v=69d94489" charset="utf-8" data-origem="__big8__"></script>
 <script src="app-10-backup-financeiro.js?v=16146730" charset="utf-8" data-origem="__big9__"></script>
 <script src="app-11-admin-integracoes.js?v=949dea9a" charset="utf-8" data-origem="__big10__"></script>
 <script src="app-12-gestao-ia.js?v=19a33ae4" charset="utf-8" data-origem="__big11__"></script>
 <script src="app-13-conexao-sync.js?v=64fab071" charset="utf-8" data-origem="__big12__"></script>
 <script src="app-14-relatorios.js?v=3c1364d9" charset="utf-8" data-origem="__big13__"></script>
-<script src="app-15-cardapio-cliente.js?v=85255a68" charset="utf-8" data-origem="__big14__"></script>
-<script src="app-16-sessao-final.js?v=f8a6b211" charset="utf-8" data-origem="__big15__"></script>
+<script src="app-15-cardapio-cliente.js?v=ab72ef75" charset="utf-8" data-origem="__big14__"></script>
+<script src="app-16-sessao-final.js?v=ef1da8ab" charset="utf-8" data-origem="__big15__"></script>
 <!-- ═══════════ SINCRONIZAÇÃO, BACKUP, ESPAÇO E INTEGRIDADE ═══════════
      app-17 cria cartões (ids sb410*) nas telas Backup e espaço e Sincronização e contingência. -->
 
@@ -2391,5 +2419,7 @@
 <link rel="stylesheet" href="estilo-13-visual.css?v=e256f776" data-origem="">
 <link rel="stylesheet" href="estilo-14-computador.css?v=c7050ce4" data-origem="">
 <script src="app-26-visual.js?v=cccee8a5" charset="utf-8" data-origem=""></script>
+<link rel="stylesheet" href="estilo-15-conta.css?v=6842e2d5" data-origem="">
+<script src="app-27-conta-cliente.js?v=4758ee1e" charset="utf-8" data-origem=""></script>
 </body>
 </html>

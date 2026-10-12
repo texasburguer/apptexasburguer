@@ -546,6 +546,7 @@ function abrirCarrinhoPublico(){
   renderCdCarrinho();
   onMudarTipoCdEntrega();
   document.getElementById('cdCarrinhoModal').classList.add('open');
+  if(!mesaQr && window.contaPreencherCheckout_) window.contaPreencherCheckout_();   // conta do cliente: dados, endereços e cupons
 }
 let cdPedidoConcluido = false; // true depois que o pedido foi enviado: ao fechar a janela, o carrinho é esvaziado
 function cdLimparAposPedido_(){

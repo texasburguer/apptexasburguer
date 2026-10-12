@@ -19,6 +19,9 @@ window.APP_VERSAO = APP_VERSAO;
 const APP_NOVIDADES = {
   Admin: [
     { v:'1.0', em:'09/10/2026', itens:[
+      'Novo: conta do cliente com login Google (opcional). O cliente vê pedidos e repete com um toque, guarda endereços, recebe cupons e vê o cartão fidelidade e o link do "indique e ganhe". Tem Aviso de Privacidade (LGPD), "baixar meus dados" e "apagar conta". Sem conta, tudo continua igual.',
+      'Novo em Promoções: botão Editar em todo cupom, cupom "só para quem tem conta", "só para um cliente", texto para o cliente e 4 cupons automáticos (boas-vindas, aniversário, indique e ganhe) que já vêm desligados — ajuste e ligue. Cupom de pedido cancelado volta para o cliente. Cartão "Privacidade" para razão social/CNPJ, prazo de anonimização e nova versão do Aviso.',
+      'Corrigido: ao abrir o sistema já logado, o cardápio do cliente não aparece mais por um instante antes da tela do sistema (aparece só a logo).',
       'Novo: no Início, "Cardápio hoje" mostra quantos clientes abriram o cardápio eletrônico hoje (cada aparelho conta 1 vez por dia; aparelhos da equipe não contam). O alerta virou uma faixa fina no topo e a conta das mesas foi para dentro do cartão Mesas.',
       'No computador: o topo ficou numa linha só e as abas ficam sempre à vista; o Administrador ganhou um menu ao lado com todas as telas (um clique); os pedidos ficam lado a lado; o Caixa mostra carrinho e pagamento à direita; nos relatórios, os títulos das colunas ficam em cima dos números e o gráfico do DRE ficou do tamanho certo. No celular nada muda.',
       'Valores com ponto de milhar e o sinal de negativo na frente: R$ 1.475,90 e −R$ 3.691,11.',
@@ -515,7 +518,7 @@ async function sbMontarDados_(nivel, chaves){
   const din = {
     usuarios: usuarios.map(u=>({ login:u.login, nivel:u.nivel, ativo:u.ativo, criadoEm:sbDataBr_(u.criado_em), nome:u.nome||'', telefone:u.telefone||'', id:u.id })),
     logRecentes: [], clientes: clientes.map(x=>{ const y = { id:x.id, nome:x.nome, telefone:x.telefone||'', dataNascimento:x.data_nascimento||'', endereco:x.endereco||'', comoConheceu:x.como_conheceu||'', primeiroContato:sbDataBr_(x.primeiro_contato), observacao:x.observacoes||'' }; if(nivel==='Garçom') delete y.observacao; return y; }), promocoes: nivel==='Garçom' ? [] : promos.map(p=>({ nome:p.nome, tipo:p.tipo, regra:p.regra_duplicidade, beneficio:p.beneficio, ativa:p.ativa })),
-    cupons: cupDb.map(c=>({ id:c.id, codigo:String(c.codigo||'').toUpperCase(), nome:c.nome||'', tipo:c.tipo||'percentual', valor:Number(c.valor)||0, faixas:Array.isArray(c.faixas)?c.faixas:[], freteGratis:!!c.frete_gratis, dataInicio:c.data_inicio||'', dataFim:c.data_fim||'', horaInicio:String(c.hora_inicio||'').slice(0,5), horaFim:String(c.hora_fim||'').slice(0,5), limiteTotal:Number(c.limite_total)||0, limitePorCliente:Number(c.limite_por_cliente)||0, valorMinimo:Number(c.valor_minimo)||0, ativa:c.ativa!==false, acumula:!!c.acumula, criadoEm:sbDataBr_(c.criado_em) })),
+    cupons: cupDb.map(c=>({ id:c.id, codigo:String(c.codigo||'').toUpperCase(), nome:c.nome||'', tipo:c.tipo||'percentual', valor:Number(c.valor)||0, faixas:Array.isArray(c.faixas)?c.faixas:[], freteGratis:!!c.frete_gratis, dataInicio:c.data_inicio||'', dataFim:c.data_fim||'', horaInicio:String(c.hora_inicio||'').slice(0,5), horaFim:String(c.hora_fim||'').slice(0,5), limiteTotal:Number(c.limite_total)||0, limitePorCliente:Number(c.limite_por_cliente)||0, valorMinimo:Number(c.valor_minimo)||0, ativa:c.ativa!==false, acumula:!!c.acumula, somenteConta:!!c.somente_conta, clienteId:c.cliente_id||'', mensagem:c.mensagem||'', visivelConta:!!c.visivel_conta, automatico:c.automatico||'', validadeDias:Number(c.validade_dias)||30, criadoEm:sbDataBr_(c.criado_em) })),
     eventos: evDb.map(e=>({ id:e.id, nome:e.nome||'', tipo:e.tipo||'', data:e.data||'', horaInicio:String(e.hora_inicio||'').slice(0,5), horaFim:String(e.hora_fim||'').slice(0,5), local:e.local||'', contratante:e.contratante||'', telefone:e.telefone||'', status:e.status||'Orçamento', valorContratado:Number(e.valor_contratado)||0, valorRecebido:Number(e.valor_recebido)||0, valorAReceber:Number(e.valor_a_receber)||0, custoTotal:Number(e.custo_total)||0, resultado:Number(e.resultado)||0, observacoes:e.observacoes||'' })),
     indicacoes: indDb.map(i=>({ nomeIndicador:i.nome_indicador||'', telIndicador:i.telefone_indicador||'', nomeIndicado:i.nome_indicado||'', telIndicado:i.telefone_indicado||'', data:sbDataBr_(i.data), resgatado:i.status==='Resgatado', observacao:i.observacoes||'', idIndicador:i.indicador_id||'', idIndicado:i.indicado_id||'' })),
     fidelidade: fidDb.map(f=>({ nome:f.nome||'', telefone:f.telefone||'', carimbos:Number(f.carimbos)||0, premios:Number(f.premios)||0, atualizado:f.atualizado||'', observacao:f.observacao||'', clienteId:f.cliente_id||'' })),
@@ -632,7 +635,7 @@ const SB_ESCRITAS_ = {
   addDespesa:['despesas'], editarDespesa:['despesas'], pagarDespesa:['despesas'], cancelarDespesa:['despesas'], gerarDespesasMes:['despesas'],
   addDespesaRecorrente:['despesasRecorrentes','despesas'], editarDespesaRecorrente:['despesasRecorrentes','despesas'],
   registrarAjustePosVenda:['ajustesPosVenda','despesas'], cancelarAjustePosVenda:['ajustesPosVenda','despesas'],
-  salvarCupom:['cupons'], alternarCupom:['cupons'],
+  salvarCupom:['cupons'], editarCupom:['cupons'], alternarCupom:['cupons'],
   registrarCompra:['estoque','movimentacoesEstoque','despesas','produtoPrecos','comboPrecos'], receberCompra:['estoque','movimentacoesEstoque','despesas','produtoPrecos','comboPrecos'],
   salvarEvento:['eventos'], cancelarEvento:['eventos'], adicionarCustoEvento:['eventos'], adicionarRecebimentoEvento:['eventos'],
   addOrStampFidelidade:['fidelidade'], resgatarPremioFidelidade:['fidelidade'], indicarNovoCliente:['clientes','indicacoes','fidelidade'], toggleResgateIndicacao:['indicacoes'],
@@ -640,7 +643,7 @@ const SB_ESCRITAS_ = {
   aplicarPrecoCalculadora:['produtoPrecos']
 };
 /* chamadas que só pedem ao banco e devolvem a resposta dele como está (sem reler as listas) */
-const SB_RPC_DIRETO_ = ['listarReembolsos','confirmarReembolso','listarChavesIa','verChaveIa','salvarChaveIa','salvarIaExtras','integracoesFlags','integracoesStatus','integracoesMarcar','integracoesConfig','integracoesSalvarSegredo','integracoesVerSegredo','integracoesLigar','integracoesDesligar','integracoesLog','fiscalEmpresaLer','fiscalEmpresaSalvar','fiscalPerfis','fiscalPerfilSalvar','fiscalPerfilExcluir','fiscalAtribuir','fiscalSemPerfil','fiscalExportar','fiscalImportar','nfceLista','nfceReemitir','nfceEmitirVenda','nfceCpf','nfceSimular','nfceConferencia','nfceInutilizar','nfcePacote','ifoodPedidos','ifoodItens','ifoodPrecos','ifoodPrecosPedirCatalogo','ifoodPrecosAplicar','ifoodPrecosEnviar','ifoodPrecosDesfazer','ifoodFinanceiro','ifoodAvaliacoes','ifoodAvaliacaoResponder','ifoodRelatorio','ifoodLoja','ifoodLojaAcao','ifoodNegociacoes','ifoodNegociacaoResponder','ifoodLigarItem','ifoodReprocessar','ifoodSimular','listarContas','salvarConta','excluirConta','verSenhaConta','saudeSistema','pushInscrever','pushCancelar','listarAuditoria','listarCompras','salvarFornecedor','cancelarCompra','listarSessoes','encerrarSessaoRemota','verificarSenhaAdmin','trocarMinhaSenha','fecharCaixa','previewFechamentoEntrega','getQrMesas','gerarNovoCodigoMesa','detectarNovosPedidos','simularPrecificacao','salvarAliquotaMes','visitasCardapioHoje'];
+const SB_RPC_DIRETO_ = ['lgpdConfig','listarReembolsos','confirmarReembolso','listarChavesIa','verChaveIa','salvarChaveIa','salvarIaExtras','integracoesFlags','integracoesStatus','integracoesMarcar','integracoesConfig','integracoesSalvarSegredo','integracoesVerSegredo','integracoesLigar','integracoesDesligar','integracoesLog','fiscalEmpresaLer','fiscalEmpresaSalvar','fiscalPerfis','fiscalPerfilSalvar','fiscalPerfilExcluir','fiscalAtribuir','fiscalSemPerfil','fiscalExportar','fiscalImportar','nfceLista','nfceReemitir','nfceEmitirVenda','nfceCpf','nfceSimular','nfceConferencia','nfceInutilizar','nfcePacote','ifoodPedidos','ifoodItens','ifoodPrecos','ifoodPrecosPedirCatalogo','ifoodPrecosAplicar','ifoodPrecosEnviar','ifoodPrecosDesfazer','ifoodFinanceiro','ifoodAvaliacoes','ifoodAvaliacaoResponder','ifoodRelatorio','ifoodLoja','ifoodLojaAcao','ifoodNegociacoes','ifoodNegociacaoResponder','ifoodLigarItem','ifoodReprocessar','ifoodSimular','listarContas','salvarConta','excluirConta','verSenhaConta','saudeSistema','pushInscrever','pushCancelar','listarAuditoria','listarCompras','salvarFornecedor','cancelarCompra','listarSessoes','encerrarSessaoRemota','verificarSenhaAdmin','trocarMinhaSenha','fecharCaixa','previewFechamentoEntrega','getQrMesas','gerarNovoCodigoMesa','detectarNovosPedidos','simularPrecificacao','salvarAliquotaMes','visitasCardapioHoje'];
 function sbNomeFuncao_(action){ return 'api_' + action.replace(/[A-Z]/g, m=>'_' + m.toLowerCase()); }
 async function sbRpc_(fn, corpo){
   let s = sbSessaoLer_(); if(!s) throw new SbSessaoExpirada_();
@@ -675,7 +678,12 @@ function chatRpcSeguro_(fn, corpo){ return sbRpcPublico_(fn, corpo).catch(()=>({
 async function sbRpcPublico_(fn, corpo){
   /* as RPCs chat_* do banco recebem um único parâmetro jsonb chamado "p": sem esse envelope o PostgREST responde 404 */
   if(/^chat_/.test(fn) && corpo && typeof corpo === 'object' && !Array.isArray(corpo) && !('p' in corpo)) corpo = { p: corpo };
-  const r = await sbJson_(SUPABASE_URL_ + '/rest/v1/rpc/' + fn, { method:'POST', headers:{ 'apikey': SUPABASE_CHAVE_, 'Authorization': 'Bearer ' + SUPABASE_CHAVE_, 'Content-Type':'application/json' }, body: JSON.stringify(corpo) }, 30000);
+  /* cliente com conta: o pedido e o cupom vão com a sessão dele (o banco sabe quem é). Se a sessão não valer mais, repete como visitante. */
+  let bearer = SUPABASE_CHAVE_, comConta = false;
+  if((fn === 'api_criar_pedido_cardapio' || fn === 'api_validar_cupom_cardapio') && window.contaTokenOuNull_){ try{ const t = await window.contaTokenOuNull_(); if(t){ bearer = t; comConta = true; } }catch(e){} }
+  const enviar = ()=>sbJson_(SUPABASE_URL_ + '/rest/v1/rpc/' + fn, { method:'POST', headers:{ 'apikey': SUPABASE_CHAVE_, 'Authorization': 'Bearer ' + bearer, 'Content-Type':'application/json' }, body: JSON.stringify(corpo) }, 30000);
+  let r = await enviar();
+  if(r.status === 401 && comConta){ try{ window.contaDesativarSessao_(); }catch(e){} bearer = SUPABASE_CHAVE_; comConta = false; r = await enviar(); }
   const j = await r.json().catch(()=>null);
   if(!r.ok) return { ok:false, message:'Não foi possível concluir agora (erro ' + r.status + '). Tente novamente em instantes.' };
   return j && typeof j === 'object' ? j : { ok:false, message:'Resposta inesperada do servidor.' };
@@ -1037,6 +1045,7 @@ function entrarNoApp(){
   try{ if(!currentUser.emergencia && typeof carregarIntegFlags_==='function') carregarIntegFlags_(); }catch(e){}
   try{ if(typeof sb410IniciarAlertaBackup_==='function') sb410IniciarAlertaBackup_(); }catch(e){}
   setTimeout(oferecerRecuperarCarrinho_, 800);  // ITEM 2.7
+  try{ requestAnimationFrame(()=>requestAnimationFrame(()=>{ if(window.txbSplashFim_) window.txbSplashFim_(); })); }catch(e){ if(window.txbSplashFim_) window.txbSplashFim_(); }   // tira a tela de abertura (logo) só depois do sistema desenhado
 }
 /* abas visíveis por perfil (a barra continua sendo a mesma de 7 abas; o backend valida cada ação de qualquer forma) */
 const NAV_POR_PERFIL_ = { 'Cozinha':['inicio','pedidos','notificacoes'], 'Garçom':['inicio','caixa','pedidos','clientes'], 'Entregador':['inicio','pedidos','meusganhos'] };

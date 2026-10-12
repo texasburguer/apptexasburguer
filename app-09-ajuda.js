@@ -210,6 +210,10 @@ Admin:{ nome:'Administrador', secoes:[
     'Endereço de entrega: o cliente preenche Rua e bairro, NÚMERO e CIDADE (a localização do celular e o CEP já preenchem rua, bairro e cidade). Sem o número o pedido não é enviado. No pedido, o endereço chega como "Rua, Bairro, nº 123 — Cidade".',
     'Abrir ou fechar o cardápio: use o botão "🌐 Cardápio aberto" em Início ou no Caixa. Um toque fecha (com uma mensagem opcional para o cliente) e outro reabre, sem fechar o caixa. Pedido de mesa por QR Code continua valendo. O cardápio só recebe pedidos com o caixa aberto.',
     'Cupom progressivo: em Promoções → novo cupom, escolha o tipo "Progressivo (por faixa)" e escreva uma faixa por linha (ex.: "50 5" e "100 10" = R$ 5 de desconto a partir de R$ 50 e R$ 10 a partir de R$ 100). Vale a maior faixa que o pedido alcança, contando só os itens (sem a taxa de entrega).',
+    'Cupons: em Promoções, toque em "Editar" em qualquer cupom para mudar valor, prazo, limite ou texto. Cupom pode ser "só para quem tem conta", "só para um cliente" (escolha o cliente na lista) e pode aparecer em "Minha conta" do cliente para ele ver. O "texto para o cliente" aparece junto do cupom.',
+    'Cupons automáticos (cartão "🤖 Cupons automáticos" em Promoções): boas-vindas (quem cria a conta), aniversário (no dia, conta com data de nascimento criada há mais de 30 dias), indique e ganhe (quem indicou e quem foi indicado, quando o indicado conclui o primeiro pedido com a conta). Todos já existem DESLIGADOS: toque em Editar, ajuste o benefício e a validade em dias, e ligue. Cada cliente usa boas-vindas e indicado só 1 vez. Pedido cancelado devolve o cupom ao cliente.',
+    'Conta do cliente: o cliente pode entrar com o Google (opcional; sem conta ele pede como sempre). Com conta ele vê pedidos e repete com um toque, endereços, cupons, cartão fidelidade e link do indique e ganhe. O histórico e o cartão só se juntam à conta depois do primeiro pedido concluído (entregue ou retirado) feito logado.',
+    'Privacidade (LGPD): no fim de Promoções, o cartão "🔒 Privacidade" mostra quantas contas existem, deixa preencher razão social e CNPJ (aparecem no Aviso de Privacidade quando preenchidos), mudar o prazo para anonimizar clientes sem pedidos (padrão 3 anos) e publicar nova versão do Aviso (todos aceitam de novo). O cliente pode baixar os próprios dados e apagar a conta em Minha conta.',
     'Dados do restaurante: nome, endereço, telefone, horário e redes sociais (texto livre) aparecem no rodapé do cardápio do cliente e nas mensagens de WhatsApp e relatórios.',
     'O cliente pode escrever uma observação em cada item; ela aparece na comanda da cozinha e no pedido.',
     'Item "Esgotado": se "bloquear venda sem estoque" estiver ligado (Catálogo → Estoque), o cardápio mostra "Esgotado" no que o estoque não cobre.',
@@ -636,6 +640,14 @@ const MANUAL_AJUDA_CLIENTE_ = {
       'Alguns cupons dão mais desconto quanto maior o pedido (ex.: R$ 5 a partir de R$ 50, R$ 10 a partir de R$ 100). Vale a maior faixa que o seu pedido alcança.',
       'Se o cupom não valer (fora do prazo, valor mínimo não atingido, etc.), aparece uma mensagem explicando.' ]},
 
+    { t:'👤 Minha conta (opcional)', itens:[
+      'Toque em "👤 Entrar" no topo do cardápio e escolha "Continuar com o Google". Você não precisa de conta para pedir.',
+      'Com a conta você vê seus pedidos e toca em "🔁 Repetir pedido", guarda endereços, recebe cupons (boas-vindas, aniversário, indique e ganhe) e acompanha o cartão fidelidade.',
+      'Para ganhar o presente de aniversário, informe a data de nascimento (opcional). Receber promoções também é opcional e você muda quando quiser em "Meus dados".',
+      'O cartão fidelidade e o histórico de antes aparecem na conta depois do seu primeiro pedido concluído com ela.',
+      'Indique e ganhe: em "🎁 Indique" você copia o seu link e manda para um amigo. Quando ele fizer o primeiro pedido, vocês ganham cupom (se o restaurante estiver com essa promoção ligada).',
+      'Em "🔒 Meus dados" você pode baixar uma cópia dos seus dados, ler o Aviso de Privacidade, sair ou apagar a conta.' ]},
+
     { t:'💳 Formas de pagamento e troco', itens:[
       'Escolha a forma de pagamento no carrinho, antes de enviar.',
       'Se escolher Dinheiro, aparece a opção "Preciso de troco". Marque e informe para quanto (ex.: "troco para R$ 50").',
@@ -698,14 +710,17 @@ const MANUAL_AJUDA_CLIENTE_ = {
 
     { t:'🔒 O que fazemos com seus dados', itens:[
       'Nome e telefone só são usados para preparar e entregar seu pedido.',
-      'Não enviamos propaganda nem compartilhamos com terceiros.',
-      'Seus pedidos ficam salvos no SEU navegador (para você poder acompanhar).',
-      'Se quiser que a gente apague seus dados, fale com o restaurante pelo balão de atendimento.' ]}
+      'Só enviamos novidades e promoções se você marcar essa opção ao criar a conta (e pode desmarcar quando quiser). Não vendemos seus dados.',
+      'Sem conta, seus pedidos ficam salvos no SEU navegador (para você poder acompanhar). Com conta, ficam também na sua conta.',
+      'O Aviso de Privacidade completo está no rodapé do cardápio (🔒 Privacidade).',
+      'Para apagar seus dados: com conta, use "Apagar minha conta" em Minha conta → Meus dados. Sem conta, fale com o restaurante pelo balão de atendimento.' ]}
   ],
   erros:[
     { q:'Meu pedido não aparece no acompanhamento', a:'O acompanhamento funciona no MESMO navegador em que você fez o pedido. Se você limpou o histórico, mudou de aparelho ou navegador, o link se perde — mas o restaurante continua com seu pedido. Ligue para eles.' },
     { q:'Fechei a página antes de enviar', a:'Se você não chegou a tocar em "Enviar pedido", o pedido NÃO foi feito. Abra o cardápio de novo e refaça.' },
     { q:'Não consigo cancelar meu pedido', a:'Só dá para cancelar nos primeiros 3 minutos e enquanto o restaurante ainda não aceitou. Passou disso, ligue para o restaurante.' },
+    { q:'O cupom diz que é para quem tem conta', a:'Alguns cupons só valem para quem entrou com o Google. Toque em "👤 Entrar", entre e tente de novo. Cupons de boas-vindas, aniversário e indicação aparecem em Minha conta → Cupons.' },
+    { q:'Entrei com o Google mas não vejo meu histórico', a:'O histórico e o cartão fidelidade de antes se juntam à conta depois do seu primeiro pedido concluído (entregue ou retirado) feito com ela.' },
     { q:'O cupom não funcionou', a:'Confira se o código está certo, se ainda está dentro do prazo e se o valor do pedido atinge o mínimo. A mensagem de erro diz o motivo.' },
     { q:'O WhatsApp não abriu sozinho', a:'Alguns navegadores bloqueiam a abertura automática. Toque no botão verde "📲 Enviar pedido pelo WhatsApp" na tela de confirmação. Isso NÃO afeta o pedido — ele já foi enviado.' },
     { q:'O app não instalou', a:'Android: use o Chrome. iPhone: use o Safari. Se ainda não aparecer o convite, use o menu do navegador ("Adicionar à tela inicial").' },

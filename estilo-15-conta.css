@@ -1,0 +1,38 @@
+@charset "utf-8";
+/* Conta do cliente (login com Google): botão do cardápio, Minha conta, aceite e aviso de privacidade */
+.cd-banner{position:relative;}
+.cd-conta-btn{position:absolute;top:10px;right:10px;z-index:3;width:auto;margin:0;background:rgba(0,0,0,.55);color:var(--cream);border:1px solid var(--gold-dim);border-radius:999px;padding:6px 12px;font-size:12.5px;font-weight:700;cursor:pointer;max-width:55%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.cd-conta-btn:active{background:var(--red-dim);}
+.ct-box{max-width:520px;max-height:92vh;overflow-y:auto;}
+.ct-lista{margin:0 0 12px;padding-left:18px;font-size:13.5px;line-height:1.7;color:var(--cream);}
+.ct-google{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;background:#fff;color:#1f1f1f;border:none;border-radius:6px;padding:12px;font-size:14.5px;font-weight:700;cursor:pointer;}
+.ct-g{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:#4285f4;color:#fff;font-weight:800;font-size:13px;}
+.ct-abas{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;margin-bottom:10px;-webkit-overflow-scrolling:touch;}
+.ct-abas button{flex:0 0 auto;width:auto;margin:0;background:var(--panel-2);color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:7px 12px;font-size:12.5px;font-weight:700;cursor:pointer;white-space:nowrap;}
+.ct-abas button.on{background:var(--gold);color:#241a10;border-color:var(--gold);}
+.ct-corpo{min-height:120px;}
+.ct-h3{margin:12px 0 6px;font-size:14px;color:var(--gold);}
+.ct-card{background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:10px;}
+.ct-cab{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:14px;}
+.ct-cab span{font-size:12px;color:var(--muted);}
+.ct-cab .ct-cod{background:rgba(224,181,58,.14);border:1px dashed var(--gold-dim);color:var(--gold);padding:2px 8px;border-radius:6px;font-weight:800;letter-spacing:.04em;}
+.ct-itens{font-size:12.5px;color:var(--cream);line-height:1.5;}
+.ct-msg{font-size:12.5px;color:var(--cream);font-style:italic;margin:2px 0 4px;}
+.ct-linha{display:flex;gap:8px;justify-content:flex-end;margin-top:10px;flex-wrap:wrap;}
+.ct-linha.ct-col{flex-direction:column;}
+.ct-linha.ct-col button{width:100%;text-align:left;padding:10px 12px;font-size:13px;}
+.ct-linha button{width:auto;margin:0;}
+.ct-perigo{background:transparent;border:1px solid #b3261e;color:#ff8a80;border-radius:4px;padding:8px 12px;font-size:13px;font-weight:700;cursor:pointer;}
+.ct-check{display:flex;align-items:flex-start;gap:8px;margin:8px 0;font-size:13px;line-height:1.4;color:var(--cream);}
+.ct-check input{width:auto;margin-top:3px;flex:0 0 auto;}
+.ct-carimbos{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:8px;}
+.ct-carimbo{display:flex;align-items:center;justify-content:center;aspect-ratio:1/1;border-radius:50%;border:2px dashed var(--gold-dim);color:var(--muted);font-weight:800;font-size:15px;}
+.ct-carimbo.on{border-style:solid;border-color:var(--gold);background:rgba(224,181,58,.16);color:var(--gold);}
+.ct-chamada{display:flex;align-items:center;gap:10px;justify-content:space-between;background:rgba(224,181,58,.1);border:1px solid var(--gold-dim);border-radius:10px;padding:9px 11px;margin-bottom:10px;font-size:12.5px;line-height:1.4;}
+.ct-chamada button{width:auto;margin:0;flex:0 0 auto;}
+.ct-chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:8px 0 2px;}
+.ct-chip{width:auto;margin:0;background:rgba(224,181,58,.14);border:1px dashed var(--gold);color:var(--gold);border-radius:999px;padding:5px 10px;font-size:12px;font-weight:800;cursor:pointer;}
+.ct-aviso h3{margin:14px 0 4px;font-size:14px;color:var(--gold);}
+.ct-aviso p,.ct-aviso li{font-size:13px;line-height:1.55;color:var(--cream);}
+.ct-aviso ul{padding-left:18px;margin:4px 0;}
+@media (min-width:900px){ .ct-box{max-width:600px;} }

@@ -75,7 +75,7 @@ function abrirAdministrador(sub){
   if(_abaInterna_['tab-'+alvo]) abaInterna_('tab-'+alvo, _abaInterna_['tab-'+alvo]);
   if((alvo==='visaogeral' || alvo==='relatorios') && apiConfigurada()) sincronizarEmSegundoPlano(); // ITEM 92: atualiza ao entrar, sem refresh periódico
   if(alvo==='taxasentregas'){ renderEntregasFinanceiro(); if(apiConfigurada()) atualizarAoEntrar_(); }
-  if(alvo==='promocoes'){ renderCuponsUI(); }
+  if(alvo==='promocoes'){ renderCuponsUI(); lgpdCarregarUI_(); }
   if(alvo==='eventos'){ renderEventosUI(); }
   if(alvo==='custosprecificacao'){ prepararCalculadoraUI(); }
   if(alvo==='compras') carregarCompras_();
@@ -203,8 +203,65 @@ function faixasDoTexto_(txt){
   return String(txt||'').split(/\n/).map(l=>l.trim()).filter(Boolean).map(l=>{ const n = l.replace(/R\$/gi,'').replace(/,/g,'.').match(/\d+(?:\.\d+)?/g)||[]; return { minimo:Number(n[0])||0, desconto:Number(n[1])||0 }; });
 }
 function faixasResumo_(c){ return (c.faixas||[]).map(f=>'R$ '+Number(f.desconto).toFixed(2).replace('.',',')+' acima de R$ '+Number(f.minimo).toFixed(2).replace('.',',')).join(' · '); }
-function renderCuponsUI(){const box=document.getElementById('cupLista');if(!box)return;const arr=cupons||[];box.innerHTML=arr.length?arr.map(c=>`<div class="notif-card"><b>${escH(c.codigo)}</b> — ${escH(c.nome)} · ${c.tipo==='percentual'?c.valor+'%':c.tipo==='fixo'?'R$ '+Number(c.valor).toFixed(2):c.tipo==='progressivo'?escH(faixasResumo_(c)):'Frete grátis'} · ${c.ativa?'ATIVO':'INATIVO'}<div class="obs-line">Uso: ${c.limiteTotal?c.limiteTotal:'ilimitado'} · por cliente: ${c.limitePorCliente?c.limitePorCliente:'ilimitado'} · mínimo: R$ ${Number(c.valorMinimo).toFixed(2)}</div><button class="small-gold" onclick="alternarCupomUI('${c.id}',${!c.ativa})">${c.ativa?'Desativar':'Ativar'}</button></div>`).join(''):'<div class="notif-empty">Nenhum cupom cadastrado.</div>';}
-async function salvarCupomUI(){const p={codigo:cupCodigo.value,nome:cupNome.value,tipo:cupTipo.value,valor:cupValor.value,faixas:cupTipo.value==='progressivo'?faixasDoTexto_(cupFaixas.value):[],freteGratis:cupFrete.checked,dataInicio:cupInicio.value,dataFim:cupFim.value,horaInicio:'',horaFim:'',limiteTotal:cupLimite.value,limitePorCliente:cupLimiteCliente.value,valorMinimo:cupMinimo.value,ativa:cupAtiva.checked,acumula:false};try{const r=await apiCall('salvarCupom',p);showMsg('cupMsg',r.message,r.ok?'ok':'warn');if(r.ok){cupons=r.cupons||[];renderCuponsUI();fecharFormModal('cupomNovoModal');showMsg('cupMsgLista',r.message,'ok');['cupCodigo','cupNome','cupValor','cupInicio','cupFim'].forEach(id=>{document.getElementById(id).value='';});cupLimite.value='0';cupLimiteCliente.value='1';cupMinimo.value='0';cupFrete.checked=false;cupAtiva.checked=true;cupTipo.value='percentual';cupFaixas.value='';onMudarTipoCupom_();}}catch(e){showMsg('cupMsg','Erro ao salvar cupom.','warn');}}
+const CUP_AUTO_ = {
+  boas_vindas:{ t:'🎉 Boas-vindas', d:'Quem cria a conta recebe este cupom.' },
+  aniversario:{ t:'🎂 Aniversário', d:'No dia do aniversário (conta com data de nascimento e criada há mais de 30 dias).' },
+  indicacao_indicador:{ t:'🎁 Indique e ganhe — quem indicou', d:'Quando o amigo indicado conclui o primeiro pedido.' },
+  indicacao_indicado:{ t:'🎁 Indique e ganhe — quem foi indicado', d:'Quando o indicado conclui o primeiro pedido com a conta.' }
+};
+function cupBeneficio_(c){ return c.tipo==='percentual'?c.valor+'%':c.tipo==='fixo'?'R$ '+Number(c.valor).toFixed(2).replace('.',','):c.tipo==='progressivo'?faixasResumo_(c):'Frete grátis'; }
+function cupClienteNome_(id){ const c=(clientes||[]).find(x=>x.id===id); return c ? (c.nome||'Sem nome') : 'cliente'; }
+function renderCuponsUI(){
+  const box=document.getElementById('cupLista'); if(!box) return;
+  const arr=cupons||[], comuns=arr.filter(c=>!c.automatico), autos=arr.filter(c=>c.automatico);
+  const ab=document.getElementById('cupAutoLista');
+  if(ab) ab.innerHTML=Object.keys(CUP_AUTO_).map(k=>{ const c=autos.find(x=>x.automatico===k); if(!c) return `<div class="notif-card"><b>${CUP_AUTO_[k].t}</b><div class="obs-line">Ainda não configurado no banco.</div></div>`;
+    return `<div class="notif-card"><b>${CUP_AUTO_[k].t}</b> · ${c.ativa?'<b>LIGADO</b>':'desligado'}<div class="obs-line">${escH(CUP_AUTO_[k].d)}</div><div class="obs-line">Benefício: ${escH(cupBeneficio_(c))}${c.valorMinimo?' · pedido mínimo R$ '+Number(c.valorMinimo).toFixed(2).replace('.',','):''} · vale ${c.validadeDias} dias${c.mensagem?' · “'+escH(c.mensagem)+'”':''}</div><button class="small-gold" onclick="abrirCupomUI('${c.id}')">Editar</button> <button class="ghost" onclick="alternarCupomUI('${c.id}',${!c.ativa})">${c.ativa?'Desligar':'Ligar'}</button></div>`; }).join('');
+  box.innerHTML=comuns.length?comuns.map(c=>{
+    const tags=[c.somenteConta?'🔐 só com conta':'',c.clienteId?'👤 só para '+escH(cupClienteNome_(c.clienteId)):'',c.visivelConta?'👁 visível na conta':''].filter(Boolean).join(' · ');
+    return `<div class="notif-card"><b>${escH(c.codigo)}</b> — ${escH(c.nome)} · ${escH(cupBeneficio_(c))} · ${c.ativa?'ATIVO':'INATIVO'}<div class="obs-line">Uso: ${c.limiteTotal?c.limiteTotal:'ilimitado'} · por cliente: ${c.limitePorCliente?c.limitePorCliente:'ilimitado'} · mínimo: R$ ${Number(c.valorMinimo).toFixed(2)}${tags?' · '+tags:''}</div><button class="small-gold" onclick="abrirCupomUI('${c.id}')">Editar</button> <button class="ghost" onclick="alternarCupomUI('${c.id}',${!c.ativa})">${c.ativa?'Desativar':'Ativar'}</button></div>`; }).join(''):'<div class="notif-empty">Nenhum cupom cadastrado.</div>';
+}
+function cupClienteLabel_(c){ return (c.nome||'Sem nome')+' — '+(c.telefone||'sem telefone'); }
+function abrirCupomUI(id){
+  const c=id?(cupons||[]).find(x=>x.id===id):null, v=(i,val)=>{ document.getElementById(i).value=val==null?'':val; };
+  const dl=document.getElementById('cupClienteLista'); if(dl) dl.innerHTML=(clientes||[]).slice(0,3000).map(x=>`<option value="${escH(cupClienteLabel_(x))}"></option>`).join('');
+  v('cupId',c?c.id:''); v('cupAuto',c?c.automatico:''); v('cupCodigo',c?c.codigo:''); v('cupNome',c?c.nome:''); v('cupTipo',c?c.tipo:'percentual'); v('cupValor',c?c.valor:'');
+  v('cupFaixas',c&&c.tipo==='progressivo'?(c.faixas||[]).map(f=>f.minimo+' '+f.desconto).join('\n'):''); v('cupInicio',c?c.dataInicio:''); v('cupFim',c?c.dataFim:'');
+  v('cupLimite',c?c.limiteTotal:'0'); v('cupLimiteCliente',c?c.limitePorCliente:'1'); v('cupMinimo',c?c.valorMinimo:'0'); v('cupValidadeDias',c?c.validadeDias:'30'); v('cupMensagem',c?c.mensagem:'');
+  document.getElementById('cupFrete').checked=!!(c&&c.freteGratis); document.getElementById('cupAtiva').checked=c?c.ativa:true;
+  document.getElementById('cupSomenteConta').checked=!!(c&&c.somenteConta); document.getElementById('cupVisivelConta').checked=!!(c&&c.visivelConta);
+  v('cupCliente',c&&c.clienteId?cupClienteLabel_((clientes||[]).find(x=>x.id===c.clienteId)||{nome:'(cliente)',telefone:''}):'');
+  const auto=!!(c&&c.automatico);
+  document.getElementById('cupValidadeBox').style.display=auto?'':'none'; document.getElementById('cupContaBox').style.display=auto?'none':'';
+  const av=document.getElementById('cupAutoAviso'); av.style.display=auto?'':'none'; av.textContent=auto?(CUP_AUTO_[c.automatico].t+' — '+CUP_AUTO_[c.automatico].d):'';
+  document.getElementById('cupTitulo').textContent=c?(auto?'Cupom automático':'Editar cupom'):'Novo cupom'; document.getElementById('cupSalvarBtn').textContent=c?'Salvar alterações':'Criar cupom';
+  document.getElementById('cupMsg').className='msg'; document.getElementById('cupMsg').textContent='';
+  onMudarTipoCupom_(); abrirFormModal('cupomNovoModal');
+}
+async function salvarCupomUI(){
+  const id=cupId.value; let clienteId='';
+  const txt=cupCliente.value.trim();
+  if(txt){ const f=(clientes||[]).find(x=>cupClienteLabel_(x)===txt); if(!f) return showMsg('cupMsg','Escolha o cliente na lista que aparece ao digitar.','warn'); clienteId=f.id; }
+  const p={id,codigo:cupCodigo.value,nome:cupNome.value,tipo:cupTipo.value,valor:cupValor.value,faixas:cupTipo.value==='progressivo'?faixasDoTexto_(cupFaixas.value):[],freteGratis:cupFrete.checked,dataInicio:cupInicio.value,dataFim:cupFim.value,horaInicio:'',horaFim:'',limiteTotal:cupLimite.value,limitePorCliente:cupLimiteCliente.value,valorMinimo:cupMinimo.value,ativa:cupAtiva.checked,acumula:false,
+    automatico:cupAuto.value,validadeDias:cupValidadeDias.value,mensagem:cupMensagem.value,somenteConta:cupSomenteConta.checked,visivelConta:cupVisivelConta.checked,clienteId};
+  try{const r=await apiCall(id?'editarCupom':'salvarCupom',p);showMsg('cupMsg',r.message,r.ok?'ok':'warn');if(r.ok){cupons=r.cupons||[];renderCuponsUI();fecharFormModal('cupomNovoModal');showMsg('cupMsgLista',r.message,'ok');}}catch(e){showMsg('cupMsg','Erro ao salvar cupom.','warn');}
+}
+/* ---- Privacidade (LGPD) das contas — só Administrador ---- */
+let _lgpdT=0;
+function lgpdPintar_(r){
+  document.getElementById('lgpdCard').style.display='';
+  document.getElementById('lgpdResumo').textContent='Contas de clientes: '+r.contas+' · aceitaram promoções: '+r.contasPromo+' · cadastros anonimizados: '+r.anonimizados+' · versão do Aviso: '+r.versao;
+  document.getElementById('lgpdAnos').value=r.anos; document.getElementById('lgpdRazao').value=r.razaoSocial||''; document.getElementById('lgpdCnpj').value=r.cnpj||'';
+  document.getElementById('lgpdLink').textContent='Endereço do Aviso para colocar no Google: '+location.origin+location.pathname+'?privacidade=1';
+}
+async function lgpdCarregarUI_(){
+  if(!currentUser||currentUser.nivel!=='Admin'||!apiConfigurada()||Date.now()-_lgpdT<30000) return; _lgpdT=Date.now();
+  try{ const r=await apiCall('lgpdConfig',{}); if(r&&r.ok) lgpdPintar_(r); }catch(e){}
+}
+async function lgpdEnviar_(p){ try{ const r=await apiCall('lgpdConfig',p); showMsg('lgpdMsg',r.message||'Pronto.',r.ok?'ok':'warn'); if(r.ok) lgpdPintar_(r); }catch(e){ showMsg('lgpdMsg','Não foi possível salvar agora.','warn'); } }
+function lgpdSalvarAnos_(){ lgpdEnviar_({anos:document.getElementById('lgpdAnos').value}); }
+function lgpdSalvarResp_(){ lgpdEnviar_({razaoSocial:document.getElementById('lgpdRazao').value,cnpj:document.getElementById('lgpdCnpj').value}); }
+async function lgpdNovaVersao_(){ if(!confirm('Todos os clientes com conta vão precisar aceitar o Aviso de novo. Publicar nova versão?')) return; lgpdEnviar_({novaVersaoAviso:true}); }
 async function alternarCupomUI(id,ativo){try{const r=await apiCall('alternarCupom',{id,ativo});if(r.ok){cupons=r.cupons||[];renderCuponsUI();}else alert(r.message);}catch(e){alert('Não foi possível alterar o cupom.');}}
 function limparEventoUI(){['evId','evNome','evTipo','evData','evHoraInicio','evHoraFim','evLocal','evContratante','evTelefone','evValor','evObs'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});document.getElementById('evStatus').value='Orçamento';document.getElementById('evMovId').value='';}
 function evPreencherFormas_(){ const sel=document.getElementById('evRecForma'); if(!sel) return; const atual=sel.value; sel.innerHTML=(formasPagamento||[]).filter(f=>f.ativa!==false).map(f=>`<option value="${escH(f.nome)}">${escH(f.nome)}</option>`).join(''); if(atual) sel.value=atual; }

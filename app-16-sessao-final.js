@@ -9,6 +9,7 @@ function tentarRestaurarSessao(){
     const raw = localStorage.getItem(SESSAO_KEY);
     if(raw){ currentUser = JSON.parse(raw); if(!currentUser.nivelReal) currentUser.nivelReal = currentUser.nivel; if(currentUser.nivelReal === 'Desenvolvedor'){ currentUser.nivel = 'Admin'; currentUser.verComo = ''; } entrarNoApp(); return; }
   } catch(e){ console.error('Falha ao restaurar a sessão:', e); }
+  if(window.txbSplashFim_) window.txbSplashFim_();   // sessão salva que não vale: mostra a entrada normal
   carregarCardapioPublico();
 }
 if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', tentarRestaurarSessao); else tentarRestaurarSessao();
