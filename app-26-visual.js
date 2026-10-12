@@ -117,6 +117,7 @@ function vsForm(cfg){
         const val = f.valor === undefined || f.valor === null ? '' : String(f.valor);
         if(f.tipo === 'numero') h += `<input type="text" inputmode="decimal" id="${fid}" value="${escH(val)}">`;
         else if(f.tipo === 'data') h += `<input type="date" id="${fid}" value="${escH(val)}">`;
+        else if(f.tipo === 'longo') h += `<textarea id="${fid}" rows="5" maxlength="${f.max || 1000}">${escH(val)}</textarea>`;
         else h += `<input type="text" id="${fid}" maxlength="${f.max || 200}" value="${escH(val)}">`;
         if(f.sugestoes && f.sugestoes.length) h += '<div class="vs-chips">' + f.sugestoes.map(s => `<button type="button" class="vs-chip" onclick="vsFormSugestao_(${i},this)">${escH(s)}</button>`).join('') + '</div>';
       }

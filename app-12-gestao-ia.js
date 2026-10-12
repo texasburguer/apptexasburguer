@@ -13,15 +13,37 @@ function renderFeedbacks(){
   const lista = (filtroFeedbacksAtual==='todos' ? feedbacks : feedbacks.filter(f=>f.status===filtroFeedbacksAtual))
     .slice().sort((a,b)=> dataBrNum_(b.data) - dataBrNum_(a.data));
   box.innerHTML = lista.length ? lista.map(f=>`<div class="notif-card">
-      <div>${'★'.repeat(Math.max(0,Math.min(5,f.nota||0)))}${'☆'.repeat(5-Math.max(0,Math.min(5,f.nota||0)))} <span class="obs-line">${f.data}${escH(f.telefone?' · '+f.telefone:'')}${f.vendaId?' · pedido #'+rotuloPedidoId(f.vendaId):''}${f.origem==='chat'?' · 💬 veio pelo chat':(f.origem==='aviso'?' · 🔔 veio pelo aviso do pedido':'')}</span></div>
+      <div>${'★'.repeat(Math.max(0,Math.min(5,f.nota||0)))}${'☆'.repeat(5-Math.max(0,Math.min(5,f.nota||0)))} <span class="obs-line">${f.data}${escH(f.telefone?' · '+f.telefone:'')}${f.vendaId?' · pedido #'+rotuloPedidoId(f.vendaId):''}${f.origem==='chat'?' · 💬 veio pelo chat':(f.origem==='aviso'?' · 🔔 veio pelo aviso do pedido':'')}${f.userId?' · 👤 com conta':' · sem conta'}</span></div>
       ${f.comentario?`<div style="margin-top:4px;">${escH(f.comentario)}</div>`:''}
+      ${f.resposta?`<div class="obs-line" style="margin-top:6px;padding:6px 8px;border-left:3px solid var(--gold);"><b>Sua resposta</b> (${escH(f.respondidoEm||'')}${f.respondidoPor?' · '+escH(f.respondidoPor):''})<br>${escH(f.resposta)}</div>`:''}
       <div class="btnrow" style="margin-top:8px;">
         <button class="ghost ${f.status==='Visto'?'small-gold':''}" onclick="alterarStatusFeedback('${f.id}','${f.status==='Novo'?'Visto':(f.status==='Visto'?'Novo':'Visto')}')">${f.status==='Novo'?'Marcar como visto':(f.status==='Visto'?'✓ Visto (tocar volta a Novo)':'Voltar para visto')}</button>
+        <button class="small-gold" onclick="responderFeedback('${f.id}')">${f.resposta?'✏️ Editar resposta':'💬 Responder'}</button>
+        ${(!f.userId && f.telefone)?`<button class="ghost" onclick="responderFeedbackZap_('${f.id}')">WhatsApp</button>`:''}
         <button class="ghost ${f.status==='Respondido'?'small-gold':''}" onclick="alterarStatusFeedback('${f.id}','Respondido')">Respondido</button>
       </div>
     </div>`).join('') : '<div class="notif-empty">Nenhum feedback recebido ainda.</div>';
   const dot = document.getElementById('adminDot');
   if(dot) dot.parentElement.classList.toggle('has-alert', feedbacks.some(f=>f.status==='Novo'));
+}
+/* Resposta ao feedback: quem tem conta vê a resposta em Minha conta › Pedidos. Sem conta, use o WhatsApp. */
+async function responderFeedback(id){
+  const f = feedbacks.find(x=>x.id===id); if(!f) return;
+  const v = await vsForm({ titulo: f.resposta ? 'Editar resposta' : 'Responder feedback',
+    texto: (f.userId ? 'O cliente vai ver a resposta em Minha conta › Pedidos.' : 'Este cliente não tem conta, então não vê a resposta no app. A resposta fica registrada aqui; para falar com ele use o botão WhatsApp.') + (f.comentario ? ' Ele escreveu: “' + f.comentario + '”' : ''),
+    ok:'Salvar resposta', campos:[{ id:'resposta', rotulo:'Sua resposta', tipo:'longo', max:1000, valor:f.resposta||'', obrigatorio:true }] });
+  if(!v) return;
+  try{
+    const r = await apiCall('responderFeedback', { id, resposta: v.resposta });
+    if(r && r.ok){ feedbacks = r.feedbacks || feedbacks; salvarCache(); renderFeedbacks(); alert(r.comConta ? 'Resposta enviada. O cliente vê em Minha conta.' : 'Resposta registrada (cliente sem conta).'); }
+    else alert((r && r.message) || 'Não foi possível salvar a resposta.');
+  }catch(e){ alert('Não foi possível salvar a resposta agora. Tente de novo.'); }
+}
+function responderFeedbackZap_(id){
+  const f = feedbacks.find(x=>x.id===id); if(!f || !f.telefone) return;
+  let d = String(f.telefone).replace(/\D/g,''); if(d.length<=11) d = '55' + d;
+  const txt = f.resposta || '';
+  window.open('https://wa.me/' + d + (txt ? '?text=' + encodeURIComponent(txt) : ''), '_blank', 'noopener');
 }
 async function alterarStatusFeedback(id, novoStatus){
   try{ const r = await apiCallFila('editarStatusFeedback', { id, novoStatus }, 'Status de feedback'); if(r.ok){ feedbacks = r.feedbacks || feedbacks; salvarCache(); renderFeedbacks(); } }

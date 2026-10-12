@@ -159,6 +159,8 @@ Admin:{ nome:'Administrador', secoes:[
     'O aviso sai sozinho quando a equipe muda o status do pedido. O texto mostra só o número do pedido, nunca nome, telefone ou endereço.',
     '30 minutos depois de entregue (até 3 horas), quem aceitou recebe "⭐ Como foi seu pedido?". Se o cliente já deu feedback daquele pedido, não pergunta.',
     'Feedbacks (Painel → Feedbacks) mostram de onde vieram: "🔔 veio pelo aviso do pedido", "💬 veio pelo chat" (o atendente oferece registrar quando o cliente elogia ou sugere) ou sem marca (rodapé do cardápio).',
+    'Responder um feedback: em Feedbacks, toque em "💬 Responder" e escreva (até 1000 letras). Se o cliente deu o feedback com a conta dele (aparece "👤 com conta"), ele vê a sua resposta em Minha conta › Pedidos e o feedback vira "Respondido". Sem conta ("sem conta"), a resposta fica só registrada aqui; use o botão "WhatsApp" para falar com ele pelo telefone. Dá para editar a resposta depois.',
+    'Feedback anônimo ou de quem não fez login continua chegando normalmente pelo botão do rodapé do cardápio.',
     'Pedidos de mesa (QR Code) não recebem avisos. No iPhone, o cliente precisa instalar o app para receber.' ]},
 
   { t:'Contas e acessos', itens:[
@@ -474,7 +476,7 @@ Operador:{ nome:'Caixa', secoes:[
   { t:'O que você tem em Administrador', itens:[
     'A aba aparece com o nome "Operação". A barra é reduzida: só o grupo "💬 Atendimento", com duas telas — Ocorrências e Feedbacks.',
     'Ocorrências: filtro Abertas/Todas e botão "Tratar". Você pode mudar status (Aberta → Em andamento → Resolvida), anotar responsável e descrever a solução.',
-    'Feedbacks: tudo o que os clientes enviaram. Você pode marcar como Visto ou Respondido. A marca "🔔 veio pelo aviso do pedido" ou "💬 veio pelo chat" mostra de onde veio.',
+    'Feedbacks: tudo o que os clientes enviaram. Você pode marcar como Visto, escrever uma resposta ("💬 Responder": quem tem conta vê em Minha conta; sem conta, use o botão WhatsApp) ou marcar como Respondido. A marca "🔔 veio pelo aviso do pedido" ou "💬 veio pelo chat" mostra de onde veio.',
     'Atalho mais rápido no dia a dia: no Assistente, a aba "🔔 Avisos" mostra as ocorrências abertas, com botão "Tratar" direto.',
     'Você NÃO tem acesso às outras telas do Administrador (financeiro, usuários, backup, catálogo etc.).' ]},
 
@@ -694,7 +696,8 @@ const MANUAL_AJUDA_CLIENTE_ = {
       'No rodapé, toque em "💬 Deixar um feedback".',
       'Dê uma nota em estrelas (1 a 5) e escreva o que quiser: elogio, sugestão ou reclamação.',
       'Também dá pelo aviso "Como foi seu pedido?" ou pelo Tex, o atendente virtual: quando você elogia ou dá uma sugestão, ele oferece "⭐ Registrar como feedback".',
-      'É opcional deixar nome e telefone — mas se deixar, a gente consegue te responder.' ]},
+      'É opcional deixar nome e telefone — mas se deixar, a gente consegue te responder.',
+      'Com a sua conta (👤 Entrar), cada pedido em Minha conta › Pedidos tem o botão "⭐ Feedback". O feedback fica ligado àquele pedido e, quando o restaurante responder, a resposta aparece ali mesmo, no pedido. Sem conta, o botão do rodapé continua funcionando.' ]},
 
     { t:'📲 Instalar o app na tela inicial', passos:[
       'No rodapé, toque em "📲 Instalar app".',

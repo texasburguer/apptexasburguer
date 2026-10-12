@@ -19,6 +19,7 @@ window.APP_VERSAO = APP_VERSAO;
 const APP_NOVIDADES = {
   Admin: [
     { v:'1.0', em:'09/10/2026', itens:[
+      'Novo: feedback ligado à conta do cliente e com resposta. Em Painel → Feedbacks cada feedback mostra "👤 com conta" ou "sem conta" e tem o botão "💬 Responder": o cliente com conta vê a sua resposta em Minha conta › Pedidos. Sem conta, o botão "WhatsApp" abre a conversa com o telefone dele. O botão de feedback do rodapé do cardápio continua igual e aceita anônimos.',
       'Novo: brindes na conta do cliente. Os produtos marcados como prêmio de fidelidade ou de indicação (Editar produto › Mais opções) viram brindes: o cliente escolhe o prêmio na Minha conta ou no carrinho, junto com um pedido ou sozinho. O brinde vai a R$ 0,00 (aparece nos relatórios com o custo e baixa o estoque) e a entrega continua sendo cobrada. Quem indica agora ganha o produto-prêmio quando o amigo conclui o 1º pedido (o cupom de quem indicou foi aposentado; o do indicado continua). Pedido cancelado devolve o brinde.',
       'Novo: conta do cliente com login Google (opcional). O cliente vê pedidos e repete com um toque, guarda endereços, recebe cupons e vê o cartão fidelidade e o link do "indique e ganhe". Tem Aviso de Privacidade (LGPD), "baixar meus dados" e "apagar conta". Sem conta, tudo continua igual.',
       'Novo em Promoções: botão Editar em todo cupom, cupom "só para quem tem conta", "só para um cliente", texto para o cliente e 4 cupons automáticos (boas-vindas, aniversário, indique e ganhe) que já vêm desligados — ajuste e ligue. Cupom de pedido cancelado volta para o cliente. Cartão "Privacidade" para razão social/CNPJ, prazo de anonimização e nova versão do Aviso.',
@@ -82,6 +83,7 @@ const APP_NOVIDADES = {
   ],
   Operador: [
     { v:'1.0', em:'09/10/2026', itens:[
+      'Novo: você pode responder feedbacks. Em Operação → Feedbacks cada feedback mostra "👤 com conta" ou "sem conta" e tem o botão "💬 Responder": o cliente com conta vê a sua resposta em Minha conta › Pedidos. Sem conta, o botão "WhatsApp" abre a conversa com o telefone dele. O botão de feedback do rodapé do cardápio continua igual e aceita anônimos.',
       'Novo: no Início, "Cardápio hoje" mostra quantos clientes abriram o cardápio eletrônico hoje (cada aparelho conta 1 vez por dia; aparelhos da equipe não contam). O alerta virou uma faixa fina no topo e a conta das mesas foi para dentro do cartão Mesas.',
       'No computador: o topo ficou numa linha só e as abas ficam sempre à vista; os pedidos ficam lado a lado e o Caixa mostra carrinho e pagamento à direita. No celular nada muda.',
       'Valores com ponto de milhar: R$ 1.475,90.',
@@ -132,6 +134,7 @@ const APP_NOVIDADES = {
   ],
   Cliente: [
     { v:'1.0', em:'09/10/2026', itens:[
+      'Novo: em Minha conta › Pedidos, cada pedido tem o botão "⭐ Feedback". Quando o restaurante responder, a resposta aparece no próprio pedido. O botão de feedback do rodapé continua funcionando sem login.',
       'Novo: brindes! Com o cartão fidelidade completo ou um brinde de indicação, escolha seu prêmio na Minha conta ou no carrinho, junto com um pedido ou sozinho. Ele sai por R$ 0,00 e a entrega, se houver, é cobrada.',
       'O botão Entrar/Minha conta agora fica numa faixa logo abaixo do banner, o calendário da data de nascimento ficou visível e o cartão fidelidade da conta ficou igual ao do cardápio.',
       'Novo: avisos do pedido no celular (confirmado, pronto, saiu para entrega e entregue) e, depois da entrega, "Como foi seu pedido?". Toque em "Quero receber" no topo do cardápio. No iPhone, instale o app antes.',
@@ -528,7 +531,7 @@ async function sbMontarDados_(nivel, chaves){
     estoque: estoque.map(e=>{ const y = { id:e.id, nome:e.ingrediente, quantidade:Number(e.quantidade), minimo:Number(e.quantidade_minima), unidade:e.unidade||'un', custo:Number(e.custo_unitario)||0, ativo:e.status!=='Inativo' }; if(!gestor) delete y.custo; return y; }),
     movimentacoesEstoque: movs.map(m=>({ id:m.id, ingredienteNome:nomeIng[m.ingrediente_id]||'', tipo:m.tipo, quantidade:Number(m.quantidade), qtdAntes:Number(m.qtd_antes), qtdDepois:Number(m.qtd_depois), motivo:m.motivo_referencia||'', usuario:loginDe[m.usuario_id]||'', data:m.data })).sort((a,b)=>new Date(b.data)-new Date(a.data)),
     mesas: mesas.map(m=>({ id:m.id, numero:m.numero, status:m.status||'Livre', capacidade:m.capacidade||'', observacao:m.observacao||'', garcomResponsavel:m.garcom_responsavel||'', chamadoEm: m.chamado_em ? (Date.parse(m.chamado_em)||0) : 0 })).sort((a,b)=>Number(a.numero)-Number(b.numero)),
-    feedbacks: fbDb.map(f=>({ id:f.id, vendaId:f.venda_id||'', telefone:f.telefone_cliente||'', nota:Number(f.nota)||0, comentario:f.comentario||'', data:sbDataBr_(f.data), status:f.status||'Novo', clienteId:f.cliente_id||'', origem:f.origem||'formulario' })),
+    feedbacks: fbDb.map(f=>({ id:f.id, vendaId:f.venda_id||'', telefone:f.telefone_cliente||'', nota:Number(f.nota)||0, comentario:f.comentario||'', data:sbDataBr_(f.data), status:f.status||'Novo', clienteId:f.cliente_id||'', origem:f.origem||'formulario', userId:f.user_id||'', resposta:f.resposta||'', respondidoEm:f.respondido_em?sbDataBr_(f.respondido_em):'', respondidoPor:f.respondido_por||'' })),
     ocorrencias: ocDb.map(o=>({ id:o.id, numero:Number(o.numero)||0, data:sbDataBr_(o.data_hora), tipo:o.tipo||'', setor:o.setor||'', vendaId:o.venda_id||'', clienteNome:o.cliente||'', clienteTelefone:o.telefone||'', registradoPor:o.registrado_por||'', responsavel:o.responsavel||'', descricao:o.descricao||'', solucao:o.solucao||'', status:o.status||'Aberta', atualizada:sbDataBr_(o.atualizada_em), historico:Array.isArray(o.historico)?o.historico.join('\n'):String(o.historico||'') })),
     maisPedidos: maisEqDb.map(m=>({ tipo:m.tipo, id:m.id })),
     vendas: vendasDb.map(v=>({ id:v.id, data:sbDataBr_(v.data_hora), timestamp:Date.parse(v.data_hora)||0, clienteNome:v.cliente_nome||'', clienteTelefone:v.cliente_telefone||'', formaPagamento:v.forma_pagamento||'',
@@ -642,7 +645,7 @@ const SB_ESCRITAS_ = {
   registrarCompra:['estoque','movimentacoesEstoque','despesas','produtoPrecos','comboPrecos'], receberCompra:['estoque','movimentacoesEstoque','despesas','produtoPrecos','comboPrecos'],
   salvarEvento:['eventos'], cancelarEvento:['eventos'], adicionarCustoEvento:['eventos'], adicionarRecebimentoEvento:['eventos'],
   addOrStampFidelidade:['fidelidade'], resgatarPremioFidelidade:['fidelidade'], indicarNovoCliente:['clientes','indicacoes','fidelidade'], toggleResgateIndicacao:['indicacoes'],
-  registrarOcorrencia:['ocorrencias'], atualizarOcorrencia:['ocorrencias'], editarStatusFeedback:['feedbacks'],
+  registrarOcorrencia:['ocorrencias'], atualizarOcorrencia:['ocorrencias'], editarStatusFeedback:['feedbacks'], responderFeedback:['feedbacks'],
   aplicarPrecoCalculadora:['produtoPrecos']
 };
 /* chamadas que só pedem ao banco e devolvem a resposta dele como está (sem reler as listas) */
@@ -683,7 +686,7 @@ async function sbRpcPublico_(fn, corpo){
   if(/^chat_/.test(fn) && corpo && typeof corpo === 'object' && !Array.isArray(corpo) && !('p' in corpo)) corpo = { p: corpo };
   /* cliente com conta: o pedido e o cupom vão com a sessão dele (o banco sabe quem é). Se a sessão não valer mais, repete como visitante. */
   let bearer = SUPABASE_CHAVE_, comConta = false;
-  if((fn === 'api_criar_pedido_cardapio' || fn === 'api_validar_cupom_cardapio') && window.contaTokenOuNull_){ try{ const t = await window.contaTokenOuNull_(); if(t){ bearer = t; comConta = true; } }catch(e){} }
+  if((fn === 'api_criar_pedido_cardapio' || fn === 'api_validar_cupom_cardapio' || fn === 'api_add_feedback') && window.contaTokenOuNull_){ try{ const t = await window.contaTokenOuNull_(); if(t){ bearer = t; comConta = true; } }catch(e){} }
   const enviar = ()=>sbJson_(SUPABASE_URL_ + '/rest/v1/rpc/' + fn, { method:'POST', headers:{ 'apikey': SUPABASE_CHAVE_, 'Authorization': 'Bearer ' + bearer, 'Content-Type':'application/json' }, body: JSON.stringify(corpo) }, 30000);
   let r = await enviar();
   if(r.status === 401 && comConta){ try{ window.contaDesativarSessao_(); }catch(e){} bearer = SUPABASE_CHAVE_; comConta = false; r = await enviar(); }

@@ -98,7 +98,7 @@ function janela(id, html, fechavel){
   return m;
 }
 function fechar(id){ var m = $(id); if(m) m.classList.remove('open'); }
-function fecharTodos(){ ['contaEntrarModal', 'contaAceiteModal', 'contaModal', 'contaAvisoModal', 'contaConfirmModal'].forEach(fechar); }
+function fecharTodos(){ ['contaEntrarModal', 'contaAceiteModal', 'contaModal', 'contaAvisoModal', 'contaConfirmModal', 'contaFeedbackModal'].forEach(fechar); }
 function cab(titulo, idFechar, aoFechar){
   return '<div class="modal-header"><h2>' + titulo + '</h2><button class="close-btn" type="button" onclick="' + (aoFechar || ('contaFechar_(\'' + idFechar + '\')')) + '">✕</button></div>';
 }
@@ -332,10 +332,43 @@ async function abaPedidos(){
     var ativo = ['Recebido', 'Em preparo', 'Pronta', 'Saiu para entrega', 'Suspenso'].indexOf(p.status) !== -1;
     return '<div class="ct-card"><div class="ct-cab"><b>Pedido nº ' + esc(p.numero) + '</b><span>' + esc(rotuloStatus(p.status)) + '</span></div>' +
       '<div class="sub" style="margin:2px 0 6px;font-size:12px;">' + esc(dataBr(p.data)) + ' · ' + esc(p.tipo) + ' · <b>' + dinheiro(p.total) + '</b></div>' +
-      '<div class="ct-itens">' + itens + '</div>' +
-      '<div class="ct-linha">' + (ativo ? '<button type="button" class="ghost" onclick="contaAcompanhar_(' + i + ')">Acompanhar</button>' : '') + '<button type="button" class="small-gold" onclick="contaRepetir_(' + i + ')">🔁 Repetir pedido</button></div></div>';
+      '<div class="ct-itens">' + itens + '</div>' + blocoFeedback(p, i) +
+      '<div class="ct-linha">' + (!p.feedback && p.status !== 'Cancelado' ? '<button type="button" class="ghost" onclick="contaFeedback_(' + i + ')">⭐ Feedback</button>' : '') + (ativo ? '<button type="button" class="ghost" onclick="contaAcompanhar_(' + i + ')">Acompanhar</button>' : '') + '<button type="button" class="small-gold" onclick="contaRepetir_(' + i + ')">🔁 Repetir pedido</button></div></div>';
   }).join('');
 }
+function estrelas(n){ n = Math.max(0, Math.min(5, Number(n) || 0)); return '★★★★★'.slice(0, n) + '☆☆☆☆☆'.slice(0, 5 - n); }
+function blocoFeedback(p, i){
+  var f = p.feedback;
+  if(f){
+    return '<div class="ct-fb"><div><b>Seu feedback</b> <span class="ct-estrelas">' + estrelas(f.nota) + '</span></div>' +
+      (f.comentario ? '<div class="sub" style="font-size:12.5px;margin-top:2px;">' + esc(f.comentario) + '</div>' : '') +
+      (f.resposta ? '<div class="ct-resp"><b>💬 Resposta do restaurante</b><br>' + esc(f.resposta) + '</div>' : '<div class="sub" style="font-size:11.5px;margin-top:2px;">Obrigado! O restaurante já recebeu.</div>') + '</div>';
+  }
+  return '';
+}
+var fbNota = 0;
+window.contaFeedback_ = function(i){
+  var p = (estado.pedidos || [])[i]; if(!p) return;
+  fbNota = 0;
+  janela('contaFeedbackModal', cab('Como foi o pedido nº ' + esc(p.numero) + '?', 'contaFeedbackModal') +
+    '<div class="ct-estrelas-sel" id="ctEstrelasSel">' + [1, 2, 3, 4, 5].map(function(n){ return '<button type="button" data-n="' + n + '" aria-label="' + n + ' estrela' + (n > 1 ? 's' : '') + '" onclick="contaNota_(' + n + ')">★</button>'; }).join('') + '</div>' +
+    '<label for="ctFbTxt">Comentário (opcional)</label><textarea id="ctFbTxt" rows="4" maxlength="500" placeholder="Conte como foi: elogio, sugestão ou problema"></textarea>' +
+    '<div class="msg" id="ctFbMsg"></div>' +
+    '<div class="ct-linha"><button type="button" class="ghost" onclick="contaFechar_(\'contaFeedbackModal\')">Voltar</button><button type="button" class="small-gold" id="ctFbOk" onclick="contaEnviarFeedback_(' + i + ')">Enviar</button></div>');
+};
+window.contaNota_ = function(n){
+  fbNota = n;
+  var bs = document.querySelectorAll('#ctEstrelasSel button'); for(var k = 0; k < bs.length; k++) bs[k].classList.toggle('on', Number(bs[k].getAttribute('data-n')) <= n);
+};
+window.contaEnviarFeedback_ = async function(i){
+  var p = (estado.pedidos || [])[i], msg = $('ctFbMsg'), ok = $('ctFbOk'); if(!p) return;
+  if(!fbNota){ if(msg){ msg.className = 'msg warn'; msg.textContent = 'Toque nas estrelas para dar uma nota.'; } return; }
+  if(ok){ ok.disabled = true; ok.textContent = 'Enviando...'; }
+  var r = await rpc('api_add_feedback', { p:{ vendaId: p.id, nota: fbNota, comentario: ($('ctFbTxt') || {}).value || '', origem: 'formulario' } });
+  if(r && r.ok){ fechar('contaFeedbackModal'); toast('Obrigado pelo feedback!'); if(estado.aba === 'pedidos') desenharAba(); return; }
+  if(msg){ msg.className = 'msg warn'; msg.textContent = (r && r.message) || 'Não foi possível enviar agora.'; }
+  if(ok){ ok.disabled = false; ok.textContent = 'Enviar'; }
+};
 window.contaAcompanhar_ = function(i){
   var p = (estado.pedidos || [])[i]; if(!p) return;
   fechar('contaModal');
