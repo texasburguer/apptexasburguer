@@ -207,7 +207,9 @@ const CHAVES_IA_INFO_ = {
   gemini: { nome:'Gemini (Google)', link:'https://aistudio.google.com/apikey' },
   groq:   { nome:'Groq', link:'https://console.groq.com/keys' },
   nvidia: { nome:'NVIDIA (reserva)', link:'https://build.nvidia.com/settings/api-keys', extra:true, dica:'IA de reserva: só entra quando o Gemini e a Groq falham. Precisa de conta gratuita no NVIDIA Developer Program.' },
-  cloudflare: { nome:'Cloudflare (reserva)', link:'https://dash.cloudflare.com/profile/api-tokens', extra:true, conta:true, dica:'IA de reserva: precisa de DOIS dados — o Account ID e um token com permissão "Workers AI".' }
+  cloudflare: { nome:'Cloudflare (reserva)', link:'https://dash.cloudflare.com/profile/api-tokens', extra:true, conta:true, dica:'IA de reserva: precisa de DOIS dados — o Account ID e um token com permissão "Workers AI".' },
+  gemini_fotos: { nome:'Gemini (leitura de fotos fiscais)', link:'https://aistudio.google.com/apikey', extra:true, fiscal:true, dica:'Chave dedicada para ler fotos/XML de notas fiscais. Não é usada no atendimento público.' },
+  groq_2: { nome:'Groq 2 (reserva de texto fiscal)', link:'https://console.groq.com/keys', extra:true, fiscal:true, dica:'Chave alternativa para o leitor fiscal quando o provedor anterior falhar.' }
 };
 let chavesIaLista_ = [], iaExtrasPublico_ = false;
 async function carregarChavesIa_(){
@@ -227,7 +229,7 @@ function renderChavesIa_(){
       ${c.temChave
         ? `<div class="obs-line">🔑 <span id="ciVer_${c.provedor}">••••••••${escH(c.final||'')}</span> <button ${bt} onclick="verChaveIa_('${c.provedor}')">Ver chave</button></div>
            <div class="obs-line">Trocada em ${escH(c.atualizadoEm ? fmtDiaHoraBr_(c.atualizadoEm) : '—')}</div>`
-        : (info.extra ? `<div class="obs-line">Sem chave: tudo segue como hoje (Gemini e Groq).</div>` : `<div class="obs-line">⚠️ Sem chave cadastrada: esta IA não funciona.</div>`)}
+        : (info.fiscal ? `<div class="obs-line">Sem chave: a função fiscal usa as reservas disponíveis ou permite digitação manual.</div>` : (info.extra ? `<div class="obs-line">Sem chave: tudo segue como hoje (Gemini e Groq).</div>` : `<div class="obs-line">⚠️ Sem chave cadastrada: esta IA não funciona.</div>`))}
       ${info.dica?`<div class="obs-line">${escH(info.dica)}</div>`:''}
       ${c.descansando?`<div class="obs-line">😴 Descansando: deu erros agora há pouco; o sistema usa as outras IAs e tenta de novo sozinho.</div>`:''}
       ${info.link?`<div class="obs-line">🔗 <a href="${info.link}" target="_blank" rel="noopener noreferrer" style="color:var(--gold);">Onde pegar uma chave nova</a></div>`:''}
@@ -311,10 +313,10 @@ function salvarChaveIaUI_(){
 }
 
 /* ---------- INTEGRAÇÕES (iFood e Nota fiscal): nascem DESLIGADAS; desligado = sistema idêntico ao de antes ---------- */
-window.INTEG_ = window.INTEG_ || { ifood:false, nfce:false, nfceModo:'homologacao', impostoPct:0, impostoPadrao:0, impostoMeses:{} };
+window.INTEG_ = window.INTEG_ || { ifood:false, nfce:false, mp:false, nfceModo:'homologacao', impostoPct:0, impostoPadrao:0, impostoMeses:{} };
 async function carregarIntegFlags_(){
   try{ const r = await apiCall('integracoesFlags', {}); if(r && r.ok){
-    window.INTEG_ = { ifood:!!r.ifood, nfce:!!r.nfce, nfceModo:r.nfceModo||'homologacao', impostoPct:Number(r.impostoPct)||0, impostoPadrao:Number(r.impostoPadrao)||0, impostoMeses:(r.impostoMeses && typeof r.impostoMeses==='object') ? r.impostoMeses : {} };
+    window.INTEG_ = { ifood:!!r.ifood, nfce:!!r.nfce, mp:!!r.mercadopago, nfceModo:r.nfceModo||'homologacao', impostoPct:Number(r.impostoPct)||0, impostoPadrao:Number(r.impostoPadrao)||0, impostoMeses:(r.impostoMeses && typeof r.impostoMeses==='object') ? r.impostoMeses : {} };
     try{ atualizarCpfBox_(); }catch(e){}
     /* a alíquota do imposto chega depois do login: redesenha o que já estiver aberto com ela */
     try{ const at = (document.querySelector('section.tab.active')||{}).id || '';
@@ -347,6 +349,18 @@ const INTEG_INFO_ = {
       '5) Digite os tokens e o CSC aqui (botões "Chaves") e preencha, nos botões do cartão, os "Dados fiscais da empresa" e os "Perfis fiscais". Dica: "Baixar planilha do contador" gera uma planilha com todos os produtos para ele preencher; depois use "Enviar planilha preenchida".',
       '6) Ligue primeiro em TESTE (homologação), emita uma nota de teste e peça ao contador para conferir. Só depois passe para PRODUÇÃO.',
       '⚠️ Esta parte ainda não foi testada com a Focus NFe de verdade.'],
+    opcoes:[] },
+  mercadopago: { nome:'Mercado Pago (Pix e cartão no site)', icone:'💳',
+    segredos:[['mp_public_key_teste','Chave pública (Public Key) — TESTE'],['mp_access_token_teste','Access Token — TESTE'],['mp_public_key_producao','Chave pública (Public Key) — PRODUÇÃO'],['mp_access_token_producao','Access Token — PRODUÇÃO'],['mp_webhook_secret','Chave secreta do aviso (webhook)']],
+    guia:[
+      'Quem faz: o DONO do restaurante (a conta de vendedor é dele). Os nomes das telas do Mercado Pago podem mudar um pouco; siga o sentido de cada passo.',
+      '1) Conta de vendedor: tenha uma conta no Mercado Pago com a verificação de identidade (e da empresa, se for CNPJ) concluída. Sem isso, o dinheiro do Pix e do cartão não é liberado. Marque o passo no checklist quando estiver pronto.',
+      '2) Aplicação: entre em mercadopago.com.br/developers > Suas integrações > Criar aplicação. Em tipo de pagamento escolha pagamentos online e, como produto, Checkout Transparente (é o que deixa o cliente pagar sem sair do nosso site).',
+      '3) Credenciais de TESTE: na aplicação, abra Credenciais de teste. Copie a Public Key e o Access Token de teste e digite aqui (botões \"Digitar\" da lista Chaves). NUNCA mande por mensagem.',
+      '4) Aviso (webhook): na aplicação, vá em Webhooks > Configurar notificações. Cole o endereço que aparece neste cartão (botão Copiar) como URL e marque o evento \"Order (Mercado Pago)\". Salve, revele a Chave secreta e digite aqui em \"Chave secreta do aviso\". É por esse aviso que o pedido sabe que foi pago.',
+      '5) Teste guiado (Pix e cartão): ligue em TESTE, faça um pedido de teste pelo cardápio pagando com Pix e outro com cartão de teste. Quando os dois aparecerem como aprovados aqui no cartão, o passo do checklist se marca sozinho. ATENÇÃO: o pedido de teste vira pedido de verdade na cozinha e no caixa; avise a equipe e cancele depois.',
+      '6) Produção: na aplicação, ative as credenciais de produção (o Mercado Pago pode pedir mais dados da empresa), copie a Public Key e o Access Token de produção e digite aqui. Depois toque em \"Ligar em PRODUÇÃO\". Dá para desligar a qualquer hora; o cardápio volta a funcionar só com pagamento na entrega.',
+      '⚠️ Esta parte ainda não foi testada com o Mercado Pago de verdade: os detalhes podem pedir ajuste na primeira ligação (a Etapa 8 do plano é esse teste).'],
     opcoes:[] }
 };
 let integStatus_ = [];
@@ -362,19 +376,16 @@ function renderIntegracoes_(){
   const box = document.getElementById('integLista'); if(!box) return;
   const bt = 'class="ghost" style="width:auto;padding:4px 10px;min-height:32px;margin-left:6px;"';
   box.innerHTML = integStatus_.map(it=>{ const inf = INTEG_INFO_[it.provedor]; if(!inf) return '';
+    if(it.provedor==='mercadopago') return mpCardHtml_(it, inf);
     const seg = it.segredos || {};
     return `<div class="notif-card" style="border-left:4px solid ${it.ligado?'#2e9e5b':'#888'};">
-      <div><b>${inf.icone} ${escH(inf.nome)}</b> — ${it.ligado?'<span style="color:#2e9e5b;">LIGADO'+(it.provedor==='nfce'?' ('+(it.modo==='producao'?'produção':'teste')+')':'')+'</span>':'<span style="color:#aaa;">desligado</span>'}</div>
+      <div><b>${inf.icone} ${escH(inf.nome)}</b> — ${it.ligado?'<span style="color:#2e9e5b;">LIGADO'+((it.provedor==='nfce'||it.provedor==='mercadopago')?' ('+(it.modo==='producao'?'produção':'teste')+')':'')+'</span>':'<span style="color:#aaa;">desligado</span>'}</div>
       <details style="margin-top:6px;"><summary style="cursor:pointer;color:var(--gold);">📖 Guia passo a passo</summary>${inf.guia.map(g=>`<div class="obs-line">${escH(g)}</div>`).join('')}</details>
       <div style="margin-top:8px;"><b>Chaves</b>${inf.segredos.map(([k,r])=>`<div class="obs-line">${seg[k]?'✅':'⬜'} ${escH(r)} ${seg[k]?'<span id="isVer_'+k+'">••••'+escH(seg[k].final||'')+'</span> <button '+bt+' onclick="verIntegSegredo_(\''+k+'\')">Ver</button>':''} <button ${bt} onclick="abrirIntegSegredo_('${k}','${escH(r)}')">${seg[k]?'Trocar':'Digitar'}</button></div>`).join('')}</div>
       <div style="margin-top:8px;"><b>Checklist</b>${(it.checklist||[]).map(c=>`<label class="obs-line" style="display:flex;gap:8px;align-items:flex-start;${c.auto?'':'cursor:pointer;'}"><input type="checkbox" ${c.feito?'checked':''} ${c.auto?'disabled':''} onchange="marcarIntegPasso_('${it.provedor}','${c.id}',this.checked)" style="width:auto;margin-top:3px;"> <span>${escH(c.titulo)}${c.auto?' <i>(o sistema marca sozinho)</i>':''}</span></label>`).join('')}</div>
       ${inf.opcoes.length?`<div style="margin-top:8px;"><b>Ajustes</b>${inf.opcoes.map(([k,t])=>`<label class="obs-line" style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;"><input type="checkbox" ${(it.config||{})[k]?'checked':''} onchange="salvarIntegOpcao_('${it.provedor}','${k}',this.checked)" style="width:auto;margin-top:3px;"> <span>${escH(t)}</span></label>`).join('')}</div>`:''}
       <div class="btnrow" style="margin-top:10px;">
-        ${it.ligado
-          ? `<button class="ghost" onclick="desligarInteg_('${it.provedor}')">Desligar</button>`
-          : (it.provedor==='nfce'
-              ? `<button class="primary" ${it.podeLigar?'':'disabled'} onclick="ligarInteg_('nfce','homologacao')">Ligar em TESTE</button><button class="ghost" ${it.podeLigar?'':'disabled'} onclick="ligarInteg_('nfce','producao')">Ligar em PRODUÇÃO</button>`
-              : `<button class="primary" ${it.podeLigar?'':'disabled'} onclick="ligarInteg_('${it.provedor}','producao')">Ligar</button>`)}
+        ${integBotoes_(it)}
         <button class="ghost" onclick="verLogInteg_('${it.provedor}')">Ver registro</button>
       </div>
       ${(!it.ligado && !it.podeLigar)?`<div class="obs-line">Ainda falta: ${escH((it.pendencias||[]).join('; '))}</div>`:''}
@@ -382,6 +393,8 @@ function renderIntegracoes_(){
       ${it.provedor==='nfce'?fiscalExtraHtml_(it):''}
       <div id="integLog_${it.provedor}"></div>
     </div>`; }).join('') || '<div class="notif-empty">Nada disponível.</div>';
+  if(document.getElementById('mpRecentes')) carregarMpRecentes_();
+  if(document.getElementById('mpPendenciasDecisaoBox')) mpCarregarPendenciasDecisao_();
 }
 async function marcarIntegPasso_(prov, item, feito){
   try{ const r = await apiCall('integracoesMarcar', { provedor:prov, item, feito:!!feito }); if(r && r.ok){ integStatus_ = r.integracoes||integStatus_; } else showMsg('integMsg', (r&&r.message)||'Não foi possível salvar.', 'warn'); }catch(e){ showMsg('integMsg','Sem conexão.','warn'); }
@@ -421,7 +434,9 @@ function verIntegSegredo_(chave){
 }
 function ligarInteg_(prov, modo){
   const nome = INTEG_INFO_[prov].nome;
-  if(!confirm('Ligar ' + nome + (prov==='nfce' ? (modo==='producao'?' em PRODUÇÃO (notas valem de verdade)':' em TESTE') : '') + '?\n\nA partir daqui o sistema passa a usar essa integração. Dá para desligar a qualquer momento.')) return;
+  const amb = prov==='nfce' ? (modo==='producao'?' em PRODUÇÃO (notas valem de verdade)':' em TESTE')
+            : prov==='mercadopago' ? (modo==='producao'?' em PRODUÇÃO (os clientes passam a pagar de verdade pelo site)':' em TESTE (só quem estiver na lista de e-mails de teste vê o pagamento online)') : '';
+  if(!confirm('Ligar ' + nome + amb + '?\n\nA partir daqui o sistema passa a usar essa integração. Dá para desligar a qualquer momento.')) return;
   abrirModalSenhaAdmin(async function(senhaAdm){
     try{
       const r = await apiCall('integracoesLigar', { provedor:prov, modo, senhaAdmin: senhaAdm });
@@ -447,6 +462,187 @@ async function verLogInteg_(prov){
     const it = (r && r.itens) || [];
     el.innerHTML = it.length ? '<div style="margin-top:8px;max-height:220px;overflow:auto;">' + it.map(x=>`<div class="obs-line">${escH(x.em)} · ${x.nivel==='erro'?'❌':x.nivel==='aviso'?'⚠️':'•'} ${escH(x.texto)}</div>`).join('') + '</div>' : '<div class="obs-line">Nenhum registro ainda.</div>';
   }catch(e){ el.innerHTML = '<div class="obs-line">Sem conexão.</div>'; }
+}
+
+/* ---- Mercado Pago (Etapa 4): botões, pendências, formas online, ajustes e teste guiado. Só aparece no cartão "Mercado Pago". ---- */
+function integBotoes_(it){
+  if(it.provedor==='mercadopago'){
+    if(it.ligado){
+      return `<button class="ghost" onclick="desligarInteg_('mercadopago')">Desligar</button>` + (it.modo==='producao'
+        ? `<button class="ghost" onclick="ligarInteg_('mercadopago','homologacao')">Voltar para TESTE</button>`
+        : `<button class="primary" ${it.podeLigarProducao?'':'disabled'} onclick="ligarInteg_('mercadopago','producao')">Passar para PRODUÇÃO</button>`);
+    }
+    return `<button class="primary" ${it.podeLigarTeste?'':'disabled'} onclick="ligarInteg_('mercadopago','homologacao')">Ligar em TESTE</button><button class="ghost" ${it.podeLigarProducao?'':'disabled'} onclick="ligarInteg_('mercadopago','producao')">Ligar em PRODUÇÃO</button>`;
+  }
+  return it.ligado
+    ? `<button class="ghost" onclick="desligarInteg_('${it.provedor}')">Desligar</button>`
+    : (it.provedor==='nfce'
+        ? `<button class="primary" ${it.podeLigar?'':'disabled'} onclick="ligarInteg_('nfce','homologacao')">Ligar em TESTE</button><button class="ghost" ${it.podeLigar?'':'disabled'} onclick="ligarInteg_('nfce','producao')">Ligar em PRODUÇÃO</button>`
+        : `<button class="primary" ${it.podeLigar?'':'disabled'} onclick="ligarInteg_('${it.provedor}','producao')">Ligar</button>`);
+}
+/* ---- Cartão do Mercado Pago no Admin: mesmo desenho da Prévia_Mercado_Pago.html (título com estado, lista ✓/!, campos, chave liga/desliga, guia) ---- */
+let mpModoVisto_ = '';   // modo que o Admin está olhando: 'homologacao' (teste) ou 'producao'
+function mpModoAtual_(it){ return (it.ligado && it.modo) ? it.modo : (mpModoVisto_ || 'homologacao'); }
+function mpEscolherModo_(m){ mpModoVisto_ = m; renderIntegracoes_(); }
+function mpGuiaAlternar_(){ const g = document.getElementById('mpGuia'); if(g) g.hidden = !g.hidden; }
+function mpAlternarLigado_(){
+  const it = (integStatus_||[]).find(x=>x.provedor==='mercadopago'); if(!it) return;
+  if(it.ligado) return desligarInteg_('mercadopago');
+  ligarInteg_('mercadopago', mpModoAtual_(it));
+}
+function mpCardHtml_(it, inf){
+  const seg = it.segredos || {}, modo = mpModoAtual_(it), prod = modo === 'producao';
+  const pode = prod ? it.podeLigarProducao : it.podeLigarTeste;
+  const bt = 'class="ghost" style="width:auto;padding:4px 10px;min-height:32px;margin:0;"';
+  const camp = (k, rot)=>`<div class="mp-camp">${escH(rot)}<span class="v">${seg[k] ? `<span id="isVer_${k}">••••${escH(seg[k].final||'')}</span><button ${bt} onclick="verIntegSegredo_('${k}')">Ver</button>` : '<span style="color:var(--muted)">ainda não digitada</span>'}<button ${bt} onclick="abrirIntegSegredo_('${k}','${escH(rot)}')">${seg[k]?'Trocar':'Digitar'}</button></span></div>`;
+  const lista = (it.checklist||[]).map(c=>{
+    const ic = `<span class="mp-i ${c.feito?'v':'p'}" aria-hidden="true">${c.feito?'✓':'!'}</span>`;
+    return c.auto ? `<li>${ic}<span>${escH(c.titulo)}</span></li>`
+      : `<li><label style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;"><input type="checkbox" ${c.feito?'checked':''} onchange="marcarIntegPasso_('mercadopago','${c.id}',this.checked)" style="position:absolute;opacity:0;width:1px;height:1px;">${ic}<span>${escH(c.titulo)} <small style="color:var(--muted)">(toque para marcar)</small></span></label></li>`;
+  }).join('');
+  const formasOn = (it.formas||[]).filter(f=>f.aceitaOnline && f.tipoOnline).map(f=>f.tipoOnline==='pix'?'Pix':'Cartão de crédito');
+  const min = Number((it.config||{}).pixValidadeMin) || 15;
+  const estado = it.ligado ? 'LIGADO · ' + (it.modo==='producao' ? 'PRODUÇÃO' : 'TESTE') : 'DESLIGADO';
+  const trocaModo = it.ligado ? (it.modo==='producao'
+      ? `<button class="mp-admbtn" onclick="ligarInteg_('mercadopago','homologacao')">Voltar para TESTE</button>`
+      : `<button class="mp-admbtn" ${it.podeLigarProducao?'':'disabled'} onclick="ligarInteg_('mercadopago','producao')">Passar para PRODUÇÃO</button>`) : '';
+  return `<div class="mp-adm ${it.ligado?'on':''}">
+    <h3>${inf.icone} Mercado Pago <span class="mp-estado ${it.ligado?'on':''}">${estado}</span></h3>
+    <p class="mp-sub">Pagamento dentro do cardápio. Desligado, o cardápio funciona como sempre.</p>
+    <ul class="mp-lista">${lista}</ul>
+    ${mpPendenciasHtml_(it)}
+    <div class="mp-camp">Modo<div class="mp-modo"><button type="button" aria-pressed="${!prod}" ${it.ligado?'disabled':''} onclick="mpEscolherModo_('homologacao')">Teste</button><button type="button" aria-pressed="${prod}" ${it.ligado?'disabled':''} onclick="mpEscolherModo_('producao')">Produção</button></div></div>
+    ${camp(prod?'mp_public_key_producao':'mp_public_key_teste', 'Chave pública (Public Key)')}
+    ${camp(prod?'mp_access_token_producao':'mp_access_token_teste', 'Token de acesso (Access Token)')}
+    ${camp('mp_webhook_secret', 'Chave secreta do webhook')}
+    <div class="mp-camp">Formas pagas online<span class="v">${formasOn.length ? escH(formasOn.join(' · ')) : '<span style="color:var(--muted)">nenhuma escolhida</span>'}</span></div>
+    <div class="mp-camp">Validade do Pix<span class="v">${min} minutos</span></div>
+    <button type="button" class="mp-sw" role="switch" aria-checked="${!!it.ligado}" ${(!it.ligado && !pode)?'disabled':''} onclick="mpAlternarLigado_()"><i></i><span>Ligar Mercado Pago <small>(pede a senha do Admin)</small></span></button>
+    ${trocaModo}
+    <button type="button" class="mp-admbtn" onclick="mpGuiaAlternar_()">Ver guia passo a passo</button>
+    <div id="mpGuia" class="mp-guia" hidden>${inf.guia.map(g=>`<div class="obs-line">${escH(g)}</div>`).join('')}</div>
+    <div class="btnrow"><button class="ghost" onclick="verLogInteg_('mercadopago')">Ver registro</button></div>
+    <div id="integLog_mercadopago"></div>
+    ${mpExtraHtml_(it)}
+  </div>`;
+}
+function mpPendenciasHtml_(it){
+  const l = [];
+  if(!it.ligado && !it.podeLigarTeste) l.push('Para ligar em TESTE ainda falta: ' + (it.pendenciasTeste||[]).join('; '));
+  if(!(it.ligado && it.modo==='producao') && !it.podeLigarProducao) l.push('Para ' + (it.ligado ? 'passar para' : 'ligar em') + ' PRODUÇÃO ainda falta: ' + (it.pendenciasProducao||[]).join('; '));
+  return l.map(t=>`<div class="obs-line">${escH(t)}</div>`).join('');
+}
+function mpExtraHtml_(it){
+  const cfg = it.config || {};
+  const url = (typeof SUPABASE_URL_!=='undefined' ? SUPABASE_URL_ : '') + '/functions/v1/mp-webhook';
+  const bt = 'class="ghost" style="width:auto;padding:4px 10px;min-height:32px;margin-left:6px;"';
+  const formas = (it.formas||[]).map(f=>{
+    const v = f.aceitaOnline ? (f.tipoOnline||'') : '';
+    return `<div class="obs-line" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;"><span style="min-width:120px;">${escH(f.nome)}</span>
+      <select style="width:auto;" onchange="mpFormaOnline_('${f.id}', this.value)" aria-label="Pagar online com ${escH(f.nome)}">
+        <option value="" ${v===''?'selected':''}>Só na entrega</option><option value="pix" ${v==='pix'?'selected':''}>Também online: Pix</option><option value="credito" ${v==='credito'?'selected':''}>Também online: cartão de crédito</option></select></div>`;
+  }).join('') || '<div class="obs-line">Nenhuma forma de pagamento ativa no cardápio.</div>';
+  const emails = Array.isArray(cfg.emailsTeste) ? cfg.emailsTeste.join(', ') : '';
+  return `<div style="margin-top:10px;">
+    <b>Endereço do aviso (webhook)</b>
+    <div class="obs-line" style="overflow-wrap:anywhere;font-family:monospace;">${escH(url)} <button ${bt} onclick="contaCopiar_(this,'${escH(url)}')">Copiar</button></div>
+    <div class="obs-line">No Mercado Pago: Webhooks &gt; Configurar notificações &gt; cole este endereço e marque o evento "Order (Mercado Pago)".</div>
+  </div>
+  <div style="margin-top:10px;"><b>Formas de pagamento pelo site</b>
+    <div class="obs-line">Escolha qual forma cadastrada vira Pix online e qual vira cartão de crédito online (uma de cada). Elas continuam valendo também na entrega. Os preços, taxas e acréscimos são os de cada forma.</div>${formas}</div>
+  <div style="margin-top:10px;"><b>Ajustes</b>
+    <label class="obs-line" for="mpPixMin">Validade do Pix (minutos, de 5 a 120; combinado: 15)</label>
+    <input type="number" id="mpPixMin" min="5" max="120" value="${Number(cfg.pixValidadeMin)||15}" style="width:90px;" onchange="salvarMpConfig_({ pixValidadeMin: Number(this.value) })">
+    <label class="obs-line" for="mpEmailsTeste">E-mails que veem o pagamento online em TESTE (até 5, separados por vírgula): a conta Google que você vai usar no cardápio</label>
+    <input type="text" id="mpEmailsTeste" value="${escH(emails)}" maxlength="300" placeholder="voce@gmail.com" onchange="salvarMpEmails_(this.value)">
+    <label class="obs-line" for="mpEmailPagador">E-mail do comprador de teste do Mercado Pago (só em TESTE; deixe vazio para usar o e-mail da conta)</label>
+    <input type="text" id="mpEmailPagador" value="${escH(cfg.emailPagadorTeste||'')}" maxlength="120" placeholder="test_user_...@testuser.com" onchange="salvarMpConfig_({ emailPagadorTeste: this.value.trim() })">
+    <label class="obs-line" style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;"><input type="checkbox" ${cfg.testeNoCardapio?'checked':''} onchange="salvarMpConfig_({ testeNoCardapio: this.checked })" style="width:auto;margin-top:3px;"> <span>Em TESTE, mostrar o pagamento online a TODOS os clientes (não recomendado: com chave de teste ninguém consegue pagar de verdade)</span></label>
+  </div>
+  <div style="margin-top:10px;"><b>Teste guiado</b>
+    <div class="obs-line">1) Ligue em TESTE. 2) Digite acima o e-mail da conta Google que você usa no cardápio. 3) Abra o cardápio, entre com essa conta e faça um pedido de entrega pagando com Pix pelo site. 4) Faça outro pagando com cartão de crédito (no cartão de teste do Mercado Pago, use o nome do titular APRO para aprovar e OTHE para recusar; confira a lista atual no site do Mercado Pago). 5) Quando os dois aparecerem aprovados abaixo, o passo do checklist se marca sozinho.</div>
+    <div class="obs-line">⚠️ O pedido de teste aprovado vira pedido de verdade na cozinha e no caixa (e baixa estoque). Avise a equipe e cancele depois.</div>
+    <div class="btnrow" style="margin-top:6px;"><button class="ghost" onclick="mpAbrirCardapio_()">Abrir o cardápio</button><button class="ghost" onclick="carregarMpRecentes_()">Atualizar lista</button></div>
+    <div id="mpRecentes"><div class="obs-line">Carregando…</div></div>
+    <div style="margin-top:10px;border-top:1px solid var(--gold);padding-top:8px;"><b>Pagamentos que precisam de decisão</b><div class="obs-line">Use esta lista quando o dinheiro tiver sido aprovado, mas o pedido não puder entrar automaticamente na cozinha. Reembolsar registra a decisão e chama o Mercado Pago para devolver.</div><button class="ghost" onclick="mpCarregarPendenciasDecisao_()">Atualizar pendências</button><div id="mpPendenciasDecisaoBox"><div class="obs-line">Toque em Atualizar pendências.</div></div></div>
+  </div>`;
+}
+function mpAbrirCardapio_(){
+  const it = (integStatus_||[]).find(x=>x.provedor==='mercadopago');
+  if(!it || !it.ligado){ showMsg('integMsg','Ligue o Mercado Pago em TESTE antes de testar.','warn'); return; }
+  window.open('https://texasburguer.github.io/apptexasburguer/', '_blank', 'noopener');
+}
+async function carregarMpRecentes_(){
+  const box = document.getElementById('mpRecentes'); if(!box) return;
+  try{
+    const r = await apiCall('mpPagamentosRecentes', {});
+    if(!r || !r.ok){ box.innerHTML = '<div class="obs-line">' + escH((r&&r.message)||'Não foi possível carregar.') + '</div>'; return; }
+    const it = r.itens || [];
+    const rot = {aguardando:'aguardando',aprovado:'aprovado',recusado:'recusado',expirado:'vencido',cancelado:'cancelado',reembolso_parcial:'reembolso parcial',reembolsado:'reembolsado',erro:'erro'};
+    box.innerHTML = `<div class="obs-line">${r.testePix?'✅':'⬜'} Pix aprovado em TESTE · ${r.testeCredito?'✅':'⬜'} Cartão aprovado em TESTE${r.aDecidir?` · ⚠️ ${r.aDecidir} pagamento(s) esperando decisão (seguir ou reembolsar)`:''}</div>`
+      + (it.length ? '<div style="max-height:200px;overflow:auto;margin-top:6px;">' + it.map(x=>`<div class="obs-line">${escH(x.em)} · ${x.modo==='producao'?'produção':'teste'} · ${x.metodo==='pix'?'Pix':'Cartão'} · R$ ${Number(x.valor).toFixed(2).replace('.',',')} · ${escH(rot[x.status]||x.status)}${x.aDecidir?' · A DECIDIR':''}${x.detalhe?' · '+escH(x.detalhe):''}</div>`).join('') + '</div>' : '<div class="obs-line">Nenhum pagamento online ainda.</div>');
+  }catch(e){ box.innerHTML = '<div class="obs-line">Sem conexão.</div>'; }
+}
+async function mpCarregarPendenciasDecisao_(){
+  const boxes = [document.getElementById('mpPendenciasDecisaoBox'), document.getElementById('mpPendenciasDecisaoCaixaBox')].filter(Boolean); if(!boxes.length) return;
+  boxes.forEach(box=>box.innerHTML = '<div class="obs-line">Carregando pendências…</div>');
+  try{
+    const r = await apiCall('mpPendenciasDecisao', {});
+    if(!r || !r.ok){ boxes.forEach(box=>box.innerHTML = '<div class="obs-line">'+escH((r&&r.message)||'Não foi possível carregar as pendências.')+'</div>'); return; }
+    const itens = r.itens || [];
+    if(!itens.length){ boxes.forEach(box=>box.innerHTML = '<div class="obs-line">✅ Nenhum pagamento aguardando decisão.</div>'); return; }
+    const html = itens.map(x=>`<div class="notif-card" style="margin-top:8px;border-left:4px solid #d89b27;">
+      <b>${escH(x.metodo==='pix'?'Pix':'Cartão de crédito')} · ${formatarMoeda(Number(x.valor)||0)}</b>
+      <div class="obs-line">${escH(x.clienteNome||'Cliente sem nome')} · ${escH(x.telefone||'sem telefone')}</div>
+      <div class="obs-line">${escH(x.criadoEm||'')} · ${escH(x.modo==='producao'?'Produção':'Teste')}</div>
+      <div class="obs-line">Motivo: ${escH(x.motivo||'Pagamento aprovado sem pedido confirmado.')}</div>
+      <div class="btnrow"><button class="primary" onclick="mpDecidirPagamento_('${escH(x.pagamentoId)}','seguir')">Liberar pedido</button><button class="ghost" onclick="mpDecidirPagamento_('${escH(x.pagamentoId)}','reembolsar')">Reembolsar</button></div>
+    </div>`).join('');
+    boxes.forEach(box=>box.innerHTML=html);
+  }catch(e){ boxes.forEach(box=>box.innerHTML = '<div class="obs-line">Sem conexão. Tente novamente.</div>'); }
+}
+async function mpDecidirPagamento_(pagamentoId, decisao){
+  if(!pagamentoId || !['seguir','reembolsar'].includes(decisao)) return;
+  const aviso = decisao==='seguir'
+    ? 'Liberar este pedido para a cozinha? Confirme que há caixa aberto e que a equipe consegue preparar.'
+    : 'Registrar a decisão de reembolsar e solicitar a devolução integral ao Mercado Pago?';
+  if(!confirm(aviso)) return;
+  const box = document.getElementById('mpPendenciasDecisaoBox');
+  if(box) box.insertAdjacentHTML('afterbegin','<div class="obs-line">Registrando decisão…</div>');
+  try{
+    const r = await apiCall('mpDecidirPagamento', { pagamentoId, decisao });
+    if(!r || !r.ok){ showMsg('integMsg',(r&&r.message)||'Não foi possível registrar a decisão.','warn'); await mpCarregarPendenciasDecisao_(); return; }
+    if(decisao==='reembolsar'){
+      const rr = await sb410Edge_('mp-reembolsar', { pagamentoId }, 60000);
+      if(!rr || !rr.ok){ showMsg('integMsg','A decisão foi registrada, mas a devolução não foi confirmada: '+((rr&&rr.message)||'sem resposta')+'. Confira o painel do Mercado Pago antes de repetir.','warn'); }
+      else showMsg('integMsg','Reembolso confirmado pelo Mercado Pago: '+(rr.message||'devolução registrada.'),'ok');
+    } else showMsg('integMsg',r.message||'Pedido liberado.','ok');
+    await mpCarregarPendenciasDecisao_(); await carregarMpRecentes_();
+  }catch(e){ showMsg('integMsg','Não foi possível confirmar o resultado. Confira o status antes de repetir.','warn'); await mpCarregarPendenciasDecisao_(); }
+}
+async function mpCarregarResumoOperacional_(){
+  const box = document.getElementById('relMpOnlineBox'); if(!box) return;
+  box.innerHTML = '<div class="obs-line">Carregando resumo…</div>';
+  try{
+    const r = await apiCall('mpResumoOperacional', {});
+    if(!r || !r.ok){ box.innerHTML = '<div class="obs-line">'+escH((r&&r.message)||'Não foi possível carregar o resumo.')+'</div>'; return; }
+    const it = r.itens||[];
+    box.innerHTML = `<div class="obs-line">Período: ${escH(r.periodo||'mês atual')} · ${Number(r.quantidade)||0} transação(ões) processada(s) · Total líquido após reembolsos: <b>${formatarMoeda(Number(r.total)||0)}</b> · Taxas registradas: <b>${formatarMoeda(Number(r.taxas)||0)}</b></div>` +
+      (it.length?'<div style="margin-top:6px;">'+it.map(x=>`<div class="obs-line">${escH(x.metodo==='pix'?'Pix online':'Cartão online')}: ${Number(x.quantidade)||0} pagamento(s) · ${formatarMoeda(Number(x.total)||0)} recebidos · ${formatarMoeda(Number(x.taxas)||0)} em taxas</div>`).join('')+'</div>':'<div class="obs-line">Ainda não há pagamentos online aprovados neste mês.</div>');
+  }catch(e){ box.innerHTML = '<div class="obs-line">Sem conexão. Tente novamente.</div>'; }
+}
+async function salvarMpConfig_(config){
+  try{ const r = await apiCall('integracoesConfig', { provedor:'mercadopago', config }); if(r && r.ok){ integStatus_ = r.integracoes||integStatus_; showMsg('integMsg', r.message||'Ajustes salvos.', 'ok'); } else showMsg('integMsg', (r&&r.message)||'Não foi possível salvar.', 'warn'); }catch(e){ showMsg('integMsg','Sem conexão.','warn'); }
+  renderIntegracoes_();
+}
+function salvarMpEmails_(txt){
+  const lista = String(txt||'').split(/[,;\s]+/).map(x=>x.trim().toLowerCase()).filter(Boolean);
+  if(lista.length > 5){ showMsg('integMsg','No máximo 5 e-mails.','warn'); return; }
+  salvarMpConfig_({ emailsTeste: lista });
+}
+async function mpFormaOnline_(formaId, tipo){
+  try{ const r = await apiCall('mpFormaOnline', { formaId, aceitaOnline: !!tipo, tipoOnline: tipo||'' }); if(r && r.ok){ integStatus_ = r.integracoes||integStatus_; showMsg('integMsg', r.message||'Salvo.', 'ok'); carregarIntegFlags_(); } else showMsg('integMsg', (r&&r.message)||'Não foi possível salvar.', 'warn'); }catch(e){ showMsg('integMsg','Sem conexão.','warn'); }
+  renderIntegracoes_();
 }
 
 /* ---- Nota fiscal (Fase 4): dados da empresa, perfis fiscais, itens sem perfil, planilha do contador. Só aparece no cartão "Nota fiscal". ---- */

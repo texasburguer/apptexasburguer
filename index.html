@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <!-- SEGURANÇA: mesmo que algum texto malicioso escapasse, a página só consegue falar com o Google Apps Script (planilha e contingência). -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' https: data: blob:; connect-src 'self' https://nominatim.openstreetmap.org https://viacep.com.br https://script.google.com https://script.googleusercontent.com https://awryywtgqfaxppayzpca.supabase.co wss://awryywtgqfaxppayzpca.supabase.co; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none';">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://sdk.mercadopago.com https://*.mercadopago.com https://*.mercadopago.com.br https://*.mercadolibre.com https://*.mlstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://*.mercadopago.com https://*.mlstatic.com; font-src https://fonts.gstatic.com https://*.mlstatic.com; img-src 'self' https: data: blob:; connect-src 'self' https://*.mercadopago.com https://*.mercadopago.com.br https://*.mercadolibre.com https://*.mlstatic.com https://nominatim.openstreetmap.org https://viacep.com.br https://script.google.com https://script.googleusercontent.com https://awryywtgqfaxppayzpca.supabase.co wss://awryywtgqfaxppayzpca.supabase.co; frame-src https://*.mercadopago.com https://*.mercadopago.com.br https://*.mercadolibre.com https://*.mlstatic.com; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none';">
 <!-- Aparelho da equipe com sessão salva: mostra só o fundo e a logo até o sistema abrir (o cardápio público não "pisca" antes do login). Cliente sem login: nada muda. -->
 <style id="txbSplashCss">html.txb-equipe::before{content:"";position:fixed;left:0;top:0;right:0;bottom:0;z-index:2147483000;background:#0b0705 url(logo-texas-burger.webp) center center/min(52vw,210px) auto no-repeat;}</style>
 <script id="txbSplash">(function(){var h=document.documentElement;window.txbSplashFim_=function(){try{h.classList.remove('txb-equipe');}catch(e){}};try{if(localStorage.getItem('texasBurgerSessao_v2')){h.classList.add('txb-equipe');setTimeout(window.txbSplashFim_,8000);}}catch(e){}})();</script>
@@ -264,7 +264,9 @@
         <label>Ponto de referência</label><input type="text" id="cdReferencia" placeholder="Referência">
       </div>
       <div class="cd-hide-mesa"><label>Observações do pedido</label><textarea id="cdObservacoes" rows="2" placeholder="Ex.: sem cebola, ponto da carne, instruções..."></textarea>
+      <div id="cdResumoPag" style="display:none;"></div>
       <label>Forma de pagamento</label>
+      <div id="cdFormasBox" style="display:none;"></div>
       <select id="cdFormaPagamento" onchange="onMudarFormaPagamentoCd()"></select>
       <div id="cdAvisoForma" style="display:none;margin-top:8px;padding:9px 11px;border-radius:8px;background:rgba(241,196,15,.14);border:1px solid rgba(241,196,15,.55);font-size:13px;line-height:1.4;"></div></div>
       <div id="cdTrocoBox" class="cd-hide-mesa" style="display:none;margin-top:8px;">
@@ -521,6 +523,12 @@
 
   <!-- =========================== CAIXA =========================== -->
   <section class="tab" id="tab-caixa">
+    <div class="card" id="mpPendenciasCaixaCard">
+      <h2>💳 Pagamentos online que precisam de decisão</h2>
+      <p class="sub">Se o Mercado Pago aprovar um pagamento, mas não for possível criar o pedido automaticamente, ele aparece aqui. Confira o motivo antes de liberar para a cozinha ou solicitar reembolso.</p>
+      <button class="ghost" type="button" onclick="mpCarregarPendenciasDecisao_()">Atualizar pendências</button>
+      <div id="mpPendenciasDecisaoCaixaBox"><div class="obs-line">Toque em Atualizar pendências para consultar.</div></div>
+    </div>
     <div class="card-header caixa-topo">
       <h2 style="margin:0;">Caixa</h2>
       <div class="caixa-topo-btns">
@@ -857,6 +865,11 @@
       <h2>Compras recentes</h2>
       <div id="cpLista"><div class="notif-empty">Carregando…</div></div>
       <div class="msg" id="cpListaMsg"></div>
+    </div>
+    <div class="card" id="fiscalHistoricoFinanceiro">
+      <h2>🧾 Histórico de notas lidas pelo Tex</h2>
+      <p class="sub">Quem confirmou, quando e qual compra foi lançada. As fotos são excluídas após 30 dias; o histórico permanece.</p>
+      <div id="fiscalHistoricoFinanceiroLista"><div class="notif-empty">Carregando histórico…</div></div>
     </div>
   </section>
 
@@ -1355,6 +1368,12 @@
       <label for="relTipo">Relatório</label>
       <select id="relTipo" onchange="renderRelatorio()"></select>
       <div id="relResultado"></div>
+      <div class="card" style="margin-top:12px;">
+        <h3>Mercado Pago — resumo do mês</h3>
+        <p class="sub">Valores confirmados no banco. As taxas dependem da taxa aplicada na forma de pagamento no momento da venda.</p>
+        <button class="ghost" type="button" onclick="mpCarregarResumoOperacional_()">Atualizar resumo online</button>
+        <div id="relMpOnlineBox"><div class="obs-line">Toque em Atualizar resumo online.</div></div>
+      </div>
       <div style="display:flex;gap:8px;margin-top:12px;">
         <button class="primary" style="margin-top:0;" onclick="copiarRel()">Copiar</button>
         <button class="primary" style="margin-top:0;background:#25D366;color:#0a0a0a;" onclick="whatsappRel()">Enviar WhatsApp</button>
@@ -1460,7 +1479,7 @@
       <div class="msg" id="chavesIaMsg"></div>
     </div>
     <div class="card" id="integCard">
-      <h2>🔌 Integrações (iFood e Nota fiscal)</h2>
+      <h2>🔌 Integrações (iFood, Nota fiscal e Mercado Pago)</h2>
       <p class="sub">Já vêm prontas no sistema, mas DESLIGADAS. Desligado, tudo funciona exatamente como antes. Siga o guia de cada uma, preencha o checklist e só então ligue. Chaves são digitadas só aqui, nunca por mensagem.</p>
       <div id="integLista"><div class="notif-empty">Carregando…</div></div>
       <div class="msg" id="integMsg"></div>
@@ -2351,21 +2370,21 @@
   </div>
 </div>
 
-<script src="app-01-base-e-api.js?v=6f148abf" charset="utf-8" data-origem="__big0__"></script>
+<script src="app-01-base-e-api.js?v=e8433139" charset="utf-8" data-origem="__big0__"></script>
 <script src="app-02-abas.js?v=625338a4" charset="utf-8" data-origem="__big1__"></script>
 <script src="app-03-cadastros.js?v=7dd3c514" charset="utf-8" data-origem="__big2__"></script>
 <script src="app-04-pedidos-entrega.js?v=d0d4fe5d" charset="utf-8" data-origem="__big3__"></script>
 <script src="app-05-avisos-push.js?v=67c3b080" charset="utf-8" data-origem="__big4__"></script>
 <script src="app-06-caixa.js?v=2eb0f13a" charset="utf-8" data-origem="__big5__"></script>
 <script src="app-07-impressao.js?v=d0e63a58" charset="utf-8" data-origem="__big6__"></script>
-<script src="app-08-vendas-despesas.js?v=07159b49" charset="utf-8" data-origem="__big7__"></script>
-<script src="app-09-ajuda.js?v=4d086ed4" charset="utf-8" data-origem="__big8__"></script>
+<script src="app-08-vendas-despesas.js?v=24761669" charset="utf-8" data-origem="__big7__"></script>
+<script src="app-09-ajuda.js?v=31dfa5fc" charset="utf-8" data-origem="__big8__"></script>
 <script src="app-10-backup-financeiro.js?v=16146730" charset="utf-8" data-origem="__big9__"></script>
-<script src="app-11-admin-integracoes.js?v=949dea9a" charset="utf-8" data-origem="__big10__"></script>
+<script src="app-11-admin-integracoes.js?v=a436b632" charset="utf-8" data-origem="__big10__"></script>
 <script src="app-12-gestao-ia.js?v=56e78061" charset="utf-8" data-origem="__big11__"></script>
 <script src="app-13-conexao-sync.js?v=64fab071" charset="utf-8" data-origem="__big12__"></script>
 <script src="app-14-relatorios.js?v=3c1364d9" charset="utf-8" data-origem="__big13__"></script>
-<script src="app-15-cardapio-cliente.js?v=94235605" charset="utf-8" data-origem="__big14__"></script>
+<script src="app-15-cardapio-cliente.js?v=6d962eea" charset="utf-8" data-origem="__big14__"></script>
 <script src="app-16-sessao-final.js?v=ef1da8ab" charset="utf-8" data-origem="__big15__"></script>
 <!-- ═══════════ SINCRONIZAÇÃO, BACKUP, ESPAÇO E INTEGRIDADE ═══════════
      app-17 cria cartões (ids sb410*) nas telas Backup e espaço e Sincronização e contingência. -->
@@ -2424,6 +2443,8 @@
 <link rel="stylesheet" href="estilo-14-computador.css?v=c7050ce4" data-origem="">
 <script src="app-26-visual.js?v=3f2492e5" charset="utf-8" data-origem=""></script>
 <link rel="stylesheet" href="estilo-15-conta.css?v=767278d9" data-origem="">
-<script src="app-27-conta-cliente.js?v=f6bd95ec" charset="utf-8" data-origem=""></script>
+<link rel="stylesheet" href="estilo-16-pagamento.css?v=6dbe0f1d">
+<script src="app-27-conta-cliente.js?v=dc74b07e" charset="utf-8" data-origem=""></script>
+<script src="app-28-leitor-fiscal.js?v=a5d03f31" charset="utf-8"></script>
 </body>
 </html>

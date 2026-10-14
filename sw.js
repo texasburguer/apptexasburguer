@@ -1,4 +1,4 @@
-/* Texas Burger — service worker v5: avisos com o app fechado (push da equipe e do cliente) + notificações + abertura instantânea + casca/ícones/logo guardados.
+/* Texas Burger — service worker v36: avisos com o app fechado (push da equipe e do cliente) + notificações + abertura instantânea + casca/ícones/logo guardados.
    Precisa ficar na MESMA pasta do HTML, em endereço https.
    - Página: mostra a cópia guardada NA HORA e confere a rede em segundo plano. Se a página mudou, avisa o app ("Nova versão disponível").
    - Ícones, logo e manifest: guardados (cache primeiro).
@@ -6,7 +6,7 @@
    - BACKEND: NADA de Apps Script (script.google.com) nem de Supabase (*.supabase.co) é guardado aqui.
      Dados, pedidos, login e RPCs nunca passam pelo cache do service worker — sempre vão direto para a rede.
    - O único cache de dados é o de fotos (FOTOS) e o da casca/ícones (SHELL/ASSETS). Não adicionar outros. */
-const SHELL = 'texas-shell-v34';
+const SHELL = 'texas-shell-v37';
 const ASSETS = 'texas-assets-v6';   // trocou ícone/logo/manifest/leaflet? suba para v5
 const FOTOS = 'texas-fotos-v1';
 /* Código do app dividido em arquivos (app-*.js e estilo-*.css). Cada arquivo tem ?v=<impressão digital> na página; o cache guarda
@@ -16,21 +16,21 @@ const CODIGO = 'texas-codigo-v1';
 const LISTA = [/*LISTA-INICIO*/
   'estilo-01-base.css?v=460bec22',
   'estilo-02-chat-publico.css?v=b0374956',
-  'app-01-base-e-api.js?v=6f148abf',
+  'app-01-base-e-api.js?v=e8433139',
   'app-02-abas.js?v=625338a4',
   'app-03-cadastros.js?v=7dd3c514',
   'app-04-pedidos-entrega.js?v=d0d4fe5d',
   'app-05-avisos-push.js?v=67c3b080',
   'app-06-caixa.js?v=2eb0f13a',
   'app-07-impressao.js?v=d0e63a58',
-  'app-08-vendas-despesas.js?v=07159b49',
-  'app-09-ajuda.js?v=4d086ed4',
+  'app-08-vendas-despesas.js?v=24761669',
+  'app-09-ajuda.js?v=31dfa5fc',
   'app-10-backup-financeiro.js?v=16146730',
-  'app-11-admin-integracoes.js?v=949dea9a',
+  'app-11-admin-integracoes.js?v=a436b632',
   'app-12-gestao-ia.js?v=56e78061',
   'app-13-conexao-sync.js?v=64fab071',
   'app-14-relatorios.js?v=3c1364d9',
-  'app-15-cardapio-cliente.js?v=94235605',
+  'app-15-cardapio-cliente.js?v=6d962eea',
   'app-16-sessao-final.js?v=ef1da8ab',
   'app-17-sessao-supabase.js?v=add7fc79',
   'app-18-queda-supabase.js?v=d409c0fe',
@@ -55,7 +55,9 @@ const LISTA = [/*LISTA-INICIO*/
   'estilo-14-computador.css?v=c7050ce4',
   'app-26-visual.js?v=3f2492e5',
   'estilo-15-conta.css?v=767278d9',
-  'app-27-conta-cliente.js?v=f6bd95ec',
+  'estilo-16-pagamento.css?v=6dbe0f1d',
+  'app-27-conta-cliente.js?v=dc74b07e',
+  'app-28-leitor-fiscal.js?v=a5d03f31',
 /*LISTA-FIM*/];
 const FOTOS_MAX = 150;
 const PRE = ['manifest.webmanifest', 'icon-192.png', 'badge-96.png', 'apple-touch-icon.png', 'logo-texas-burger.webp', 'logo-impressao-cor.png'];

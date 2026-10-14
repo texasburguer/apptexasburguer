@@ -413,14 +413,21 @@ function rbRender(){
 async function confirmarReembolsoUI(id){
   if(_rbOcupado_) return;
   const x = _rbItens_.find(i=>i.id===id); if(!x) return;
-  const f = await vsForm({ titulo:'Devolução ao cliente', texto:'Marcar que ' + formatarMoeda(x.valor) + ' foi devolvido ao cliente.', ok:'Marcar devolvido',
-    campos:[ { id:'obs', rotulo:'Como foi devolvido (opcional)', tipo:'texto', sugestoes:['Pix','Dinheiro','Estorno no cartão'] } ] });
+  const f = await vsForm({ titulo:'Devolução ao cliente', texto:x.pagamentoOnlineId ? ('Solicitar ao Mercado Pago a devolução de ' + formatarMoeda(x.valor) + '. A lista só será baixada quando o servidor confirmar o reembolso.') : ('Marcar que ' + formatarMoeda(x.valor) + ' foi devolvido ao cliente.'), ok:x.pagamentoOnlineId ? 'Solicitar reembolso' : 'Marcar devolvido',
+    campos:[ { id:'obs', rotulo:x.pagamentoOnlineId ? 'Observação (opcional)' : 'Como foi devolvido (opcional)', tipo:'texto', sugestoes:['Pix','Dinheiro','Estorno no cartão'] } ] });
   if(!f) return; const obs = f.obs;
   _rbOcupado_ = true;
   try{
-    const r = await apiCall('confirmarReembolso', { id, observacao: obs });
-    if(r && r.ok){ showMsg('rbMsg', r.message || 'Devolução registrada.', 'ok'); await rbCarregar(true); }
-    else showMsg('rbMsg', (r && r.message) || 'Não foi possível registrar.', 'warn');
+    let r;
+    if(x.pagamentoOnlineId){
+      r = await sb410Edge_('mp-reembolsar', { pagamentoId:x.pagamentoOnlineId });
+      if(r && r.ok){ showMsg('rbMsg', r.message || 'Reembolso confirmado pelo Mercado Pago.', 'ok'); await rbCarregar(true); }
+      else showMsg('rbMsg', (r && r.message) || 'Não foi possível confirmar a devolução. Confira o painel do Mercado Pago antes de repetir.', 'warn');
+    }else{
+      r = await apiCall('confirmarReembolso', { id, observacao: obs });
+      if(r && r.ok){ showMsg('rbMsg', r.message || 'Devolução registrada.', 'ok'); await rbCarregar(true); }
+      else showMsg('rbMsg', (r && r.message) || 'Não foi possível registrar.', 'warn');
+    }
   }catch(e){ showMsg('rbMsg','Sem conexão com o servidor. Confira se a devolução foi registrada antes de tentar de novo.','warn'); }
   finally{ _rbOcupado_ = false; }
 }

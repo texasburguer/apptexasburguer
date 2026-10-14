@@ -158,7 +158,7 @@ function cdPintar_(deCache){
   const formaAtual = selForma.value;
   selForma.innerHTML = (cdDados.formasPagamento||[]).map(f=>`<option value="${f.id}">${escH(f.nome)}</option>`).join('');
   if(formaAtual && Array.from(selForma.options).some(o=>o.value===formaAtual)) selForma.value = formaAtual;
-  onMudarFormaPagamentoCd();
+  onMudarFormaPagamentoCd(); cdRenderFormas_();
   if(mesaQr && !_modoMesaIniciado){ _modoMesaIniciado = true; iniciarModoMesa_(); }
 }
 /* Visitas ao cardápio: 1 por aparelho por dia. Aparelho que já entrou no sistema interno (equipe) nunca conta. */
@@ -177,6 +177,7 @@ function cdContarVisita_(){
   }, 3000);
 }
 async function carregarCardapioPublico(){
+  cdMpConfigPublica_().then(()=>{ try{ cdRenderFormas_(); onMudarFormaPagamentoCd(); }catch(e){} });
   if(!window._cdVisitaChamada_){ window._cdVisitaChamada_ = true; cdContarVisita_(); }
   try{ if(!mesaQr && window.cdCapturarLocalSilenciosa_) window.cdCapturarLocalSilenciosa_(); }catch(e){}
   if(!window._cdAvisosChamado_){ window._cdAvisosChamado_ = true; setTimeout(()=>{ if(window.cdAvisosIniciar_) window.cdAvisosIniciar_(); }, 1200); }
@@ -258,6 +259,325 @@ function cdAtualizarBordasCategorias_(){
   c.style.setProperty('--fade-dir', (max > 4 && c.scrollLeft < max - 4) ? '30px' : '0px');
 }
 function selecionarCdCategoria(id){ cdCategoriaAtiva = id; renderCdCategorias(); renderCdSecoes(); }
+
+/* ===================================================================================================
+   MERCADO PAGO — pagamento pelo site (Pix e cartão). Visual igual ao da Prévia_Mercado_Pago.html (estilo-16-pagamento.css).
+   Com o Mercado Pago desligado nada disto aparece: a tela de pagamento fica como era.
+   =================================================================================================== */
+let cdMpConfig_ = null;
+let cdMpReservaAtiva_ = '';
+let cdMpUltimaReserva_ = '';
+let cdMpUltimoMetodo_ = '';
+let cdMpTimer_ = null;          // próxima consulta do status
+let cdMpCron_ = null;           // relógio de 15:00 do Pix
+let cdMpPollId_ = 0;            // cada consulta confere se ainda é a "vez" dela (fechar a janela invalida a consulta em andamento)
+let cdMpBrickController_ = null;
+let cdMpPagamentoEmAndamento_ = false;
+const cdMpR_ = v => formatarMoeda(Number(v) || 0);
+async function cdMpConfigPublica_(){
+  if(cdMpConfig_ && cdMpConfig_.ligado) return cdMpConfig_;
+  try { cdMpConfig_ = await sbRpcPublico_('api_mp_config_publica', { p:{} }); }
+  catch(e){ cdMpConfig_ = { ok:false, ligado:false }; }
+  return cdMpConfig_ || { ligado:false };
+}
+function cdMpTipoForma_(id){
+  if(!cdMpConfig_ || !cdMpConfig_.ligado) return '';
+  const fs = Array.isArray(cdMpConfig_.formas) ? cdMpConfig_.formas : [];
+  const f = fs.find(x=>String(x.id)===String(id)); return f ? String(f.tipo||'') : '';
+}
+function cdMpAtivo_(){ return !!(cdMpConfig_ && cdMpConfig_.ligado && cdDados && (cdDados.formasPagamento||[]).some(f=>cdMpTipoForma_(f.id))); }
+
+/* ---------- escolha da forma de pagamento (botões agrupados, como na prévia) ---------- */
+function cdFormaIcone_(f, online){
+  const n = String(f.nome||'').toLowerCase();
+  if(/pix/.test(n)) return '◈'; if(/dinheiro/.test(n)) return '$'; if(/alelo|vale|refei/.test(n)) return '▥';
+  if(/cart|déb|deb|créd|cred|maquin/.test(n)) return online ? '▭' : '▤'; return '●';
+}
+function cdRenderFormas_(){
+  const box = document.getElementById('cdFormasBox'), sel = document.getElementById('cdFormaPagamento'); if(!box || !sel) return;
+  const usar = !(typeof mesaQr !== 'undefined' && mesaQr) && cdMpAtivo_();
+  sel.classList.toggle('mp-oculto', !!usar);
+  box.style.display = usar ? '' : 'none';
+  if(!usar){ box.innerHTML = ''; return; }
+  const fs = cdDados.formasPagamento || [], atual = sel.value;
+  const online = fs.filter(f=>cdMpTipoForma_(f.id)), entrega = fs.filter(f=>!cdMpTipoForma_(f.id));
+  const btn = (f, on)=>`<button type="button" class="mp-forma" data-id="${escH(f.id)}" aria-pressed="${String(f.id)===String(atual)}" onclick="cdEscolherForma_(this.dataset.id)"><span class="mp-ico" aria-hidden="true">${cdFormaIcone_(f,on)}</span><span class="mp-txt">${escH(f.nome)}<small>${on ? (cdMpTipoForma_(f.id)==='pix' ? 'Pague agora pelo site' : 'Digite o cartão aqui no site') : 'Pague ao receber'}</small></span><span class="mp-tag${on?'':' off'}">${on?'Online':'Na entrega'}</span></button>`;
+  box.innerHTML = '<p class="mp-grupo">Pagar agora, pelo site</p>' + online.map(f=>btn(f,true)).join('')
+    + (entrega.length ? '<p class="mp-grupo">Pagar na entrega</p>' + entrega.map(f=>btn(f,false)).join('') : '');
+}
+function cdEscolherForma_(id){
+  const sel = document.getElementById('cdFormaPagamento'); if(!sel) return;
+  sel.value = id; onMudarFormaPagamentoCd(); cdRenderFormas_();
+}
+/* Resumo do pedido (itens, entrega, total) logo acima das formas — só quando o pagamento pelo site existe */
+function cdRenderResumoPag_(){
+  const el = document.getElementById('cdResumoPag'); if(!el) return;
+  if(!cdMpAtivo_() || !cdCarrinho.length || (typeof mesaQr !== 'undefined' && mesaQr)){ el.style.display = 'none'; el.innerHTML = ''; return; }
+  const n = cdCarrinho.reduce((s,it)=>s+it.qtd,0), taxa = taxaEntregaCdAtual(), desc = Number(cdCupomAplicado && cdCupomAplicado.desconto || 0), acr = acrescimoCdAtual_();
+  const entrega = document.getElementById('cdTipoEntrega') && document.getElementById('cdTipoEntrega').value === 'Entrega';
+  const linhas = [`<div><span>${n} ${n===1?'item':'itens'}</span><span>${cdMpR_(subtotalCarrinhoCd())}</span></div>`];
+  if(entrega) linhas.push(`<div><span>Entrega</span><span>${taxa>0 ? cdMpR_(taxa) : 'Grátis'}</span></div>`);
+  if(desc>0) linhas.push(`<div><span>Cupom</span><span>− ${cdMpR_(desc)}</span></div>`);
+  if(acr>0) linhas.push(`<div><span>Acréscimo da forma</span><span>${cdMpR_(acr)}</span></div>`);
+  linhas.push(`<div class="mp-tot"><span>Total</span><span>${cdMpR_(Math.max(0.01,totalCarrinhoCd()))}</span></div>`);
+  const precisaLogin = cdMpTipoForma_(cdFormaAtualId_()) && !(window.contaSessaoAtiva_ && window.contaSessaoAtiva_());
+  el.innerHTML = '<div class="mp-resumo mp-num">' + linhas.join('') + '</div>'
+    + (precisaLogin ? '<p class="mp-aviso">Para pagar pelo site, entre com a sua conta. Na entrega não precisa.</p>' : '');
+  el.style.display = '';
+}
+function cdRotuloEnviar_(){
+  if((typeof mesaQr !== 'undefined' && mesaQr) || !cdMpAtivo_()) return 'Enviar pedido';
+  const t = cdMpTipoForma_(cdFormaAtualId_()), tot = cdMpR_(Math.max(0.01, totalCarrinhoCd()));
+  return t==='pix' ? 'Pagar com Pix · ' + tot : t==='credito' ? 'Pagar com cartão · ' + tot : 'Enviar pedido (pagar na entrega)';
+}
+function cdAtualizarBotaoEnviar_(){ const b = document.getElementById('cdEnviarPedidoBtn'); if(b && !b.disabled) b.textContent = cdRotuloEnviar_(); }
+
+/* ---------- janela do pagamento ---------- */
+function cdMpParar_(){
+  cdMpPollId_++;
+  if(cdMpTimer_){ clearTimeout(cdMpTimer_); cdMpTimer_ = null; }
+  if(cdMpCron_){ clearInterval(cdMpCron_); cdMpCron_ = null; }
+}
+function cdMpMostrarModal_(html, aoFechar){
+  let m = document.getElementById('cdMpPagamentoModal');
+  if(!m){ m = document.createElement('div'); m.id = 'cdMpPagamentoModal'; m.className = 'modal-overlay mp-overlay'; m.style.zIndex = '100100'; m.setAttribute('role','dialog'); m.setAttribute('aria-modal','true'); document.body.appendChild(m); }
+  m.innerHTML = '<div class="modal-box mp-box"><button type="button" class="mp-fechar" aria-label="Fechar" onclick="' + (aoFechar || 'cdMpFecharPagamento_(true)') + '">✕</button><section class="mp-tela" id="cdMpPagamentoConteudo">' + html + '</section></div>';
+  m.classList.add('open');
+}
+function cdMpMostrarConteudo_(html, aoFechar){ cdMpMostrarModal_(html, aoFechar); }
+function cdMpFecharPagamento_(cancelar){
+  const m = document.getElementById('cdMpPagamentoModal'); if(m) m.classList.remove('open');
+  cdMpParar_();
+  if(cdMpBrickController_){ try{ cdMpBrickController_.unmount(); }catch(e){} cdMpBrickController_ = null; }
+  if(cancelar && cdMpReservaAtiva_ && !cdMpPagamentoEmAndamento_) cdMpCancelarReserva_(cdMpReservaAtiva_);
+}
+/* fecha tudo depois de um pedido já registrado (aprovado ou em conferência): o carrinho é limpo ao fechar o carrinho */
+function cdMpFinalizar_(){ cdMpFecharPagamento_(false); fecharCarrinhoPublico(); }
+async function cdMpRpcCliente_(fn, payload){
+  const tok = window.contaTokenOuNull_ ? await window.contaTokenOuNull_() : null;
+  if(!tok) throw new Error('Entre na sua conta para pagar pelo site.');
+  const r = await sbJson_(SUPABASE_URL_+'/rest/v1/rpc/'+fn,{method:'POST',headers:{'apikey':SUPABASE_CHAVE_,'Authorization':'Bearer '+tok,'Content-Type':'application/json'},body:JSON.stringify({p:payload||{}})},30000);
+  const j = await r.json().catch(()=>null);
+  if(!r.ok) throw new Error((j&&j.message)||'Não foi possível iniciar o pagamento.');
+  return j||{};
+}
+async function cdMpCancelarReserva_(id){
+  try{ await cdMpRpcCliente_('api_mp_cancelar_reserva',{reservaId:id}); }catch(e){}
+  if(cdMpReservaAtiva_===id) cdMpReservaAtiva_='';
+}
+function cdMpPayloadPedido_(nome,telefone,tipoEntrega,dadosEntrega,trocoParaObs){
+  const itens=cdCarrinho.map(it=>({produtoId:it.tipo==='produto'?it.id:undefined,comboId:it.tipo==='combo'?it.id:undefined,quantidade:it.qtd,adicionaisIds:it.adicionais.map(a=>a.id),observacao:it.obs||''}));
+  const brindes=cdBrindes_().map(b=>({tipo:b.tipo,id:b.id,produtoId:b.produtoId}));
+  return {requisicaoId:reqIdPersist_('mp_pedido_cardapio',{itens,telefone,forma:cdFormaAtualId_(),tipoEntrega}),itens,clienteNome:nome,clienteTelefone:telefone,tipoEntrega,dadosEntrega,formaPagamentoId:cdFormaAtualId_(),observacaoTroco:trocoParaObs||'',codigoCupom:cdCupomAplicado?cdCupomAplicado.codigo:'',beneficios:brindes,observacoes:(document.getElementById('cdObservacoes')||{}).value.trim()};
+}
+
+/* ---------- telas (iguais às da prévia) ---------- */
+const CD_MP_SVG_OK_ = '<svg viewBox="0 0 24 24" fill="none" stroke="#6dbb2e" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+const CD_MP_SVG_RELOGIO_ = '<svg viewBox="0 0 24 24" fill="none" stroke="#e0b53a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>';
+function cdMpTelaPix_(pag, expiraEm){
+  const b64 = String(pag.pix.qrBase64 || ''), qr = /^[A-Za-z0-9+\/=]+$/.test(b64) && b64 ? '<div class="mp-qr"><img alt="QR Code do Pix" src="data:image/png;base64,' + b64 + '"></div>' : '';
+  cdMpMostrarModal_('<h2 class="mp-topo">Pague com Pix</h2><p class="mp-sub">Abra o app do seu banco, escolha Pix e leia o código ou cole o copia-e-cola.</p>' + qr
+    + '<div class="mp-timer" id="cdMpTimerBox">Este código vale por<b class="mp-num" id="cdMpCron">--:--</b></div>'
+    + '<div class="mp-copia" id="cdMpCopiaCola">' + escH(pag.pix.copiaCola) + '</div>'
+    + '<button type="button" class="mp-btn" id="cdMpCopiarBtn" onclick="cdMpCopiar_()">Copiar código Pix</button><div class="msg" id="cdMpMsg"></div>'
+    + '<div class="mp-status" role="status"><span class="mp-dot" id="cdMpDot"></span><span id="cdMpStatusTxt">Aguardando o pagamento…</span></div>'
+    + '<p class="mp-nota">Assim que você pagar, esta tela muda sozinha. Seu pedido só vai para a cozinha depois da confirmação.</p>'
+    + '<button type="button" class="mp-btn mp-sec" onclick="cdMpFecharPagamento_(true)">Cancelar pagamento</button>');
+}
+function cdMpCopiar_(){
+  const el = document.getElementById('cdMpCopiaCola'), b = document.getElementById('cdMpCopiarBtn'); if(!el) return;
+  copiarTextoComFallback(el.textContent, 'cdMpMsg');
+  if(b){ b.textContent = 'Código copiado'; setTimeout(()=>{ const x = document.getElementById('cdMpCopiarBtn'); if(x) x.textContent = 'Copiar código Pix'; }, 1600); }
+}
+function cdMpCronometro_(fim){
+  if(cdMpCron_){ clearInterval(cdMpCron_); cdMpCron_ = null; }
+  const cron = document.getElementById('cdMpCron'), caixa = document.getElementById('cdMpTimerBox');
+  if(!cron || !(fim > 0)){ if(caixa) caixa.style.display = 'none'; return; }
+  const pintar = ()=>{
+    const e = document.getElementById('cdMpCron'); if(!e){ clearInterval(cdMpCron_); cdMpCron_ = null; return; }
+    const s = Math.max(0, Math.ceil((fim - Date.now())/1000));
+    e.textContent = String(Math.floor(s/60)).padStart(2,'0') + ':' + String(s%60).padStart(2,'0');
+    if(s === 0){ clearInterval(cdMpCron_); cdMpCron_ = null; const t = document.getElementById('cdMpStatusTxt'); if(t) t.textContent = 'Este código venceu. Se você acabou de pagar, aguarde alguns segundos.'; const d = document.getElementById('cdMpDot'); if(d) d.style.display = 'none'; }
+  };
+  pintar(); cdMpCron_ = setInterval(pintar, 1000);
+}
+function cdMpTelaConferindo_(){
+  cdMpParar_(); cdMpReservaAtiva_ = ''; cdMpPagamentoEmAndamento_ = false; cdPedidoConcluido = true;
+  cdMpMostrarModal_('<div class="mp-ok mp-relogio">' + CD_MP_SVG_RELOGIO_ + '</div><h2 class="mp-topo mp-centro">Pagamento recebido</h2><p class="mp-sub mp-centro">O restaurante está conferindo o seu pedido (por exemplo, o estoque ou o horário). Você não precisa pagar de novo. Se demorar, fale com o restaurante pelo WhatsApp.</p><button type="button" class="mp-btn" onclick="cdMpFinalizar_()">Fechar</button>', 'cdMpFinalizar_()');
+}
+function cdMpTelaFalha_(texto){
+  cdMpParar_(); cdMpPagamentoEmAndamento_ = false;
+  cdMpMostrarModal_('<h2 class="mp-topo">Pagamento não concluído</h2><p class="mp-sub">' + escH(texto) + '</p><button type="button" class="mp-btn" onclick="cdMpFecharPagamento_(true)">Escolher outra forma de pagamento</button>');
+}
+function cdMpTelaAguardando_(desafioUrl){
+  cdMpMostrarModal_('<h2 class="mp-topo">Confirmando o pagamento</h2>'
+    + (desafioUrl ? '<p class="mp-sub">O seu banco pede uma confirmação. Toque no botão, confirme no app ou site do banco e volte aqui.</p><a class="mp-btn" href="' + escH(desafioUrl) + '" target="_blank" rel="noopener">Confirmar com o meu banco</a>' : '<p class="mp-sub">Estamos confirmando o pagamento com o Mercado Pago. Não faça outro pagamento enquanto verificamos.</p>')
+    + '<div class="mp-status" role="status"><span class="mp-dot"></span><span id="cdMpStatusTxt">Aguardando a confirmação…</span></div>'
+    + '<button type="button" class="mp-btn mp-sec" onclick="cdMpFecharPagamento_(false)">Fechar (o pedido segue em Minha conta)</button>', 'cdMpFecharPagamento_(false)');
+}
+
+/* ---------- acompanhar o pagamento: pergunta à função mp-status (que também consulta o Mercado Pago) e, se ela falhar, ao banco ---------- */
+async function cdMpConsultar_(reservaId){
+  const tok = window.contaTokenOuNull_ ? await window.contaTokenOuNull_() : null;
+  if(!tok) throw new Error('sessão');
+  try{
+    const rr = await sbJson_(SUPABASE_URL_+'/functions/v1/mp-status',{method:'POST',headers:{'apikey':SUPABASE_CHAVE_,'Authorization':'Bearer '+tok,'Content-Type':'application/json'},body:JSON.stringify({reservaId})},20000);
+    const j = await rr.json().catch(()=>null);
+    if(rr.ok && j && j.ok && j.estado) return j;
+  }catch(e){}
+  return await cdMpRpcCliente_('api_mp_status_pagamento',{reservaId});
+}
+function cdMpAcompanhar_(reservaId, expiraEm){
+  const meu = ++cdMpPollId_; if(cdMpTimer_){ clearTimeout(cdMpTimer_); cdMpTimer_ = null; }
+  const fim = Date.parse(expiraEm || '') || 0;
+  const passo = async ()=>{
+    if(meu !== cdMpPollId_) return;
+    let r = null; try{ r = await cdMpConsultar_(reservaId); }catch(e){}
+    if(meu !== cdMpPollId_) return;      // a janela foi fechada enquanto esperávamos a resposta
+    if(r){
+      if(r.estado === 'aprovado'){ await cdMpAprovar_(r); return; }
+      if(r.estado === 'conferindo'){ cdMpTelaConferindo_(); return; }
+      if(r.estado === 'reembolso'){ cdMpTelaFalha_('Este pagamento foi devolvido. Escolha outra forma de pagamento.'); return; }
+      if(['expirado','cancelado'].includes(r.estado)){ cdMpTelaFalha_('O tempo para pagar terminou e o pedido foi cancelado. Se você chegou a pagar, o restaurante entra em contato. Escolha uma forma de pagamento para refazer o pedido.'); return; }
+      if(['recusado','erro'].includes(r.estado)){ cdMpTelaFalha_('O pagamento não foi concluído. Escolha outra forma de pagamento.'); return; }
+    }
+    if(fim && Date.now() > fim + 30000){ cdMpTelaFalha_('O prazo do pagamento terminou. Escolha uma forma de pagamento para refazer o pedido.'); return; }
+    cdMpTimer_ = setTimeout(passo, 4000);
+  };
+  cdMpTimer_ = setTimeout(passo, 2500);
+}
+
+/* ---------- pagamento aprovado: tela da prévia + mensagem do WhatsApp ---------- */
+async function cdMpAprovar_(st){
+  cdMpParar_(); cdMpPagamentoEmAndamento_ = false;
+  const reservaId = cdMpUltimaReserva_; cdMpReservaAtiva_ = ''; cdPedidoConcluido = true;
+  if(!st.vendaId && reservaId){ try{ st = Object.assign({}, st, await cdMpConsultar_(reservaId)); }catch(e){} }
+  const metodo = st.metodo || cdMpUltimoMetodo_ || 'pix', vendaId = st.vendaId || '';
+  const numero = st.numero || (vendaId ? String(vendaId).slice(-8).toUpperCase() : '');
+  const total = Number(st.valorTotal || st.valor || totalCarrinhoCd() || 0);
+  const tipoEntrega = (document.getElementById('cdTipoEntrega')||{}).value, nome = (document.getElementById('cdNome')||{}).value || '';
+  let wa = null;
+  try{ wa = cdWaPedido_({ id: vendaId || reservaId, numero, valorTotal: total, pagamentoOnline: metodo, taxaEntrega: taxaEntregaCdAtual(), cupom: cdCupomAplicado ? cdCupomAplicado.codigo : '', valorDesconto: Number(cdCupomAplicado && cdCupomAplicado.desconto || 0), freteGratis: !!(cdCupomAplicado && cdCupomAplicado.freteGratis) }); }catch(e){}
+  if(vendaId){   // o mesmo que o pedido pago na entrega faz: link de acompanhamento, avisos e local da entrega
+    cdUltimaVendaId = vendaId;
+    try{ mostrarLinkAcompanhamento(vendaId, nome, numero); }catch(e){}
+    try{ if(window.cdAvisosPosPedido_) window.cdAvisosPosPedido_(String(vendaId).slice(-8)); }catch(e){}
+    try{ if(tipoEntrega==='Entrega' && window.cdEnviarLocalDoPedido_) window.cdEnviarLocalDoPedido_(vendaId); }catch(e){}
+  }
+  const tempo = tipoEntrega==='Entrega' ? (cdDados.config && cdDados.config.tempoEntrega) : (cdDados.config && cdDados.config.tempoRetirada);
+  const msgHtml = wa ? escH(wa.msg).replace(/(PAGO via[^\n]*\nNão cobrar na entrega)/, '<b>✅ $1</b>').replace(/\n/g, '<br>') : '';
+  cdMpMostrarModal_('<div class="mp-ok">' + CD_MP_SVG_OK_ + '</div><h2 class="mp-topo mp-centro">Pagamento aprovado</h2>'
+    + '<p class="mp-sub mp-centro">' + (numero ? 'Pedido #' + escH(numero) + ' registrado. ' : 'Pedido registrado. ') + 'Agora é só enviar para o WhatsApp do restaurante.</p>'
+    + '<div class="mp-resumo mp-num"><div><span>Forma</span><span>' + (metodo==='pix' ? 'Pix' : 'Cartão de crédito') + ' · Mercado Pago</span></div><div><span>Pago</span><span>' + cdMpR_(total) + '</span></div>' + (tempo ? '<div><span>Previsão</span><span>' + escH(tempo) + '</span></div>' : '') + '</div>'
+    + (wa ? '<p class="mp-grupo">Mensagem que vai para o WhatsApp</p><div class="mp-zap">' + msgHtml + '</div><a class="mp-btn mp-zapbtn" href="' + escH(wa.url) + '" target="_blank" rel="noopener">Enviar pedido no WhatsApp</a>' : '')
+    + '<p class="mp-rod">Você pode acompanhar o pedido em "Acompanhe seu pedido".</p><button type="button" class="mp-btn mp-sec" onclick="cdMpFinalizar_()">Fechar</button>', 'cdMpFinalizar_()');
+}
+
+/* ---------- começar o pagamento (Pix ou cartão) ---------- */
+async function cdMpIniciarPagamento_(dados, tipoOnline){
+  if(!window.contaSessaoAtiva_ || !window.contaSessaoAtiva_()){
+    showMsg('cdCheckoutMsg','Para pagar pelo site, entre ou crie sua conta. O pagamento na entrega continua disponível.','warn');
+    if(window.abrirContaEntrar) window.abrirContaEntrar(); else if(window.contaBotao_) window.contaBotao_();
+    return;
+  }
+  if(modoContingenciaAtivo) return showMsg('cdCheckoutMsg','Pagamento online indisponível durante a instabilidade. Escolha pagar na entrega.','warn');
+  const btn = document.getElementById('cdEnviarPedidoBtn'); btn.disabled = true; btn.textContent = 'Preparando pagamento…';
+  try{
+    const cfg = await cdMpConfigPublica_();
+    if(!cfg || !cfg.ligado) throw new Error('O pagamento pelo site está indisponível agora. Escolha pagar na entrega.');
+    if(tipoOnline==='credito' && !cfg.publicKey) throw new Error('O pagamento por cartão está sem chave pública configurada. Escolha pagar na entrega.');
+    const reserva = await cdMpRpcCliente_('api_mp_reservar', dados);
+    if(!reserva || !reserva.ok || !reserva.reservaId) throw new Error((reserva&&reserva.message)||'Não foi possível reservar o pedido.');
+    cdMpReservaAtiva_ = reserva.reservaId; cdMpUltimaReserva_ = reserva.reservaId; cdMpUltimoMetodo_ = tipoOnline==='credito' ? 'credito' : 'pix';
+    if(tipoOnline==='credito'){ await cdMpAbrirCartao_(reserva, cfg); return; }
+    const tok = await window.contaTokenOuNull_();
+    const rr = await sbJson_(SUPABASE_URL_+'/functions/v1/mp-criar',{method:'POST',headers:{'apikey':SUPABASE_CHAVE_,'Authorization':'Bearer '+tok,'Content-Type':'application/json'},body:JSON.stringify({reservaId:reserva.reservaId})},45000);
+    const pag = await rr.json().catch(()=>null);
+    if(!rr.ok || !pag || !pag.ok) throw new Error((pag&&pag.message)||'Não foi possível criar o Pix. Você pode pagar na entrega.');
+    if(pag.estado==='aprovado'){ await cdMpAprovar_({ estado:'aprovado', metodo:'pix', vendaId:pag.vendaId, numero:pag.numero, valorTotal:pag.valor }); return; }
+    if(pag.estado==='conferindo'){ cdMpTelaConferindo_(); return; }
+    if(pag.estado!=='aguardando' || !pag.pix || !pag.pix.copiaCola) throw new Error(pag.mensagem||'Não foi possível gerar o Pix. Escolha pagar na entrega.');
+    const expira = pag.reservaExpiraEm || reserva.expiraEm || pag.pix.expiraEm || '';
+    cdMpTelaPix_(pag, expira);
+    cdMpCronometro_(Date.parse(expira || '') || 0);
+    cdMpAcompanhar_(reserva.reservaId, expira);
+  }catch(e){
+    showMsg('cdCheckoutMsg', e.message||'Não foi possível iniciar o pagamento. Escolha pagar na entrega.','warn');
+    if(cdMpReservaAtiva_) await cdMpCancelarReserva_(cdMpReservaAtiva_);
+  }finally{ btn.disabled = false; btn.textContent = cdRotuloEnviar_(); }
+}
+
+/* ---------- cartão de crédito: formulário seguro do Mercado Pago (Brick) com as cores do cardápio ---------- */
+async function cdMpCarregarSdk_(){
+  if(window.MercadoPago) return;
+  let tag = document.querySelector('script[data-mp-sdk="1"]');
+  if(!tag){ tag = document.createElement('script'); tag.src = 'https://sdk.mercadopago.com/js/v2'; tag.async = true; tag.dataset.mpSdk = '1'; document.head.appendChild(tag); }
+  await new Promise((resolve,reject)=>{
+    if(window.MercadoPago) return resolve();
+    const timer = setTimeout(()=>reject(new Error('Não foi possível carregar o formulário seguro do cartão. Confira sua conexão ou pague na entrega.')),15000);
+    tag.addEventListener('load',()=>{ clearTimeout(timer); window.MercadoPago ? resolve() : reject(new Error('O formulário seguro do cartão não ficou disponível.')); },{once:true});
+    tag.addEventListener('error',()=>{ clearTimeout(timer); reject(new Error('Não foi possível carregar o formulário seguro do cartão. Pague na entrega ou tente novamente.')); },{once:true});
+  });
+}
+function cdMpCpfOk_(v){
+  const c = String(v||'').replace(/\D/g,''); if(c.length!==11 || /^(\d)\1{10}$/.test(c)) return false;
+  for(let t=9;t<11;t++){ let s=0; for(let i=0;i<t;i++) s += Number(c[i])*(t+1-i); if(((s*10)%11)%10 !== Number(c[t])) return false; }
+  return true;
+}
+function cdMpMascaraCpf_(el){ const d = el.value.replace(/\D/g,'').slice(0,11); el.value = d.replace(/^(\d{3})(\d)/,'$1.$2').replace(/^(\d{3})\.(\d{3})(\d)/,'$1.$2.$3').replace(/\.(\d{3})(\d)/,'.$1-$2'); }
+function cdMpCpfDoCartao_(fd){
+  const meu = ((document.getElementById('cdMpCpf')||{}).value||'').replace(/\D/g,'');
+  const doBrick = String(fd && fd.payer && fd.payer.identification && fd.payer.identification.number || '').replace(/\D/g,'');
+  return cdMpCpfOk_(meu) ? meu : (cdMpCpfOk_(doBrick) ? doBrick : meu);
+}
+async function cdMpAbrirCartao_(reserva, cfg){
+  await cdMpCarregarSdk_();
+  const valor = Number(reserva.valorTotal ?? reserva.valor ?? 0);
+  if(!(valor>0)) throw new Error('Não foi possível confirmar o valor do pedido. Atualize o cardápio e tente novamente.');
+  cdMpMostrarModal_('<h2 class="mp-topo">Cartão de crédito</h2><div class="mp-resumo mp-num"><div class="mp-tot mp-so"><span>Total</span><span>' + cdMpR_(valor) + '</span></div></div>'
+    + '<label class="mp-c" id="cdMpCpfBox" for="cdMpCpf">CPF do titular<input class="mp-inp" id="cdMpCpf" type="text" inputmode="numeric" autocomplete="off" maxlength="14" placeholder="000.000.000-00" oninput="cdMpMascaraCpf_(this)"></label>'
+    + '<div id="cdMpCardBrick" class="mp-brick"></div>'
+    + '<p class="mp-seguro">🔒 Os dados do cartão são digitados numa tela segura do Mercado Pago. O restaurante nunca vê o número.</p>'
+    + '<p class="mp-status" id="cdMpCardStatus" role="status">Carregando formulário seguro…</p>'
+    + '<button type="button" class="mp-btn mp-sec" onclick="cdMpFecharPagamento_(true)">Cancelar pagamento</button>');
+  const mp = new window.MercadoPago(cfg.publicKey, { locale:'pt-BR' });
+  cdMpBrickController_ = await mp.bricks().create('cardPayment', 'cdMpCardBrick', {
+    initialization: { amount: Math.round(valor*100)/100 },
+    customization: {
+      paymentMethods: { creditCard:'all', debitCard:'none', prepaidCard:'none', maxInstallments:1 },
+      visual: { hideFormTitle:true,
+        style: { theme:'dark', customVariables:{ baseColor:'#d20807', baseColorFirstVariant:'#a50606', baseColorSecondVariant:'#d20807', buttonTextColor:'#ffffff', formBackgroundColor:'#17100a', inputBackgroundColor:'#ffffff', textPrimaryColor:'#fff3d6', textSecondaryColor:'#bfae8f', outlinePrimaryColor:'#e0b53a', outlineSecondaryColor:'#3d2a12', errorColor:'#ff8a80', successColor:'#6dbb2e', borderRadiusMedium:'8px', borderRadiusLarge:'10px' } },
+        texts: { formSubmit:'Pagar ' + cdMpR_(valor), cardNumber:{label:'Número do cartão'}, cardholderName:{label:'Nome como está no cartão'}, expirationDate:{label:'Validade'}, securityCode:{label:'Código'}, cardholderIdentification:{label:'CPF do titular'} } }
+    },
+    callbacks: {
+      onReady: ()=>{
+        const e = document.getElementById('cdMpCardStatus'); if(e) e.textContent = 'Cartão de crédito · pagamento à vista (1x)';
+        setTimeout(()=>{ const b = document.getElementById('cdMpCardBrick'), c = document.getElementById('cdMpCpfBox');   // se o formulário do Mercado Pago já pede o CPF, não pedimos duas vezes
+          if(b && c && /CPF|documento/i.test(b.innerText||'')) c.style.display = 'none'; }, 800);
+      },
+      onSubmit: (fd)=>cdMpEnviarCartao_(reserva, fd),
+      onError: ()=>{ const e = document.getElementById('cdMpCardStatus'); if(e) e.textContent = 'O formulário do cartão encontrou um problema. Confira os dados ou tente novamente.'; }
+    }
+  });
+}
+async function cdMpEnviarCartao_(reserva, fd){
+  const dizer = t=>{ const e = document.getElementById('cdMpCardStatus'); if(e) e.textContent = t; };
+  const cpf = cdMpCpfDoCartao_(fd);
+  if(!cdMpCpfOk_(cpf)){ dizer('Informe um CPF válido para o titular do cartão.'); throw new Error('CPF inválido'); }
+  const tok = await window.contaTokenOuNull_();
+  if(!tok){ dizer('Sua sessão expirou. Entre novamente para continuar.'); throw new Error('Sessão expirada'); }
+  dizer('Enviando pagamento com segurança…'); cdMpPagamentoEmAndamento_ = true;
+  try{
+    const rr = await sbJson_(SUPABASE_URL_+'/functions/v1/mp-criar',{method:'POST',headers:{'apikey':SUPABASE_CHAVE_,'Authorization':'Bearer '+tok,'Content-Type':'application/json'},body:JSON.stringify({reservaId:reserva.reservaId,token:fd.token,paymentMethodId:fd.payment_method_id||fd.paymentMethodId,paymentTypeId:'credit_card',payerCpf:cpf})},45000);
+    const pag = await rr.json().catch(()=>null);
+    if(!rr.ok || !pag || !pag.ok) throw new Error((pag&&pag.message)||'Não foi possível processar o cartão. Tente novamente ou pague na entrega.');
+    if(pag.estado==='aprovado'){ await cdMpAprovar_({ estado:'aprovado', metodo:'credito', vendaId:pag.vendaId, numero:pag.numero, valorTotal:pag.valor }); return pag; }
+    if(pag.estado==='conferindo'){ cdMpTelaConferindo_(); return pag; }
+    if(pag.estado==='aguardando'){ cdMpTelaAguardando_(pag.desafio && pag.desafio.url); cdMpAcompanhar_(reserva.reservaId, reserva.expiraEm || ''); return pag; }
+    if(pag.estado==='erro'){ cdMpReservaAtiva_ = ''; cdMpTelaFalha_(pag.mensagem || 'O pagamento não pôde ser concluído. Escolha pagar na entrega.'); return pag; }   // o banco já soltou a reserva
+    throw new Error(pag.mensagem || 'O cartão não foi aprovado. Tente outro cartão ou pague na entrega.');   // recusado: a reserva continua para outra tentativa
+  }catch(e){ cdMpPagamentoEmAndamento_ = false; dizer(e.message || 'Falha no pagamento. Confira os dados e tente novamente.'); throw e; }
+}
 
 /* Forma de pagamento escolhida no carrinho (ou a primeira do cardápio). */
 function cdFormaAtualId_(){
@@ -476,6 +796,7 @@ function cdAtualizarTotal_(){
   const el = document.getElementById('cdCarrinhoTotal');
   if(el) el.textContent = cdFormatarPreco(cdCarrinho.length ? Math.max(0.01, totalCarrinhoCd()) : (cdBrindes_().length ? Math.max(0, totalCarrinhoCd()) : 0));
   cdAtualizarAvisoForma_();
+  cdRenderResumoPag_(); cdAtualizarBotaoEnviar_();
 }
 /* Carrinho guardado só neste aparelho (não vai para o servidor). Vale 24 horas. */
 var CD_CARRINHO_KEY_ = 'tb_carrinho_v1', _cdCarrinhoOferecido_ = false;
@@ -563,7 +884,7 @@ function cdLimparAposPedido_(){
   const cr = document.getElementById('cdCupomResumo'); if(cr) cr.textContent = '';
   const ck = document.getElementById('cdCheckoutMsg'); if(ck){ ck.textContent = ''; ck.className = 'msg'; }
   const cf = document.getElementById('cdConfirmacaoPedido'); if(cf) cf.innerHTML = '';
-  const btn = document.getElementById('cdEnviarPedidoBtn'); if(btn){ btn.disabled = false; btn.textContent = 'Enviar pedido'; }
+  const btn = document.getElementById('cdEnviarPedidoBtn'); if(btn){ btn.disabled = false; btn.textContent = cdRotuloEnviar_(); }
   renderCdCarrinho(); atualizarFabCarrinho();
 }
 function fecharCarrinhoPublico(){
@@ -687,12 +1008,19 @@ async function finalizarPedidoPublico(){
   }
   const trocoParaObs = (ehDinheiro && precisaTrocoBox && precisaTrocoBox.checked) ? ('Troco para R$ '+Number(document.getElementById('cdTrocoPara').value).toFixed(2)) : '';
 
+  await cdMpConfigPublica_();
+  const tipoOnline = cdMpTipoForma_(formaPagamentoId);
+  if(tipoOnline==='pix' || tipoOnline==='credito'){
+    const dadosMp=cdMpPayloadPedido_(nome,telefone,tipoEntrega,dadosEntrega,trocoParaObs);
+    return cdMpIniciarPagamento_(dadosMp,tipoOnline);
+  }
+
   const btn = document.getElementById('cdEnviarPedidoBtn');
   btn.disabled = true; btn.textContent = 'Enviando...';
 
   const _preventivoPublico = !brindes.length && !modoContingenciaAtivo && servidorLento_() && !cdCupomAplicado && !!CONTINGENCIA_CHAVE_PUBLICA; // BLOCO 1.2 (com cupom não: a contingência não aplica desconto)
   let _contFalhou = false;
-  if(brindes.length && modoContingenciaAtivo){ btn.disabled=false; btn.textContent='Enviar pedido'; return showMsg('cdCheckoutMsg','Com brinde da sua conta o pedido precisa do sistema principal, que está instável agora. Tente de novo em instantes ou tire o brinde do carrinho.','warn'); }
+  if(brindes.length && modoContingenciaAtivo){ btn.disabled=false; btn.textContent = cdRotuloEnviar_(); return showMsg('cdCheckoutMsg','Com brinde da sua conta o pedido precisa do sistema principal, que está instável agora. Tente de novo em instantes ou tire o brinde do carrinho.','warn'); }
   if(modoContingenciaAtivo || _preventivoPublico){
     try{
       const idFila = (_idFilaContingencia = _idFilaContingencia || ('cd-' + Date.now() + '-' + Math.random().toString(36).slice(2,8))); // mesmo id em toda nova tentativa: a fila da contingência não duplica
@@ -719,11 +1047,11 @@ async function finalizarPedidoPublico(){
         cdUltimaVendaId = null; mostrarBotaoWhatsappContingencia({id:idFila,numero:idFila.slice(-6).toUpperCase(),valorTotal:Math.round((total+acrescimoCdAtual_())*100)/100}); _idFilaContingencia = null;
         cdPedidoConcluido = true;
         btn.disabled=true; btn.textContent='Pedido guardado';
-      } else { _contFalhou = true; showMsg('cdCheckoutMsg', 'Não foi possível registrar o pedido agora. Tente novamente em instantes.', 'warn'); btn.disabled=false; btn.textContent='Enviar pedido'; }
+      } else { _contFalhou = true; showMsg('cdCheckoutMsg', 'Não foi possível registrar o pedido agora. Tente novamente em instantes.', 'warn'); btn.disabled=false; btn.textContent = cdRotuloEnviar_(); }
     } catch(e){
       if(!(e && e.timeout)) _contFalhou = true; // erro de rede (não chegou a guardar): no modo preventivo tenta a planilha; timeout não, para não duplicar
       showMsg('cdCheckoutMsg', (e && e.timeout) ? 'Não conseguimos confirmar o envio a tempo. Toque em Enviar pedido de novo — o pedido não será duplicado.' : 'Não foi possível enviar o pedido. Tente novamente.','warn');
-      btn.disabled=false; btn.textContent='Enviar pedido';
+      btn.disabled=false; btn.textContent = cdRotuloEnviar_();
     }
     if(!(_preventivoPublico && _contFalhou)) return;
     btn.disabled=true; btn.textContent='Enviando...'; // contingência recusou/ficou fora: segue para a planilha principal
@@ -750,8 +1078,8 @@ async function finalizarPedidoPublico(){
       if(tipoEntrega==='Entrega' && window.cdEnviarLocalDoPedido_) window.cdEnviarLocalDoPedido_(r.id);
       cdPedidoConcluido = true;
       btn.disabled=true; btn.textContent='Pedido enviado';
-    } else { showMsg('cdCheckoutMsg', r.message, 'warn'); btn.disabled=false; btn.textContent='Enviar pedido'; }
-  } catch(e){ showMsg('cdCheckoutMsg','Não foi possível enviar o pedido. Tente novamente.','warn'); btn.disabled=false; btn.textContent='Enviar pedido'; }
+    } else { showMsg('cdCheckoutMsg', r.message, 'warn'); btn.disabled=false; btn.textContent = cdRotuloEnviar_(); }
+  } catch(e){ showMsg('cdCheckoutMsg','Não foi possível enviar o pedido. Tente novamente.','warn'); btn.disabled=false; btn.textContent = cdRotuloEnviar_(); }
 }
 
 
@@ -767,8 +1095,7 @@ function cdEnderecoTexto_(){
   const v = id => ((document.getElementById(id)||{}).value||'').trim();
   return [v('cdEndereco').replace(/[,\s]+$/,'') + (v('cdNumero') ? ', nº ' + v('cdNumero') : ''), v('cdCidade'), v('cdComplemento'), v('cdReferencia') ? 'Ref.: ' + v('cdReferencia') : ''].filter(Boolean).join(' — ');
 }
-function mostrarBotaoWhatsappPedido(r){
-  const box=document.getElementById('cdCheckoutMsg'); if(!box||!r||!r.id)return;
+function cdWaPedido_(r){
   const numero=r.numero||String(r.id).slice(-8).toUpperCase(); const itens=cdCarrinho.map(it=>`${it.qtd}x ${it.nome}${it.adicionais.length?' + '+it.adicionais.map(a=>a.nome).join(', '):''}`).join('\n');
   const nome=document.getElementById('cdNome').value.trim(); const tel=document.getElementById('cdTelefone').value.trim(); const tipo=document.getElementById('cdTipoEntrega').value; const total=Number(r.valorTotal||0);
   const endereco=tipo==='Entrega' ? cdEnderecoTexto_() : 'Retirada no balcão';
@@ -776,10 +1103,16 @@ function mostrarBotaoWhatsappPedido(r){
   const forma=(document.getElementById('cdFormaPagamento')||{}).selectedOptions ? ((document.getElementById('cdFormaPagamento').selectedOptions[0]||{}).textContent||'') : '';
   const cup=r.cupom?`\nCupom: ${r.cupom} (-R$ ${Number(r.valorDesconto||0).toFixed(2).replace('.',',')})`:'';
   const frete=r.freteGratis?'\nFrete: GRÁTIS':'';
-  const taxa=(tipo==='Entrega' && !r.freteGratis)?`\nTaxa de entrega: R$ ${(Number(total)-Number(r.valorOriginal||0)+Number(r.valorDesconto||0)).toFixed(2).replace('.',',')}`:'';
-  const msg=`🍔 TEXAS BURGER\nPedido #${numero}\nCliente: ${nome}\nWhatsApp: ${tel}\nPagamento: ${forma||'Não informado'}\n\n${itens}\n\nModalidade: ${tipo}\n${endereco}${obs?'\nObservações: '+obs:''}\nTotal: R$ ${total.toFixed(2).replace('.',',')}${taxa}${cup}${frete}`;
-  const url='https://wa.me/5517988323473?text='+encodeURIComponent(msg);
-  cdMostrarConfirmacaoPedido_(url, numero, false, r.id);
+  const taxaVal=(r.taxaEntrega!=null)?Number(r.taxaEntrega):(Number(total)-Number(r.valorOriginal||0)+Number(r.valorDesconto||0));   // pedido pago pelo site manda a taxa pronta
+  const taxa=(tipo==='Entrega' && !r.freteGratis && taxaVal>0)?`\nTaxa de entrega: R$ ${taxaVal.toFixed(2).replace('.',',')}`:'';
+  const linhaPagamento=r.pagamentoOnline ? `PAGO via ${String(r.pagamentoOnline)==='pix'?'Pix':'Cartão'} (Mercado Pago).\nNão cobrar na entrega` : `Pagamento: ${forma||'Não informado'}`;
+  const msg=`🍔 TEXAS BURGER\nPedido #${numero}\nCliente: ${nome}\nWhatsApp: ${tel}\n${linhaPagamento}\n\n${itens}\n\nModalidade: ${tipo}\n${endereco}${obs?'\nObservações: '+obs:''}\nTotal: R$ ${total.toFixed(2).replace('.',',')}${taxa}${cup}${frete}`;
+  return { msg, url:'https://wa.me/5517988323473?text='+encodeURIComponent(msg), numero };
+}
+function mostrarBotaoWhatsappPedido(r){
+  const box=document.getElementById('cdCheckoutMsg'); if(!box||!r||!r.id)return;
+  const w=cdWaPedido_(r);
+  cdMostrarConfirmacaoPedido_(w.url, w.numero, false, r.id);
 }
 
 

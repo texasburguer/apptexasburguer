@@ -1,0 +1,81 @@
+@charset "utf-8";
+/* Pagamento pelo site (Mercado Pago): telas iguais às da Prévia_Mercado_Pago.html. Usa as cores do cardápio (:root do estilo-01-base.css). */
+.mp-num{font-variant-numeric:tabular-nums}
+.mp-centro{text-align:center}
+
+/* ---- escolha da forma (dentro do carrinho) ---- */
+#cdFormaPagamento.mp-oculto{display:none}
+.mp-grupo{font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:14px 0 6px}
+.mp-forma{display:flex;align-items:center;gap:10px;width:100%;margin:0 0 8px;padding:11px 12px;background:var(--panel-2);border:1.5px solid var(--line);border-radius:10px;color:var(--cream);font:500 15px/1.3 'Barlow',system-ui,sans-serif;text-align:left;cursor:pointer;min-height:48px}
+.mp-forma[aria-pressed="true"]{border-color:var(--gold);box-shadow:inset 0 0 0 1px var(--gold)}
+.mp-forma:focus-visible,.mp-btn:focus-visible,.mp-fechar:focus-visible{outline:2px solid var(--cream);outline-offset:2px}
+.mp-ico{font-size:20px;line-height:1;flex:0 0 24px;text-align:center}
+.mp-txt{flex:1 1 auto;min-width:0}
+.mp-txt small{display:block;color:var(--muted);font-weight:400;font-size:12px}
+.mp-tag{margin-left:auto;flex:0 0 auto;font-size:11px;font-weight:700;background:rgba(109,187,46,.16);color:var(--ok);border-radius:99px;padding:3px 8px;white-space:nowrap}
+.mp-tag.off{background:rgba(191,174,143,.14);color:var(--muted)}
+#cdResumoPag{margin-top:12px}
+.mp-aviso{background:rgba(224,181,58,.12);border:1px solid var(--gold-dim);border-radius:8px;padding:9px 11px;font-size:13px;margin:8px 0 0;color:var(--cream)}
+
+/* ---- janela do pagamento ---- */
+.mp-box{max-width:480px;width:calc(100% - 24px);max-height:92vh;overflow:auto;position:relative;padding:0;background:transparent;border:0;box-shadow:none}
+.mp-tela{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:18px 16px 16px;display:flex;flex-direction:column;gap:12px;color:var(--cream)}
+.mp-fechar{position:absolute;top:8px;right:10px;z-index:2;background:transparent;border:0;color:var(--muted);font-size:20px;line-height:1;min-width:40px;min-height:40px;cursor:pointer}
+.mp-topo{font:400 17px var(--font-display);color:var(--gold);margin:0;padding-right:34px}
+.mp-sub{color:var(--muted);font-size:13px;margin:0;line-height:1.45}
+.mp-resumo{background:var(--panel-2);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:4px;font-size:14px;color:var(--cream)}
+.mp-resumo>div{display:flex;justify-content:space-between;gap:10px}
+.mp-resumo .mp-tot{font-weight:700;color:var(--gold);border-top:1px solid var(--line);padding-top:6px;margin-top:2px;font-size:16px}
+.mp-resumo .mp-tot.mp-so{border:0;padding:0;margin:0}
+.mp-btn{display:block;box-sizing:border-box;width:100%;background:var(--red);color:#fff;border:0;border-radius:10px;padding:13px;font:700 16px 'Barlow',system-ui,sans-serif;text-align:center;text-decoration:none;cursor:pointer;min-height:48px}
+.mp-btn.mp-sec{background:transparent;border:1.5px solid var(--line);color:var(--cream);font-weight:600}
+.mp-btn.mp-zapbtn{background:#1fa855}
+.mp-qr{align-self:center;background:#fff;border-radius:12px;padding:10px;width:176px;height:176px}
+.mp-qr img{display:block;width:100%;height:100%;image-rendering:pixelated}
+.mp-timer{text-align:center;font-size:13px;color:var(--muted)}
+.mp-timer b{display:block;color:var(--gold);font:400 22px var(--font-display)}
+.mp-copia{background:var(--panel-2);border:1px dashed var(--gold-dim);border-radius:8px;padding:8px 10px;font:12px ui-monospace,Menlo,monospace;color:var(--muted);word-break:break-all;max-height:74px;overflow:hidden}
+.mp-status{display:flex;align-items:center;gap:8px;justify-content:center;font-size:13px;color:var(--muted);margin:0;text-align:center}
+.mp-dot{width:9px;height:9px;border-radius:50%;background:var(--gold);flex:0 0 auto;animation:mpPulsa 1.4s ease-in-out infinite}
+@keyframes mpPulsa{50%{opacity:.25}}
+@media (prefers-reduced-motion:reduce){.mp-dot{animation:none}}
+.mp-nota{font-size:12.5px;color:var(--muted);background:var(--panel-2);border-radius:8px;padding:9px 11px;margin:0}
+.mp-rod{font-size:12px;color:var(--muted);text-align:center;margin:0}
+.mp-seguro{font-size:12px;color:var(--muted);margin:0}
+label.mp-c{display:flex;flex-direction:column;gap:4px;font-size:12.5px;color:var(--muted)}
+.mp-inp{background:#fff;color:#222;border-radius:8px;padding:11px 12px;font:500 15px 'Barlow',system-ui,sans-serif;border:0;width:100%;box-sizing:border-box}
+.mp-brick{min-height:80px}
+.mp-ok{align-self:center;width:72px;height:72px;border-radius:50%;background:rgba(109,187,46,.18);display:grid;place-items:center}
+.mp-ok.mp-relogio{background:rgba(224,181,58,.16)}
+.mp-ok svg{width:38px;height:38px}
+.mp-zap{background:#173a26;border-radius:10px 10px 10px 2px;padding:10px 12px;font-size:13.5px;line-height:1.5;color:#e6f7ec;overflow-wrap:anywhere}
+.mp-zap b{color:#9ff0b8}
+
+/* ---- card do Mercado Pago no Admin (Contas e acessos) ---- */
+.mp-adm{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:12px;margin-top:10px;border-left:4px solid #888}
+.mp-adm.on{border-left-color:#2e9e5b}
+.mp-adm h3{font:400 17px var(--font-display);color:var(--gold);margin:0;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.mp-estado{font:700 11px 'Barlow',system-ui,sans-serif;border-radius:99px;padding:3px 9px;background:rgba(191,174,143,.16);color:var(--muted)}
+.mp-estado.on{background:rgba(109,187,46,.16);color:var(--ok)}
+.mp-lista{display:flex;flex-direction:column;gap:6px;font-size:13.5px;margin:0;padding:0;list-style:none}
+.mp-lista li{display:flex;gap:8px;align-items:flex-start}
+.mp-i{flex:0 0 18px;height:18px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:700;margin-top:1px}
+.mp-i.v{background:rgba(109,187,46,.2);color:var(--ok)}
+.mp-i.p{background:rgba(224,181,58,.18);color:var(--gold)}
+.mp-camp{display:flex;flex-direction:column;gap:3px;font-size:12.5px;color:var(--muted)}
+.mp-camp .v{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:9px 10px;color:var(--cream);font:13.5px ui-monospace,Menlo,monospace}
+.mp-modo{display:flex;gap:6px}
+.mp-modo button{flex:1;background:var(--panel-2);color:var(--muted);border:1px solid var(--line);border-radius:8px;padding:9px 8px;font:600 13px 'Barlow',system-ui,sans-serif;cursor:pointer;min-height:44px}
+.mp-modo button[aria-pressed="true"]{background:var(--gold);color:#1a1100;border-color:var(--gold)}
+.mp-sw{display:flex;align-items:center;gap:10px;font-size:14px;background:transparent;border:0;color:var(--cream);padding:4px 0;cursor:pointer;text-align:left;min-height:44px}
+.mp-sw i{width:42px;height:24px;border-radius:99px;background:#4a3a28;position:relative;flex:0 0 auto}
+.mp-sw i::after{content:"";position:absolute;left:3px;top:3px;width:18px;height:18px;border-radius:50%;background:#bfae8f;transition:left .15s}
+.mp-sw[aria-checked="true"] i{background:#2e7d32}
+.mp-sw[aria-checked="true"] i::after{left:21px;background:#fff}
+.mp-sw[disabled]{opacity:.5;cursor:not-allowed}
+.mp-sw small{color:var(--muted)}
+.mp-admbtn{background:transparent;border:1.5px solid var(--line);color:var(--cream);border-radius:10px;padding:11px;font:600 14px 'Barlow',system-ui,sans-serif;cursor:pointer;width:100%;min-height:44px}
+.mp-guia{font-size:13px;color:var(--cream);display:flex;flex-direction:column;gap:6px}
+.mp-guia[hidden]{display:none}
+.mp-lista label{font-size:13.5px;color:var(--cream);margin:0}
+.mp-adm .obs-line{font-size:13px}
