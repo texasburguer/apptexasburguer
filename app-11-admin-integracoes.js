@@ -204,12 +204,12 @@ function verSenhaConta_(id){
 
 /* ---------- CHAVES DAS IAs (Contas e acessos): ficam em ai_segredos, onde os assistentes já leem. Ver e trocar pedem senha de administrador. ---------- */
 const CHAVES_IA_INFO_ = {
-  gemini: { nome:'Gemini (Google)', link:'https://aistudio.google.com/apikey' },
+  gemini: { nome:'Gemini (Google) — chat / último recurso', link:'https://aistudio.google.com/apikey' },
   groq:   { nome:'Groq', link:'https://console.groq.com/keys' },
-  nvidia: { nome:'NVIDIA (reserva)', link:'https://build.nvidia.com/settings/api-keys', extra:true, dica:'IA de reserva: só entra quando o Gemini e a Groq falham. Precisa de conta gratuita no NVIDIA Developer Program.' },
-  cloudflare: { nome:'Cloudflare (reserva)', link:'https://dash.cloudflare.com/profile/api-tokens', extra:true, conta:true, dica:'IA de reserva: precisa de DOIS dados — o Account ID e um token com permissão "Workers AI".' },
-  gemini_fotos: { nome:'Gemini (leitura de fotos fiscais)', link:'https://aistudio.google.com/apikey', extra:true, fiscal:true, dica:'Chave dedicada para ler fotos/XML de notas fiscais. Não é usada no atendimento público.' },
-  groq_2: { nome:'Groq 2 (reserva de texto fiscal)', link:'https://console.groq.com/keys', extra:true, fiscal:true, dica:'Chave alternativa para o leitor fiscal quando o provedor anterior falhar.' }
+  nvidia: { nome:'NVIDIA — 3º recurso', link:'https://build.nvidia.com/settings/api-keys', extra:true, dica:'IA de reserva: só entra quando o Gemini e a Groq falham. Precisa de conta gratuita no NVIDIA Developer Program.' },
+  cloudflare: { nome:'Cloudflare — 4º recurso', link:'https://dash.cloudflare.com/profile/api-tokens', extra:true, conta:true, dica:'IA de reserva: precisa de DOIS dados — o Account ID e um token com permissão "Workers AI".' },
+  gemini_fotos: { nome:'Gemini 2 — dedicada para fotos fiscais', link:'https://aistudio.google.com/apikey', extra:true, fiscal:true, dica:'Chave dedicada para ler fotos/XML de notas fiscais. Não é usada no atendimento público.' },
+  groq_2: { nome:'Groq 2 — 2º recurso de texto', link:'https://console.groq.com/keys', extra:true, fiscal:true, dica:'Chave alternativa para o atendimento de texto. Não é usada para fotos; fotos usam exclusivamente a Gemini 2 dedicada.' }
 };
 let chavesIaLista_ = [], iaExtrasPublico_ = false;
 async function carregarChavesIa_(){

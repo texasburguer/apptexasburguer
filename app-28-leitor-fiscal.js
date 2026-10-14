@@ -17,14 +17,15 @@
     const anchor=$('iaAjudaCard') || $('tab-ia'); if(!anchor) return;
     const c=document.createElement('div'); c.className='card ia-card'; c.id='fiscalLeitorCard';
     c.innerHTML='<h2>🧾 Leitor Fiscal IA</h2><p class="sub">Envie uma foto da nota/cupom, um XML de NF-e ou cole o texto. A IA só prepara uma proposta; estoque, compra e financeiro só mudam após sua confirmação. Acesso restrito à equipe.</p>'+
-      '<div class="ia-linha"><label for="fiscalNotaArquivo">Foto ou XML da nota</label><input id="fiscalNotaArquivo" type="file" accept="image/*,.xml,.txt,text/plain,application/xml" /></div>'+
+      '<div class="ia-linha"><label>Foto da nota/cupom</label><button class="primary" type="button" id="fiscalFotoBtn">📷 Subir foto da nota</button><input id="fiscalNotaArquivo" type="file" accept="image/*" capture="environment" style="display:none" /></div>'+
+      '<div class="ia-linha"><label for="fiscalXmlArquivo">XML ou texto da nota</label><input id="fiscalXmlArquivo" type="file" accept=".xml,.txt,text/plain,application/xml" /></div>'+
       '<div class="ia-linha"><label for="fiscalNotaTexto">Ou colar texto da nota</label><textarea id="fiscalNotaTexto" rows="4" maxlength="20000" placeholder="Cole aqui o texto extraído da nota ou cupom fiscal"></textarea></div>'+
       '<div class="ia-linha"><button class="primary" type="button" id="fiscalLerBtn">Ler nota e preparar conferência</button><button class="ghost" type="button" id="fiscalLimparBtn">Limpar</button></div><div id="fiscalLeitorMsg" class="msg"></div><div id="fiscalLeitorResultado"></div>';
     anchor.insertAdjacentElement('afterend',c);
-    $('fiscalLerBtn').addEventListener('click', ler);
+    $('fiscalFotoBtn').addEventListener('click',()=> $('fiscalNotaArquivo').click()); $('fiscalLerBtn').addEventListener('click', ler);
     $('fiscalLimparBtn').addEventListener('click', limpar);
   }
-  function limpar(){ atual=null;arquivoPath=null;objetoUpload=null; $('fiscalNotaArquivo').value='';$('fiscalNotaTexto').value='';$('fiscalLeitorResultado').innerHTML='';msg(''); }
+  function limpar(){ atual=null;arquivoPath=null;objetoUpload=null; $('fiscalNotaArquivo').value='';$('fiscalXmlArquivo').value='';$('fiscalNotaTexto').value='';$('fiscalLeitorResultado').innerHTML='';msg(''); }
   async function comprinhas(){
     if(!fornecedores.length){ const r=await apiCall('listarCompras',{}); if(!r||!r.ok) throw new Error((r&&r.message)||'Não consegui carregar fornecedores.'); fornecedores=r.fornecedores||[]; }
     estoqueAtual=Array.isArray(window.estoque)?window.estoque:[];
@@ -57,7 +58,7 @@
   }
   async function ler(){
     if(!pode()) return msg('Este recurso está disponível somente para Admin e Operador.','warn'); if(bloqueado)return;
-    const f=$('fiscalNotaArquivo').files[0], texto=$('fiscalNotaTexto').value.trim(); if(!f&&!texto)return msg('Envie uma foto/XML ou cole o texto da nota.','warn');
+    const foto=$('fiscalNotaArquivo').files[0], xml=$('fiscalXmlArquivo').files[0], texto=$('fiscalNotaTexto').value.trim(); const f=foto||xml; if(!f&&!texto)return msg('Envie uma foto/XML ou cole o texto da nota.','warn');
     bloqueado=true; $('fiscalLerBtn').disabled=true; $('fiscalLeitorResultado').innerHTML='';msg('Preparando a leitura com segurança…','warn');
     try{
       await comprinhas(); let body={acao:'ler',texto:texto||'',origem:texto?'texto':'foto'};
