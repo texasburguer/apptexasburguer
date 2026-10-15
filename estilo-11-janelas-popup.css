@@ -1,9 +1,0 @@
-@charset "utf-8";
-
-/* Janelas (pop-ups) para os painéis de Integrações: o conteúdo abre por cima da tela, com rolagem só dentro dela */
-:is(#nfceLista,#nfceConf,#nfcePac,#fiscalEmpresa,#fiscalPerfis,#fiscalSem,#ifoodLoja,#ifoodNeg,#ifoodPedidos,#ifoodItens,#ifoodPrecos,#ifoodFin,#ifoodAval,#ifoodRel):not(:empty){position:fixed;inset:0;z-index:85;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;background:rgba(0,0,0,.86);padding:0 14px calc(40px + env(safe-area-inset-bottom,0px));margin:0;}
-:is(#nfceLista,#nfceConf,#nfcePac,#fiscalEmpresa,#fiscalPerfis,#fiscalSem,#ifoodLoja,#ifoodNeg,#ifoodPedidos,#ifoodItens,#ifoodPrecos,#ifoodFin,#ifoodAval,#ifoodRel):not(:empty) > *{max-width:560px;margin-left:auto;margin-right:auto;}
-:is(#nfceLista,#nfceConf,#nfcePac,#fiscalEmpresa,#fiscalPerfis,#fiscalSem,#ifoodLoja,#ifoodNeg,#ifoodPedidos,#ifoodItens,#ifoodPrecos,#ifoodFin,#ifoodAval,#ifoodRel):not(:empty) > .pop-cab{position:sticky;top:0;z-index:2;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 0 10px;background:#0f0a06;border-bottom:1px solid var(--gold-dim);margin-bottom:12px;}
-.pop-cab h2{margin:0;font-size:1.05rem;color:var(--gold);}
-.pop-cab .close-btn{flex:none;}
-.pop-rod{margin-top:14px;} .pop-rod button{width:100%;}
