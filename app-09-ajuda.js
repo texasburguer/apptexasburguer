@@ -26,7 +26,7 @@ function ajudaRodapeVersao_(){
       return 'atualizada há ' + (meses === 1 ? '1 mês' : meses + ' meses');
     }catch(e){ return ''; }
   })();
-  return '<div style="text-align:center;font-size:11px;color:var(--muted);margin-top:16px;padding-top:10px;border-top:1px solid var(--line);">' +
+  return '<div style="text-align:center;font-size:12px;color:var(--muted);margin-top:16px;padding-top:10px;border-top:1px solid var(--line);">' +
     'Texas Burger · <b>' + escH(APP_VERSAO) + '</b> · ' + escH(APP_ATUALIZADO_EM) +
     (idade ? ' <span style="opacity:.8;">(' + escH(idade) + ')</span>' : '') +
     '</div>';
@@ -45,11 +45,11 @@ function novidadesHtml_(perfil){
   const bloco = (r, idx) => {
     const ehAtual = idx === 0;
     const selo = ehAtual && temNova
-      ? ' <span class="badge" style="background:var(--red-hi,#d20807);color:#fff;border:0;font-size:10px;padding:1px 6px;">NOVO</span>'
+      ? ' <span class="badge" style="background:var(--red-hi,#d20807);color:#fff;border:0;font-size:12px;padding:1px 6px;">NOVO</span>'
       : '';
     const itens = r.itens.map(x => '<li>'+escH(x)+'</li>').join('');
-    return '<div style="margin-top:8px;">' +
-      '<div style="font-size:11.5px;color:var(--muted);letter-spacing:.03em;">' +
+    return '<div class="mt-2">' +
+      '<div style="font-size:12px;color:var(--muted);letter-spacing:.03em;">' +
       escH(r.v) + (r.em ? ' · ' + escH(r.em) : '') + selo +
       '</div><ul class="ia-lista" style="margin-top:2px;">' + itens + '</ul></div>';
   };
@@ -57,7 +57,7 @@ function novidadesHtml_(perfil){
   const atualHtml = bloco(lista[0], 0);
   const antigas = lista.slice(1);
   const antigasHtml = antigas.length
-    ? '<details class="ajuda-det" style="margin-top:8px;"><summary>Versões anteriores ('+antigas.length+')</summary>' +
+    ? '<details class="ajuda-det mt-2"><summary>Versões anteriores ('+antigas.length+')</summary>' +
       antigas.map((r, i) => bloco(r, i + 1)).join('') + '</details>'
     : '';
 
@@ -749,7 +749,7 @@ function ajudaClienteHtml_(){
   h += '<h3 class="ajuda-erro-tit">🆘 E se der errado?</h3>';
   m.erros.forEach(e=>{ h += '<details class="ajuda-erro"><summary>'+escH(e.q)+'</summary><p>'+escH(e.a)+'</p></details>'; });
   h += ajudaRodapeVersao_();
-  h += '<button class="primary" style="margin-top:14px;" onclick="fecharAjudaCliente()">Fechar</button>';
+  h += '<button class="primary mt-3" onclick="fecharAjudaCliente()">Fechar</button>';
   return h;
 }
 function abrirAjudaCliente(){

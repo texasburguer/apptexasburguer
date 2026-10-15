@@ -42,7 +42,7 @@ function imprimirDocumento(corpo, titulo, formato){
   const prontas = Promise.all(imagens.map(im => (im.complete ? null : new Promise(r => { im.onload = im.onerror = r; })))).then(()=>Promise.all(imagens.map(im => (im.decode ? im.decode().catch(()=>{}) : null))));
   Promise.race([prontas, new Promise(r => setTimeout(r, 2000))]).then(() => setTimeout(() => {
     try{ ifr.contentWindow.focus(); ifr.contentWindow.print(); }
-    catch(e){ alert('Este aparelho não abriu a impressão. Use "Copiar" ou "Enviar WhatsApp".'); }
+    catch(e){ avisar('Este aparelho não abriu a impressão. Use "Copiar" ou "Enviar WhatsApp".'); }
     setTimeout(()=>ifr.remove(), 60000);
   }, 150));
 }

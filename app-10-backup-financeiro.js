@@ -7,19 +7,19 @@ async function carregarArmazenamento(){
   if(!res) return;
   try{
     const r = await apiCall('obterArmazenamento', {});
-    if(!r || r.ok===false){ res.innerHTML = '<span style="color:var(--muted);">'+escBk_(r&&r.message||'Indisponível.')+'</span>'; return; }
+    if(!r || r.ok===false){ res.innerHTML = '<span class="txt-muted">'+escBk_(r&&r.message||'Indisponível.')+'</span>'; return; }
     const d = r.drive, cor = {Normal:'#7cc46a','Atenção':'#e0b53a','Crítico':'#e5534b'}[d.nivel] || '#999';
     const pct = d.percentual===null ? 0 : Math.min(100,d.percentual);
     res.innerHTML = `<div style="height:12px;background:#3a2c1c;border-radius:6px;overflow:hidden;"><div style="width:${pct}%;height:100%;background:${cor};"></div></div>
-      <div style="margin-top:6px;">Usado: <b>${formatarBytes_(d.usado)}</b> · Livre: <b>${d.livre===null?'—':formatarBytes_(d.livre)}</b> · <b style="color:${cor};">${d.percentual===null?'—':d.percentual+'%'} (${escBk_(d.nivel)})</b></div>
-      ${d.nivel==='Crítico'?'<div class="obs-line" style="color:#ffb3ab;margin-top:4px;">⚠️ Drive quase cheio: novos backups e fotos podem falhar. Libere espaço.</div>':d.nivel==='Atenção'?'<div class="obs-line" style="margin-top:4px;">Atenção: acima de 70% do espaço.</div>':''}`;
+      <div class="mt-2">Usado: <b>${formatarBytes_(d.usado)}</b> · Livre: <b>${d.livre===null?'—':formatarBytes_(d.livre)}</b> · <b style="color:${cor};">${d.percentual===null?'—':d.percentual+'%'} (${escBk_(d.nivel)})</b></div>
+      ${d.nivel==='Crítico'?'<div class="obs-line" style="color:#ffb3ab;margin-top:4px;">⚠️ Drive quase cheio: novos backups e fotos podem falhar. Libere espaço.</div>':d.nivel==='Atenção'?'<div class="obs-line mt-1">Atenção: acima de 70% do espaço.</div>':''}`;
     sistemaAlertas_.drive = d.nivel==='Crítico' ? ('Google Drive quase cheio ('+d.percentual+'% usado). Libere espaço em Administrador → Sistema → Backup e espaço.') : '';
     marcarAlertaAdmin_(d.nivel==='Crítico'); renderNotificacoes();
     const cats = Object.entries(r.categorias).map(([n,v])=>`<tr><td>${escBk_(n)}</td><td align="right">${v.qtd}</td><td align="right">${formatarBytes_(v.bytes)}</td></tr>`).join('');
     const arqs = (r.arquivos||[]).slice(0,10).map(a=>`<tr><td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;">${escBk_(a.nome)}</td><td>${escBk_(a.categoria)}</td><td align="right">${formatarBytes_(a.tamanho)}</td></tr>`).join('');
     lista.innerHTML = `<table style="width:100%;border-collapse:collapse;white-space:nowrap;"><thead><tr><th align="left">Categoria</th><th align="right">Arquivos</th><th align="right">Tamanho</th></tr></thead><tbody>${cats}</tbody></table>
       <div style="margin-top:8px;font-weight:600;">Maiores arquivos</div><table style="width:100%;border-collapse:collapse;white-space:nowrap;"><tbody>${arqs}</tbody></table>`;
-  } catch(e){ res.innerHTML = '<span style="color:var(--muted);">Não foi possível consultar o Drive agora.</span>'; }
+  } catch(e){ res.innerHTML = '<span class="txt-muted">Não foi possível consultar o Drive agora.</span>'; }
 }
 
 
@@ -84,7 +84,7 @@ function filaAtualizarBadge_(){
   if(!b){
     const st = document.getElementById('connDot') || document.getElementById('connStatus'); if(!st) return;
     b = document.createElement('button'); b.id = 'filaBadge'; b.className = 'ghost';
-    b.style.cssText = 'margin-left:6px;padding:2px 8px;font-size:11px;display:none;'; b.onclick = abrirFila;
+    b.style.cssText = 'margin-left:6px;padding:2px 8px;font-size:12px;display:none;'; b.onclick = abrirFila;
     st.insertAdjacentElement('afterend', b);
   }
   const n = _fila.length, erros = _fila.filter(i=>i.estado === 'erro').length;
@@ -96,7 +96,7 @@ function abrirFila(){
   let ov = document.getElementById('filaModal');
   if(!ov){
     ov = document.createElement('div'); ov.className = 'modal-overlay'; ov.id = 'filaModal';
-    ov.innerHTML = '<div class="modal-box" style="max-width:520px;"><div class="modal-header"><h2>Fila de envio</h2><button class="close-btn" onclick="document.getElementById(\'filaModal\').classList.remove(\'open\')">✕</button></div><div id="filaLista" style="font-size:13px;"></div></div>';
+    ov.innerHTML = '<div class="modal-box" style="max-width:520px;"><div class="modal-header"><h2>Fila de envio</h2><button class="close-btn" onclick="document.getElementById(\'filaModal\').classList.remove(\'open\')">✕</button></div><div id="filaLista" class="fs-sm"></div></div>';
     document.body.appendChild(ov);
   }
   filaRenderLista_(); ov.classList.add('open');
@@ -107,14 +107,14 @@ function filaRenderLista_(){
   box.innerHTML = '<p class="sub">Itens salvos neste aparelho que ainda não chegaram ao servidor. Vendas e pagamentos nunca ficam aqui.</p>' +
     _fila.map(i=>`<div class="notif-card"><b>${escBk_(i.rotulo)}</b> · ${FILA_ROTULO_ESTADO[i.estado]||i.estado}
       <div class="obs-line">${new Date(i.criadoEm).toLocaleString('pt-BR')} · ${i.tentativas} tentativa(s)${i.erro?' · '+escBk_(i.erro):''}</div>
-      <div style="margin-top:6px;display:flex;gap:6px;">
+      <div class="mt-2 d-flex gap-2">
         ${i.estado==='erro'?`<button class="ghost" style="padding:4px 10px;" onclick="filaReenviar_('${i.id}')">Tentar de novo</button>`:''}
         <button class="ghost" style="padding:4px 10px;" onclick="filaDescartar_('${i.id}')">Descartar</button></div></div>`).join('') +
     '<button class="small-gold" style="width:100%;padding:10px;margin-top:8px;" onclick="filaProcessar().then(filaRenderLista_)">Enviar agora</button>';
 }
 function filaReenviar_(id){ const i = _fila.find(x=>x.id === id); if(!i) return; i.estado = 'retry'; i.tentativas = 0; i.erro = ''; filaSalvar_(); filaProcessar().then(filaRenderLista_); filaRenderLista_(); }
-function filaDescartar_(id){
-  if(!confirm('Descartar este item? Ele NÃO será enviado ao servidor.')) return;
+async function filaDescartar_(id){
+  if(!await confirmarTxt_('Descartar este item? Ele NÃO será enviado ao servidor.')) return;
   _fila = _fila.filter(x=>x.id !== id); filaSalvar_(); filaRenderLista_();
 }
 document.addEventListener('DOMContentLoaded', filaAtualizarBadge_);
@@ -146,18 +146,18 @@ async function carregarArmazenamentoContingencia(){
   if(!box) return;
   try{
     const r = await apiCall('obterArmazenamentoContingencia', {});
-    if(!r || r.ok===false){ box.innerHTML = '<span style="color:var(--muted);">Espaço da conta da contingência indisponível: '+escBk_(r&&r.message||'sem resposta')+'</span>'; sistemaAlertas_.driveCont=''; return; }
+    if(!r || r.ok===false){ box.innerHTML = '<span class="txt-muted">Espaço da conta da contingência indisponível: '+escBk_(r&&r.message||'sem resposta')+'</span>'; sistemaAlertas_.driveCont=''; return; }
     const d = r.drive, cor = {Normal:'#7cc46a','Atenção':'#e0b53a','Crítico':'#e5534b'}[d.nivel] || '#999';
     const pct = d.percentual===null ? 0 : Math.min(100,d.percentual);
     const cats = Object.entries(r.categorias||{}).map(([n,v])=>`<tr><td>${escBk_(n)}</td><td align="right">${v.qtd}</td><td align="right">${formatarBytes_(v.bytes)}</td></tr>`).join('');
     box.innerHTML = `<div style="font-weight:600;margin-bottom:4px;">Espaço da conta da contingência</div>
       <div style="height:12px;background:#3a2c1c;border-radius:6px;overflow:hidden;"><div style="width:${pct}%;height:100%;background:${cor};"></div></div>
-      <div style="margin-top:6px;">Usado: <b>${formatarBytes_(d.usado)}</b> · Livre: <b>${d.livre===null?'—':formatarBytes_(d.livre)}</b> · <b style="color:${cor};">${d.percentual===null?'—':d.percentual+'%'} (${escBk_(d.nivel)})</b></div>
-      ${d.nivel==='Crítico'?'<div class="obs-line" style="color:#ffb3ab;margin-top:4px;">⚠️ Drive da contingência quase cheio: novas cópias de backup e fotos podem ser recusadas. Libere espaço nessa conta.</div>':d.nivel==='Atenção'?'<div class="obs-line" style="margin-top:4px;">Atenção: acima de 70% do espaço.</div>':''}
+      <div class="mt-2">Usado: <b>${formatarBytes_(d.usado)}</b> · Livre: <b>${d.livre===null?'—':formatarBytes_(d.livre)}</b> · <b style="color:${cor};">${d.percentual===null?'—':d.percentual+'%'} (${escBk_(d.nivel)})</b></div>
+      ${d.nivel==='Crítico'?'<div class="obs-line" style="color:#ffb3ab;margin-top:4px;">⚠️ Drive da contingência quase cheio: novas cópias de backup e fotos podem ser recusadas. Libere espaço nessa conta.</div>':d.nivel==='Atenção'?'<div class="obs-line mt-1">Atenção: acima de 70% do espaço.</div>':''}
       <table style="width:100%;border-collapse:collapse;white-space:nowrap;margin-top:6px;"><thead><tr><th align="left">Guardado lá</th><th align="right">Arquivos</th><th align="right">Tamanho</th></tr></thead><tbody>${cats}</tbody></table>`;
     sistemaAlertas_.driveCont = d.nivel==='Crítico' ? ('Drive da conta da contingência quase cheio ('+d.percentual+'% usado). Libere espaço nessa conta.') : '';
     marcarAlertaAdmin_(d.nivel==='Crítico'); renderNotificacoes();
-  } catch(e){ box.innerHTML = '<span style="color:var(--muted);">Não foi possível consultar o espaço da contingência agora.</span>'; }
+  } catch(e){ box.innerHTML = '<span class="txt-muted">Não foi possível consultar o espaço da contingência agora.</span>'; }
 }
 async function sincronizarContingenciaUI(){
   showMsg('contingenciaMsg','Sincronizando espelho (produtos, preços, clientes)... pode levar alguns segundos.','ok');
@@ -168,7 +168,7 @@ async function sincronizarContingenciaUI(){
   } catch(e){ showMsg('contingenciaMsg','Não foi possível sincronizar agora.','warn'); }
 }
 async function reconciliarContingenciaUI(){
-  if(!confirm('Isso vai buscar as vendas feitas na contingência (enquanto o servidor esteve fora do ar) e lançar aqui. Continuar?')) return;
+  if(!await confirmarTxt_('Isso vai buscar as vendas feitas na contingência (enquanto o servidor esteve fora do ar) e lançar aqui. Continuar?', 'Buscar vendas', false, 'Vendas da contingência')) return;
   showMsg('contingenciaMsg','Buscando e reaplicando vendas pendentes...','ok');
   try{
     const r = await apiCall('reconciliarContingenciaAgora', {});
@@ -289,7 +289,7 @@ function renderFormaCuradoria(){
   if(!tbody) return;
   tbody.innerHTML = formasPagamento.length ? formasPagamento.map(f=>`<tr>
     <td>${escH(f.nome)}${f.ativa?'':' <span class="badge">inativa</span>'}</td>
-    <td><label style="display:flex;align-items:center;gap:6px;justify-content:center;"><input type="checkbox" style="width:auto;" ${f.visivelCardapio?'checked':''} onchange="toggleFormaVisivelCardapio('${f.id}', this.checked)"></label></td>
+    <td><label class="d-flex ai-centro gap-2 jc-centro"><input type="checkbox" class="largura-auto" ${f.visivelCardapio?'checked':''} onchange="toggleFormaVisivelCardapio('${f.id}', this.checked)"></label></td>
   </tr>`).join('') : '<tr class="empty-row"><td colspan="2">Nenhuma forma cadastrada.</td></tr>';
 }
 async function toggleFormaVisivelCardapio(id, novoValor){
@@ -303,7 +303,7 @@ async function editarMeta(tipo){
   const f = await vsForm({ titulo: tipo==='MetaMensal' ? 'Meta mensal de vendas' : 'Meta diária de vendas', ok:'Salvar meta',
     campos:[ { id:'valor', rotulo:'Valor da meta', sufixo:'R$', tipo:'numero', obrigatorio:true, maiorQueZero:true, valor: atual ? String(atual).replace('.',',') : '' } ] });
   if(!f) return; const valorMeta = Number(f.valor);
-  try{ const r = await apiCall('salvarMeta', { tipo, valor: valorMeta }); if(!r || !r.ok){ alert((r && r.message) || 'Não foi possível salvar a meta.'); return; } metas = r.metas || metas; salvarCache(); atualizarMetaUI(); } catch(e){ alert('Não foi possível salvar a meta agora.'); }
+  try{ const r = await apiCall('salvarMeta', { tipo, valor: valorMeta }); if(!r || !r.ok){ avisar((r && r.message) || 'Não foi possível salvar a meta.'); return; } metas = r.metas || metas; salvarCache(); atualizarMetaUI(); } catch(e){ avisar('Não foi possível salvar a meta agora.'); }
 }
 function atualizarMetaUI(){
   document.getElementById('metaMensalTexto').textContent = formatarMoeda(metas.mensal);
@@ -427,7 +427,7 @@ function calcularDRE(ano, mes){
     ticket: vendasMes.length ? receitaLiquida/vendasMes.length : 0 };
 }
 function renderDRE(dre, deltaTxt){
-  const L = (rotulo, valor, o={})=>`<tr${o.forte?' style="font-weight:700;"':''}><td style="${o.recuo?'padding-left:16px;color:var(--muted);':''}">${rotulo}</td><td style="text-align:right;${o.cor?'color:'+o.cor+';':''}">${o.neg?'− ':''}${o.pos?'+ ':''}${formatarMoeda(valor)}</td><td style="text-align:right;color:var(--muted);font-size:11px;">${o.pct!==undefined?fmtPct(o.pct):''}</td></tr>`;
+  const L = (rotulo, valor, o={})=>`<tr${o.forte?' class="fw-7"':''}><td style="${o.recuo?'padding-left:16px;color:var(--muted);':''}">${rotulo}</td><td style="text-align:right;${o.cor?'color:'+o.cor+';':''}">${o.neg?'− ':''}${o.pos?'+ ':''}${formatarMoeda(valor)}</td><td class="txt-dir txt-muted fs-2xs">${o.pct!==undefined?fmtPct(o.pct):''}</td></tr>`;
   const cats = Object.entries(dre.despPorCat).sort((a,b)=>b[1]-a[1]).map(([c,v])=>L(c, v, {recuo:true, neg:true, pct:pctDe(v, dre.receitaLiquida)})).join('');
   const corRes = dre.resultado>=0 ? '#bfe0ae' : '#ffb3ab';
   const pctTxt = n => String(Number(n)||0).replace('.',',');
@@ -448,10 +448,10 @@ function renderDRE(dre, deltaTxt){
     ${L('Ajustes pós-venda', dre.ajustesTotal||0, {neg:true, pct:pctDe(dre.ajustesTotal||0, dre.receitaLiquida)})}
     ${L('Resultado do mês', dre.resultado, {forte:true, cor:corRes, pct:dre.margemLiquida})}
   </tbody></table>
-  <div class="stat-row" style="margin-top:12px;">
-    <div class="stat-box"><b style="color:var(--gold);">${fmtPct(dre.margemLiquida)}</b><span>MARGEM LÍQUIDA</span></div>
-    <div class="stat-box"><b style="color:var(--gold);">${formatarMoeda(dre.ticket)}</b><span>TICKET MÉDIO</span></div>
-    <div class="stat-box"><b style="color:var(--gold);">${fmtPct(dre.taxasPct)}</b><span>TAXAS / RECEITA</span></div>
+  <div class="stat-row mt-3">
+    <div class="stat-box"><b class="txt-ouro">${fmtPct(dre.margemLiquida)}</b><span>MARGEM LÍQUIDA</span></div>
+    <div class="stat-box"><b class="txt-ouro">${formatarMoeda(dre.ticket)}</b><span>TICKET MÉDIO</span></div>
+    <div class="stat-box"><b class="txt-ouro">${fmtPct(dre.taxasPct)}</b><span>TAXAS / RECEITA</span></div>
   </div>
   ${deltaTxt?`<div class="info-line">${deltaTxt}</div>`:''}
   ${dre.creditosConcedidos>0?`<div class="info-line">• Créditos concedidos no mês (ainda a usar, não descontados do resultado): ${formatarMoeda(dre.creditosConcedidos)}.</div>`:''}
@@ -517,8 +517,8 @@ function renderFluxoPrevisto(){
   let acum = 0, totE = 0, totS = 0;
   tb.innerHTML = faixas.map(f=>{
     const saldo = f.ent - f.sai; acum += saldo; totE += f.ent; totS += f.sai;
-    return `<tr><td>${f.n}</td><td style="text-align:right;">${formatarMoeda(f.ent)}</td><td style="text-align:right;">${formatarMoeda(f.sai)}</td><td style="text-align:right;color:${acum>=0?'#bfe0ae':'#ffb3ab'};">${formatarMoeda(acum)}</td></tr>`;
-  }).join('') + `<tr style="font-weight:700;"><td>Total 30 dias</td><td style="text-align:right;">${formatarMoeda(totE)}</td><td style="text-align:right;">${formatarMoeda(totS)}</td><td style="text-align:right;">${formatarMoeda(totE-totS)}</td></tr>`;
+    return `<tr><td>${f.n}</td><td class="txt-dir">${formatarMoeda(f.ent)}</td><td class="txt-dir">${formatarMoeda(f.sai)}</td><td style="text-align:right;color:${acum>=0?'#bfe0ae':'#ffb3ab'};">${formatarMoeda(acum)}</td></tr>`;
+  }).join('') + `<tr class="fw-7"><td>Total 30 dias</td><td class="txt-dir">${formatarMoeda(totE)}</td><td class="txt-dir">${formatarMoeda(totS)}</td><td class="txt-dir">${formatarMoeda(totE-totS)}</td></tr>`;
   const fiado = arred2c(vendas.filter(v=>v.status==='Confirmada' && v.statusPagamento==='A Receber').reduce((s,v)=>s+(Number(v.valorTotal)||0),0));
   document.getElementById('fluxoFiado').textContent = fiado>0 ? `• Vendas a receber sem data (fiado/conta): ${formatarMoeda(fiado)} — não entram na projeção.` : '';
 }
@@ -560,13 +560,13 @@ function gerarRelatorio(){
   const porPagamento = {};
   const taxaPorForma = {};
   pagamentosMes.forEach(p=>{ porPagamento[p.forma] = (porPagamento[p.forma]||0) + Number(p.valor); taxaPorForma[p.forma] = (taxaPorForma[p.forma]||0) + (Number(p.taxa)||0); });
-  document.getElementById('rPagamentos').innerHTML = Object.keys(porPagamento).length ? Object.entries(porPagamento).map(([forma,val])=>`<div class="info-line">${forma}: <b>${formatarMoeda(val)}</b>${taxaPorForma[forma]>0?` <span style="color:var(--muted);">(taxa ${formatarMoeda(taxaPorForma[forma])})</span>`:''}</div>`).join('') : '<div class="notif-empty">Sem vendas no período.</div>';
+  document.getElementById('rPagamentos').innerHTML = Object.keys(porPagamento).length ? Object.entries(porPagamento).map(([forma,val])=>`<div class="info-line">${forma}: <b>${formatarMoeda(val)}</b>${taxaPorForma[forma]>0?` <span class="txt-muted">(taxa ${formatarMoeda(taxaPorForma[forma])})</span>`:''}</div>`).join('') : '<div class="notif-empty">Sem vendas no período.</div>';
 
   const itensDoMes = itensVenda.filter(it=>idsVendasMes.has(it.vendaId));
   const ranking = {};
   itensDoMes.forEach(it=>{ ranking[it.descricao] = (ranking[it.descricao]||0) + Number(it.quantidade); });
   const rankingOrdenado = Object.entries(ranking).sort((a,b)=>b[1]-a[1]).slice(0,5);
-  document.getElementById('rRanking').innerHTML = rankingOrdenado.length ? rankingOrdenado.map(([nome,qtd],idx)=>`<tr><td>${idx+1}º ${escH(nome)}</td><td style="text-align:right;">${qtd}x</td></tr>`).join('') : '<tr class="empty-row"><td>Sem vendas no período.</td></tr>';
+  document.getElementById('rRanking').innerHTML = rankingOrdenado.length ? rankingOrdenado.map(([nome,qtd],idx)=>`<tr><td>${idx+1}º ${escH(nome)}</td><td class="txt-dir">${qtd}x</td></tr>`).join('') : '<tr class="empty-row"><td>Sem vendas no período.</td></tr>';
 
   renderizarGrafico(vendasMes, ano, mes);
 }
@@ -601,7 +601,7 @@ function renderNotificacoes(){
 
   const indBox = document.getElementById('notifIndicacoes');
   const pendentes = indicacoes.filter(i=>!i.resgatado);
-  indBox.innerHTML = pendentes.length ? pendentes.map(i=>`<div class="notif-card"><b>${escH(i.nomeIndicador)}</b> — ${i.telIndicador} — indicou ${escH(i.nomeIndicado)} e ainda não recebeu o prêmio.<br><button class="ghost" style="margin-top:6px;" onclick="abrirPerfilClientePorTelefone('${i.telIndicador}')">abrir cadastro do cliente</button></div>`).join('') : '<div class="notif-empty">Nenhuma indicação pendente.</div>';
+  indBox.innerHTML = pendentes.length ? pendentes.map(i=>`<div class="notif-card"><b>${escH(i.nomeIndicador)}</b> — ${i.telIndicador} — indicou ${escH(i.nomeIndicado)} e ainda não recebeu o prêmio.<br><button class="ghost mt-2" onclick="abrirPerfilClientePorTelefone('${i.telIndicador}')">abrir cadastro do cliente</button></div>`).join('') : '<div class="notif-empty">Nenhuma indicação pendente.</div>';
 
   const estBox = document.getElementById('notifEstoque');
   const baixos = estoque.filter(e=>e.ativo!==false && Number(e.minimo)>0 && e.quantidade<=e.minimo);
@@ -626,7 +626,7 @@ function renderNotificacoes(){
   if(entBox) entBox.innerHTML = alertasEntrega.length ? alertasEntrega.map(a=>`<div class="notif-card">${a}</div>`).join('') : '<div class="notif-empty">Entregas em dia.</div>';
   const ocBox = document.getElementById('notifOcorrencias');
   const ocAbertas = ocorrenciasAbertas_();
-  if(ocBox) ocBox.innerHTML = ocAbertas.length ? ocAbertas.slice().sort((a,b)=>b.numero-a.numero).map(o=>`<div class="notif-card"><b>#${o.numero}</b> — ${escOc_(o.tipo)} · ${escOc_(o.status)}<div class="obs-line">${escOc_(o.descricao)}</div>${podeTratarOcorrencia_()?`<button class="ghost" style="margin-top:6px;" onclick="abrirGerirOcorrencia('${o.id}')">Tratar</button>`:''}</div>`).join('') : '<div class="notif-empty">Nenhuma ocorrência aberta.</div>';
+  if(ocBox) ocBox.innerHTML = ocAbertas.length ? ocAbertas.slice().sort((a,b)=>b.numero-a.numero).map(o=>`<div class="notif-card"><b>#${o.numero}</b> — ${escOc_(o.tipo)} · ${escOc_(o.status)}<div class="obs-line">${escOc_(o.descricao)}</div>${podeTratarOcorrencia_()?`<button class="ghost mt-2" onclick="abrirGerirOcorrencia('${o.id}')">Tratar</button>`:''}</div>`).join('') : '<div class="notif-empty">Nenhuma ocorrência aberta.</div>';
   /* ITENS 64/65: novos avisos (pedidos, financeiro, sistema) + filtro por evento/perfil configurado pelo Admin */
   const pedBox = document.getElementById('notifPedidos');
   const pedidosNovos = vendas.filter(v=>v.status==='Confirmada' && v.statusPedido==='Recebido');
@@ -707,7 +707,7 @@ async function salvarConfigNotificacoesUI(){
 }
 function abrirPerfilClientePorTelefone(tel){
   const c = clientes.find(x=>normTel(x.telefone)===normTel(tel));
-  if(!c){ alert('Cliente não encontrado no cadastro.'); return; }
+  if(!c){ avisar('Cliente não encontrado no cadastro.'); return; }
   abrirPerfilCliente(c.id);
 }
 
@@ -739,7 +739,7 @@ function ehMeuLogin_(login){ return !!(currentUser && String(currentUser.login).
 function editarUsuarioPrompt(login){
   const u = usuarios.find(x=>x.login===login); if(!u) return;
   if(u.nivel === 'Desenvolvedor' && !(currentUser && currentUser.nivelReal === 'Desenvolvedor')){
-    alert('Este acesso é protegido: só o próprio Desenvolvedor pode editá-lo. Nada foi alterado.');
+    avisar('Este acesso é protegido: só o próprio Desenvolvedor pode editá-lo. Nada foi alterado.');
     return;
   }
   uEditLogin = u.login; uEditOriginal = { nome:u.nome||'', telefone:u.telefone||'', nivel:u.nivel, ativo:!!u.ativo };
@@ -776,7 +776,7 @@ async function confirmarEditarUsuario(){
   if(ativo !== uEditOriginal.ativo) payload.novoAtivo = ativo;
   if(senha) payload.novaSenha = senha;
   if(Object.keys(payload).length===1){ erro('Nada foi alterado.'); return; }
-  if(payload.novoNivel==='Admin' && !confirm('Dar acesso de ADMINISTRADOR a "'+uEditLogin+'"? Essa pessoa poderá ver e alterar tudo, inclusive o financeiro.')) return;
+  if(payload.novoNivel==='Admin' && !await confirmarTxt_('Dar acesso de ADMINISTRADOR a "'+uEditLogin+'"? Essa pessoa poderá ver e alterar tudo, inclusive o financeiro.', 'Dar acesso de Admin', true, 'Acesso de administrador')) return;
   const sensivel = ('novaSenha' in payload) || ('novoNivel' in payload) || ('novoAtivo' in payload);
   if(sensivel){
     abrirModalSenhaAdmin(function(senhaAdm){ payload.senhaAdminConfirmacao = senhaAdm; enviarEdicaoUsuario_(payload, msg, btn, erro); });
@@ -797,21 +797,21 @@ function toggleAtivoUsuario(login, ativoAtual){
   abrirModalSenhaAdmin(function(senha){
     apiCall('editarUsuario', { loginAlvo: login, novoAtivo: !ativoAtual, senhaAdminConfirmacao: senha }).then(r=>{
       usuarios = r.usuarios || usuarios; salvarCache();
-      if(r.ok) renderUsuarios(); else alert(r.message);
-    }).catch(()=>alert('Não foi possível atualizar.'));
+      if(r.ok) renderUsuarios(); else avisar(r.message);
+    }).catch(()=>avisar('Não foi possível atualizar.'));
   });
 }
-function excluirUsuarioPrompt(login){
+async function excluirUsuarioPrompt(login){
   const alvo = usuarios.find(x=>x.login===login);
   if(alvo && alvo.nivel === 'Desenvolvedor'){
-    alert('O acesso de Desenvolvedor não pode ser excluído por aqui. Nada foi alterado.');
+    avisar('O acesso de Desenvolvedor não pode ser excluído por aqui. Nada foi alterado.');
     return;
   }
-  if(!confirm('Excluir o usuário "'+login+'"?')) return;
+  if(!await confirmarTxt_('Excluir o usuário "'+login+'"?')) return;
   abrirModalSenhaAdmin(function(senha){
     apiCall('excluirUsuario', { loginAlvo: login, senhaAdminConfirmacao: senha }).then(r=>{
       usuarios = r.usuarios || usuarios; salvarCache();
-      if(r.ok) renderUsuarios(); else alert(r.message);
-    }).catch(()=>alert('Não foi possível excluir.'));
+      if(r.ok) renderUsuarios(); else avisar(r.message);
+    }).catch(()=>avisar('Não foi possível excluir.'));
   });
 }

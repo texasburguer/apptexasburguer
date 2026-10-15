@@ -242,11 +242,11 @@ function cfRwPopularCopiar(pre){
   sel.innerHTML = '<option value="">📋 Copiar receita de outro produto…</option>' + com.map(p => `<option value="${p.id}">${escH(p.nome)}</option>`).join('');
   sel.style.display = com.length ? '' : 'none';
 }
-function cfRwCopiar(pre, prodId){
+async function cfRwCopiar(pre, prodId){
   const sel = document.getElementById(pre + 'RwCopiar');
   if(!prodId) return;
   const p = (produtos || []).find(x => x.id === prodId);
-  if(p && cfLista_(pre).length && !confirm('Trocar a receita atual pela de "' + p.nome + '"? Depois você ajusta o que for diferente.')){ if(sel) sel.value = ''; return; }
+  if(p && cfLista_(pre).length && !await confirmarTxt_('Trocar a receita atual pela de "' + p.nome + '"? Depois você ajusta o que for diferente.')){ if(sel) sel.value = ''; return; }
   const nova = (produtoIngredientes || []).filter(v => v.produtoId === prodId && (!p || v.ingredienteId !== p.estoqueProprioIngredienteId))
     .map(v => { const e = cfIngr_(v.ingredienteId); return { ingredienteId:v.ingredienteId, ingredienteNome:(e && e.nome) || v.ingredienteNome, quantidadePorUnidade:cfNum_(v.quantidadePorUnidade), unidade:(e && e.unidade) || 'un' }; });
   cfSetLista_(pre, nova); if(sel) sel.value = '';
@@ -310,7 +310,7 @@ async function cfEeAntesDeSalvar(){
   if(novo === antes) return true;
   const f = cfFator_(antes, novo), usos = cfUsos_(id);
   if(!f){
-    if(usos.length && !confirm('Este ingrediente está na receita de: ' + usos.join(', ') + '.\n\nTrocar de ' + antes + ' para ' + novo + ' NÃO converte as quantidades. Depois de salvar, abra essas receitas e confira.\n\nContinuar?')) return false;
+    if(usos.length && !await confirmarTxt_('Este ingrediente está na receita de: ' + usos.join(', ') + '.\n\nTrocar de ' + antes + ' para ' + novo + ' NÃO converte as quantidades. Depois de salvar, abra essas receitas e confira.\n\nContinuar?', 'Trocar a unidade', false, 'Unidade sem conversão')) return false;
     return true;
   }
   const r = await apiCall('salvarPrecosLote', { itens:[{ id, unidade:novo, custo:cfNum_(cfVal_('eeCusto')) }] });
@@ -387,7 +387,7 @@ async function cfLoteSalvar(){
   });
   if(!itens.length){ showMsg('plMsg', 'Nada para salvar: preencha "Paguei R$" de algum ingrediente.', 'warn'); return; }
   const revisar = itens.filter(it => it.unidade && !cfFator_((cfIngr_(it.id) || {}).unidade, it.unidade) && cfUsos_(it.id).length);
-  if(revisar.length && !confirm('Alguns ingredientes trocaram de unidade sem conversão automática (ex.: un → kg):\n• ' + revisar.map(it => (cfIngr_(it.id) || {}).nome).join('\n• ') + '\n\nDepois de salvar, confira a quantidade deles nas receitas. Continuar?')) return;
+  if(revisar.length && !await confirmarTxt_('Alguns ingredientes trocaram de unidade sem conversão automática (ex.: un → kg):\n• ' + revisar.map(it => (cfIngr_(it.id) || {}).nome).join('\n• ') + '\n\nDepois de salvar, confira a quantidade deles nas receitas. Continuar?', 'Continuar', false, 'Confira as receitas')) return;
   const btn = document.getElementById('plBtn'); if(btn) btn.disabled = true;
   try{
     const r = await apiCall('salvarPrecosLote', { itens });

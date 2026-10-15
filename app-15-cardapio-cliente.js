@@ -76,15 +76,15 @@ async function carregarStatusPedido(codigo){
     }
     const etapa = etapaAtualPedido(r);
     const linhasEtapas = ETAPAS_PEDIDO.map((nome,i)=>`<div class="obs-line" style="color:${i<=etapa?'var(--gold)':'var(--muted)'};font-weight:${i===etapa?'700':'400'};">${i<=etapa?'✅':'⬜'} ${nome}</div>`).join('');
-    const aReceber = r.statusPagamento==='A Receber' ? '<p class="sub" style="margin-top:8px;">💰 Pagamento a combinar na entrega/retirada.</p>' : '<p class="sub" style="margin-top:8px;">✅ Pagamento confirmado.</p>';
+    const aReceber = r.statusPagamento==='A Receber' ? '<p class="sub mt-2">💰 Pagamento a combinar na entrega/retirada.</p>' : '<p class="sub mt-2">✅ Pagamento confirmado.</p>';
     box.innerHTML = voltar + `<h2>Pedido${r.numero?' nº '+r.numero:''} de ${escH(r.clienteNome||'você')}</h2>
       <p class="sub">${escH(r.itens.join(', '))}</p>
-      <p class="sub">Total: <b style="color:var(--gold);">${formatarMoeda(r.valorTotal)}</b></p>
-      <div style="margin-top:14px;">${linhasEtapas}</div>
+      <p class="sub">Total: <b class="txt-ouro">${formatarMoeda(r.valorTotal)}</b></p>
+      <div class="mt-3">${linhasEtapas}</div>
       ${aReceber}
       <div id="acLocal"></div>
-      ${window.chatPublicoLigado_===true ? `<div style="margin-top:14px;"><button type="button" class="ghost" onclick="abrirAjudaPedidoDoAcompanhamento_('${codigo}','${String(r.numero||'').replace(/\D/g,'')}')">🆘 Preciso de ajuda</button></div>` : ''}
-      ${r.podeCancelar ? `<div style="margin-top:14px;"><button type="button" class="ghost" id="acCancelarBtn" onclick="cancelarPedidoPeloCliente('${codigo}')">✖ Cancelar pedido (<span id="acCancelarSeg">${r.segundosParaCancelar}</span>s)</button><p class="sub" style="margin-top:6px;">Você pode cancelar nos primeiros 3 minutos, enquanto o restaurante ainda não aceitou.</p><div id="acCancelarMsg" class="msg"></div></div>` : ''}`;
+      ${window.chatPublicoLigado_===true ? `<div class="mt-3"><button type="button" class="ghost" onclick="abrirAjudaPedidoDoAcompanhamento_('${codigo}','${String(r.numero||'').replace(/\D/g,'')}')">🆘 Preciso de ajuda</button></div>` : ''}
+      ${r.podeCancelar ? `<div class="mt-3"><button type="button" class="ghost" id="acCancelarBtn" onclick="cancelarPedidoPeloCliente('${codigo}')">✖ Cancelar pedido (<span id="acCancelarSeg">${r.segundosParaCancelar}</span>s)</button><p class="sub mt-2">Você pode cancelar nos primeiros 3 minutos, enquanto o restaurante ainda não aceitou.</p><div id="acCancelarMsg" class="msg"></div></div>` : ''}`;
     iniciarContagemCancelar_(r.podeCancelar ? r.segundosParaCancelar : 0);
     if(window.acLocalAtualizar_) acLocalAtualizar_(codigo, r);
   } catch(e){ box.innerHTML = voltar + '<p class="sub">Não foi possível atualizar agora. Tentando de novo em instantes...</p>'; }
@@ -105,7 +105,7 @@ function iniciarContagemCancelar_(seg){
 let _acCancelando_ = false;
 async function cancelarPedidoPeloCliente(codigo){
   if(_acCancelando_) return;
-  if(!confirm('Cancelar este pedido?')) return;
+  if(!await confirmarTxt_('Cancelar este pedido?')) return;
   _acCancelando_ = true;
   const btn = document.getElementById('acCancelarBtn'); if(btn) btn.disabled = true;
   try{
@@ -743,7 +743,7 @@ function abrirCdItemModal(tipo, id){
   document.getElementById('cdItemQtd').textContent = '1';
   { const av = document.getElementById('cdItemAvisoAdic'); if(av) av.style.display = 'none'; const ob = document.getElementById('cdItemObs'); if(ob) ob.value = ''; }
   const cont = document.getElementById('cdItemAdicionais');
-  cont.innerHTML = adicionaisDoItem.length ? ('<div class="cd-secao-titulo" style="margin-top:6px;">Adicionais</div>' +
+  cont.innerHTML = adicionaisDoItem.length ? ('<div class="cd-secao-titulo mt-2">Adicionais</div>' +
     adicionaisDoItem.map(a=>`<label class="cd-adicional-linha"><span><input type="checkbox" data-adid="${a.id}" onchange="toggleCdAdicional('${a.id}')"> ${escH(a.nome)}</span><span>+ ${cdFormatarPreco(a.preco)}</span></label>`).join('')) : '';
   atualizarCdItemTotal();
   document.getElementById('cdItemModal').classList.add('open');
@@ -757,7 +757,7 @@ function toggleCdAdicional(adId){
   atualizarAvisoAdicionaisCd_();
   atualizarCdItemTotal();
 }
-function cdAvisoQtdMax_(){ alert('O máximo é ' + QTD_MAX_ITEM_ + ' unidades por item. Para uma quantidade maior, fale com o restaurante.'); }
+function cdAvisoQtdMax_(){ avisar('O máximo é ' + QTD_MAX_ITEM_ + ' unidades por item. Para uma quantidade maior, fale com o restaurante.'); }
 function alterarQtdCdItem(delta){
   if(!cdItemAtual) return;
   if(cdItemAtual.qtd + delta > QTD_MAX_ITEM_){ const q = document.getElementById('cdItemQtd'); if(q){ q.style.color = '#e74c3c'; setTimeout(()=>{ q.style.color = ''; }, 1200); } try{ cdAvisoQtdMax_(); }catch(e){} return; }
@@ -837,7 +837,7 @@ function cdContinuarCarrinhoSalvo_(){
     novo.push({ tipo:i.tipo, id:i.id, nome:item.nome, precoBase:cdPrecoDe(i.tipo, i.id)||0, qtd:Math.max(1, Math.min(99, Number(i.qtd)||1)), adicionais, obs:String(i.obs||'').slice(0,100) });
   });
   cdCarrinho = novo; atualizarFabCarrinho();
-  if(perdidos) alert(perdidos + (perdidos===1?' item não está':' itens não estão') + ' mais disponível' + (perdidos===1?'':'is') + ' e ficou de fora. Os preços foram atualizados.');
+  if(perdidos) avisar(perdidos + (perdidos===1?' item não está':' itens não estão') + ' mais disponível' + (perdidos===1?'':'is') + ' e ficou de fora. Os preços foram atualizados.');
   if(novo.length && typeof abrirCarrinhoPublico === 'function') { try{ abrirCarrinhoPublico(); }catch(e){} }
 }
 function atualizarFabCarrinho(){
@@ -896,10 +896,10 @@ function fecharCarrinhoPublico(){
 function renderCdCarrinho(){
   const cont = document.getElementById('cdCarrinhoItens');
   const brs = cdBrindes_();
-  const htmlBr = brs.map(b=>`<div class="cd-adicional-linha"><span>🎁 1x ${escH(b.nome)} <small style="color:var(--muted);">(${b.tipo==='Fidelidade'?'cartão fidelidade':'indicação'})</small></span><span>${cdFormatarPreco(0)} <button class="link-btn" onclick="contaRemoverBrinde_('${escH(b.chave)}')">remover</button></span></div>`).join('');
+  const htmlBr = brs.map(b=>`<div class="cd-adicional-linha"><span>🎁 1x ${escH(b.nome)} <small class="txt-muted">(${b.tipo==='Fidelidade'?'cartão fidelidade':'indicação'})</small></span><span>${cdFormatarPreco(0)} <button class="link-btn" onclick="contaRemoverBrinde_('${escH(b.chave)}')">remover</button></span></div>`).join('');
   if(!cdCarrinho.length && !brs.length){ cont.innerHTML = '<p class="sub">Seu carrinho está vazio.</p>'; }
   else cont.innerHTML = cdCarrinho.map((it,i)=>`<div class="cd-adicional-linha">
-      <span>${it.qtd}x ${escH(it.nome)}${it.adicionais.length?' ('+it.adicionais.map(a=>escH(a.nome)).join(', ')+')':''}${it.obs?'<br><small style="color:var(--muted);">📝 '+escH(it.obs)+'</small>':''}</span>
+      <span>${it.qtd}x ${escH(it.nome)}${it.adicionais.length?' ('+it.adicionais.map(a=>escH(a.nome)).join(', ')+')':''}${it.obs?'<br><small class="txt-muted">📝 '+escH(it.obs)+'</small>':''}</span>
       <span>${cdFormatarPreco(cdPrecoItemCarrinho(it))} <button class="link-btn" onclick="removerDoCarrinho(${i})">remover</button></span>
     </div>`).join('') + htmlBr;
   cdAtualizarTotal_();

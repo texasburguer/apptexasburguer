@@ -2,30 +2,51 @@
 /* "Administrador" (ITEM 4, 50, 66) não é uma seção única — é um hub que agrupa
    Produtos e Estoque, Financeiro e Usuários e Permissões, que continuam sendo
    as mesmas seções de sempre (nenhum cadastro foi duplicado). */
+/* Ícones em SVG (um só conjunto, no mesmo traço do menu de baixo). Use icSvg_('nome') em HTML novo; emoji só em textos de aviso/conversa. */
+const IC_SVG_ = {
+  painel:'M4 20V10M10 20V4M16 20v-7M22 20H2',
+  financeiro:'M12 3v18M16 7h-6a3 3 0 0 0 0 6h4a3 3 0 0 1 0 6H8',
+  catalogo:'M4 11h16a8 8 0 0 0-16 0zM4 15h16M5 19h14a1 1 0 0 0 1-1v-1H4v1a1 1 0 0 0 1 1z',
+  campanhas:'M3 12V4h8l10 10-8 8L3 12zM7.5 8.5h.01',
+  operacao:'M3 9l2-5h14l2 5M3 9h18M5 9v11h14V9M10 20v-6h4v6',
+  sistema:'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19 12a7 7 0 0 0-.1-1.2l2-1.5-2-3.5-2.3 1a7 7 0 0 0-2-1.2L14 3h-4l-.6 2.6a7 7 0 0 0-2 1.2l-2.3-1-2 3.5 2 1.5A7 7 0 0 0 5 12c0 .4 0 .8.1 1.2l-2 1.5 2 3.5 2.3-1a7 7 0 0 0 2 1.2L10 21h4l.6-2.6a7 7 0 0 0 2-1.2l2.3 1 2-3.5-2-1.5c.1-.4.1-.8.1-1.2z',
+  atendimento:'M4 5h16v11H9l-5 4V5z',
+  fidelidade:'M12 3l2.6 5.6 6.1.7-4.5 4.2 1.2 6L12 16.5 6.6 19.5l1.2-6L3.3 9.3l6.1-.7L12 3z',
+  presente:'M4 11h16v9H4zM3 7h18v4H3zM12 7v13M12 7c-2 0-4-1-4-2.5S10 2 12 7zM12 7c2 0 4-1 4-2.5S14 2 12 7z',
+  estoque:'M3 7l9-4 9 4v10l-9 4-9-4V7zM3 7l9 4 9-4M12 11v10',
+  alerta:'M12 4l9 16H3L12 4zM12 10v4M12 17h.01',
+  entrega:'M3 16h2a2 2 0 0 0 4 0h6a2 2 0 0 0 4 0h2v-4l-3-4h-5v8M3 16V8h8M7 18h.01M17 18h.01',
+  pedido:'M6 3h12v18H6zM9 8h6M9 12h6M9 16h4',
+  dinheiro:'M12 3v18M16 7h-6a3 3 0 0 0 0 6h4a3 3 0 0 1 0 6H8',
+  engrenagem:'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM12 3v3M12 18v3M3 12h3M18 12h3',
+  aniversario:'M5 20h14v-6H5zM12 14V9M12 9a2 2 0 0 0 0-4 2 2 0 0 0 0 4zM5 17h14',
+  inativo:'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7v5l3 2'
+};
+function icSvg_(k){ return '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="' + (IC_SVG_[k] || IC_SVG_.sistema) + '"/></svg>'; }
 const ADMIN_GRUPOS = [
-  { nome:'📊 Painel',     subs:['visaogeral', 'ocorrencias', 'feedbacks', 'relatorios'] },
-  { nome:'💰 Financeiro', subs:['financeiro', 'analise', 'ajustes', 'historico'] },
-  { nome:'🍔 Catálogo',   subs:['produtos', 'estoque', 'compras', 'custosprecificacao', 'cardapiodigital'] },
-  { nome:'🎟️ Campanhas',  subs:['promocoes', 'eventos'] },
-  { nome:'🏪 Operação',   subs:['restaurante', 'pagamentos', 'taxasentregas', 'notifadmin'] },
-  { nome:'⚙️ Sistema',    subs:['usuarios', 'auditoria', 'armazenamento', 'integridade', 'contas'] }
+  { nome:'Painel',     ico:'painel',     subs:['visaogeral', 'ocorrencias', 'feedbacks', 'relatorios'] },
+  { nome:'Financeiro', ico:'financeiro', subs:['financeiro', 'analise', 'ajustes', 'historico'] },
+  { nome:'Catálogo',   ico:'catalogo',   subs:['produtos', 'estoque', 'compras', 'custosprecificacao', 'cardapiodigital'] },
+  { nome:'Campanhas',  ico:'campanhas',  subs:['promocoes', 'eventos'] },
+  { nome:'Operação',   ico:'operacao',   subs:['restaurante', 'pagamentos', 'taxasentregas', 'notifadmin'] },
+  { nome:'Sistema',    ico:'sistema',    subs:['usuarios', 'auditoria', 'armazenamento', 'integridade', 'contas'] }
 ];
 const ADMIN_SUBABAS = ADMIN_GRUPOS.reduce((a,g)=>a.concat(g.subs), []);
 /* a barra do Administrador existia copiada em 13 telas. Agora há UMA definição, desenhada em todas. */
 const ADMIN_SUBABAS_ROTULOS = { contas:'Contas e acessos', visaogeral:'Visão Geral', ocorrencias:'Ocorrências', feedbacks:'Feedbacks', relatorios:'Relatórios', financeiro:'Contas e despesas', analise:'Análise', ajustes:'Ajustes pós-venda', historico:'Histórico', produtos:'Produtos', estoque:'Estoque', compras:'Compras e fornecedores', custosprecificacao:'Custos e Precificação', cardapiodigital:'Cardápio Digital', promocoes:'Promoções', eventos:'Eventos', restaurante:'Mesas e QR Codes', pagamentos:'Pagamentos', taxasentregas:'Entregadores e taxas', notifadmin:'Configurar notificações', usuarios:'Usuários e Permissões', auditoria:'Auditoria', armazenamento:'Backup e espaço', integridade:'Sincronização e contingência' };
-const ADMIN_GRUPOS_OPERADOR_ = [ { nome:'💬 Atendimento', subs:['ocorrencias', 'feedbacks'] } ];
+const ADMIN_GRUPOS_OPERADOR_ = [ { nome:'Atendimento', ico:'atendimento', subs:['ocorrencias', 'feedbacks'] } ];
 function gruposAdmin_(){ return (currentUser && currentUser.nivel==='Operador') ? ADMIN_GRUPOS_OPERADOR_ : ADMIN_GRUPOS; }
 function montarBarrasAdmin_(alvo, grupoIdx){
   /* alvo = tela aberta; sem alvo, mostra só os grupos (ou as telas do grupo escolhido), nada aberto até tocar */
   const grupos = gruposAdmin_();
   const ativo = alvo ? (grupos.find(g=>g.subs.includes(alvo)) || grupos[0]) : (grupoIdx != null ? grupos[grupoIdx] : (grupos.length === 1 ? grupos[0] : null));
-  const abas = grupos.length>1 ? grupos.map((g,i)=>`<button class="admin-gbtn${g===ativo?' active':''}" onclick="abrirAdminGrupo_(${i})">${g.nome}</button>`).join('') : '';
-  const subs = ativo ? (`<div class="admin-grupo">${grupos.length>1 ? ativo.nome : (ativo.nome+' — o que você pode tratar aqui')}</div>` + ativo.subs.map(id=>`<button data-sub="${id}" class="${id===alvo?'active':''}" onclick="abrirAdministrador('${id}')">${ADMIN_SUBABAS_ROTULOS[id]}</button>`).join('')) : '';
+  const abas = grupos.length>1 ? grupos.map((g,i)=>`<button class="admin-gbtn${g===ativo?' active':''}" onclick="abrirAdminGrupo_(${i})">${icSvg_(g.ico)}<span>${g.nome}</span></button>`).join('') : '';
+  const subs = ativo ? (`<div class="admin-grupo">${icSvg_(ativo.ico)}${grupos.length>1 ? ativo.nome : (ativo.nome+' — o que você pode tratar aqui')}</div>` + ativo.subs.map(id=>`<button data-sub="${id}" class="${id===alvo?'active':''}" onclick="abrirAdministrador('${id}')">${ADMIN_SUBABAS_ROTULOS[id]}</button>`).join('')) : '';
   document.querySelectorAll('.admin-subnav[data-admin-nav]').forEach(nav=>{ nav.innerHTML = abas + subs; });
   _adminGrupoAtivo_ = ativo ? grupos.indexOf(ativo) : null;
   /* Computador: menu lateral com todos os grupos e telas à vista (um clique). No celular ele fica escondido (CSS). */
   const lat = document.getElementById('adminLateral');
-  if(lat) lat.innerHTML = grupos.map(g=>`<div class="al-grupo">${g.nome}</div>` + g.subs.map(id=>`<button type="button" data-sub="${id}" class="${id===alvo?'active':''}" onclick="abrirAdministrador('${id}')">${ADMIN_SUBABAS_ROTULOS[id]}</button>`).join('')).join('');
+  if(lat) lat.innerHTML = grupos.map(g=>`<div class="al-grupo">${icSvg_(g.ico)}${g.nome}</div>` + g.subs.map(id=>`<button type="button" data-sub="${id}" class="${id===alvo?'active':''}" onclick="abrirAdministrador('${id}')">${ADMIN_SUBABAS_ROTULOS[id]}</button>`).join('')).join('');
 }
 let _adminGrupoAtivo_ = null;
 /* Entrar no Admin: só os grupos, nenhuma tela aberta. Tocar num grupo mostra as telas dele; a tela abre só quando você toca nela. */
@@ -110,7 +131,7 @@ function atualizarAoEntrar_(){
 /* Botão "Atualizar": puxa agora, sem a espera de 15s (o servidor já serializa as chamadas). */
 async function atualizarAgora_(){
   if(!apiConfigurada()) return;
-  if(!seguroParaSincronizar()){ alert('Termine ou feche o que está aberto (venda, formulário ou janela) e toque em Atualizar de novo.'); return; }
+  if(!seguroParaSincronizar()){ avisar('Termine ou feche o que está aberto (venda, formulário ou janela) e toque em Atualizar de novo.'); return; }
   _versoesLocais = null; // o botão Atualizar sempre baixa tudo
   await sincronizarEmSegundoPlano();
 }
@@ -262,20 +283,20 @@ async function lgpdCarregarUI_(){
 async function lgpdEnviar_(p){ try{ const r=await apiCall('lgpdConfig',p); showMsg('lgpdMsg',r.message||'Pronto.',r.ok?'ok':'warn'); if(r.ok) lgpdPintar_(r); }catch(e){ showMsg('lgpdMsg','Não foi possível salvar agora.','warn'); } }
 function lgpdSalvarAnos_(){ lgpdEnviar_({anos:document.getElementById('lgpdAnos').value}); }
 function lgpdSalvarResp_(){ lgpdEnviar_({razaoSocial:document.getElementById('lgpdRazao').value,cnpj:document.getElementById('lgpdCnpj').value}); }
-async function lgpdNovaVersao_(){ if(!confirm('Todos os clientes com conta vão precisar aceitar o Aviso de novo. Publicar nova versão?')) return; lgpdEnviar_({novaVersaoAviso:true}); }
-async function alternarCupomUI(id,ativo){try{const r=await apiCall('alternarCupom',{id,ativo});if(r.ok){cupons=r.cupons||[];renderCuponsUI();}else alert(r.message);}catch(e){alert('Não foi possível alterar o cupom.');}}
+async function lgpdNovaVersao_(){ if(!await confirmarTxt_('Todos os clientes com conta vão precisar aceitar o Aviso de novo. Publicar nova versão?', 'Publicar nova versão', false, 'Nova versão do Aviso')) return; lgpdEnviar_({novaVersaoAviso:true}); }
+async function alternarCupomUI(id,ativo){try{const r=await apiCall('alternarCupom',{id,ativo});if(r.ok){cupons=r.cupons||[];renderCuponsUI();}else avisar(r.message);}catch(e){avisar('Não foi possível alterar o cupom.');}}
 function limparEventoUI(){['evId','evNome','evTipo','evData','evHoraInicio','evHoraFim','evLocal','evContratante','evTelefone','evValor','evObs'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});document.getElementById('evStatus').value='Orçamento';document.getElementById('evMovId').value='';}
 function evPreencherFormas_(){ const sel=document.getElementById('evRecForma'); if(!sel) return; const atual=sel.value; sel.innerHTML=(formasPagamento||[]).filter(f=>f.ativa!==false).map(f=>`<option value="${escH(f.nome)}">${escH(f.nome)}</option>`).join(''); if(atual) sel.value=atual; }
 function renderEventosUI(){evPreencherFormas_();const box=document.getElementById('evLista');if(!box)return;box.innerHTML=(eventos||[]).length?(eventos||[]).slice().reverse().map(e=>`<div class="notif-card"><b>${escH(e.nome)}</b> · ${escH(/^\d{4}-\d{2}-\d{2}/.test(String(e.data||'')) ? String(e.data).slice(0,10).split('-').reverse().join('/') : (e.data||''))} · ${escH(e.status)}<div class="obs-line">Contratante: ${escH(e.contratante||'—')} · Contratado: ${formatarMoeda(e.valorContratado)} · Recebido: ${formatarMoeda(e.valorRecebido)} · A receber: ${formatarMoeda(e.valorAReceber)} · Custos: ${formatarMoeda(e.custoTotal)} · Resultado: ${formatarMoeda(e.resultado)}</div><button class="small-gold" onclick="selecionarEventoUI('${e.id}')">Gerenciar</button>${e.status!=='Cancelado'?` <button class="ghost" onclick="cancelarEventoUI('${e.id}')">Cancelar</button>`:''}</div>`).join(''):'<div class="notif-empty">Nenhum evento.</div>';}
 function selecionarEventoUI(id){const e=(eventos||[]).find(x=>x.id===id);if(!e)return;document.getElementById('evId').value=e.id;document.getElementById('evNome').value=e.nome;document.getElementById('evTipo').value=e.tipo||'';document.getElementById('evData').value=e.data instanceof Date?'':String(e.data||'').slice(0,10);document.getElementById('evHoraInicio').value=e.horaInicio||'';document.getElementById('evHoraFim').value=e.horaFim||'';document.getElementById('evLocal').value=e.local||'';document.getElementById('evContratante').value=e.contratante||'';document.getElementById('evTelefone').value=e.telefone||'';document.getElementById('evStatus').value=e.status||'Orçamento';document.getElementById('evValor').value=e.valorContratado||0;document.getElementById('evObs').value=e.observacoes||'';document.getElementById('evMovId').value=e.id;abrirFormModal('eventoModal');}
 async function salvarEventoUI(){const p={id:evId.value,nome:evNome.value,tipo:evTipo.value,data:evData.value,horaInicio:evHoraInicio.value,horaFim:evHoraFim.value,local:evLocal.value,contratante:evContratante.value,telefone:evTelefone.value,status:evStatus.value,valorContratado:evValor.value,observacoes:evObs.value};try{const r=await apiCall('salvarEvento',p);showMsg('evMsg',r.message,r.ok?'ok':'warn');if(r.ok){eventos=r.eventos||[];renderEventosUI();selecionarEventoUI(r.evento.id);}}catch(e){showMsg('evMsg','Erro ao salvar evento.','warn');}}
-async function cancelarEventoUI(id){const f=await vsForm({titulo:'Cancelar evento',campos:[{id:'motivo',rotulo:'Motivo do cancelamento (opcional)',tipo:'texto'}],ok:'Cancelar evento',perigo:true});if(!f)return;const motivo=f.motivo;try{const r=await apiCall('cancelarEvento',{id,motivo});if(r.ok){eventos=r.eventos||[];renderEventosUI();}else alert(r.message);}catch(e){alert('Erro ao cancelar.');}}
+async function cancelarEventoUI(id){const f=await vsForm({titulo:'Cancelar evento',campos:[{id:'motivo',rotulo:'Motivo do cancelamento (opcional)',tipo:'texto'}],ok:'Cancelar evento',perigo:true});if(!f)return;const motivo=f.motivo;try{const r=await apiCall('cancelarEvento',{id,motivo});if(r.ok){eventos=r.eventos||[];renderEventosUI();}else avisar(r.message);}catch(e){avisar('Erro ao cancelar.');}}
 async function lancarCustoEventoUI(){const id=document.getElementById('evMovId').value;if(!id)return showMsg('evMovMsg','Selecione um evento.','warn');const p={eventoId:id,descricao:evCustoDesc.value,categoria:evCustoCat.value,valor:evCustoValor.value,data:evCustoData.value,observacao:'' ,requisicaoId:novaRequisicao_()};try{const r=await apiCall('adicionarCustoEvento',p);showMsg('evMovMsg',r.message,r.ok?'ok':'warn');if(r.ok){const i=eventos.findIndex(e=>e.id===id);if(i>=0)eventos[i]=r.evento;renderEventosUI();evCustoDesc.value='';evCustoCat.value='';evCustoValor.value='';evCustoData.value='';}}catch(e){showMsg('evMovMsg','Erro ao lançar custo.','warn');}}
 async function lancarRecebimentoEventoUI(){const id=document.getElementById('evMovId').value;if(!id)return showMsg('evMovMsg','Selecione um evento.','warn');const p={eventoId:id,valor:evRecValor.value,forma:evRecForma.value,data:'',observacao:'',requisicaoId:novaRequisicao_()};try{const r=await apiCall('adicionarRecebimentoEvento',p);showMsg('evMovMsg',r.message,r.ok?'ok':'warn');if(r.ok){const i=eventos.findIndex(e=>e.id===id);if(i>=0)eventos[i]=r.evento;renderEventosUI();evRecValor.value='';}}catch(e){showMsg('evMovMsg','Erro ao lançar recebimento.','warn');}}
 function calcTrocarProduto_(){ const e=document.getElementById('calcPrecoSimulado'); if(e) e.value=''; calcularCustoUI(); }
 async function calcularCustoUI(){const p=document.getElementById('calcProduto').value,f=document.getElementById('calcForma').value;if(!p||!f)return;const prec=(produtoPrecos||[]).find(x=>x.produtoId===p&&x.formaPagamentoId===f);document.getElementById('calcCusto').textContent=formatarMoeda(prec?prec.custo:0);document.getElementById('calcPrecoAtual').textContent=formatarMoeda(prec?prec.preco:0);if(!document.getElementById('calcPrecoSimulado').value)document.getElementById('calcPrecoSimulado').value=prec?prec.preco:'';if(!apiConfigurada())return;try{const r=await apiCall('simularPrecificacao',{produtoId:p,formaPagamentoId:f,precoSimulado:document.getElementById('calcPrecoSimulado').value,embalagem:document.getElementById('calcEmbalagem').value,outrosCustos:document.getElementById('calcOutros').value,taxaMarketplace:document.getElementById('calcMarketplace').value});if(r.ok){document.getElementById('calcCusto').textContent=formatarMoeda(r.custoTecnico);document.getElementById('calcResultado').textContent='Custo total: '+formatarMoeda(r.custoTotal)+' · taxa pagamento: '+formatarMoeda(r.taxaPagamento)+(Number(r.impostos)>0?' · imposto ('+String(r.impostosPct).replace('.',',')+'%): '+formatarMoeda(r.impostos):'')+' · resultado: '+formatarMoeda(r.resultado)+' · margem: '+r.margem.toFixed(2).replace('.',',')+'% · markup: '+r.markup.toFixed(2)+'x';}else document.getElementById('calcResultado').textContent=r.message;}catch(e){document.getElementById('calcResultado').textContent='Não foi possível simular agora.';}}
 function prepararCalculadoraUI(){const sp=document.getElementById('calcProduto'),sf=document.getElementById('calcForma');if(!sp||!sf)return;sp.innerHTML=(produtos||[]).filter(p=>p.ativo).map(p=>`<option value="${p.id}">${escH(p.nome)}</option>`).join('');sf.innerHTML=(formasPagamento||[]).filter(f=>f.ativa).map(f=>`<option value="${f.id}">${escH(f.nome)}</option>`).join('');calcularCustoUI();}
-async function aplicarPrecoCalculadoraUI(){const p=document.getElementById('calcProduto').value,f=document.getElementById('calcForma').value,v=document.getElementById('calcPrecoSimulado').value;try{if(!(Number(v)>0)){showMsg('calcMsg','Informe o preço base simulado.','warn');return;}if(!confirm('Aplicar R$ '+Number(v).toFixed(2).replace('.',',')+' como preço base deste produto? Vale para todas as formas de pagamento (o acréscimo de cada forma é somado na venda).'))return;const r=await apiCall('aplicarPrecoCalculadora',{produtoId:p,formaPagamentoId:f,novoPreco:v});showMsg('calcMsg',r.message,r.ok?'ok':'warn');if(r.ok){produtoPrecos=r.produtoPrecos||produtoPrecos;document.getElementById('calcPrecoSimulado').value='';calcularCustoUI();}}catch(e){showMsg('calcMsg','Erro ao aplicar preço.','warn');}}
+async function aplicarPrecoCalculadoraUI(){const p=document.getElementById('calcProduto').value,f=document.getElementById('calcForma').value,v=document.getElementById('calcPrecoSimulado').value;try{if(!(Number(v)>0)){showMsg('calcMsg','Informe o preço base simulado.','warn');return;}if(!await confirmarTxt_('Aplicar R$ '+Number(v).toFixed(2).replace('.',',')+' como preço base deste produto? Vale para todas as formas de pagamento (o acréscimo de cada forma é somado na venda).'))return;const r=await apiCall('aplicarPrecoCalculadora',{produtoId:p,formaPagamentoId:f,novoPreco:v});showMsg('calcMsg',r.message,r.ok?'ok':'warn');if(r.ok){produtoPrecos=r.produtoPrecos||produtoPrecos;document.getElementById('calcPrecoSimulado').value='';calcularCustoUI();}}catch(e){showMsg('calcMsg','Erro ao aplicar preço.','warn');}}
 function renderClientes(){
   const filtro = document.getElementById('cSearch').value.toLowerCase();
   const modoInativos = document.getElementById('filtroInativosBtn').classList.contains('active');
@@ -288,7 +309,7 @@ function renderClientes(){
   }
   lista = lista.slice().reverse();
   if(lista.length===0){ tbody.innerHTML = '<tr class="empty-row"><td colspan="3">Nenhum cliente encontrado.</td></tr>'; return; }
-  tbody.innerHTML = lista.map(c=>`<tr><td>${c.nome?escH(c.nome):'<em style="color:var(--muted);">(sem nome)</em>'}</td><td>${escH(c.telefone)}</td><td><button class="small-gold" onclick="abrirPerfilCliente('${c.id}')">abrir</button></td></tr>`).join('');
+  tbody.innerHTML = lista.map(c=>`<tr><td>${c.nome?escH(c.nome):'<em class="txt-muted">(sem nome)</em>'}</td><td>${escH(c.telefone)}</td><td><button class="small-gold" onclick="abrirPerfilCliente('${c.id}')">abrir</button></td></tr>`).join('');
 }
 var _histFiltro_ = { tel:'', per:'todos', tipo:'todos', pag:'todos' };
 function histFiltroMudou_(){
@@ -304,7 +325,7 @@ function renderHistoricoCliente(telefone, manterFiltro){
   const F = _histFiltro_, limite = F.per==='todos' ? 0 : Date.now() - Number(F.per)*86400000;
   const pedidos = todos.filter(v=> (!limite || v.timestamp >= limite) && (F.tipo==='todos' || v.tipoEntrega===F.tipo) && (F.pag==='todos' || (F.pag==='receber' ? v.statusPagamento==='A Receber' : v.statusPagamento!=='A Receber')));
   const sel = (id, atual, ops) => `<select id="${id}" onchange="histFiltroMudou_()" style="width:auto;display:inline-block;margin:0 6px 6px 0;">${ops.map(o=>`<option value="${o[0]}"${String(atual)===String(o[0])?' selected':''}>${o[1]}</option>`).join('')}</select>`;
-  const barraFiltros = todos.length < 2 ? '' : `<div style="margin-bottom:8px;">`
+  const barraFiltros = todos.length < 2 ? '' : `<div class="mb-2">`
     + sel('hfPer', F.per, [['todos','Todo o período'],['7','Últimos 7 dias'],['30','Últimos 30 dias'],['90','Últimos 90 dias']])
     + sel('hfTipo', F.tipo, [['todos','Entrega e retirada'],['Entrega','Só entrega'],['Retirada','Só retirada'],['Mesa','Só mesa']])
     + sel('hfPag', F.pag, [['todos','Pago ou a receber'],['pago','Só pagos'],['receber','Só a receber']]) + `</div>`;
@@ -314,10 +335,10 @@ function renderHistoricoCliente(telefone, manterFiltro){
   const ticketMedio = totalGasto / pedidos.length;
   let html = `<div class="modal-section"><h3>Histórico de pedidos</h3>
     ${barraFiltros}
-    <div style="font-size:12.5px;color:var(--muted);margin-bottom:10px;">
-      ${pedidos.length} pedido(s) · Total gasto: <b style="color:var(--gold);">${formatarMoeda(totalGasto)}</b> · Ticket médio: <b style="color:var(--gold);">${formatarMoeda(ticketMedio)}</b>
+    <div class="fs-xs txt-muted mb-3">
+      ${pedidos.length} pedido(s) · Total gasto: <b class="txt-ouro">${formatarMoeda(totalGasto)}</b> · Ticket médio: <b class="txt-ouro">${formatarMoeda(ticketMedio)}</b>
     </div>
-    <div class="obs-line" style="margin-bottom:8px;">Mostra só os pedidos que ainda estão no sistema. Pedidos mais antigos ficam arquivados na planilha e não entram nesta soma (veja em Relatórios, "Outro mês").</div>
+    <div class="obs-line mb-2">Mostra só os pedidos que ainda estão no sistema. Pedidos mais antigos ficam arquivados na planilha e não entram nesta soma (veja em Relatórios, "Outro mês").</div>
     <div style="max-height:220px;overflow-y:auto;">`;
   html += pedidos.map(v=>{
     const tipoIcone = v.tipoEntrega==='Entrega' ? '🛵 Entrega' : '🥡 Retirada';
@@ -358,7 +379,7 @@ function abrirPerfilCliente(clienteId){
     const premiosInd = (produtos||[]).filter(p=>p.ativo && p.premioIndicacao);
     if(indicou.some(i=>!i.resgatado)){
       html += premiosInd.length
-        ? `<div style="margin-top:8px;"><label>Prêmio da indicação:</label><select id="mPremioIndSel">${premiosInd.map(p=>`<option value="${p.id}">${escH(p.nome)}</option>`).join('')}</select><button class="small-gold" style="width:100%;margin-top:6px;" onclick="resgatarBrindeCliente_('Indicação')">🎁 Resgatar indicação</button></div>`
+        ? `<div class="mt-2"><label>Prêmio da indicação:</label><select id="mPremioIndSel">${premiosInd.map(p=>`<option value="${p.id}">${escH(p.nome)}</option>`).join('')}</select><button class="small-gold" style="width:100%;margin-top:6px;" onclick="resgatarBrindeCliente_('Indicação')">🎁 Resgatar indicação</button></div>`
         : `<div class="obs-line">Nenhum prêmio cadastrado. Fale com o gerente.</div>`;
     }
     html += `<button class="small-gold" onclick="abrirModalIndicado()">Indicou alguém</button></div>`;
@@ -369,7 +390,7 @@ function abrirPerfilCliente(clienteId){
     html += `</div><div class="info-line">${carimbos} de 10 marcas${fid&&fid.premios?(' · '+fid.premios+' prêmio(s) resgatado(s)'):''}</div>`;
     if(carimbos >= 10){
       html += premiosFid.length
-        ? `<div style="margin-top:8px;"><label>Prêmio:</label><select id="mPremioFidSel">${premiosFid.map(p=>`<option value="${p.id}">${escH(p.nome)}</option>`).join('')}</select><button class="small-gold" style="width:100%;margin-top:6px;" onclick="resgatarBrindeCliente_('Fidelidade')">🎁 Resgatar prêmio</button></div>`
+        ? `<div class="mt-2"><label>Prêmio:</label><select id="mPremioFidSel">${premiosFid.map(p=>`<option value="${p.id}">${escH(p.nome)}</option>`).join('')}</select><button class="small-gold" style="width:100%;margin-top:6px;" onclick="resgatarBrindeCliente_('Fidelidade')">🎁 Resgatar prêmio</button></div>`
         : `<div class="obs-line">Nenhum prêmio cadastrado. Fale com o gerente.</div><button class="small-gold" style="width:100%;margin-top:6px;" onclick="showMsg('mMsg','Nenhum prêmio cadastrado. Fale com o gerente.','warn')">Resgatar prêmio</button>`;
     }
     html += `<div class="btnrow"><button class="small-gold" style="flex:1;" onclick="adicionarMarcaModal()">+1 marca</button></div></div>`;
@@ -384,7 +405,7 @@ function abrirPerfilCliente(clienteId){
       let htmlFb = '<div class="modal-section"><h3>Feedbacks enviados</h3>';
       htmlFb += feedbacksDoCliente.length ? feedbacksDoCliente.map(f=>`<div class="notif-card">
           <div>${'★'.repeat(Math.max(0,Math.min(5,f.nota||0)))}${'☆'.repeat(5-Math.max(0,Math.min(5,f.nota||0)))} <span class="obs-line">${f.data}</span></div>
-          ${f.comentario?`<div style="margin-top:4px;">${escH(f.comentario)}</div>`:''}
+          ${f.comentario?`<div class="mt-1">${escH(f.comentario)}</div>`:''}
         </div>`).join('') : '<div class="notif-empty">Nenhum feedback enviado ainda.</div>';
       htmlFb += '</div>';
       boxFeedback.innerHTML = htmlFb;
@@ -413,9 +434,9 @@ async function salvarModalCliente(){
     } else { showMsg('mMsg', r.message, 'warn'); }
   } catch(e){ showMsg('mMsg','Não foi possível salvar.','warn'); }
 }
-function excluirModalCliente(){
+async function excluirModalCliente(){
   if(!modalClienteId) return;
-  if(!confirm('Excluir este cliente do cadastro? O histórico de promoções dele permanece registrado.')) return;
+  if(!await confirmarTxt_('Excluir este cliente do cadastro? O histórico de promoções dele permanece registrado.')) return;
   const executar = async (senha)=>{
     try{
       const r = await apiCall('excluirCliente', { id: modalClienteId, senhaAdminConfirmacao: senha||'' });
@@ -447,7 +468,7 @@ async function resgatarBrindeCliente_(tipo){
   const produtoId = (document.getElementById(selId)||{}).value;
   if(!produtoId){ showMsg('mMsg','Nenhum prêmio disponível.','warn'); return; }
   const p = produtos.find(x=>x.id===produtoId);
-  if(!confirm('Lançar "'+(p?p.nome:'brinde')+'" como prêmio?\n\nZera o cartão (ou marca a indicação) e baixa o estoque.')) return;
+  if(!await confirmarTxt_('Lançar "'+(p?p.nome:'brinde')+'" como prêmio?\n\nZera o cartão (ou marca a indicação) e baixa o estoque.', 'Lançar prêmio', false, 'Lançar prêmio')) return;
   const telefone = document.getElementById('mTelefone').value.trim();
   const ind = tipo==='Indicação' ? indicacoes.find(i=>normTel(i.telIndicador)===normTel(telefone) && !i.resgatado) : null;
   const telIndicado = ind ? ind.telIndicado : null;

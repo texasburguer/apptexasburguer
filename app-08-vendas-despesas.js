@@ -362,7 +362,7 @@ async function registrarAjusteUI(){
   if(motivo==='Outro' && !detalhe){ showMsg('ajMsg','Descreva o motivo no campo Detalhe.','warn'); return; }
   const v = vendas.find(x=>x.id===vendaId);
   if(v && valor > Number(v.valorTotal) + 0.001){ showMsg('ajMsg','O ajuste não pode ser maior que o valor da venda ('+formatarMoeda(v.valorTotal)+').','warn'); return; }
-  if(!confirm('Registrar '+tipo+' de '+formatarMoeda(valor)+'?'+(AJ_TIPOS_COM_SAIDA_.indexOf(tipo)!==-1?'\n\nSaída: '+saida+'.':''))) return;
+  if(!await confirmarTxt_('Registrar '+tipo+' de '+formatarMoeda(valor)+'?'+(AJ_TIPOS_COM_SAIDA_.indexOf(tipo)!==-1?'\n\nSaída: '+saida+'.':''))) return;
   _ajOcupado_ = true; const btn = document.getElementById('ajBtn'); btn.disabled = true;
   try{
     const r = await apiCall('registrarAjustePosVenda', { vendaId, tipo, valor, motivo, detalhe, saida });

@@ -19,7 +19,7 @@ function dataBr(iso){ try{ var d = new Date(iso); return d.toLocaleDateString('p
 function dataCurta(iso){ try{ var p = String(iso || '').slice(0, 10).split('-'); return p.length === 3 ? p[2] + '/' + p[1] + '/' + p[0] : ''; }catch(e){ return ''; } }
 function primeiroNome(n){ return String(n || '').trim().split(/\s+/)[0] || ''; }
 function foneBonito(d){ d = String(d || '').replace(/\D/g, ''); if(d.length === 11) return '(' + d.slice(0, 2) + ') ' + d.slice(2, 7) + '-' + d.slice(7); if(d.length === 10) return '(' + d.slice(0, 2) + ') ' + d.slice(2, 6) + '-' + d.slice(6); return d; }
-function toast(msg){ try{ alert(msg); }catch(e){} }
+function toast(msg){ try{ avisar(msg); }catch(e){} }
 
 /* ---------- sessão do cliente (separada da equipe) ---------- */
 function lerSessao(){ try{ return JSON.parse(localStorage.getItem(KEY) || 'null'); }catch(e){ return null; } }
@@ -106,7 +106,7 @@ window.contaFechar_ = fechar;
 
 function confirmar(titulo, texto, okTxt, perigo, extraHtml){
   return new Promise(function(res){
-    var h = cab(esc(titulo), 'contaConfirmModal', 'contaConfirmNao_()') + '<p class="sub" style="font-size:13.5px;">' + texto + '</p>' + (extraHtml || '') +
+    var h = cab(esc(titulo), 'contaConfirmModal', 'contaConfirmNao_()') + '<p class="sub fs-sm">' + texto + '</p>' + (extraHtml || '') +
       '<div class="ct-linha"><button type="button" class="ghost" onclick="contaConfirmNao_()">Cancelar</button><button type="button" class="' + (perigo ? 'ct-perigo' : 'small-gold') + '" onclick="contaConfirmSim_()">' + esc(okTxt || 'Confirmar') + '</button></div>';
     janela('contaConfirmModal', h, false);
     window.contaConfirmSim_ = function(){ fechar('contaConfirmModal'); res(true); };
@@ -177,7 +177,7 @@ window.contaAposPedido_ = function(){
 };
 function linhasProdutos(tipo, id, lista){
   return (lista || []).map(function(p){
-    return '<div class="ct-prod"><span>🎁 ' + esc(p.nome) + (p.descricao ? '<br><small style="color:var(--muted);">' + esc(p.descricao) + '</small>' : '') + '</span><button type="button" class="small-gold" onclick="contaEscolherBrinde_(\'' + tipo + '\',\'' + esc(id || '') + '\',\'' + esc(p.id) + '\')">Escolher</button></div>';
+    return '<div class="ct-prod"><span>🎁 ' + esc(p.nome) + (p.descricao ? '<br><small class="txt-muted">' + esc(p.descricao) + '</small>' : '') + '</span><button type="button" class="small-gold" onclick="contaEscolherBrinde_(\'' + tipo + '\',\'' + esc(id || '') + '\',\'' + esc(p.id) + '\')">Escolher</button></div>';
   }).join('');
 }
 window.contaBotao_ = function(){
@@ -188,10 +188,10 @@ window.contaBotao_ = function(){
 
 function abrirEntrar(){
   var h = cab('Entre na sua conta', 'contaEntrarModal') +
-    '<p class="sub" style="font-size:13.5px;">Com a conta você pode:</p>' +
+    '<p class="sub fs-sm">Com a conta você pode:</p>' +
     '<ul class="ct-lista"><li>📦 ver seus pedidos e <b>repetir</b> com um toque</li><li>🎟️ receber <b>cupons</b> exclusivos</li><li>⭐ acompanhar seu <b>cartão fidelidade</b></li><li>📍 guardar seus endereços</li><li>🎁 indicar amigos e ganhar</li></ul>' +
     '<button type="button" class="ct-google" onclick="contaGoogle_(\'conta\')"><span class="ct-g">G</span> Continuar com o Google</button>' +
-    '<p class="sub" style="margin-top:10px;font-size:12px;">É opcional: você continua podendo pedir <b>sem conta</b>. Ao continuar, você lê e aceita o <a href="#" onclick="abrirAvisoPrivacidade();return false;" style="color:var(--gold);">Aviso de Privacidade</a>.</p>';
+    '<p class="sub mt-3 fs-xs">É opcional: você continua podendo pedir <b>sem conta</b>. Ao continuar, você lê e aceita o <a href="#" onclick="abrirAvisoPrivacidade();return false;" class="txt-ouro">Aviso de Privacidade</a>.</p>';
   janela('contaEntrarModal', h);
 }
 window.contaGoogle_ = function(abrir){ entrarGoogle(typeof abrir === 'string' ? abrir : ''); };
@@ -234,11 +234,11 @@ async function sincronizarHistorico(){
 function abrirAceite(r){
   var c = r.conta || {};
   var h = cab('Criar minha conta', 'contaAceiteModal', 'contaAceiteCancelar_()') +
-    '<p class="sub" style="font-size:13px;">Falta só confirmar alguns dados. Seu e-mail: <b>' + esc(c.email || '') + '</b></p>' +
+    '<p class="sub fs-sm">Falta só confirmar alguns dados. Seu e-mail: <b>' + esc(c.email || '') + '</b></p>' +
     '<label for="ctNome">Como podemos te chamar? *</label><input type="text" id="ctNome" maxlength="80" value="' + esc(c.nome || '') + '" autocomplete="name">' +
     '<label for="ctNasc">Data de nascimento (opcional)</label><input type="date" id="ctNasc" value="' + esc(c.nascimento || '') + '">' +
-    '<p class="sub" style="font-size:11.5px;margin:4px 0 10px;">Usamos só para te dar um presente no aniversário, se o restaurante tiver essa promoção.</p>' +
-    '<label class="ct-check"><input type="checkbox" id="ctAceito"> <span>Li e aceito o <a href="#" onclick="abrirAvisoPrivacidade();return false;" style="color:var(--gold);">Aviso de Privacidade</a>. *</span></label>' +
+    '<p class="sub" style="font-size:12px;margin:4px 0 10px;">Usamos só para te dar um presente no aniversário, se o restaurante tiver essa promoção.</p>' +
+    '<label class="ct-check"><input type="checkbox" id="ctAceito"> <span>Li e aceito o <a href="#" onclick="abrirAvisoPrivacidade();return false;" class="txt-ouro">Aviso de Privacidade</a>. *</span></label>' +
     '<label class="ct-check"><input type="checkbox" id="ctPromo"> <span>Quero receber novidades e promoções do restaurante (opcional — você pode mudar quando quiser).</span></label>' +
     '<div id="ctAceiteMsg" class="msg"></div>' +
     '<button type="button" class="primary" id="ctAceiteBtn" onclick="contaAceitar_()">Criar minha conta</button>' +
@@ -293,7 +293,7 @@ function abrirConta(aba){
   if(!estado.conta) return;
   if(aba) estado.aba = aba;
   var h = cab('Minha conta', 'contaModal') +
-    '<p class="sub" style="margin-bottom:8px;">Olá, <b>' + esc(primeiroNome(estado.conta.nome) || 'cliente') + '</b> · ' + esc(estado.conta.email || '') + '</p>' +
+    '<p class="sub mb-2">Olá, <b>' + esc(primeiroNome(estado.conta.nome) || 'cliente') + '</b> · ' + esc(estado.conta.email || '') + '</p>' +
     '<div class="ct-abas" id="ctAbas">' + ABAS.map(function(a){ return '<button type="button" data-aba="' + a[0] + '" class="' + (a[0] === estado.aba ? 'on' : '') + '" onclick="contaAba_(\'' + a[0] + '\')">' + a[1] + '</button>'; }).join('') + '</div>' +
     '<div id="ctCorpo" class="ct-corpo"></div>';
   janela('contaModal', h);
@@ -326,7 +326,7 @@ async function abaPedidos(){
   var r = await rpc('api_conta_pedidos', {}); if(!r.ok) return erroAba(r);
   estado.pedidos = r.pedidos || [];
   if(!estado.pedidos.length) return '<p class="sub">Você ainda não fez pedidos com esta conta. Quando fizer, eles aparecem aqui — e dá para repetir com um toque.</p>';
-  var aviso = estado.conta.vinculada ? '' : '<p class="sub" style="font-size:11.5px;">Pedidos de antes da conta aparecem aqui depois do seu primeiro pedido concluído com ela.</p>';
+  var aviso = estado.conta.vinculada ? '' : '<p class="sub fs-2xs">Pedidos de antes da conta aparecem aqui depois do seu primeiro pedido concluído com ela.</p>';
   return aviso + estado.pedidos.map(function(p, i){
     var itens = (p.itens || []).map(function(x){ return esc(x.quantidade) + '× ' + esc(x.descricao); }).join('<br>');
     var ativo = ['Recebido', 'Em preparo', 'Pronta', 'Saiu para entrega', 'Suspenso'].indexOf(p.status) !== -1;
@@ -342,7 +342,7 @@ function blocoFeedback(p, i){
   if(f){
     return '<div class="ct-fb"><div><b>Seu feedback</b> <span class="ct-estrelas">' + estrelas(f.nota) + '</span></div>' +
       (f.comentario ? '<div class="sub" style="font-size:12.5px;margin-top:2px;">' + esc(f.comentario) + '</div>' : '') +
-      (f.resposta ? '<div class="ct-resp"><b>💬 Resposta do restaurante</b><br>' + esc(f.resposta) + '</div>' : '<div class="sub" style="font-size:11.5px;margin-top:2px;">Obrigado! O restaurante já recebeu.</div>') + '</div>';
+      (f.resposta ? '<div class="ct-resp"><b>💬 Resposta do restaurante</b><br>' + esc(f.resposta) + '</div>' : '<div class="sub" style="font-size:12px;margin-top:2px;">Obrigado! O restaurante já recebeu.</div>') + '</div>';
   }
   return '';
 }
@@ -409,7 +409,7 @@ async function abaCupons(){
   function card(c, rec){
     return '<div class="ct-card"><div class="ct-cab"><b>' + esc(c.nome) + '</b><span class="ct-cod">' + esc(c.codigo) + '</span></div><div class="sub" style="margin:2px 0 4px;font-size:12.5px;">' + esc(textoBeneficio(c)) + '</div>' +
       (c.mensagem ? '<div class="ct-msg">' + esc(c.mensagem) + '</div>' : '') +
-      (c.validoAte ? '<div class="sub" style="font-size:11.5px;">' + (rec ? 'Vale até ' : 'Até ') + esc(dataCurta(c.validoAte)) + '</div>' : '') +
+      (c.validoAte ? '<div class="sub fs-2xs">' + (rec ? 'Vale até ' : 'Até ') + esc(dataCurta(c.validoAte)) + '</div>' : '') +
       '<div class="ct-linha"><button type="button" class="small-gold" onclick="contaUsarCupom_(\'' + esc(c.codigo) + '\')">Usar no pedido</button></div></div>';
   }
   var h = '<h3 class="ct-h3">Cupons que você recebeu</h3>' + (r.recebidos.length ? r.recebidos.map(function(c){ return card(c, true); }).join('') : '<p class="sub">Nenhum por enquanto.</p>');
@@ -436,7 +436,7 @@ async function abaFidelidade(){
   }
   return '<div class="ct-fid"><div class="ct-cab"><b>Cartão fidelidade</b><span>' + n + ' de ' + FID_META + ' marcas</span></div><div class="punch">' + bolas + '</div>' +
     (n < FID_META ? '<p class="sub" style="margin:2px 0 0;font-size:12.5px;">Faltam <b>' + (FID_META - n) + '</b> para o seu prêmio.</p>' : '') + prem +
-    (Number(r.premios) > 0 ? '<p class="sub" style="font-size:12px;">Prêmios já resgatados: ' + esc(r.premios) + '</p>' : '') + '</div>';
+    (Number(r.premios) > 0 ? '<p class="sub fs-xs">Prêmios já resgatados: ' + esc(r.premios) + '</p>' : '') + '</div>';
 }
 
 /* Endereços */
@@ -447,7 +447,7 @@ async function abaEnderecos(){
     return '<div class="ct-card"><div class="ct-cab"><b>' + esc(e.apelido || 'Endereço') + '</b></div><div class="sub" style="margin:2px 0 6px;font-size:12.5px;">' + esc([e.endereco + (e.numero ? ', nº ' + e.numero : ''), e.cidade, e.complemento, e.referencia ? 'Ref.: ' + e.referencia : ''].filter(Boolean).join(' — ')) + '</div>' +
       '<div class="ct-linha"><button type="button" class="ghost" onclick="contaEditarEnd_(' + i + ')">Editar</button><button type="button" class="ghost" onclick="contaExcluirEnd_(' + i + ')">Excluir</button></div></div>';
   }).join('') : '<p class="sub">Nenhum endereço guardado.</p>';
-  if(estado.enderecos.length < 5) h += '<button type="button" class="small-gold" style="margin-top:6px;" onclick="contaEditarEnd_(-1)">+ Novo endereço</button>';
+  if(estado.enderecos.length < 5) h += '<button type="button" class="small-gold mt-2" onclick="contaEditarEnd_(-1)">+ Novo endereço</button>';
   return h;
 }
 window.contaEditarEnd_ = function(i){
@@ -489,7 +489,7 @@ async function abaIndique(){
     '<div class="ct-linha"><button type="button" class="ghost" onclick="contaCopiarLink_()">Copiar link</button><button type="button" class="small-gold" onclick="contaZapLink_()">Enviar no WhatsApp</button></div></div>';
   if(temPremio && (b.indicacao || []).length){
     h += '<h3 class="ct-h3">Seus brindes de indicação</h3>' + b.indicacao.map(function(x, k){
-      return '<div class="ct-brinde"><b>🎁 Brinde ' + (k + 1) + '</b> <span class="sub" style="font-size:11.5px;">desde ' + esc(dataCurta(x.desde)) + '</span><p class="sub" style="font-size:12px;margin:4px 0 6px;">Vai junto com um pedido ou sozinho. Sai grátis; a entrega, se houver, é cobrada.</p>' + linhasProdutos('Indicação', x.id, b.produtosInd) + '</div>';
+      return '<div class="ct-brinde"><b>🎁 Brinde ' + (k + 1) + '</b> <span class="sub fs-2xs">desde ' + esc(dataCurta(x.desde)) + '</span><p class="sub" style="font-size:12px;margin:4px 0 6px;">Vai junto com um pedido ou sozinho. Sai grátis; a entrega, se houver, é cobrada.</p>' + linhasProdutos('Indicação', x.id, b.produtosInd) + '</div>';
     }).join('');
   }
   return h;
@@ -510,11 +510,11 @@ function abaDados(){
   var c = estado.conta || {};
   return '<label for="ctDNome">Nome</label><input type="text" id="ctDNome" maxlength="80" value="' + esc(c.nome || '') + '">' +
     '<label for="ctDNasc">Data de nascimento</label><input type="date" id="ctDNasc" value="' + esc(c.nascimento || '') + '"' + (c.nascimentoEditavel || !c.nascimento ? '' : ' disabled') + '>' +
-    (c.nascimento && !c.nascimentoEditavel ? '<p class="sub" style="font-size:11.5px;margin:2px 0 6px;">Só pode ser alterada uma vez a cada 6 meses.</p>' : '') +
+    (c.nascimento && !c.nascimentoEditavel ? '<p class="sub" style="font-size:12px;margin:2px 0 6px;">Só pode ser alterada uma vez a cada 6 meses.</p>' : '') +
     '<label>Telefone</label><input type="text" value="' + esc(c.telefone ? foneBonito(c.telefone) : 'Aparece depois do seu primeiro pedido concluído') + '" disabled>' +
     '<label class="ct-check"><input type="checkbox" id="ctDPromo"' + (c.promoOk ? ' checked' : '') + '> <span>Quero receber novidades e promoções</span></label>' +
     '<div id="ctDMsg" class="msg"></div><button type="button" class="primary" onclick="contaSalvarDados_()">Salvar</button>' +
-    '<h3 class="ct-h3" style="margin-top:16px;">Privacidade</h3>' +
+    '<h3 class="ct-h3 mt-4">Privacidade</h3>' +
     '<div class="ct-linha ct-col"><button type="button" class="ghost" onclick="abrirAvisoPrivacidade()">📄 Ler o Aviso de Privacidade</button><button type="button" class="ghost" onclick="contaBaixarDados_()">📥 Baixar meus dados</button>' +
     '<button type="button" class="ghost" onclick="contaSairBotao_()">↪️ Sair da conta</button><button type="button" class="ct-perigo" onclick="contaApagar_()">🗑️ Apagar minha conta</button></div>';
 }
@@ -554,7 +554,7 @@ function montarBrindesCheckout(){
   if((b.produtosInd || []).length) (b.indicacao || []).forEach(function(x, k){ linhas.push('<label>🎁 Brinde de indicação' + ((b.indicacao || []).length > 1 ? ' ' + (k + 1) : '') + ' — escolha seu prêmio</label>' + opcoes('Indicação', x.id, b.produtosInd)); });
   if(!linhas.length) return;
   var d = document.createElement('div'); d.id = 'cdContaBrindes'; d.className = 'cd-hide-mesa';
-  d.innerHTML = linhas.join('') + '<p class="sub" style="font-size:11.5px;margin:6px 0 0;">O brinde sai grátis e a entrega continua sendo cobrada.</p>';
+  d.innerHTML = linhas.join('') + '<p class="sub" style="font-size:12px;margin:6px 0 0;">O brinde sai grátis e a entrega continua sendo cobrada.</p>';
   f.insertBefore(d, f.firstChild);
 }
 function limparCheckout(){ var z = $('cdContaBrindes'); if(z) z.remove(); var a = $('cdContaChamada'); if(a) a.remove(); var b = $('cdContaCupons'); if(b) b.remove(); var c = $('cdContaEndBox'); if(c) c.remove(); }
@@ -587,7 +587,7 @@ window.contaPreencherCheckout_ = async function(){
   var linhaCupom = document.querySelector('#cdCarrinhoModal .row2.cd-hide-mesa');
   if(cup.length && linhaCupom && !$('cdContaCupons')){
     var w = document.createElement('div'); w.id = 'cdContaCupons'; w.className = 'ct-chips cd-hide-mesa';
-    w.innerHTML = '<span class="sub" style="font-size:11.5px;">Seus cupons:</span> ' + cup.map(function(c){ return '<button type="button" class="ct-chip" onclick="contaAplicarCupom_(\'' + esc(c.codigo) + '\')">🎟️ ' + esc(c.codigo) + '</button>'; }).join('');
+    w.innerHTML = '<span class="sub fs-2xs">Seus cupons:</span> ' + cup.map(function(c){ return '<button type="button" class="ct-chip" onclick="contaAplicarCupom_(\'' + esc(c.codigo) + '\')">🎟️ ' + esc(c.codigo) + '</button>'; }).join('');
     linhaCupom.parentNode.insertBefore(w, linhaCupom);
   }
   if(cupomPend) window.contaAplicarCupom_(cupomPend);

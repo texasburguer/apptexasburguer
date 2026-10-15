@@ -785,7 +785,7 @@ function mostrarManutencao_(msg){
   if(!ov){
     ov = document.createElement('div'); ov.id = 'manutencaoOverlay';
     ov.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(11,7,5,.97);display:flex;align-items:center;justify-content:center;text-align:center;padding:24px;';
-    ov.innerHTML = '<div style="max-width:360px;"><div style="font-size:48px;">🛠️</div><h2 style="margin:10px 0 6px;color:var(--gold);">Sistema em manutenção</h2><p style="color:var(--cream);margin:0 0 8px;">Estamos restaurando os dados. Aguarde alguns minutos.</p><p style="color:var(--muted);font-size:13px;margin:0;">Nada foi perdido. Esta tela some sozinha quando terminar.</p></div>';
+    ov.innerHTML = '<div style="max-width:360px;"><div style="font-size:48px;">🛠️</div><h2 style="margin:10px 0 6px;color:var(--gold);">Sistema em manutenção</h2><p style="color:var(--cream);margin:0 0 8px;">Estamos restaurando os dados. Aguarde alguns minutos.</p><p class="txt-muted fs-sm sem-margem">Nada foi perdido. Esta tela some sozinha quando terminar.</p></div>';
     document.body.appendChild(ov);
   }
   ov.style.display = 'flex';
@@ -805,7 +805,7 @@ async function _apiCallRaw(action, payload, _tentativa, _idemChave){
   if(RESERVA_INDISPONIVEL_[action] && typeof _sb5Reserva_ !== 'undefined' && _sb5Reserva_) return { ok:false, reserva:true, message:'Modo reserva: "' + RESERVA_INDISPONIVEL_[action] + '" fica indisponível até o Supabase voltar. Nada foi gravado.' };
   if(currentUser && currentUser.emergencia) throw new Error('Modo emergência: este aparelho não fala com a planilha principal'); // BLOCO 1.3 (age como falha de rede: nada é gravado nem apagado)
   payload = payload || {};
-  if(USAR_SUPABASE_){ const _rsb = await sbRotear_(action, payload); if(_rsb !== undefined){ if(_rsb && _rsb.sessaoExpirada){ try{ _fila.forEach(i=>{ if(i.estado==='pendente' || i.estado==='retry' || i.estado==='enviando'){ i.estado='erro'; i.erro='Sessão expirada — entre de novo e toque em "Tentar de novo"'; } }); filaSalvar_(); }catch(e){} localStorage.removeItem(SESSAO_KEY); localStorage.removeItem(CONTINGENCIA_CHAVE_KEY); localStorage.removeItem(CACHE_KEY); currentUser = null; alert('Sua sessão expirou. Faça login novamente.'); location.reload(); } if(_rsb && (_rsb.conflito || _rsb.duplicado)) atualizarAposDuplicado_(); else if(_rsb && _rsb.ok === true && SB_REFRESH_APOS_.has(action)) setTimeout(atualizarAposDuplicado_, 400); return _rsb; } }
+  if(USAR_SUPABASE_){ const _rsb = await sbRotear_(action, payload); if(_rsb !== undefined){ if(_rsb && _rsb.sessaoExpirada){ try{ _fila.forEach(i=>{ if(i.estado==='pendente' || i.estado==='retry' || i.estado==='enviando'){ i.estado='erro'; i.erro='Sessão expirada — entre de novo e toque em "Tentar de novo"'; } }); filaSalvar_(); }catch(e){} localStorage.removeItem(SESSAO_KEY); localStorage.removeItem(CONTINGENCIA_CHAVE_KEY); localStorage.removeItem(CACHE_KEY); currentUser = null; avisar('Sua sessão expirou. Faça login novamente.'); location.reload(); } if(_rsb && (_rsb.conflito || _rsb.duplicado)) atualizarAposDuplicado_(); else if(_rsb && _rsb.ok === true && SB_REFRESH_APOS_.has(action)) setTimeout(atualizarAposDuplicado_, 400); return _rsb; } }
   // O caminho antigo (envio direto para a planilha) foi retirado: com o Supabase ligado, sbRotear_ sempre responde.
   return { ok:false, naoMigrada:true, message: SB_NAO_MIGRADA_ };
 }
@@ -969,7 +969,7 @@ async function emergenciaTentarEntrar_(login, senha){
     return 'senha';
   }
   try{ localStorage.removeItem(EMERGENCIA_FALHAS_KEY_); }catch(e){}
-  if(!confirm('O servidor (Supabase) está fora do ar.\n\nEntrar em MODO EMERGÊNCIA como ' + rec.login + '?\n\n• Só dá para registrar vendas do Caixa (retirada/entrega, sem desconto), pela contingência.\n• Preços e produtos são os da última vez que este aparelho falou com o servidor.\n• Quando o servidor voltar, o app pede seu login de novo.')) return 'cancelou';
+  if(!await confirmarTxt_('O servidor (Supabase) está fora do ar.\n\nEntrar em MODO EMERGÊNCIA como ' + rec.login + '?\n\n• Só dá para registrar vendas do Caixa (retirada/entrega, sem desconto), pela contingência.\n• Preços e produtos são os da última vez que este aparelho falou com o servidor.\n• Quando o servidor voltar, o app pede seu login de novo.', 'Entrar em emergência', false, 'Servidor fora do ar')) return 'cancelou';
   localStorage.setItem(CONTINGENCIA_CHAVE_KEY, o.chave);
   currentUser = { login: rec.login, nivel: rec.nivel, token: '', emergencia: true }; // nunca vai para o SESSAO_KEY: recarregar a página exige entrar de novo
   entrarNoApp();
@@ -987,8 +987,7 @@ function emergenciaBanner_(txt){
 function emergenciaEncerrar_(){
   try{ localStorage.removeItem(CONTINGENCIA_CHAVE_KEY); }catch(e){}
   currentUser = null;
-  alert('O servidor voltou. Por segurança, entre de novo com seu login e senha.');
-  location.reload();
+  confirmar({ titulo:'O servidor voltou', texto:'Por segurança, entre de novo com seu login e senha.', ok:'Entrar de novo', somenteOk:true }).then(()=>location.reload());
 }
 /* a cada 30 s pergunta à planilha (ação pública, sem sessão) se ela voltou; com carrinho em andamento só avisa e espera a venda terminar */
 let _emergVigiaTimer_ = null;
@@ -1192,16 +1191,16 @@ async function confirmarTrocarSenha(){
 }
 async function sair(){
   if(sessaoCaixa){
-    if(!confirm('O caixa ainda está aberto. Tem certeza que quer sair?')) return;
+    if(!await confirmarTxt_('O caixa ainda está aberto. Tem certeza que quer sair?', 'Sair mesmo assim', true, 'Caixa aberto')) return;
   }
   /* A fila offline fica neste aparelho (cadastro de cliente, fidelidade, feedback e ocorrência que ainda não chegaram à planilha).
      Antes de sair, oferece enviar; se não der, deixa o funcionário escolher entre sair mesmo assim ou ficar. */
   if(typeof _fila !== 'undefined' && _fila.length){
-    if(confirm('Há ' + _fila.length + ' item(ns) salvo(s) neste aparelho que ainda não chegaram ao servidor.\n\nTentar enviar agora antes de sair?')){
+    if(await confirmarTxt_('Há ' + _fila.length + ' item(ns) salvo(s) neste aparelho que ainda não chegaram ao servidor.\n\nTentar enviar agora antes de sair?', 'Enviar agora', false, 'Itens sem enviar', 'Não enviar')){
       try{ await filaProcessar(); }catch(e){}
       filaRenderLista_();
     }
-    if(_fila.length && !confirm('Ainda há ' + _fila.length + ' item(ns) sem enviar.\n\nSe sair agora, eles ficam guardados neste aparelho e só serão enviados quando alguém entrar nele de novo (aparecem no botão "na fila").\n\nSair mesmo assim?')) return;
+    if(_fila.length && !await confirmarTxt_('Ainda há ' + _fila.length + ' item(ns) sem enviar.\n\nSe sair agora, eles ficam guardados neste aparelho e só serão enviados quando alguém entrar nele de novo (aparecem no botão "na fila").\n\nSair mesmo assim?', 'Sair mesmo assim', true, 'Itens ainda na fila')) return;
   }
   rtParar_();
   if(currentUser && currentUser.token) apiCall('encerrarSessao', {}).catch(()=>{});

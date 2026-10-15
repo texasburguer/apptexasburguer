@@ -25,7 +25,7 @@ async function mudarStatusMesa(id, novoStatus){
   catch(e){ showMsg('mesaMsg','Não foi possível atualizar.','warn'); }
 }
 async function excluirMesaConfirm(id){
-  if(!confirm('Excluir esta mesa?')) return;
+  if(!await confirmarTxt_('Excluir esta mesa?')) return;
   try{ const r = await apiCall('excluirMesa', { id }); if(r.ok){ mesas = r.mesas || mesas; salvarCache(); renderMesas(); renderMesasPickerCaixa(); } else showMsg('mesaMsg', r.message, 'warn'); }
   catch(e){ showMsg('mesaMsg','Não foi possível excluir.','warn'); }
 }
@@ -78,11 +78,11 @@ function renderSessoes_(lista){
       <div><b>${escH(x.login)}</b> <span class="obs-line">${escH(x.nivel)}${x.atual?' · esta sessão':''}</span></div>
       <div class="obs-line">${escH(x.ua||'aparelho não informado')}${x.ip?' · IP '+escH(x.ip):''}${x.deviceId?' · id '+escH(x.deviceId):''}</div>
       <div class="obs-line">Entrou ${escH(x.criadaEm)} · visto ${escH(x.vistoEm)}</div>
-      ${x.atual?'':`<div class="btnrow" style="margin-top:8px;"><button class="ghost" data-sess-encerrar="${escH(x.sessaoId)}">Encerrar</button></div>`}
+      ${x.atual?'':`<div class="btnrow mt-2"><button class="ghost" data-sess-encerrar="${escH(x.sessaoId)}">Encerrar</button></div>`}
     </div>`).join('');
 }
 async function encerrarSessaoRemotaUI_(sessaoId){
-  if(!confirm('Encerrar esta sessão? O aparelho será desconectado.')) return;
+  if(!await confirmarTxt_('Encerrar esta sessão? O aparelho será desconectado.')) return;
   try{
     const r = await apiCall('encerrarSessaoRemota', { sessaoId });
     showMsg('sessMsg', (r && r.message) || (r && r.ok ? 'Sessão encerrada.' : 'Não foi possível encerrar.'), r && r.ok ? 'ok' : 'warn');
@@ -113,7 +113,7 @@ async function carregarSaude_(){
 setInterval(()=>{ try{ const n = currentUser && currentUser.nivel; if((n==='Admin'||n==='Desenvolvedor') && !document.hidden) carregarSaude_(); }catch(e){} }, 300000);
 async function carregarAuditoria_(){
   const box = document.getElementById('logLista'); if(!box) return;
-  box.innerHTML = '<div class="notif-empty">Carregando…</div>';
+  box.innerHTML = (typeof esqueletoLista_ === 'function') ? esqueletoLista_(3) : '<div class="notif-empty">Carregando…</div>';
   try{
     const r = await apiCall('listarAuditoria', { dias: Number(document.getElementById('audDias').value)||30, busca: document.getElementById('audBusca').value });
     if(!r || !r.ok){ box.innerHTML = '<div class="notif-empty">' + escH((r && r.message) || 'Não foi possível carregar agora.') + '</div>'; return; }
@@ -144,16 +144,16 @@ function renderContas_(){
   box.innerHTML = contasLista_.map(c=>`<div class="notif-card">
       <div><b>${escH(c.servico)}</b></div>
       ${c.email?`<div class="obs-line">📧 ${escH(c.email)} <button class="ghost" style="width:auto;padding:4px 10px;min-height:32px;margin-left:6px;" onclick="contaCopiar_(this,'${escH(c.email).replace(/'/g,'&#39;')}')">Copiar</button></div>`:''}
-      ${c.link?`<div class="obs-line" style="overflow-wrap:anywhere;">🔗 <a href="${escH(c.link)}" target="_blank" rel="noopener noreferrer" title="${escH(c.link)}" style="color:var(--gold);">Abrir ${escH(contaHost_(c.link))}</a></div>`:''}
+      ${c.link?`<div class="obs-line" style="overflow-wrap:anywhere;">🔗 <a href="${escH(c.link)}" target="_blank" rel="noopener noreferrer" title="${escH(c.link)}" class="txt-ouro">Abrir ${escH(contaHost_(c.link))}</a></div>`:''}
       ${c.temSenha?`<div class="obs-line">🔑 <span id="ctSenhaVer_${c.id}">••••••••</span> <button class="ghost" style="width:auto;padding:4px 10px;min-height:32px;margin-left:6px;" onclick="verSenhaConta_('${c.id}')">Ver senha</button></div>`:''}
       ${c.observacao?`<div class="obs-line">${escH(c.observacao)}</div>`:''}
-      <div class="btnrow" style="margin-top:8px;"><button class="ghost" onclick="abrirContaModal_('${c.id}')">Editar</button><button class="ghost" onclick="excluirContaUI_('${c.id}')">Excluir</button></div>
+      <div class="btnrow mt-2"><button class="ghost" onclick="abrirContaModal_('${c.id}')">Editar</button><button class="ghost" onclick="excluirContaUI_('${c.id}')">Excluir</button></div>
     </div>`).join('');
 }
 function contaHost_(u){ try{ return new URL(u).host.replace(/^www\./,''); }catch(e){ return ''; } }
 function contaCopiar_(btn, txt){
   const t = document.createElement('textarea'); t.innerHTML = txt; const v = t.value;
-  (navigator.clipboard ? navigator.clipboard.writeText(v) : Promise.reject()).then(()=>{ btn.textContent = 'Copiado'; setTimeout(()=>btn.textContent='Copiar', 1500); }).catch(()=>{ prompt('Copie:', v); });
+  (navigator.clipboard ? navigator.clipboard.writeText(v) : Promise.reject()).then(()=>{ btn.textContent = 'Copiado'; setTimeout(()=>btn.textContent='Copiar', 1500); }).catch(()=>{ vsForm({ titulo:'Copie o valor', campos:[{ id:'v', rotulo:'Toque e segure para copiar', tipo:'texto', valor:v, max:2000 }], ok:'Fechar' }); });
 }
 function abrirContaModal_(id){
   const c = contasLista_.find(x=>x.id===id) || null;
@@ -184,7 +184,7 @@ async function salvarContaUI_(){
 }
 async function excluirContaUI_(id){
   const c = contasLista_.find(x=>x.id===id); if(!c) return;
-  if(!confirm('Excluir a conta "' + c.servico + '"' + (c.temSenha ? ' e a senha guardada dela' : '') + '?')) return;
+  if(!await confirmarTxt_('Excluir a conta "' + c.servico + '"' + (c.temSenha ? ' e a senha guardada dela' : '') + '?')) return;
   try{
     const r = await apiCall('excluirConta', { id });
     if(r && r.ok){ contasLista_ = r.contas || contasLista_.filter(x=>x.id!==id); renderContas_(); showMsg('contasMsg', r.message || 'Conta excluída.', 'ok'); }
@@ -233,12 +233,12 @@ function renderChavesIa_(){
         : (info.extra ? `<div class="obs-line">Sem chave: esta IA fica fora do circuito até você cadastrar a chave.</div>` : `<div class="obs-line">⚠️ Sem chave cadastrada: esta IA não funciona.</div>`)}
       ${info.dica?`<div class="obs-line">${escH(info.dica)}</div>`:''}
       ${c.descansando?`<div class="obs-line">😴 Descansando: deu erros agora há pouco; o sistema usa as outras IAs e tenta de novo sozinho.</div>`:''}
-      ${info.link?`<div class="obs-line">🔗 <a href="${info.link}" target="_blank" rel="noopener noreferrer" style="color:var(--gold);">Onde pegar uma chave nova</a></div>`:''}
-      <div class="btnrow" style="margin-top:8px;"><button class="ghost" onclick="abrirChaveIaModal_('${c.provedor}')">Trocar chave</button>${c.temChave?`<button class="ghost" onclick="testarChaveIa_('${c.provedor}','testeIa_${c.provedor}',this)">🧪 Testar</button>`:''}</div>
+      ${info.link?`<div class="obs-line">🔗 <a href="${info.link}" target="_blank" rel="noopener noreferrer" class="txt-ouro">Onde pegar uma chave nova</a></div>`:''}
+      <div class="btnrow mt-2"><button class="ghost" onclick="abrirChaveIaModal_('${c.provedor}')">Trocar chave</button>${c.temChave?`<button class="ghost" onclick="testarChaveIa_('${c.provedor}','testeIa_${c.provedor}',this)">🧪 Testar</button>`:''}</div>
       <div class="obs-line" id="testeIa_${c.provedor}"></div>
     </div>`; }).join('') || '<div class="notif-empty">Nenhuma IA configurada.</div>';
   const eb = document.getElementById('iaExtrasBox');
-  if(eb) eb.innerHTML = `<div class="notif-card"><label style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;"><input type="checkbox" id="iaExtrasPub" ${iaExtrasPublico_?'checked':''} onchange="salvarIaExtras_(this.checked)" style="width:auto;margin-top:4px;"> <span><b>Usar as IAs de reserva também no atendimento ao cliente (cardápio)</b><div class="obs-line">Deixe desligado até confirmar os termos de privacidade de cada provedor: as conversas dos clientes passariam por ele. Desligado, NVIDIA e Cloudflare atendem só o uso interno (equipe).</div></span></label></div>`;
+  if(eb) eb.innerHTML = `<div class="notif-card"><label style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;"><input type="checkbox" id="iaExtrasPub" ${iaExtrasPublico_?'checked':''} onchange="salvarIaExtras_(this.checked)" class="largura-auto mt-1"> <span><b>Usar as IAs de reserva também no atendimento ao cliente (cardápio)</b><div class="obs-line">Deixe desligado até confirmar os termos de privacidade de cada provedor: as conversas dos clientes passariam por ele. Desligado, NVIDIA e Cloudflare atendem só o uso interno (equipe).</div></span></label></div>`;
 }
 /* Teste de cada IA (só Admin/Desenvolvedor): faz uma pergunta mínima ao provedor e mostra se respondeu. Não gasta a cota das consultas. */
 const TESTE_IA_MOTIVO_ = { sem_chave:'Sem chave cadastrada.', sem_conta:'Falta o Account ID da Cloudflare.', http_400:'O provedor recusou o pedido (confira o modelo configurado).', http_401:'Chave recusada (errada, expirada ou sem permissão). Troque a chave.', http_403:'Chave sem permissão para usar a IA. Confira as permissões da chave.', http_404:'Endereço ou modelo não encontrado nesse provedor.', http_429:'Limite do plano gratuito atingido agora. Tente mais tarde.', http_503:'Serviço/modelo temporariamente indisponível. Tente novamente.', rede_ou_timeout:'Sem resposta do provedor no tempo esperado.', vazio:'O provedor respondeu, mas vazio.', erro:'Erro inesperado.' };
@@ -418,7 +418,7 @@ function integCardHtml_(it, inf){
     ${fo ? sec('⚙️ Ajustes', opcoes) : ''}
     ${fo ? sec('🔗 Ligar os itens aos produtos', ifoodExtraHtml_(it, 'setup'), 'Cada item do iFood precisa estar ligado a um produto seu.') : ''}
     ${sec('🔌 Ligar ou desligar', `<div class="btnrow">${integBotoes_(it)}</div>${(!it.ligado && !it.podeLigar)?`<div class="obs-line">Ainda falta: ${escH((it.pendencias||[]).join('; '))}</div>`:''}`, 'Pede a sua senha de administrador. Dá para desligar a qualquer momento.')}
-    ${sec('📊 No dia a dia', (nf ? fiscalExtraHtml_(it, 'dia') : ifoodExtraHtml_(it, 'dia')) + `<div class="btnrow" style="margin-top:8px;"><button class="ghost" onclick="verLogInteg_('${it.provedor}')">Ver registro</button></div><div id="integLog_${it.provedor}"></div>`, it.ligado ? '' : 'Só funciona depois que estiver ligado.')}
+    ${sec('📊 No dia a dia', (nf ? fiscalExtraHtml_(it, 'dia') : ifoodExtraHtml_(it, 'dia')) + `<div class="btnrow mt-2"><button class="ghost" onclick="verLogInteg_('${it.provedor}')">Ver registro</button></div><div id="integLog_${it.provedor}"></div>`, it.ligado ? '' : 'Só funciona depois que estiver ligado.')}
   </div>`;
 }
 function renderIntegracoes_(){
@@ -465,11 +465,11 @@ function verIntegSegredo_(chave){
     }catch(e){ showMsg(integMsgId_(),'Sem conexão.','warn'); }
   });
 }
-function ligarInteg_(prov, modo){
+async function ligarInteg_(prov, modo){
   const nome = INTEG_INFO_[prov].nome;
   const amb = prov==='nfce' ? (modo==='producao'?' em PRODUÇÃO (notas valem de verdade)':' em TESTE')
             : prov==='mercadopago' ? (modo==='producao'?' em PRODUÇÃO (os clientes passam a pagar de verdade pelo site)':' em TESTE (só quem estiver na lista de e-mails de teste vê o pagamento online)') : '';
-  if(!confirm('Ligar ' + nome + amb + '?\n\nA partir daqui o sistema passa a usar essa integração. Dá para desligar a qualquer momento.')) return;
+  if(!await confirmarTxt_('Ligar ' + nome + amb + '?\n\nA partir daqui o sistema passa a usar essa integração. Dá para desligar a qualquer momento.')) return;
   abrirModalSenhaAdmin(async function(senhaAdm){
     try{
       const r = await apiCall('integracoesLigar', { provedor:prov, modo, senhaAdmin: senhaAdm });
@@ -478,8 +478,8 @@ function ligarInteg_(prov, modo){
     }catch(e){ showMsg(integMsgId_(),'Sem conexão. Tente de novo.','warn'); }
   });
 }
-function desligarInteg_(prov){
-  if(!confirm('Desligar ' + INTEG_INFO_[prov].nome + '? O sistema volta a funcionar como antes; o que já foi gravado fica guardado.')) return;
+async function desligarInteg_(prov){
+  if(!await confirmarTxt_('Desligar ' + INTEG_INFO_[prov].nome + '? O sistema volta a funcionar como antes; o que já foi gravado fica guardado.')) return;
   abrirModalSenhaAdmin(async function(senhaAdm){
     try{
       const r = await apiCall('integracoesDesligar', { provedor:prov, senhaAdmin: senhaAdm });
@@ -527,11 +527,11 @@ function mpCardHtml_(it, inf){
   const seg = it.segredos || {}, modo = mpModoAtual_(it), prod = modo === 'producao';
   const pode = prod ? it.podeLigarProducao : it.podeLigarTeste;
   const bt = 'class="ghost" style="width:auto;padding:4px 10px;min-height:32px;margin:0;"';
-  const camp = (k, rot)=>`<div class="mp-camp">${escH(rot)}<span class="v">${seg[k] ? `<span id="isVer_${k}">••••${escH(seg[k].final||'')}</span><button ${bt} onclick="verIntegSegredo_('${k}')">Ver</button>` : '<span style="color:var(--muted)">ainda não digitada</span>'}<button ${bt} onclick="abrirIntegSegredo_('${k}','${escH(rot)}')">${seg[k]?'Trocar':'Digitar'}</button></span></div>`;
+  const camp = (k, rot)=>`<div class="mp-camp">${escH(rot)}<span class="v">${seg[k] ? `<span id="isVer_${k}">••••${escH(seg[k].final||'')}</span><button ${bt} onclick="verIntegSegredo_('${k}')">Ver</button>` : '<span class="txt-muted">ainda não digitada</span>'}<button ${bt} onclick="abrirIntegSegredo_('${k}','${escH(rot)}')">${seg[k]?'Trocar':'Digitar'}</button></span></div>`;
   const lista = (it.checklist||[]).map(c=>{
     const ic = `<span class="mp-i ${c.feito?'v':'p'}" aria-hidden="true">${c.feito?'✓':'!'}</span>`;
     return c.auto ? `<li>${ic}<span>${escH(c.titulo)}</span></li>`
-      : `<li><label style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;"><input type="checkbox" ${c.feito?'checked':''} onchange="marcarIntegPasso_('mercadopago','${c.id}',this.checked)" style="position:absolute;opacity:0;width:1px;height:1px;">${ic}<span>${escH(c.titulo)} <small style="color:var(--muted)">(toque para marcar)</small></span></label></li>`;
+      : `<li><label style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;"><input type="checkbox" ${c.feito?'checked':''} onchange="marcarIntegPasso_('mercadopago','${c.id}',this.checked)" style="position:absolute;opacity:0;width:1px;height:1px;">${ic}<span>${escH(c.titulo)} <small class="txt-muted">(toque para marcar)</small></span></label></li>`;
   }).join('');
   const formasOn = (it.formas||[]).filter(f=>f.aceitaOnline && f.tipoOnline).map(f=>mpRotuloTipo_(f.tipoOnline));
   const min = Number((it.config||{}).pixValidadeMin) || 15;
@@ -549,7 +549,7 @@ function mpCardHtml_(it, inf){
     ${camp(prod?'mp_public_key_producao':'mp_public_key_teste', 'Chave pública (Public Key)')}
     ${camp(prod?'mp_access_token_producao':'mp_access_token_teste', 'Token de acesso (Access Token)')}
     ${camp('mp_webhook_secret', 'Chave secreta do webhook')}
-    <div class="mp-camp">Formas pagas online<span class="v">${formasOn.length ? escH(formasOn.join(' · ')) : '<span style="color:var(--muted)">nenhuma escolhida</span>'}</span></div>
+    <div class="mp-camp">Formas pagas online<span class="v">${formasOn.length ? escH(formasOn.join(' · ')) : '<span class="txt-muted">nenhuma escolhida</span>'}</span></div>
     <div class="mp-camp">Validade do Pix<span class="v">${min} minutos</span></div>
     <button type="button" class="mp-sw" role="switch" aria-checked="${!!it.ligado}" ${(!it.ligado && !pode)?'disabled':''} onclick="mpAlternarLigado_()"><i></i><span>Ligar Mercado Pago <small>(pede a senha do Admin)</small></span></button>
     ${trocaModo}
@@ -577,20 +577,20 @@ function mpExtraHtml_(it){
   const bt = 'class="ghost" style="width:auto;padding:4px 10px;min-height:32px;margin-left:6px;"';
   const formas = (it.formas||[]).map(f=>{
     const tp = f.aceitaOnline ? (f.tipoOnline||mpTipoDoNome_(f.nome)) : mpTipoDoNome_(f.nome), on = !!f.aceitaOnline;
-    if(!tp) return `<div class="obs-line" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;"><span style="min-width:120px;">${escH(f.nome)}</span><span style="opacity:.75;">Só na entrega (não há pagamento online para esta forma)</span></div>`;
-    return `<div class="obs-line" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;"><span style="min-width:120px;">${escH(f.nome)}</span>
-      <select style="width:auto;" onchange="mpFormaOnline_('${f.id}', this.value==='on')" aria-label="Pagar online com ${escH(f.nome)}">
+    if(!tp) return `<div class="obs-line d-flex gap-2 ai-centro fx-wrap"><span style="min-width:120px;">${escH(f.nome)}</span><span style="opacity:.75;">Só na entrega (não há pagamento online para esta forma)</span></div>`;
+    return `<div class="obs-line d-flex gap-2 ai-centro fx-wrap"><span style="min-width:120px;">${escH(f.nome)}</span>
+      <select class="largura-auto" onchange="mpFormaOnline_('${f.id}', this.value==='on')" aria-label="Pagar online com ${escH(f.nome)}">
         <option value="off" ${on?'':'selected'}>Só na entrega</option><option value="on" ${on?'selected':''}>Também online (${mpRotuloTipo_(tp)})</option></select></div>`;
   }).join('') || '<div class="obs-line">Nenhuma forma de pagamento ativa no cardápio.</div>';
   const emails = Array.isArray(cfg.emailsTeste) ? cfg.emailsTeste.join(', ') : '';
-  return `<div style="margin-top:10px;">
+  return `<div class="mt-3">
     <b>🔔 Endereço do aviso (webhook)</b>
     <div class="obs-line" style="overflow-wrap:anywhere;font-family:monospace;">${escH(url)} <button ${bt} onclick="contaCopiar_(this,'${escH(url)}')">Copiar</button></div>
     <div class="obs-line">No Mercado Pago: Webhooks &gt; Configurar notificações &gt; cole este endereço e marque o evento "Order (Mercado Pago)".</div>
   </div>
-  <div style="margin-top:10px;"><b>💳 Formas de pagamento pelo site</b>
+  <div class="mt-3"><b>💳 Formas de pagamento pelo site</b>
     <div class="obs-line">Para cada forma, escolha: só na entrega ou também online. Online funciona para Pix, cartão de crédito e cartão de débito. Elas continuam valendo também na entrega. Os preços, taxas e acréscimos são os de cada forma.</div>${formas}</div>
-  <div style="margin-top:10px;"><b>⚙️ Ajustes</b>
+  <div class="mt-3"><b>⚙️ Ajustes</b>
     <label class="obs-line" for="mpPixMin">Validade do Pix (minutos, de 5 a 120; combinado: 15)</label>
     <input type="number" id="mpPixMin" min="5" max="120" value="${Number(cfg.pixValidadeMin)||15}" style="width:90px;" onchange="salvarMpConfig_({ pixValidadeMin: Number(this.value) })">
     <label class="obs-line" for="mpEmailsTeste">E-mails que veem o pagamento online em TESTE (até 5, separados por vírgula): a conta Google que você vai usar no cardápio</label>
@@ -599,11 +599,11 @@ function mpExtraHtml_(it){
     <input type="text" id="mpEmailPagador" value="${escH(cfg.emailPagadorTeste||'')}" maxlength="120" placeholder="test_user_...@testuser.com" onchange="salvarMpConfig_({ emailPagadorTeste: this.value.trim() })">
     <label class="obs-line" style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;"><input type="checkbox" ${cfg.testeNoCardapio?'checked':''} onchange="salvarMpConfig_({ testeNoCardapio: this.checked })" style="width:auto;margin-top:3px;"> <span>Em TESTE, mostrar o pagamento online a TODOS os clientes (não recomendado: com chave de teste ninguém consegue pagar de verdade)</span></label>
   </div>
-  <div style="margin-top:10px;"><b>🧪 Teste guiado</b>
+  <div class="mt-3"><b>🧪 Teste guiado</b>
     <div class="obs-line">1) Ligue em TESTE. 2) Digite acima o e-mail da conta Google que você usa no cardápio. 3) Abra o cardápio, entre com essa conta e faça um pedido de entrega pagando pelo site com cada forma que você ligou como online (Pix, crédito, débito). 4) Nos cartões (no cartão de teste do Mercado Pago, use o nome do titular APRO para aprovar e OTHE para recusar; confira a lista atual no site do Mercado Pago). 5) Quando todas as formas ligadas aparecerem aprovadas abaixo, o passo do checklist se marca sozinho.</div>
     <div class="obs-line">⚠️ O pedido de teste aprovado vira pedido de verdade na cozinha e no caixa (e baixa estoque). Avise a equipe e cancele depois.</div>
-    <div class="btnrow" style="margin-top:6px;"><button class="ghost" onclick="mpAbrirCardapio_()">Abrir o cardápio</button><button class="ghost" onclick="carregarMpRecentes_()">Atualizar lista</button></div>
-    <div id="mpRecentes"><div class="obs-line">Carregando…</div></div>
+    <div class="btnrow mt-2"><button class="ghost" onclick="mpAbrirCardapio_()">Abrir o cardápio</button><button class="ghost" onclick="carregarMpRecentes_()">Atualizar lista</button></div>
+    <div id="mpRecentes">${(typeof esqueletoLista_ === 'function') ? esqueletoLista_(2) : '<div class="obs-line">Carregando…</div>'}</div>
     <div style="margin-top:10px;border-top:1px solid var(--gold);padding-top:8px;"><b>📊 No dia a dia: pagamentos que precisam de decisão</b><div class="obs-line">Use esta lista quando o dinheiro tiver sido aprovado, mas o pedido não puder entrar automaticamente na cozinha. Reembolsar registra a decisão e chama o Mercado Pago para devolver.</div><button class="ghost" onclick="mpCarregarPendenciasDecisao_()">Atualizar pendências</button><div id="mpPendenciasDecisaoBox"><div class="obs-line">Toque em Atualizar pendências.</div></div></div>
   </div>`;
 }
@@ -625,7 +625,7 @@ async function carregarMpRecentes_(){
 }
 async function mpCarregarPendenciasDecisao_(){
   const boxes = [document.getElementById('mpPendenciasDecisaoBox'), document.getElementById('mpPendenciasDecisaoCaixaBox')].filter(Boolean); if(!boxes.length) return;
-  boxes.forEach(box=>box.innerHTML = '<div class="obs-line">Carregando pendências…</div>');
+  boxes.forEach(box=>box.innerHTML = (typeof esqueletoLista_ === 'function') ? esqueletoLista_(2) : '<div class="obs-line">Carregando pendências…</div>');
   try{
     const r = await apiCall('mpPendenciasDecisao', {});
     if(!r || !r.ok){ boxes.forEach(box=>box.innerHTML = '<div class="obs-line">'+escH((r&&r.message)||'Não foi possível carregar as pendências.')+'</div>'); return; }
@@ -646,7 +646,7 @@ async function mpDecidirPagamento_(pagamentoId, decisao){
   const aviso = decisao==='seguir'
     ? 'Liberar este pedido para a cozinha? Confirme que há caixa aberto e que a equipe consegue preparar.'
     : 'Registrar a decisão de reembolsar e solicitar a devolução integral ao Mercado Pago?';
-  if(!confirm(aviso)) return;
+  if(!await confirmarTxt_(aviso)) return;
   const box = document.getElementById('mpPendenciasDecisaoBox');
   if(box) box.insertAdjacentHTML('afterbegin','<div class="obs-line">Registrando decisão…</div>');
   try{
@@ -662,13 +662,13 @@ async function mpDecidirPagamento_(pagamentoId, decisao){
 }
 async function mpCarregarResumoOperacional_(){
   const box = document.getElementById('relMpOnlineBox'); if(!box) return;
-  box.innerHTML = '<div class="obs-line">Carregando resumo…</div>';
+  box.innerHTML = (typeof esqueletoLista_ === 'function') ? esqueletoLista_(2) : '<div class="obs-line">Carregando resumo…</div>';
   try{
     const r = await apiCall('mpResumoOperacional', {});
     if(!r || !r.ok){ box.innerHTML = '<div class="obs-line">'+escH((r&&r.message)||'Não foi possível carregar o resumo.')+'</div>'; return; }
     const it = r.itens||[];
     box.innerHTML = `<div class="obs-line">Período: ${escH(r.periodo||'mês atual')} · ${Number(r.quantidade)||0} transação(ões) processada(s) · Total líquido após reembolsos: <b>${formatarMoeda(Number(r.total)||0)}</b> · Taxas registradas: <b>${formatarMoeda(Number(r.taxas)||0)}</b></div>` +
-      (it.length?'<div style="margin-top:6px;">'+it.map(x=>`<div class="obs-line">${escH(x.metodo==='pix'?'Pix online':'Cartão online')}: ${Number(x.quantidade)||0} pagamento(s) · ${formatarMoeda(Number(x.total)||0)} recebidos · ${formatarMoeda(Number(x.taxas)||0)} em taxas</div>`).join('')+'</div>':'<div class="obs-line">Ainda não há pagamentos online aprovados neste mês.</div>');
+      (it.length?'<div class="mt-2">'+it.map(x=>`<div class="obs-line">${escH(x.metodo==='pix'?'Pix online':'Cartão online')}: ${Number(x.quantidade)||0} pagamento(s) · ${formatarMoeda(Number(x.total)||0)} recebidos · ${formatarMoeda(Number(x.taxas)||0)} em taxas</div>`).join('')+'</div>':'<div class="obs-line">Ainda não há pagamentos online aprovados neste mês.</div>');
   }catch(e){ box.innerHTML = '<div class="obs-line">Sem conexão. Tente novamente.</div>'; }
 }
 async function salvarMpConfig_(config){
@@ -722,7 +722,7 @@ async function carregarFiscalEmpresa_(){
     box.innerHTML = `<div class="notif-card"><b>Dados fiscais da empresa</b> ${r.completa?'✅ completos':'⬜ incompletos'}${r.temCsc?'':' · falta digitar o CSC secreto (cartão Chaves, acima)'}
       <label for="fiscRegime">Regime</label><select id="fiscRegime"><option value="simples" ${e.regime==='simples'?'selected':''}>Simples Nacional</option><option value="mei" ${e.regime==='mei'?'selected':''}>MEI</option><option value="normal" ${e.regime==='normal'?'selected':''}>Lucro presumido/real</option></select>
       ${FISCAL_CAMPOS_.map(([k,c,t])=>`<label for="fisc_${k}">${escH(t)}</label><input id="fisc_${k}" maxlength="120" value="${escH(e[c]==null?'':e[c])}">`).join('')}
-      <div class="btnrow" style="margin-top:8px;"><button class="primary" onclick="salvarFiscalEmpresa_()">Salvar dados fiscais</button></div><div class="msg" id="fiscEmpMsg"></div></div>`;
+      <div class="btnrow mt-2"><button class="primary" onclick="salvarFiscalEmpresa_()">Salvar dados fiscais</button></div><div class="msg" id="fiscEmpMsg"></div></div>`;
   }catch(err){ box.innerHTML = '<div class="obs-line">Sem conexão.</div>'; }
 }
 async function salvarFiscalEmpresa_(){
@@ -750,8 +750,8 @@ function renderFiscalPerfis_(editar){
       <button class="ghost" style="width:auto;padding:4px 10px;min-height:32px;" onclick="atribuirFiscal_('padrao',null,'${x.id}')">Usar como padrão</button>
       <button class="ghost" style="width:auto;padding:4px 10px;min-height:32px;" onclick="excluirFiscalPerfil_('${x.id}')">Excluir</button></div>`).join('') || '<div class="obs-line">Nenhum perfil ainda. Crie abaixo (o contador informa NCM e CSOSN).</div>'}
     ${r.padraoId?`<div class="obs-line"><button class="ghost" style="width:auto;padding:4px 10px;min-height:32px;" onclick="atribuirFiscal_('padrao',null,'')">Tirar o perfil padrão</button></div>`:''}
-    <div style="margin-top:8px;"><b>Perfis por categoria</b>${(r.categorias||[]).map(c=>`<div class="obs-line">${escH(c.nome)}: <select onchange="atribuirFiscal_('categoria','${c.id}',this.value)">${opts(c.perfilId)}</select></div>`).join('')}</div>
-    <div style="margin-top:8px;"><b>${e.id?'Editar perfil':'Novo perfil'}</b>
+    <div class="mt-2"><b>Perfis por categoria</b>${(r.categorias||[]).map(c=>`<div class="obs-line">${escH(c.nome)}: <select onchange="atribuirFiscal_('categoria','${c.id}',this.value)">${opts(c.perfilId)}</select></div>`).join('')}</div>
+    <div class="mt-2"><b>${e.id?'Editar perfil':'Novo perfil'}</b>
       <input type="hidden" id="fscId" value="${g('id')}">
       <label for="fscNome">Nome (ex.: Lanches)</label><input id="fscNome" maxlength="60" value="${g('nome')}">
       <label for="fscNcm">NCM (8 números)</label><input id="fscNcm" maxlength="12" value="${g('ncm')}">
@@ -761,8 +761,8 @@ function renderFiscalPerfis_(editar){
       <label for="fscCst">CST do ICMS (só regime normal)</label><input id="fscCst" maxlength="2" value="${g('cstIcms')}">
       <label for="fscOrigem">Origem da mercadoria (0 = nacional)</label><input id="fscOrigem" maxlength="1" value="${g('origem','0')}">
       <label for="fscUn">Unidade</label><input id="fscUn" maxlength="6" value="${g('unidade','UN')}">
-      <label class="obs-line" style="display:flex;gap:8px;"><input type="checkbox" id="fscAtivo" ${e.id && e.ativo===false?'':'checked'} style="width:auto;"> Perfil ativo</label>
-      <div class="btnrow" style="margin-top:8px;"><button class="primary" onclick="salvarFiscalPerfil_()">Salvar perfil</button>${e.id?'<button class="ghost" onclick="renderFiscalPerfis_()">Cancelar</button>':''}</div><div class="msg" id="fscMsg"></div></div></div>`;
+      <label class="obs-line d-flex gap-2"><input type="checkbox" id="fscAtivo" ${e.id && e.ativo===false?'':'checked'} class="largura-auto"> Perfil ativo</label>
+      <div class="btnrow mt-2"><button class="primary" onclick="salvarFiscalPerfil_()">Salvar perfil</button>${e.id?'<button class="ghost" onclick="renderFiscalPerfis_()">Cancelar</button>':''}</div><div class="msg" id="fscMsg"></div></div></div>`;
 }
 function editarFiscalPerfil_(id){ const x = ((fiscalPerfisCache_||{}).perfis||[]).find(p=>p.id===id); if(x) renderFiscalPerfis_(x); }
 async function salvarFiscalPerfil_(){
@@ -773,13 +773,13 @@ async function salvarFiscalPerfil_(){
   }catch(e){ showMsg('fscMsg','Sem conexão.','warn'); }
 }
 async function excluirFiscalPerfil_(id){
-  if(!confirm('Excluir este perfil fiscal?')) return;
-  try{ const r = await apiCall('fiscalPerfilExcluir', { id }); if(r && r.ok){ fiscalPerfisCache_ = r; renderFiscalPerfis_(); carregarIntegracoes_(); } else alert((r&&r.message)||'Não foi possível excluir.'); }catch(e){ alert('Sem conexão.'); }
+  if(!await confirmarTxt_('Excluir este perfil fiscal?')) return;
+  try{ const r = await apiCall('fiscalPerfilExcluir', { id }); if(r && r.ok){ fiscalPerfisCache_ = r; renderFiscalPerfis_(); carregarIntegracoes_(); } else avisar((r&&r.message)||'Não foi possível excluir.'); }catch(e){ avisar('Sem conexão.'); }
 }
 async function atribuirFiscal_(alvo, id, perfilId){
   try{ const r = await apiCall('fiscalAtribuir', { alvo, id, perfilId: perfilId||null });
-    if(r && r.ok){ fiscalPerfisCache_ = r; renderFiscalPerfis_(); carregarIntegracoes_(); if(document.getElementById('fiscalSem') && document.getElementById('fiscalSem').innerHTML) carregarFiscalSem_(); } else alert((r&&r.message)||'Não foi possível salvar.');
-  }catch(e){ alert('Sem conexão.'); }
+    if(r && r.ok){ fiscalPerfisCache_ = r; renderFiscalPerfis_(); carregarIntegracoes_(); if(document.getElementById('fiscalSem') && document.getElementById('fiscalSem').innerHTML) carregarFiscalSem_(); } else avisar((r&&r.message)||'Não foi possível salvar.');
+  }catch(e){ avisar('Sem conexão.'); }
 }
 async function carregarFiscalSem_(){
   const box = document.getElementById('fiscalSem'); if(!box) return;
@@ -793,21 +793,21 @@ async function carregarFiscalSem_(){
     window._fiscalSem = it;
     box.innerHTML = `<div class="notif-card"><b>${it.length} item(ns) sem perfil fiscal</b>
       <div class="obs-line">Aplicar a todos: <select id="fsTodos">${opt}</select> <button class="ghost" style="width:auto;padding:4px 10px;min-height:32px;" onclick="aplicarFiscalTodos_()">Aplicar</button></div>
-      ${it.map((x,i)=>`<div class="obs-line">${x.tipo==='combo'?'🍱':'🍔'} ${escH(x.nome)} <span style="color:var(--muted);">${escH(x.categoria||'')}</span> <select onchange="atribuirFiscal_('${x.tipo}','${x.id}',this.value)">${opt}</select></div>`).join('')}</div>`;
+      ${it.map((x,i)=>`<div class="obs-line">${x.tipo==='combo'?'🍱':'🍔'} ${escH(x.nome)} <span class="txt-muted">${escH(x.categoria||'')}</span> <select onchange="atribuirFiscal_('${x.tipo}','${x.id}',this.value)">${opt}</select></div>`).join('')}</div>`;
   }catch(e){ box.innerHTML = '<div class="obs-line">Sem conexão.</div>'; }
 }
 async function aplicarFiscalTodos_(){
-  const pid = document.getElementById('fsTodos').value; if(!pid) return alert('Escolha o perfil.');
-  if(!confirm('Aplicar este perfil a todos os itens da lista?')) return;
+  const pid = document.getElementById('fsTodos').value; if(!pid) return avisar('Escolha o perfil.');
+  if(!await confirmarTxt_('Aplicar este perfil a todos os itens da lista?')) return;
   try{ const r = await apiCall('fiscalAtribuir', { alvo:'lote', perfilId:pid, ids:(window._fiscalSem||[]).map(x=>({ tipo:x.tipo, id:x.id })) });
-    if(r && r.ok){ fiscalPerfisCache_ = r; carregarFiscalSem_(); carregarIntegracoes_(); } else alert((r&&r.message)||'Não foi possível salvar.'); }catch(e){ alert('Sem conexão.'); }
+    if(r && r.ok){ fiscalPerfisCache_ = r; carregarFiscalSem_(); carregarIntegracoes_(); } else avisar((r&&r.message)||'Não foi possível salvar.'); }catch(e){ avisar('Sem conexão.'); }
 }
 const FISCAL_PLAN_COLS_ = ['tipo','id','nome','categoria','perfil','ncm','cest','cfop','csosn','cstIcms','origem','unidade'];
 async function baixarPlanilhaFiscal_(){
   try{ const r = await apiCall('fiscalExportar', {});
-    if(!r || !r.ok) return alert((r&&r.message)||'Não foi possível gerar.');
+    if(!r || !r.ok) return avisar((r&&r.message)||'Não foi possível gerar.');
     baixarCsv_('planilha-fiscal.csv', FISCAL_PLAN_COLS_, (r.linhas||[]).map(l=>FISCAL_PLAN_COLS_.map(c=>l[c]==null?'':l[c])));
-  }catch(e){ alert('Sem conexão.'); }
+  }catch(e){ avisar('Sem conexão.'); }
 }
 function csvLinhas_(txt){
   txt = String(txt||'').replace(/^﻿/, ''); const sep = (txt.split('\n')[0].match(/;/g)||[]).length >= (txt.split('\n')[0].match(/,/g)||[]).length ? ';' : ',';
@@ -822,21 +822,21 @@ function csvLinhas_(txt){
 async function enviarPlanilhaFiscal_(inp){
   const f = inp.files && inp.files[0]; inp.value = ''; if(!f) return;
   try{
-    const linhas = csvLinhas_(await f.text()); if(linhas.length < 2) return alert('Planilha vazia.');
+    const linhas = csvLinhas_(await f.text()); if(linhas.length < 2) return avisar('Planilha vazia.');
     const cab = linhas[0].map(x=>x.trim().toLowerCase().replace(/[^a-z]/g,'')), ix = n => cab.indexOf(n.toLowerCase());
     const col = { tipo:ix('tipo'), id:ix('id'), nome:ix('nome'), perfil:ix('perfil'), ncm:ix('ncm'), cest:ix('cest'), cfop:ix('cfop'), csosn:ix('csosn'), cstIcms:ix('csticms'), origem:ix('origem'), unidade:ix('unidade') };
-    if(col.perfil < 0 || col.ncm < 0) return alert('Não achei as colunas "perfil" e "ncm". Use a planilha baixada aqui.');
+    if(col.perfil < 0 || col.ncm < 0) return avisar('Não achei as colunas "perfil" e "ncm". Use a planilha baixada aqui.');
     const dados = linhas.slice(1).map(l=>{ const o = {}; Object.keys(col).forEach(k=>{ o[k] = col[k] >= 0 ? (l[col[k]]||'').trim() : ''; }); return o; });
-    if(!confirm('Aplicar ' + dados.length + ' linha(s) da planilha? Isso cria/atualiza perfis e liga os itens a eles.')) return;
+    if(!await confirmarTxt_('Aplicar ' + dados.length + ' linha(s) da planilha? Isso cria/atualiza perfis e liga os itens a eles.')) return;
     const r = await apiCall('fiscalImportar', { linhas: dados });
-    if(r && r.ok){ fiscalPerfisCache_ = r; alert(r.message || 'Aplicado.'); carregarIntegracoes_(); if(document.getElementById('fiscalPerfis')) renderFiscalPerfis_(); } else alert((r&&r.message)||'Não foi possível aplicar.');
-  }catch(e){ alert('Não consegui ler o arquivo.'); }
+    if(r && r.ok){ fiscalPerfisCache_ = r; avisar(r.message || 'Aplicado.'); carregarIntegracoes_(); if(document.getElementById('fiscalPerfis')) renderFiscalPerfis_(); } else avisar((r&&r.message)||'Não foi possível aplicar.');
+  }catch(e){ avisar('Não consegui ler o arquivo.'); }
 }
 
 /* ---- Nota fiscal (Fase 5): onde/quando emitir, lista de notas, reemitir, DANFE, treino. Só aparece no cartão "Nota fiscal". ---- */
 function nfceOpcoesHtml_(it){
   const c = it.config || {}, canais = Array.isArray(c.canais) ? c.canais : ['balcao'], quando = c.emitirQuando || 'pagamento';
-  return `<div style="margin-top:8px;"><b>Onde e quando emitir a nota</b>
+  return `<div class="mt-2"><b>Onde e quando emitir a nota</b>
     ${[['balcao','Balcão (Caixa)'],['cardapio','Cardápio online'],['ifood','iFood'],['mesa','Mesa / Garçom']].map(([k,t])=>`<label class="obs-line" style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;"><input type="checkbox" ${canais.indexOf(k)!==-1?'checked':''} onchange="salvarNfceCanal_('${k}',this.checked)" style="width:auto;margin-top:3px;"> ${t}</label>`).join('')}
     <label class="obs-line" for="nfceQuando">Emitir a nota</label>
     <select id="nfceQuando" onchange="salvarNfceConfig_({ emitirQuando:this.value })"><option value="pagamento" ${quando==='pagamento'?'selected':''}>quando a venda for paga (recomendado no balcão)</option><option value="entrega" ${quando==='entrega'?'selected':''}>quando o pedido for entregue (recomendado no delivery)</option></select>
@@ -862,11 +862,11 @@ async function carregarNfceLista_(estado){
     const ct = r.contagem || {}, dev = currentUser && currentUser.nivelReal === 'Desenvolvedor';
     const chip = (k,t)=>`<button class="ghost" style="width:auto;padding:4px 10px;min-height:32px;${nfceFiltro_===k?'border-color:var(--gold);':''}" onclick="carregarNfceLista_('${k}')">${t}${k&&ct[k]?' ('+ct[k]+')':''}</button>`;
     box.innerHTML = `<div class="notif-card"><b>Notas fiscais</b> · neste mês: ${r.mes||0} de 500 do plano (produção)
-      <div class="btnrow" style="margin-top:6px;">${chip('','Todas')}${chip('autorizada','Autorizadas')}${chip('rejeitada','Rejeitadas')}${chip('pendencia','Pendências')}${chip('contingencia','Contingência')}${chip('pendente','Aguardando')}${dev?'<button class="ghost" onclick="simularNfce_()">🧪 Nota de treino</button>':''}</div>
+      <div class="btnrow mt-2">${chip('','Todas')}${chip('autorizada','Autorizadas')}${chip('rejeitada','Rejeitadas')}${chip('pendencia','Pendências')}${chip('contingencia','Contingência')}${chip('pendente','Aguardando')}${dev?'<button class="ghost" onclick="simularNfce_()">🧪 Nota de treino</button>':''}</div>
       ${(r.itens||[]).map(n=>`<div class="obs-line" style="border-top:1px solid var(--line,#333);padding-top:6px;margin-top:6px;">
         <b>#${escH(n.pedido==null?'?':n.pedido)}</b> ${escH(n.cliente||'')} — ${formatarMoeda(Number(n.valor)||0)} — ${NFCE_ESTADO_ROT_[n.estado]||escH(n.estado)}${n.ambiente!=='producao'?' <span style="color:#d9a441;">['+(n.ambiente==='simulado'?'treino':'teste')+']</span>':''}${n.numero?' · nº '+escH(n.numero)+'/'+escH(n.serie||1):''}${n.cpf?' · com CPF':''}
         ${n.erro?`<div style="color:#ffb3ab;">${escH(n.erro)}</div>`:''}
-        <div class="btnrow" style="margin-top:4px;">
+        <div class="btnrow mt-1">
           ${['rejeitada','pendencia','erro','duvida','dispensada'].indexOf(n.estado)!==-1?`<button class="ghost" style="width:auto;padding:4px 10px;min-height:32px;" onclick="reemitirNfce_(${n.id})">Reemitir</button>`:''}
           ${n.estado==='autorizada'&&n.danfe?`<a class="ghost" style="padding:4px 10px;" href="${escH(n.danfe)}" target="_blank" rel="noopener">Abrir DANFE (cupom)</a>`:''}
           ${n.estado==='autorizada'&&n.xml?`<a class="ghost" style="padding:4px 10px;" href="${escH(n.xml)}" target="_blank" rel="noopener">XML</a>`:''}
@@ -875,7 +875,7 @@ async function carregarNfceLista_(estado){
   }catch(e){ box.innerHTML = '<div class="obs-line">Sem conexão.</div>'; }
 }
 async function reemitirNfce_(id){
-  if(!confirm('Tentar emitir esta nota de novo?')) return;
+  if(!await confirmarTxt_('Tentar emitir esta nota de novo?')) return;
   try{ const r = await apiCall('nfceReemitir', { id }); showMsg(integMsgId_(), (r&&r.message)||'Não foi possível.', r&&r.ok?'ok':'warn'); setTimeout(()=>carregarNfceLista_(), 5000); carregarNfceLista_(); }catch(e){ showMsg(integMsgId_(),'Sem conexão.','warn'); }
 }
 async function simularNfce_(){
@@ -904,7 +904,7 @@ async function carregarNfceConf_(){
   }catch(e){ box.innerHTML = '<div class="obs-line">Sem conexão.</div>'; }
 }
 async function emitirVendaNfce_(vendaId){
-  if(!confirm('Criar a nota desta venda agora?')) return;
+  if(!await confirmarTxt_('Criar a nota desta venda agora?')) return;
   try{ const r = await apiCall('nfceEmitirVenda', { vendaId }); showMsg('nfceConfMsg', (r&&r.message)||'Não foi possível.', r&&r.ok?'ok':'warn'); setTimeout(carregarNfceConf_, 6000); }catch(e){ showMsg('nfceConfMsg','Sem conexão.','warn'); }
 }
 async function inutilizarNfce_(serie, ini, fim){
@@ -921,19 +921,19 @@ async function carregarNfcePacote_(){
   const hoje = new Date(); const mesPad = hoje.getFullYear() + '-' + String(hoje.getMonth()+1).padStart(2,'0');
   box.innerHTML = `<div class="notif-card"><b>Pacote do contador</b>
     <label for="nfcePacMes">Mês</label><input type="month" id="nfcePacMes" value="${mesPad}">
-    <div class="btnrow" style="margin-top:6px;"><button class="primary" onclick="baixarPacoteNfce_()">Baixar planilha do mês</button></div>
+    <div class="btnrow mt-2"><button class="primary" onclick="baixarPacoteNfce_()">Baixar planilha do mês</button></div>
     <div id="nfcePacLinks"></div><div class="obs-line">A Focus também baixa todos os XML do mês no painel dela.</div></div>`;
 }
 async function baixarPacoteNfce_(){
   const v = (document.getElementById('nfcePacMes')||{}).value || ''; const [ano, mes] = v.split('-').map(Number);
   try{
     const r = await apiCall('nfcePacote', { ano, mes });
-    if(!r || !r.ok) return alert((r&&r.message)||'Não foi possível gerar.');
+    if(!r || !r.ok) return avisar((r&&r.message)||'Não foi possível gerar.');
     const cab = ['Pedido','Emitida em','Número','Série','Chave','Valor','Situação','Cancelada em','CPF informado','XML'];
     baixarCsv_('notas-fiscais-' + ano + '-' + String(mes).padStart(2,'0') + '.csv', cab, (r.notas||[]).map(n=>[n.pedido==null?'':n.pedido, n.emitidaEm||'', n.numero||'', n.serie||'', n.chave||'', csvNum_(n.valor), n.estado, n.canceladaEm||'', n.comCpf?'sim':'não', n.xml||'']));
     const el = document.getElementById('nfcePacLinks');
     if(el) el.innerHTML = (r.notas||[]).length ? '<div class="obs-line">'+r.notas.length+' nota(s) no mês ('+escH(r.ambiente==='producao'?'produção':'teste')+')'+((r.inutilizacoes||[]).length?' · '+r.inutilizacoes.length+' inutilização(ões)':'')+'</div>' + r.notas.filter(n=>n.xml).map(n=>`<div class="obs-line"><a href="${escH(n.xml)}" target="_blank" rel="noopener">XML nº ${escH(n.numero||'')}</a></div>`).join('') : '<div class="obs-line">Nenhuma nota neste mês.</div>';
-  }catch(e){ alert('Sem conexão.'); }
+  }catch(e){ avisar('Sem conexão.'); }
 }
 
 /* ---- iFood: pedidos, itens ligados, simulação (aparecem dentro do cartão Integrações) ---- */
@@ -965,7 +965,7 @@ async function carregarIfoodLoja_(){
     box.innerHTML = `<div class="notif-card" style="border-left:4px solid ${l.verificado_em?(l.disponivel?'#2e9e5b':'#c0392b'):'#888'};">
       <b>Loja no iFood:</b> ${l.verificado_em?(l.disponivel?'🟢 aberta':'🔴 fechada/indisponível'):'ainda não verificada'}${l.situacao?' ('+escH(l.situacao)+')':''}${pausa?' · pausada até '+escH(fmtDiaHoraBr_(l.pausada_ate)):''}
       ${l.motivo?`<div class="obs-line">${escH(l.motivo)}</div>`:''}
-      <div class="btnrow" style="margin-top:6px;"><button class="ghost" onclick="lojaIfoodAcao_('pausar',30)">Pausar 30 min</button><button class="ghost" onclick="lojaIfoodAcao_('pausar',60)">Pausar 1 h</button><button class="ghost" onclick="lojaIfoodAcao_('retomar')">Retomar</button><button class="ghost" onclick="lojaIfoodAcao_('fechar')">Fechar</button><button class="ghost" onclick="lojaIfoodAcao_('abrir')">Abrir</button></div></div>`;
+      <div class="btnrow mt-2"><button class="ghost" onclick="lojaIfoodAcao_('pausar',30)">Pausar 30 min</button><button class="ghost" onclick="lojaIfoodAcao_('pausar',60)">Pausar 1 h</button><button class="ghost" onclick="lojaIfoodAcao_('retomar')">Retomar</button><button class="ghost" onclick="lojaIfoodAcao_('fechar')">Fechar</button><button class="ghost" onclick="lojaIfoodAcao_('abrir')">Abrir</button></div></div>`;
   }catch(e){ box.innerHTML = '<div class="obs-line">Sem conexão.</div>'; }
 }
 async function lojaIfoodAcao_(acao, minutos){
@@ -987,7 +987,7 @@ async function carregarIfoodNeg_(){
   }catch(e){ box.innerHTML = '<div class="obs-line">Sem conexão.</div>'; }
 }
 async function negIfood_(id, acao, alternativaId){
-  if(acao==='recusar' && !confirm('Recusar o pedido do cliente? O iFood pode decidir por ele depois.')) return;
+  if(acao==='recusar' && !await confirmarTxt_('Recusar o pedido do cliente? O iFood pode decidir por ele depois.')) return;
   try{ const r = await apiCall('ifoodNegociacaoResponder', { id, acao, alternativaId }); showMsg(integMsgId_(), (r && r.message) || 'Não foi possível.', r && r.ok ? 'ok' : 'warn'); carregarIfoodNeg_(); }catch(e){ showMsg(integMsgId_(),'Sem conexão.','warn'); }
 }
 
@@ -1000,9 +1000,9 @@ async function carregarIfoodPrecos_(){
     if(!r || !r.ok){ box.innerHTML = '<div class="obs-line">' + escH((r && r.message) || 'Não foi possível carregar.') + '</div>'; return; }
     ifoodPrecosDados_ = r;
     box.innerHTML = `<div class="notif-card"><b>Preços: sistema × iFood</b>
-      <div class="btnrow" style="margin-top:6px;"><button class="ghost" onclick="pedirCatalogoIfood_()">Importar cardápio do iFood</button><button class="ghost" onclick="aplicarPrecosIfood_()">Gravar preços do iFood no sistema</button>${r.enviarLigado?'<button class="ghost" onclick="enviarPrecosIfood_()">Enviar nossos preços ao iFood</button>':''}</div>
+      <div class="btnrow mt-2"><button class="ghost" onclick="pedirCatalogoIfood_()">Importar cardápio do iFood</button><button class="ghost" onclick="aplicarPrecosIfood_()">Gravar preços do iFood no sistema</button>${r.enviarLigado?'<button class="ghost" onclick="enviarPrecosIfood_()">Enviar nossos preços ao iFood</button>':''}</div>
       <div class="obs-line">${r.enviarLigado?'Envio ligado. Variação máxima por envio: '+r.limitePct+'%.':'Para enviar preços ao iFood, ligue antes o ajuste "Enviar nossos preços ao iFood".'}</div></div>` +
-      ((r.itens||[]).map((i,ix)=>`<div class="notif-card" style="border-left:4px solid ${i.pct>20?'#e0a800':'#2e9e5b'};"><label style="display:flex;gap:8px;align-items:flex-start;"><input type="checkbox" class="ifPrecoSel" value="${escH(i.chave)}" style="width:auto;margin-top:4px;"> <span><b>${escH(i.nome||i.nomeIfood)}</b><div class="obs-line">Sistema ${i.precoSistema!=null?R$_(i.precoSistema):'—'} · iFood ${i.precoIfood!=null?R$_(i.precoIfood):'não importado'}${i.pct!=null?' · diferença '+(i.diff>0?'+':'')+R$_(i.diff)+' ('+i.pct+'%)':''}${i.pct>20?' ⚠️ fora do padrão':''}</div></span></label></div>`).join('') || '<div class="obs-line">Ligue itens do iFood a produtos e importe o cardápio para comparar.</div>') +
+      ((r.itens||[]).map((i,ix)=>`<div class="notif-card" style="border-left:4px solid ${i.pct>20?'#e0a800':'#2e9e5b'};"><label style="display:flex;gap:8px;align-items:flex-start;"><input type="checkbox" class="ifPrecoSel largura-auto mt-1" value="${escH(i.chave)}"> <span><b>${escH(i.nome||i.nomeIfood)}</b><div class="obs-line">Sistema ${i.precoSistema!=null?R$_(i.precoSistema):'—'} · iFood ${i.precoIfood!=null?R$_(i.precoIfood):'não importado'}${i.pct!=null?' · diferença '+(i.diff>0?'+':'')+R$_(i.diff)+' ('+i.pct+'%)':''}${i.pct>20?' ⚠️ fora do padrão':''}</div></span></label></div>`).join('') || '<div class="obs-line">Ligue itens do iFood a produtos e importe o cardápio para comparar.</div>') +
       ((r.historico||[]).length?'<div class="notif-card"><b>Histórico</b>'+r.historico.map(h=>`<div class="obs-line">${escH(fmtDiaHoraBr_(h.quando))} · ${escH(h.nome||'')} · ${h.antes!=null?R$_(h.antes):'—'} → ${R$_(h.depois)} · ${escH(h.origem)} (${escH(h.estado)})${h.erro?' ❗'+escH(h.erro):''} ${h.origem==='enviar'&&h.estado==='ok'?'<button class="ghost" style="width:auto;padding:2px 8px;min-height:28px;" onclick="desfazerPrecoIfood_('+h.id+')">Desfazer</button>':''}</div>`).join('')+'</div>':'');
   }catch(e){ box.innerHTML = '<div class="obs-line">Sem conexão.</div>'; }
 }
@@ -1010,16 +1010,16 @@ const selPrecosIfood_ = ()=>[...document.querySelectorAll('.ifPrecoSel:checked')
 async function pedirCatalogoIfood_(){ try{ const r = await apiCall('ifoodPrecosPedirCatalogo', {}); showMsg(integMsgId_(),(r&&r.message)||'Não foi possível.', r&&r.ok?'ok':'warn'); }catch(e){ showMsg(integMsgId_(),'Sem conexão.','warn'); } }
 async function aplicarPrecosIfood_(){
   const ch = selPrecosIfood_(); if(!ch.length) return showMsg(integMsgId_(),'Marque os itens que quer gravar no sistema.','warn');
-  if(!confirm('Gravar no sistema o preço do iFood de '+ch.length+' item(ns)? (muda o campo "Preço no iFood")')) return;
+  if(!await confirmarTxt_('Gravar no sistema o preço do iFood de '+ch.length+' item(ns)? (muda o campo "Preço no iFood")')) return;
   try{ const r = await apiCall('ifoodPrecosAplicar', { chaves: ch }); showMsg(integMsgId_(),(r&&r.message)||'Não foi possível.', r&&r.ok?'ok':'warn'); carregarIfoodPrecos_(); }catch(e){ showMsg(integMsgId_(),'Sem conexão.','warn'); }
 }
 async function enviarPrecosIfood_(){
   const ch = selPrecosIfood_(); if(!ch.length) return showMsg(integMsgId_(),'Marque os itens que quer enviar ao iFood.','warn');
-  if(!confirm('ENVIAR ao iFood o nosso preço de '+ch.length+' item(ns)? Os clientes do iFood passarão a ver o novo preço. Dá para desfazer pelo histórico.')) return;
+  if(!await confirmarTxt_('ENVIAR ao iFood o nosso preço de '+ch.length+' item(ns)? Os clientes do iFood passarão a ver o novo preço. Dá para desfazer pelo histórico.', 'Enviar ao iFood', false, 'Enviar preços ao iFood')) return;
   try{ const r = await apiCall('ifoodPrecosEnviar', { chaves: ch, confirmar: 'true' }); showMsg(integMsgId_(),(r&&r.message)||'Não foi possível.', r&&r.ok?'ok':'warn'); carregarIfoodPrecos_(); }catch(e){ showMsg(integMsgId_(),'Sem conexão.','warn'); }
 }
 async function desfazerPrecoIfood_(id){
-  if(!confirm('Reenviar o preço anterior ao iFood?')) return;
+  if(!await confirmarTxt_('Reenviar o preço anterior ao iFood?')) return;
   try{ const r = await apiCall('ifoodPrecosDesfazer', { id }); showMsg(integMsgId_(),(r&&r.message)||'Não foi possível.', r&&r.ok?'ok':'warn'); carregarIfoodPrecos_(); }catch(e){ showMsg(integMsgId_(),'Sem conexão.','warn'); }
 }
 async function carregarIfoodFin_(){
@@ -1052,7 +1052,7 @@ async function carregarIfoodRel_(){
     const r = await apiCall('ifoodRelatorio', { dias: 30 });
     if(!r || !r.ok){ box.innerHTML = '<div class="obs-line">' + escH((r && r.message) || 'Não foi possível carregar.') + '</div>'; return; }
     const f = r.ifood || {};
-    box.innerHTML = `<div class="notif-card"><b>Vendas por canal — últimos ${r.dias} dias</b>` + (r.canais||[]).map(c=>`<div class="obs-line">${escH(c.canal)}: ${c.pedidos} pedido(s) · ${R$_(c.total)} · ticket ${R$_(c.ticket)} · margem ${c.margemPct}% · cancelados ${c.cancelados}</div>`).join('') + `<div class="obs-line" style="color:var(--muted);">Margem = total − custo dos produtos − taxas e comissões − imposto estimado.</div></div>
+    box.innerHTML = `<div class="notif-card"><b>Vendas por canal — últimos ${r.dias} dias</b>` + (r.canais||[]).map(c=>`<div class="obs-line">${escH(c.canal)}: ${c.pedidos} pedido(s) · ${R$_(c.total)} · ticket ${R$_(c.ticket)} · margem ${c.margemPct}% · cancelados ${c.cancelados}</div>`).join('') + `<div class="obs-line txt-muted">Margem = total − custo dos produtos − taxas e comissões − imposto estimado.</div></div>
       <div class="notif-card"><b>iFood</b><div class="obs-line">Tempo médio para confirmar: ${f.confirmacaoMediaMin!=null?f.confirmacaoMediaMin+' min':'—'} · itens sem ligação: ${f.itensSemLigacao||0} · comissão real: ${R$_(f.comissaoReal)}</div>
       ${(f.cancelamentos||[]).length?'<div class="obs-line">Cancelamentos: '+f.cancelamentos.map(x=>escH(x.motivo)+' ('+x.qtd+')').join('; ')+'</div>':''}
       ${(f.maisVendidos||[]).length?'<div class="obs-line">Mais vendidos no iFood: '+f.maisVendidos.map(x=>escH(x.nome)+' ('+x.qtd+')').join('; ')+'</div>':''}</div>`;
@@ -1084,7 +1084,7 @@ async function carregarIfoodItens_(){
 function renderIfoodItens_(){
   const box = document.getElementById('ifoodItens'); const r = ifoodItensDados_; if(!box || !r) return;
   const op = (tipo, lista)=> (lista||[]).map(x=>`<option value="${tipo}:${escH(x.id)}">${escH(x.nome)}</option>`).join('');
-  box.innerHTML = '<p class="sub" style="margin-top:8px;">Cada item do iFood precisa estar ligado a um produto do sistema para baixar os ingredientes e calcular o custo. Itens aparecem aqui quando chegam em pedidos.</p>' +
+  box.innerHTML = '<p class="sub mt-2">Cada item do iFood precisa estar ligado a um produto do sistema para baixar os ingredientes e calcular o custo. Itens aparecem aqui quando chegam em pedidos.</p>' +
     ((r.itens||[]).map((i,ix)=>{
       const pend = !i.ligado && !i.ignorar;
       return `<div class="notif-card" style="border-left:4px solid ${pend?'#e0a800':'#2e9e5b'};">
@@ -1094,7 +1094,7 @@ function renderIfoodItens_(){
         ${pend?`<div class="obs-line">⚠️ Sem ligação.</div>
           ${i.sugestao?`<div class="obs-line">Sugestão: <b>${escH(i.sugestao.nome)}</b> <button class="small-gold" onclick="ligarIfoodItem_(${ix},'sugestao')">Usar sugestão</button></div>`:''}
           <select id="ifSel_${ix}"><option value="">Escolher no sistema…</option>${i.tipo==='opcao'?'<optgroup label="Adicionais">'+op('adicional',r.adicionais)+'</optgroup>':''}<optgroup label="Produtos">${op('produto',r.produtos)}</optgroup><optgroup label="Combos">${op('combo',r.combos)}</optgroup></select>
-          <div class="btnrow" style="margin-top:6px;"><button class="ghost" onclick="ligarIfoodItem_(${ix},'escolha')">Ligar</button><button class="ghost" onclick="ligarIfoodItem_(${ix},'ignorar')">Ignorar este item</button></div>`:''}
+          <div class="btnrow mt-2"><button class="ghost" onclick="ligarIfoodItem_(${ix},'escolha')">Ligar</button><button class="ghost" onclick="ligarIfoodItem_(${ix},'ignorar')">Ignorar este item</button></div>`:''}
       </div>`; }).join('') || '<div class="obs-line">Nenhum item do iFood conhecido ainda.</div>');
 }
 async function ligarIfoodItem_(ix, modo){
@@ -1111,11 +1111,11 @@ async function ligarIfoodItem_(ix, modo){
   }catch(e){ showMsg(integMsgId_(),'Sem conexão.','warn'); }
 }
 async function reprocessarIfood_(){
-  if(!confirm('Refazer os pedidos do iFood que ficaram sem ligação, com as ligações atuais? (corrige custo e estoque)')) return;
+  if(!await confirmarTxt_('Refazer os pedidos do iFood que ficaram sem ligação, com as ligações atuais? (corrige custo e estoque)')) return;
   try{ const r = await apiCall('ifoodReprocessar', {}); if(r && r.ok){ showMsg(integMsgId_(), r.message||'Pronto.','ok'); carregarIfoodPedidos_(); } else showMsg(integMsgId_(),(r&&r.message)||'Não foi possível.','warn'); }catch(e){ showMsg(integMsgId_(),'Sem conexão.','warn'); }
 }
 async function simularIfood_(){
-  if(!confirm('Criar um pedido de TESTE do iFood? Ele vira uma venda de verdade (marcada como teste) — cancele depois. Nada é enviado ao iFood.')) return;
+  if(!await confirmarTxt_('Criar um pedido de TESTE do iFood? Ele vira uma venda de verdade (marcada como teste) — cancele depois. Nada é enviado ao iFood.')) return;
   try{ const r = await apiCall('ifoodSimular', { pagoNoApp: true }); if(r && r.ok){ showMsg(integMsgId_(), r.message||'Criado.','ok'); carregarIfoodPedidos_(); } else showMsg(integMsgId_(),(r&&r.message)||'Não foi possível.','warn'); }catch(e){ showMsg(integMsgId_(),'Sem conexão.','warn'); }
 }
 

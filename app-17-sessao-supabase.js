@@ -28,7 +28,7 @@ function sb410Montar_(){
     <button class="small-gold" style="width:100%;padding:10px;margin-top:8px;" onclick="sb410SyncAgora()">Sincronizar agora</button></div>
   <div class="card" id="sb410Bk"><h2>Backup do Supabase</h2>
     <div style="border:1px solid #3a2c1c;border-radius:10px;padding:10px;margin-bottom:10px;">
-      <label style="display:flex;gap:8px;align-items:center;font-weight:600;"><input type="checkbox" id="sb410BkAuto" style="width:auto;"> Backup automático diário</label>
+      <label style="display:flex;gap:8px;align-items:center;font-weight:600;"><input type="checkbox" id="sb410BkAuto" class="largura-auto"> Backup automático diário</label>
       <div class="obs-line" id="sb410BkAutoSt" style="margin:4px 0 8px;"></div>
       <label for="sb410BkHora">Horário (Brasília)</label>
       <select id="sb410BkHora" style="width:100%;margin-bottom:8px;"></select>
@@ -84,7 +84,7 @@ async function sb410SyncStatus(){
 }
 async function sb410SyncAgora(){
   const box = document.getElementById('sb410SyncBox'); if(box) box.textContent = 'Sincronizando…';
-  try{ const j = await sb410Edge_('sync-fila', {}, 90000); if(!j.ok) alert('Falha: '+(j.message||'erro')); }catch(e){ alert('Sem conexão.'); }
+  try{ const j = await sb410Edge_('sync-fila', {}, 90000); if(!j.ok) avisar('Falha: '+(j.message||'erro')); }catch(e){ avisar('Sem conexão.'); }
   sb410SyncStatus();
 }
 
@@ -95,9 +95,9 @@ async function sb410BkLista(){
     const l = await sbSelecionar_('backups','order=data_hora.desc&limit=10',true);
     box.innerHTML = l.length ? l.map(b=>`<div style="margin:6px 0;"><b>${sb410Fmt_(b.data_hora)}</b> · ${escH(b.tipo)} · <span class="badge ${b.status==='Sucesso'?'done':(b.status==='Erro'?'baixo':'pend')}">${escH(b.status)}</span>
       ${b.tamanho_bytes?`<span class="obs-line">${Math.round(b.tamanho_bytes/1024)} KB${b.erro?' · '+escH(b.erro):''}${b.status==='Sucesso'?(b.copia_drive_em?' · ☁️ cópia no Drive':(b.copia_drive_erro?' · ⚠️ sem cópia no Drive: '+escH(b.copia_drive_erro):' · sem cópia no Drive')):''}</span>`:(b.erro?`<span class="obs-line">${escH(b.erro)}</span>`:'')}
-      ${b.status==='Sucesso'?`<button class="ghost" style="margin-top:4px;padding:4px 10px;font-size:11px;" onclick="sb410BkRestaurar('${escH(b.id)}')">Restaurar</button>`:''}
-      ${b.status==='Sucesso'&&!b.copia_drive_em?`<button class="ghost" style="margin-top:4px;padding:4px 10px;font-size:11px;" onclick="sb410BkReenviarDrive('${escH(b.id)}')">Enviar ao Drive</button>`:''}
-      ${b.status!=='Em andamento'?`<button class="ghost" style="margin-top:4px;padding:4px 10px;font-size:11px;color:#e0443a;border-color:#e0443a;" onclick="sb410BkExcluir('${escH(b.id)}')">Excluir</button>`:''}</div>`).join('')
+      ${b.status==='Sucesso'?`<button class="ghost" style="margin-top:4px;padding:4px 10px;font-size:12px;" onclick="sb410BkRestaurar('${escH(b.id)}')">Restaurar</button>`:''}
+      ${b.status==='Sucesso'&&!b.copia_drive_em?`<button class="ghost" style="margin-top:4px;padding:4px 10px;font-size:12px;" onclick="sb410BkReenviarDrive('${escH(b.id)}')">Enviar ao Drive</button>`:''}
+      ${b.status!=='Em andamento'?`<button class="ghost" style="margin-top:4px;padding:4px 10px;font-size:12px;color:#e0443a;border-color:#e0443a;" onclick="sb410BkExcluir('${escH(b.id)}')">Excluir</button>`:''}</div>`).join('')
       : '<span class="obs-line">Nenhum backup ainda.</span>';
   }catch(e){ box.textContent = 'Não foi possível carregar.'; }
 }
@@ -162,29 +162,29 @@ async function sb410BkAgora(){
   if(_sb410BkOcupado_) return; _sb410BkOcupado_ = true;
   const box = document.getElementById('sb410BkBox'); if(box) box.insertAdjacentHTML('afterbegin', '<div class="obs-line" id="sb410BkFazendo">Fazendo backup… pode levar alguns segundos.</div>');
   try{ const j = await sb410Edge_('criar-backup', { tipo:'Manual' }, 120000);
-    alert(j.ok ? 'Backup feito ('+Math.round((j.tamanho||0)/1024)+' KB).' + (j.drive ? ' Cópia no Drive: ok.' : ' ATENÇÃO: a cópia no Drive não foi feita' + (j.driveErro ? ' ('+j.driveErro+')' : '') + '.') : 'Erro: '+(j.message||'falha')); }catch(e){ alert('Sem conexão.'); }
+    avisar(j.ok ? 'Backup feito ('+Math.round((j.tamanho||0)/1024)+' KB).' + (j.drive ? ' Cópia no Drive: ok.' : ' ATENÇÃO: a cópia no Drive não foi feita' + (j.driveErro ? ' ('+j.driveErro+')' : '') + '.') : 'Erro: '+(j.message||'falha')); }catch(e){ avisar('Sem conexão.'); }
   _sb410BkOcupado_ = false; sb410BkLista(); setTimeout(sb410VerificarAlertaBackup_, 1500);
 }
 /* Restaurar e excluir backup: pedem a senha do Administrador no pop-up (confere na hora) e o servidor confere de novo. */
-function sb410BkRestaurar(id){
-  if(!confirm('Restaurar este backup? Os dados atuais serão substituídos (usuários, auditoria e backups são preservados). Um backup de segurança é feito antes.')) return;
+async function sb410BkRestaurar(id){
+  if(!await confirmarTxt_('Restaurar este backup? Os dados atuais serão substituídos (usuários, auditoria e backups são preservados). Um backup de segurança é feito antes.')) return;
   abrirModalSenhaAdmin(async function(senha){
     try{ const j = await sb410Edge_('restaurar-backup', { backupId:id, senhaAdmin:senha }, 240000);
-      alert(j.message || (j.ok?'Restaurado.':'Erro.')); if(j.ok) location.reload(); }catch(e){ alert('Sem conexão. Confira o estado antes de repetir.'); }
+      await confirmar({ titulo: j.ok ? 'Backup restaurado' : 'Não foi possível restaurar', texto: j.message || (j.ok?'Restaurado.':'Erro.'), ok: j.ok ? 'Recarregar o sistema' : 'Entendi', somenteOk:true, perigo:false }); if(j.ok) location.reload(); }catch(e){ avisar('Sem conexão. Confira o estado antes de repetir.'); }
   });
 }
-function sb410BkExcluir(id){
-  if(!confirm('Excluir este backup? O arquivo no Supabase será apagado e não dá para desfazer. A cópia que já está no Google Drive não é apagada.')) return;
+async function sb410BkExcluir(id){
+  if(!await confirmarTxt_('Excluir este backup? O arquivo no Supabase será apagado e não dá para desfazer. A cópia que já está no Google Drive não é apagada.')) return;
   abrirModalSenhaAdmin(async function(senha){
     try{ const j = await sb410Edge_('excluir-backup', { backupId:id, senhaAdmin:senha }, 60000);
-      alert(j.message || (j.ok?'Backup excluído.':'Erro.')); }catch(e){ alert('Sem conexão. Tente de novo.'); }
+      avisar(j.message || (j.ok?'Backup excluído.':'Erro.')); }catch(e){ avisar('Sem conexão. Tente de novo.'); }
     sb410BkLista(); setTimeout(sb410VerificarAlertaBackup_, 1500);
   });
 }
 async function sb410BkReenviarDrive(id){
   const box = document.getElementById('sb410BkBox'); if(box) box.insertAdjacentHTML('afterbegin', '<div class="obs-line">Enviando ao Drive… pode levar até 2 minutos.</div>');
   try{ const j = await sb410Edge_('criar-backup', { reenviarDrive:id }, 170000);
-    alert(j.ok ? 'Cópia enviada ao Drive.' : 'Não foi possível enviar ao Drive: ' + (j.message || 'falha')); }catch(e){ alert('Sem conexão. Tente de novo.'); }
+    avisar(j.ok ? 'Cópia enviada ao Drive.' : 'Não foi possível enviar ao Drive: ' + (j.message || 'falha')); }catch(e){ avisar('Sem conexão. Tente de novo.'); }
   sb410BkLista();
 }
 async function sb410Espaco(){
@@ -194,7 +194,7 @@ async function sb410Espaco(){
     if(!j || !j.ok){ box.textContent = '—'; return; }
     const cor = j.percentual > 90 ? '#e0443a' : j.percentual > 70 ? '#f5902e' : '#4cc35f';
     box.innerHTML = `<div style="height:12px;background:#3a2c1c;border-radius:6px;overflow:hidden;"><div style="width:${Math.min(100,j.percentual)}%;height:100%;background:${cor};"></div></div>
-      <div class="stat-row" style="margin-top:10px;"><div class="stat-box"><b>${j.db_mb} MB</b>Usado</div><div class="stat-box"><b>${j.percentual}%</b>De 500 MB</div>
+      <div class="stat-row mt-3"><div class="stat-box"><b>${j.db_mb} MB</b>Usado</div><div class="stat-box"><b>${j.percentual}%</b>De 500 MB</div>
       <div class="stat-box"><b>${j.vendas_total}</b>Vendas ativas</div><div class="stat-box"><b>${j.vendas_arquivadas}</b>Arquivadas</div></div>
       <span class="obs-line" id="sb410ArqTexto">Vendas com mais de 90 dias vão para a planilha (abas Arquivo_*) e saem do Supabase, todo dia de madrugada.</span>
       <div style="margin-top:10px;border-top:1px solid #3a2c1c;padding-top:10px;">
@@ -204,7 +204,7 @@ async function sb410Espaco(){
         <div class="msg" id="sb410ArqMsg"></div>
       </div>
       <div style="margin-top:10px;border-top:1px solid #3a2c1c;padding-top:10px;">
-        <label style="display:flex;align-items:center;gap:8px;margin:0;"><input type="checkbox" id="sb410EmergAtivo" onchange="sb410EmergSalvar()" style="width:auto;margin:0;"> Proteção de espaço: se o uso chegar a</label>
+        <label class="d-flex ai-centro gap-2 sem-margem"><input type="checkbox" id="sb410EmergAtivo" onchange="sb410EmergSalvar()" class="largura-auto sem-margem"> Proteção de espaço: se o uso chegar a</label>
         <select id="sb410EmergPct" onchange="sb410EmergSalvar()" style="width:100%;margin:6px 0;"><option value="90">90% do limite</option><option value="95">95% do limite</option><option value="98">98% do limite</option></select>
         <span class="obs-line">Aí o sistema manda para a planilha as vendas e caixas já encerrados, do mais antigo para o mais novo (mesmo com menos de 30 dias; o que tem menos de 1 dia fica), e só apaga do Supabase o que a planilha confirmou. Pedido em andamento e caixa aberto nunca saem. Verifica de hora em hora.</span>
         <div class="msg" id="sb410EmergMsg"></div>
@@ -241,7 +241,7 @@ async function sb410ArqSalvarRegra(v){
 
 async function sb410ArquivarAgora(){
   const dias = Number((document.getElementById('sb410ArqDias')||{}).value) || 90;
-  if(!confirm('Mandar para a planilha as vendas e caixas fechados com mais de ' + dias + ' dias e tirá-los do Supabase? Eles continuam guardados nas abas Arquivo_* da planilha. Pode levar alguns minutos; não feche a página.')) return;
+  if(!await confirmarTxt_('Mandar para a planilha as vendas e caixas fechados com mais de ' + dias + ' dias e tirá-los do Supabase? Eles continuam guardados nas abas Arquivo_* da planilha. Pode levar alguns minutos; não feche a página.')) return;
   const m = document.getElementById('sb410ArqMsg'); if(m) m.textContent = 'Arquivando…';
   try{
     const j = await sb410Edge_('arquivar-antigos', { dias: dias, manual: true }, 280000);

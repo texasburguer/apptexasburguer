@@ -122,7 +122,7 @@ function renderCategorias(){
     tbodyCuradoria.innerHTML = categorias.length ? categorias.map((c,idx)=>`<tr>
       <td>${escH(c.nome)}</td>
       <td><button class="ghost" ${idx===0?'disabled':''} onclick="moverCategoria('${c.id}',-1)">▲</button> <button class="ghost" ${idx===categorias.length-1?'disabled':''} onclick="moverCategoria('${c.id}',1)">▼</button></td>
-      <td><label style="display:flex;align-items:center;gap:6px;justify-content:center;"><input type="checkbox" style="width:auto;" ${c.ativa?'checked':''} onchange="toggleCategoriaAtiva('${c.id}', this.checked)"></label></td>
+      <td><label class="d-flex ai-centro gap-2 jc-centro"><input type="checkbox" class="largura-auto" ${c.ativa?'checked':''} onchange="toggleCategoriaAtiva('${c.id}', this.checked)"></label></td>
     </tr>`).join('') : '<tr class="empty-row"><td colspan="3">Nenhuma categoria cadastrada.</td></tr>';
   }
 }
@@ -233,14 +233,14 @@ function renderAdicionais(){
   if(tbodyCuradoria){
     tbodyCuradoria.innerHTML = adicionais.length ? adicionais.map(a=>`<tr>
       <td>${escH(a.nome)}</td>
-      <td><label style="display:flex;align-items:center;gap:6px;justify-content:center;"><input type="checkbox" style="width:auto;" ${a.ativo?'checked':''} onchange="toggleAdicionalAtivo('${a.id}', this.checked)"></label></td>
+      <td><label class="d-flex ai-centro gap-2 jc-centro"><input type="checkbox" class="largura-auto" ${a.ativo?'checked':''} onchange="toggleAdicionalAtivo('${a.id}', this.checked)"></label></td>
     </tr>`).join('') : '<tr class="empty-row"><td colspan="2">Nenhum adicional cadastrado.</td></tr>';
   }
 }
 function renderAdVincCategorias(){
   const cont = document.getElementById('adVincCategorias'); if(!cont) return;
   const marcadas = Array.from(cont.querySelectorAll('input:checked')).map(i=>i.value);
-  cont.innerHTML = categorias.length ? categorias.map(c=>`<label class="cd-adicional-linha" style="cursor:pointer;"><span><input type="checkbox" style="width:auto;" value="${c.id}" ${marcadas.includes(c.id)?'checked':''}> ${escH(c.nome)}</span></label>`).join('') : '<p class="sub">Cadastre as categorias primeiro.</p>';
+  cont.innerHTML = categorias.length ? categorias.map(c=>`<label class="cd-adicional-linha" style="cursor:pointer;"><span><input type="checkbox" class="largura-auto" value="${c.id}" ${marcadas.includes(c.id)?'checked':''}> ${escH(c.nome)}</span></label>`).join('') : '<p class="sub">Cadastre as categorias primeiro.</p>';
 }
 async function vincularAdicionaisCategorias(){
   const cats = Array.from(document.querySelectorAll('#adVincCategorias input:checked')).map(i=>i.value);
@@ -274,7 +274,7 @@ async function toggleAdicionalAtivo(id, novoAtivo){
   catch(e){ showMsg('adMsg','Não foi possível atualizar.','warn'); }
 }
 async function excluirAdicionalConfirm(id){
-  if(!confirm('Excluir este adicional? Ele será removido de todos os produtos vinculados.')) return;
+  if(!await confirmarTxt_('Excluir este adicional? Ele será removido de todos os produtos vinculados.')) return;
   try{ const r = await apiCall('excluirAdicional', { id }); adicionais = r.adicionais || adicionais; produtoAdicionais = r.produtoAdicionais || produtoAdicionais; salvarCache(); renderAdicionais(); }
   catch(e){ showMsg('adMsg','Não foi possível excluir.','warn'); }
 }
@@ -299,7 +299,7 @@ async function toggleCategoriaAtiva(id, novoAtivo){
   catch(e){}
 }
 async function excluirCategoriaConfirm(id){
-  if(!confirm('Excluir esta categoria?')) return;
+  if(!await confirmarTxt_('Excluir esta categoria?')) return;
   try{
     const r = await apiCall('excluirCategoria', { id });
     if(r.ok){ categorias = r.categorias || categorias; renderCategorias(); popularCategoriaSelects(); salvarCache(); }
@@ -361,8 +361,8 @@ function renderAdicionaisChecklist(containerId, selecionados){
   const cont = document.getElementById(containerId);
   if(!cont) return;
   const ativos = adicionais.filter(a=>a.ativo);
-  if(!ativos.length){ cont.innerHTML = '<span style="color:var(--muted);font-size:12.5px;">Nenhum adicional cadastrado ainda (cadastre em Administrador → Catálogo → Produtos → Adicionais).</span>'; return; }
-  cont.innerHTML = ativos.map(a=>`<label style="display:flex;align-items:center;gap:8px;font-size:13px;"><input type="checkbox" value="${a.id}" ${selecionados.includes(a.id)?'checked':''} style="width:auto;"> ${escH(a.nome)} (+ ${formatarMoeda(a.preco)})</label>`).join('');
+  if(!ativos.length){ cont.innerHTML = '<span class="txt-muted fs-xs">Nenhum adicional cadastrado ainda (cadastre em Administrador → Catálogo → Produtos → Adicionais).</span>'; return; }
+  cont.innerHTML = ativos.map(a=>`<label class="d-flex ai-centro gap-2 fs-sm"><input type="checkbox" value="${a.id}" ${selecionados.includes(a.id)?'checked':''} class="largura-auto"> ${escH(a.nome)} (+ ${formatarMoeda(a.preco)})</label>`).join('');
 }
 function coletarAdicionaisChecklist(containerId){
   return Array.from(document.querySelectorAll('#'+containerId+' input[type=checkbox]:checked')).map(el=>el.value);
@@ -430,7 +430,7 @@ function abrirEditarProduto(id){
   document.getElementById('ppAvancadoBox').style.display = 'none'; document.getElementById('ppAvancadoSeta').textContent = '▸';
   const adicionaisDoProduto = produtoAdicionais.filter(pa=>pa.produtoId===id).map(pa=>pa.adicionalId);
   renderAdicionaisChecklist('ppAdicionaisLista', adicionaisDoProduto);
-  document.getElementById('ppFotoAtual').innerHTML = p.fotoUrl ? `<img src="${fotoSrc_(p.fotoUrl, 400)}" onerror="fotoFalhou_(this)" style="max-width:140px;border-radius:8px;border:1px solid var(--gold);">` : '<span style="color:var(--muted);font-size:12.5px;">Nenhuma foto cadastrada.</span>';
+  document.getElementById('ppFotoAtual').innerHTML = p.fotoUrl ? `<img src="${fotoSrc_(p.fotoUrl, 400)}" onerror="fotoFalhou_(this)" style="max-width:140px;border-radius:8px;border:1px solid var(--gold);">` : '<span class="txt-muted fs-xs">Nenhuma foto cadastrada.</span>';
   document.getElementById('ppFoto').value = ''; document.getElementById('ppFotoMsg').innerHTML = '';
   popularSelectIngredientes('ppIngredienteSelect'); atualizarLabelQtdIngrediente('pp');
   ingredientesProdutoEdicao = produtoIngredientes.filter(v=>v.produtoId===id && v.ingredienteId!==p.estoqueProprioIngredienteId).map(v=>({ingredienteId:v.ingredienteId, ingredienteNome:v.ingredienteNome, quantidadePorUnidade:v.quantidadePorUnidade, unidade:(estoque.find(e=>e.id===v.ingredienteId)||{}).unidade||'un'}));
@@ -455,10 +455,10 @@ async function trocarFotoProdutoEdicao(){
   } catch(e){ showMsg('ppFotoMsg','Não foi possível enviar a foto.','warn'); }
 }
 async function removerFotoProdutoEdicao(){
-  if(!confirm('Remover a foto deste produto?')) return;
+  if(!await confirmarTxt_('Remover a foto deste produto?')) return;
   try{
     const r = await apiCall('excluirFotoProduto', { produtoId: produtoEditandoId });
-    if(r.ok){ produtos = r.produtos || produtos; salvarCache(); renderProdutos(); document.getElementById('ppFotoAtual').innerHTML = '<span style="color:var(--muted);font-size:12.5px;">Nenhuma foto cadastrada.</span>'; }
+    if(r.ok){ produtos = r.produtos || produtos; salvarCache(); renderProdutos(); document.getElementById('ppFotoAtual').innerHTML = '<span class="txt-muted fs-xs">Nenhuma foto cadastrada.</span>'; }
   } catch(e){ showMsg('ppFotoMsg','Não foi possível remover a foto.','warn'); }
 }
 function renderIngredientesProdutoEdicao(){
@@ -493,7 +493,7 @@ async function salvarEdicaoProduto(){
   } catch(e){ showMsg('ppMsg','Não foi possível salvar.','warn'); }
 }
 async function excluirProdutoConfirm(id){
-  if(!confirm('Excluir este produto?')) return;
+  if(!await confirmarTxt_('Excluir este produto?')) return;
   try{ const r = await apiCall('excluirProduto', { id }); produtos = r.produtos || produtos; produtoPrecos = r.produtoPrecos || produtoPrecos; produtoIngredientes = r.produtoIngredientes || produtoIngredientes; salvarCache(); renderProdutos(); renderProdutoCuradoria(); popularSelectProdutos(); }
   catch(e){ showMsg('pMsg','Não foi possível excluir.','warn'); }
 }
@@ -526,8 +526,8 @@ function renderProdutoCuradoria(){
     porCategoria[cat].sort((a,b)=>a.ordemCardapio-b.ordemCardapio).forEach(p=>{
       html += `<tr>
         <td>${escH(p.nome)}</td>
-        <td><label style="display:flex;align-items:center;gap:6px;justify-content:center;"><input type="checkbox" style="width:auto;" ${p.ativo?'checked':''} onchange="toggleProdutoVisivelCardapio('${p.id}', this.checked)"></label></td>
-        <td><label style="display:flex;align-items:center;gap:6px;justify-content:center;"><input type="checkbox" style="width:auto;" ${p.destaque?'checked':''} onchange="toggleProdutoDestaqueCuradoria('${p.id}', this.checked)"></label></td>
+        <td><label class="d-flex ai-centro gap-2 jc-centro"><input type="checkbox" class="largura-auto" ${p.ativo?'checked':''} onchange="toggleProdutoVisivelCardapio('${p.id}', this.checked)"></label></td>
+        <td><label class="d-flex ai-centro gap-2 jc-centro"><input type="checkbox" class="largura-auto" ${p.destaque?'checked':''} onchange="toggleProdutoDestaqueCuradoria('${p.id}', this.checked)"></label></td>
         <td><input type="number" value="${p.ordemCardapio}" style="width:60px;text-align:center;" onchange="salvarOrdemCardapioProduto('${p.id}', this.value)"></td>
       </tr>`;
     });
@@ -606,7 +606,7 @@ function abrirEditarCombo(id){
   document.getElementById('kkAtivo').checked = c.ativo;
   document.getElementById('kkDestaque').checked = !!c.destaque;
   document.getElementById('kkAvancadoBox').style.display = 'none'; document.getElementById('kkAvancadoSeta').textContent = '▸';
-  document.getElementById('kkFotoAtual').innerHTML = c.fotoUrl ? `<img src="${fotoSrc_(c.fotoUrl, 400)}" onerror="fotoFalhou_(this)" style="max-width:140px;border-radius:8px;border:1px solid var(--gold);">` : '<span style="color:var(--muted);font-size:12.5px;">Nenhuma foto cadastrada.</span>';
+  document.getElementById('kkFotoAtual').innerHTML = c.fotoUrl ? `<img src="${fotoSrc_(c.fotoUrl, 400)}" onerror="fotoFalhou_(this)" style="max-width:140px;border-radius:8px;border:1px solid var(--gold);">` : '<span class="txt-muted fs-xs">Nenhuma foto cadastrada.</span>';
   document.getElementById('kkFoto').value = ''; document.getElementById('kkFotoMsg').innerHTML = '';
   popularSelectProdutosParaCombo('kkProdutoSelect');
   itensComboEdicao = comboItens.filter(v=>v.comboId===id).map(v=>({produtoId:v.produtoId, produtoNome:(produtos.find(p=>p.id===v.produtoId)||{}).nome||'(produto removido)', quantidade:v.quantidade}));
@@ -630,10 +630,10 @@ async function trocarFotoComboEdicao(){
   } catch(e){ showMsg('kkFotoMsg','Não foi possível enviar a foto.','warn'); }
 }
 async function removerFotoComboEdicao(){
-  if(!confirm('Remover a foto deste combo?')) return;
+  if(!await confirmarTxt_('Remover a foto deste combo?')) return;
   try{
     const r = await apiCall('excluirFotoCombo', { comboId: comboEditandoId });
-    if(r.ok){ combos = r.combos || combos; salvarCache(); renderCombos(); document.getElementById('kkFotoAtual').innerHTML = '<span style="color:var(--muted);font-size:12.5px;">Nenhuma foto cadastrada.</span>'; }
+    if(r.ok){ combos = r.combos || combos; salvarCache(); renderCombos(); document.getElementById('kkFotoAtual').innerHTML = '<span class="txt-muted fs-xs">Nenhuma foto cadastrada.</span>'; }
   } catch(e){ showMsg('kkFotoMsg','Não foi possível remover a foto.','warn'); }
 }
 async function salvarEdicaoCombo(){
@@ -654,7 +654,7 @@ async function salvarEdicaoCombo(){
   } catch(e){ showMsg('kkMsg','Não foi possível salvar.','warn'); }
 }
 async function excluirComboConfirm(id){
-  if(!confirm('Excluir este combo?')) return;
+  if(!await confirmarTxt_('Excluir este combo?')) return;
   try{ const r = await apiCall('excluirCombo', { id }); combos = r.combos || combos; comboPrecos = r.comboPrecos || comboPrecos; comboItens = r.comboItens || comboItens; salvarCache(); renderCombos(); renderComboCuradoria(); popularSelectCombos(); }
   catch(e){ showMsg('koMsg','Não foi possível excluir.','warn'); }
 }
@@ -680,8 +680,8 @@ function renderComboCuradoria(){
     porCategoria[cat].sort((a,b)=>a.ordemCardapio-b.ordemCardapio).forEach(c=>{
       html += `<tr>
         <td>${escH(c.nome)}</td>
-        <td><label style="display:flex;align-items:center;gap:6px;justify-content:center;"><input type="checkbox" style="width:auto;" ${c.ativo?'checked':''} onchange="toggleComboVisivelCardapio('${c.id}', this.checked)"></label></td>
-        <td><label style="display:flex;align-items:center;gap:6px;justify-content:center;"><input type="checkbox" style="width:auto;" ${c.destaque?'checked':''} onchange="toggleComboDestaqueCuradoria('${c.id}', this.checked)"></label></td>
+        <td><label class="d-flex ai-centro gap-2 jc-centro"><input type="checkbox" class="largura-auto" ${c.ativo?'checked':''} onchange="toggleComboVisivelCardapio('${c.id}', this.checked)"></label></td>
+        <td><label class="d-flex ai-centro gap-2 jc-centro"><input type="checkbox" class="largura-auto" ${c.destaque?'checked':''} onchange="toggleComboDestaqueCuradoria('${c.id}', this.checked)"></label></td>
         <td><input type="number" value="${c.ordemCardapio}" style="width:60px;text-align:center;" onchange="salvarOrdemCardapioCombo('${c.id}', this.value)"></td>
       </tr>`;
     });
@@ -709,7 +709,7 @@ async function registrarIngrediente(){
   const unidade = document.getElementById('eUnidade').value;
   const custo = Number(document.getElementById('eCusto').value) || 0;
   if(!nome){ showMsg('eMsg','Informe o nome do ingrediente.','warn'); return; }
-  if(!(custo > 0) && !confirm('Cadastrar "'+nome+'" sem preço? Os produtos que usam este ingrediente ficam sem custo até você informar quanto pagou.')) return;
+  if(!(custo > 0) && !await confirmarTxt_('Cadastrar "'+nome+'" sem preço? Os produtos que usam este ingrediente ficam sem custo até você informar quanto pagou.')) return;
   setBotoesOcupados(true);
   try{
     const r = await apiCall('addIngrediente', { nome, quantidade, minimo, unidade, custo });
@@ -756,7 +756,7 @@ async function salvarEdicaoIngrediente(){
   finally{ setBotoesOcupados(false); }
 }
 async function excluirEstoqueConfirm(id){
-  if(!confirm('Excluir este ingrediente do estoque?')) return;
+  if(!await confirmarTxt_('Excluir este ingrediente do estoque?')) return;
   try{ const r = await apiCall('excluirIngrediente', { id }); if(!r || !r.ok){ showMsg('eMsg', (r && r.message ? r.message : 'Não foi possível excluir.') + ' Se ele já foi usado, deixe-o inativo em vez de excluir.', 'warn'); return; } estoque = r.estoque || estoque; salvarCache(); renderEstoque(); popularSelectIngredientes('pIngredienteSelect'); popularSelectIngredientes('ppIngredienteSelect'); }
   catch(e){ showMsg('eMsg','Não foi possível excluir.','warn'); }
 }
@@ -877,8 +877,8 @@ async function avancarPedido(vendaId, novoStatus){
     const r = await apiCall('avancarStatusPedido', { vendaId, novoStatus, statusEsperado: atual ? atual.statusPedido : '' });
     if(r.ok){ vendas = r.vendas || vendas; salvarCache(); renderPedidos(); renderEntregas(); renderVendas(); }
     else {
-      if(r.conflito && r.vendas){ vendas = r.vendas; salvarCache(); renderPedidos(); renderEntregas(); renderVendas(); alert(r.message); }
-      else { showMsg('vMsg', r.message||'Não foi possível atualizar.', 'warn'); alert(r.message||'Não foi possível atualizar.'); }
+      if(r.conflito && r.vendas){ vendas = r.vendas; salvarCache(); renderPedidos(); renderEntregas(); renderVendas(); avisar(r.message); }
+      else { showMsg('vMsg', r.message||'Não foi possível atualizar.', 'warn'); avisar(r.message||'Não foi possível atualizar.'); }
     }
   } catch(e){}
   finally { finalizarOperacaoUnica(chave); }
@@ -894,8 +894,8 @@ async function confirmarRecebimento(vendaId){
 }
 function botoesSuspensao(v){
   if(!currentUser || ['Admin','Operador'].indexOf(currentUser.nivel)===-1 || v.status!=='Confirmada') return '';
-  if(v.statusPedido==='Suspenso') return `<div class="btnrow" style="margin-top:6px;"><button class="small-gold" onclick="retomarPedidoUI('${v.id}')">▶️ Retomar pedido</button></div>`;
-  if(['Recebido','Em preparo','Pronta'].indexOf(v.statusPedido)!==-1 && !v.fechamentoEntregaId) return `<div class="btnrow" style="margin-top:6px;"><button class="ghost" onclick="suspenderPedidoUI('${v.id}')">⏸ Suspender</button></div>`;
+  if(v.statusPedido==='Suspenso') return `<div class="btnrow mt-2"><button class="small-gold" onclick="retomarPedidoUI('${v.id}')">▶️ Retomar pedido</button></div>`;
+  if(['Recebido','Em preparo','Pronta'].indexOf(v.statusPedido)!==-1 && !v.fechamentoEntregaId) return `<div class="btnrow mt-2"><button class="ghost" onclick="suspenderPedidoUI('${v.id}')">⏸ Suspender</button></div>`;
   return '';
 }
 async function suspenderPedidoUI(vendaId){
@@ -906,8 +906,8 @@ async function suspenderPedidoUI(vendaId){
   try{
     const r = await apiCall('suspenderPedido', { vendaId, motivo: motivo.trim() });
     if(r.vendas){ vendas = r.vendas; salvarCache(); renderPedidos(); renderEntregas(); }
-    if(!r.ok) alert(r.message);
-  } catch(e){ alert('Não foi possível suspender agora.'); }
+    if(!r.ok) avisar(r.message);
+  } catch(e){ avisar('Não foi possível suspender agora.'); }
   finally { finalizarOperacaoUnica(chave); }
 }
 async function retomarPedidoUI(vendaId){
@@ -915,8 +915,8 @@ async function retomarPedidoUI(vendaId){
   try{
     const r = await apiCall('retomarPedido', { vendaId });
     if(r.vendas){ vendas = r.vendas; salvarCache(); renderPedidos(); renderEntregas(); }
-    if(!r.ok) alert(r.message);
-  } catch(e){ alert('Não foi possível retomar agora.'); }
+    if(!r.ok) avisar(r.message);
+  } catch(e){ avisar('Não foi possível retomar agora.'); }
   finally { finalizarOperacaoUnica(chave); }
 }
 /* ITEM 2.2 — quem pode editar pedido ainda "Recebido" (mesma regra do backend: editarVenda = Admin e Operador). */
@@ -927,8 +927,8 @@ async function aceitarPedidoUI(vendaId){
   try{
     const r = await apiCall('aceitarPedido', { vendaId });
     if(r.ok){ vendas = r.vendas || vendas; salvarCache(); renderPedidos(); renderEntregas(); }
-    else alert(r.message);
-  } catch(e){ alert('Não foi possível aceitar agora.'); }
+    else avisar(r.message);
+  } catch(e){ avisar('Não foi possível aceitar agora.'); }
   finally { finalizarOperacaoUnica(chave); }
 }
 async function rejeitarPedidoUI(vendaId){
@@ -939,8 +939,8 @@ async function rejeitarPedidoUI(vendaId){
     try{
       const r = await apiCall('rejeitarPedido', { vendaId, motivo, senhaAdminConfirmacao: senha||'' });
       if(r.ok){ vendas = r.vendas || vendas; produtoPrecos = r.produtoPrecos||produtoPrecos; estoque = r.estoque||estoque; salvarCache(); renderPedidos(); renderEntregas(); }
-      else alert(r.message);
-    } catch(e){ alert('Não foi possível rejeitar agora.'); }
+      else avisar(r.message);
+    } catch(e){ avisar('Não foi possível rejeitar agora.'); }
   };
   if(precisaConfirmarAdmin()) abrirModalSenhaAdmin(executar); else executar('');
 }
@@ -948,8 +948,8 @@ async function salvarEntregador(vendaId, valor){
   try{
     const r = await apiCall('atribuirEntregador', { vendaId, entregador: valor });
     if(r.ok){ vendas = r.vendas || vendas; salvarCache(); renderEntregas(); }
-    else { alert(r.message || 'Não foi possível atribuir o entregador.'); renderEntregas(); }
-  } catch(e){ alert('Sem conexão — o entregador não foi atribuído.'); renderEntregas(); }
+    else { avisar(r.message || 'Não foi possível atribuir o entregador.'); renderEntregas(); }
+  } catch(e){ avisar('Sem conexão — o entregador não foi atribuído.'); renderEntregas(); }
 }
 function tempoEntre(ts1, ts2){
   if(!ts1 || !ts2) return null;
@@ -983,12 +983,12 @@ function botaoAvisarCliente_(v){
   if(!mensagemStatusCliente_(v) || !telefoneWhatsApp_(v.clienteTelefone)) return '';
   const feito = lerAvisosCliente_()[v.id+'|'+v.statusPedido];
   const hora = feito ? new Date(feito).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) : '';
-  return `<div class="btnrow" style="margin-top:6px;align-items:center;"><button type="button" class="ghost" onclick="avisarClienteWhatsApp('${v.id}')">📲 ${feito?'Avisar de novo':'Avisar cliente'}</button>${feito?`<span class="obs-line" style="margin:0;">✔ avisado às ${hora}</span>`:''}</div>`;
+  return `<div class="btnrow mt-2 ai-centro"><button type="button" class="ghost" onclick="avisarClienteWhatsApp('${v.id}')">📲 ${feito?'Avisar de novo':'Avisar cliente'}</button>${feito?`<span class="obs-line sem-margem">✔ avisado às ${hora}</span>`:''}</div>`;
 }
 function avisarClienteWhatsApp(vendaId){
   const v = vendas.find(x=>x.id===vendaId); if(!v || !podeAvisarCliente_()) return;
   const msg = mensagemStatusCliente_(v), fone = telefoneWhatsApp_(v.clienteTelefone);
-  if(!msg || !fone){ alert('Este pedido não tem telefone válido ou não está em um status que se avisa ao cliente.'); return; }
+  if(!msg || !fone){ avisar('Este pedido não tem telefone válido ou não está em um status que se avisa ao cliente.'); return; }
   try{ const a = lerAvisosCliente_(); a[v.id+'|'+v.statusPedido] = Date.now();
     const chaves = Object.keys(a); if(chaves.length>200) chaves.sort((x,y)=>a[x]-a[y]).slice(0,chaves.length-200).forEach(k=>delete a[k]);
     localStorage.setItem(AVISOS_CLIENTE_KEY_, JSON.stringify(a)); }catch(e){}

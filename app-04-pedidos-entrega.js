@@ -52,7 +52,7 @@ function pdValoresHtml_(v){
   const pags = (pagamentosVenda||[]).filter(p=>p.vendaId===v.id);
   const forma = pags.length ? pags.map(p=>escH(p.forma)+' '+formatarMoeda(p.valor)).join(' + ') : escH(v.formaPagamento||'—');
   const receber = v.statusPagamento==='A Receber';
-  L.push('<div class="pd-linha"><span>💳 Pagamento</span><span style="text-align:right;">'+forma+'<span class="pd-chip '+(receber?'receber':'pago')+'">'+(receber?'A receber':'Pago')+'</span></span></div>');
+  L.push('<div class="pd-linha"><span>💳 Pagamento</span><span class="txt-dir">'+forma+'<span class="pd-chip '+(receber?'receber':'pago')+'">'+(receber?'A receber':'Pago')+'</span></span></div>');
   return L.join('');
 }
 /* Linha do tempo: hora de cada etapa e quanto tempo levou desde a anterior (só aparece o que foi registrado). */
@@ -71,7 +71,7 @@ function pdLinhaTempoHtml_(v){
   if(et.length<2) return '';
   const linhas = et.map((e,i)=>{
     const dur = i>0 ? tempoEntre(et[i-1].ts, e.ts) : null;
-    return `<div class="obs-line">${fmt(e.ts)} — ${e.rot}${dur?` <span style="color:var(--muted);">(+${dur})</span>`:''}</div>`;
+    return `<div class="obs-line">${fmt(e.ts)} — ${e.rot}${dur?` <span class="txt-muted">(+${dur})</span>`:''}</div>`;
   }).join('');
   const total = v.timestampConcluida ? tempoEntre(v.timestamp, v.timestampConcluida) : null;
   return `<details class="pd-det"><summary>🕒 Linha do tempo</summary>${linhas}${total?`<div class="obs-line"><b>Tempo total: ${total}</b></div>`:''}</details>`;
@@ -86,14 +86,14 @@ function pedidoDetalheHtml_(v){
 /* ---------- IMPRIMIR A ENTREGA PARA O ENTREGADOR ---------- */
 function botaoImprimirEntrega_(v){
   if(!podeEnviarEntregador_() || v.tipoEntrega!=='Entrega' || v.statusPedido==='Recebido') return '';
-  return '<div class="btnrow" style="margin-top:6px;"><button type="button" class="ghost" onclick="imprimirEntregaPedido(\''+v.id+'\')">🖨️ Imprimir para o entregador</button></div>';
+  return '<div class="btnrow mt-2"><button type="button" class="ghost" onclick="imprimirEntregaPedido(\''+v.id+'\')">🖨️ Imprimir para o entregador</button></div>';
 }
 function entregaImpressaoHtml_(v){ return comandaHtml_(v); }   /* modelo único de comanda */
 /* ---------- IMPRIMIR RETIRADA / MESA (mesmo estilo da impressão da entrega) ---------- */
 function podeImprimirPedido_(){ return !!(currentUser && (currentUser.nivel==='Admin' || currentUser.nivel==='Operador' || currentUser.nivel==='Garçom')); }
 function botaoImprimirPedido_(v){
   if(!podeImprimirPedido_() || (v.tipoEntrega!=='Retirada' && v.tipoEntrega!=='Mesa') || v.statusPedido==='Recebido') return '';
-  return '<div class="btnrow" style="margin-top:6px;"><button type="button" class="ghost" onclick="imprimirPedidoRetMesa(\''+v.id+'\')">🖨️ Imprimir '+(v.tipoEntrega==='Mesa'?'pedido da mesa':'pedido da retirada')+'</button></div>';
+  return '<div class="btnrow mt-2"><button type="button" class="ghost" onclick="imprimirPedidoRetMesa(\''+v.id+'\')">🖨️ Imprimir '+(v.tipoEntrega==='Mesa'?'pedido da mesa':'pedido da retirada')+'</button></div>';
 }
 function pedidoRetMesaImpressaoHtml_(v){ return comandaHtml_(v); }   /* modelo único de comanda */
 function imprimirPedidoRetMesa(vendaId){
@@ -111,7 +111,7 @@ function cartaoPedidoMesa_(v){
   const jaFinalizado = v.statusPedido==='Servida';
   const aguardandoAceite = v.statusPedido==='Recebido';
   const hora = new Date(v.timestamp).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
-  const botoesAceite = aguardandoAceite ? `<div class="btnrow" style="margin-top:6px;">
+  const botoesAceite = aguardandoAceite ? `<div class="btnrow mt-2">
       <button class="small-gold" onclick="aceitarPedidoUI('${v.id}')">✅ Aceitar</button>
       <button class="ghost" onclick="rejeitarPedidoUI('${v.id}')">❌ Rejeitar</button>
       ${podeEditarPedidoRecebido_() ? `<button class="ghost" onclick="abrirModalEditarVenda('${v.id}')">✏️ Editar</button>` : ''}
@@ -125,7 +125,7 @@ function cartaoPedidoMesa_(v){
     ${botoesAceite}
     ${(jaFinalizado || aguardandoAceite) ? '' : botoesSuspensao(v)}
     ${botaoImprimirPedido_(v)}
-    ${(!aguardandoAceite && !jaFinalizado && prox) ? `<button class="small-gold" style="margin-top:6px;" onclick="avancarPedido('${v.id}','${prox}')">Marcar como "${prox}"</button>` : ''}
+    ${(!aguardandoAceite && !jaFinalizado && prox) ? `<button class="small-gold mt-2" onclick="avancarPedido('${v.id}','${prox}')">Marcar como "${prox}"</button>` : ''}
   </div>`;
 }
 /* ---------- HISTÓRICO DAS MESAS: separa cada cliente que usou a mesa ---------- */
@@ -168,7 +168,7 @@ function renderMesasPainel_(){
     .filter(x=> x.m.status==='Ocupada' || x.m.status==='Aguardando fechamento' || x.c.pedidos.length>0)
     .sort((a,b)=> (prio(a.m)-prio(b.m)) || ((a.c.desde||Infinity)-(b.c.desde||Infinity)));
   const totalReceber = arred2(ativas.reduce((s,x)=>s+x.c.total,0));
-  let html = ativas.length ? `<div class="obs-line" style="margin-bottom:8px;">${ativas.length} mesa(s) em atendimento · a receber <b>${formatarMoeda(totalReceber)}</b></div>` : '';
+  let html = ativas.length ? `<div class="obs-line mb-2">${ativas.length} mesa(s) em atendimento · a receber <b>${formatarMoeda(totalReceber)}</b></div>` : '';
   ativas.forEach(({m,c})=>{
     const ag = m.status==='Aguardando fechamento';
     const pedidos = c.pedidos.slice().sort((a,b)=>(a.timestamp||0)-(b.timestamp||0));
@@ -199,7 +199,7 @@ function renderMesasPainel_(){
   else {
     const totalDia = arred2(grupos.reduce((s,g)=>s+g.total,0));
     const nAtend = grupos.reduce((s,g)=>s+g.atend.length,0);
-    hist.innerHTML = `<div class="obs-line" style="margin-bottom:8px;">${grupos.length} mesa(s) · ${nAtend} atendimento(s) · ${doDia.length} pedido(s) · total <b>${formatarMoeda(totalDia)}</b></div>` +
+    hist.innerHTML = `<div class="obs-line mb-2">${grupos.length} mesa(s) · ${nAtend} atendimento(s) · ${doDia.length} pedido(s) · total <b>${formatarMoeda(totalDia)}</b></div>` +
       grupos.map(g=>`<div class="notif-card">
         <div><b>Mesa ${escH(nomeMesa(g.id))}</b> — ${g.atend.length} atendimento(s) — <b>${formatarMoeda(g.total)}</b></div>
         ${g.atend.map((a,i)=>atendimentoMesaHtml_(a,i)).join('')}
@@ -252,17 +252,17 @@ function mensagemEntregador_(v){
 }
 function botaoEnviarEntregador_(v){
   if(!podeEnviarEntregador_() || v.tipoEntrega!=='Entrega' || v.statusPedido==='Recebido') return '';
-  if(!v.entregador) return '<div class="obs-line" style="margin-top:6px;">📲 Escolha um entregador acima para poder enviar a entrega pelo WhatsApp.</div>';
+  if(!v.entregador) return '<div class="obs-line mt-2">📲 Escolha um entregador acima para poder enviar a entrega pelo WhatsApp.</div>';
   const ent = entregadorDe_(v);
   if(!ent || !telefoneWhatsApp_(ent.telefone)) return '<div class="obs-line" style="margin-top:6px;color:#ffb3ab;">⚠ O entregador '+escH(pdEntregadorNome_(v.entregador))+' está sem telefone válido. Cadastre em Administrador → Sistema → Usuários e Permissões → editar.</div>';
   const feito = lerAvisosEntregador_()[v.id+'|'+v.entregador];
   const hora = feito ? new Date(feito).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) : '';
-  return '<div class="btnrow" style="margin-top:6px;align-items:center;"><button type="button" class="ghost" onclick="enviarEntregaWhatsApp(\''+v.id+'\')">📲 '+(feito?'Enviar de novo ao entregador':'Enviar ao entregador')+'</button>'+(feito?'<span class="obs-line" style="margin:0;">✔ enviado às '+hora+'</span>':'')+'</div>';
+  return '<div class="btnrow mt-2 ai-centro"><button type="button" class="ghost" onclick="enviarEntregaWhatsApp(\''+v.id+'\')">📲 '+(feito?'Enviar de novo ao entregador':'Enviar ao entregador')+'</button>'+(feito?'<span class="obs-line sem-margem">✔ enviado às '+hora+'</span>':'')+'</div>';
 }
 function enviarEntregaWhatsApp(vendaId){
   const v = vendas.find(x=>x.id===vendaId); if(!v || !podeEnviarEntregador_()) return;
   const ent = entregadorDe_(v), fone = ent ? telefoneWhatsApp_(ent.telefone) : null;
-  if(!fone){ alert('O entregador deste pedido não tem telefone válido cadastrado.'); return; }
+  if(!fone){ avisar('O entregador deste pedido não tem telefone válido cadastrado.'); return; }
   try{
     const a = lerAvisosEntregador_(); a[v.id+'|'+v.entregador] = Date.now();
     const chaves = Object.keys(a); if(chaves.length>200) chaves.sort((x,y)=>a[x]-a[y]).slice(0,chaves.length-200).forEach(k=>delete a[k]);
@@ -282,10 +282,10 @@ function renderPedidos(){
     box.innerHTML = pendentes.length ? pendentes.map(v=>{
       const prox = proximoStatusPedido(v);
       const jaFinalizado = v.statusPedido==='Retirada' || v.statusPedido==='Entregue' || v.statusPedido==='Servida';
-      const aReceber = v.statusPagamento==='A Receber' && v.tipoEntrega!=='Mesa' ? `<div class="obs-line" style="color:#f0d78c;">💰 Aguardando pagamento — <button class="ghost" style="padding:2px 8px;font-size:11px;" onclick="confirmarRecebimento('${v.id}')">marcar como recebido</button></div>` : '';
+      const aReceber = v.statusPagamento==='A Receber' && v.tipoEntrega!=='Mesa' ? `<div class="obs-line" style="color:#f0d78c;">💰 Aguardando pagamento — <button class="ghost" style="padding:2px 8px;font-size:12px;" onclick="confirmarRecebimento('${v.id}')">marcar como recebido</button></div>` : '';
       const identificacao = v.tipoEntrega==='Mesa' ? '🍽️ Mesa '+(nomeMesa(v.mesaId)) : '🥡 '+(v.clienteNome||'Sem cadastro');
       const aguardandoAceite = v.statusPedido==='Recebido';
-      const botoesAceite = aguardandoAceite ? `<div class="btnrow" style="margin-top:6px;">
+      const botoesAceite = aguardandoAceite ? `<div class="btnrow mt-2">
           <button class="small-gold" onclick="aceitarPedidoUI('${v.id}')">✅ Aceitar</button>
           <button class="ghost" onclick="rejeitarPedidoUI('${v.id}')">❌ Rejeitar</button>
       ${podeEditarPedidoRecebido_() ? `<button class="ghost" onclick="abrirModalEditarVenda('${v.id}')">✏️ Editar</button>` : ''}
@@ -300,7 +300,7 @@ function renderPedidos(){
         ${botoesAceite}
         ${jaFinalizado ? '' : botoesSuspensao(v)}
         ${botaoImprimirPedido_(v)}
-        ${(!aguardandoAceite && !jaFinalizado && prox) ? `<button class="small-gold" style="margin-top:6px;" onclick="avancarPedido('${v.id}','${prox}')">Marcar como "${prox}"</button>` : ''}
+        ${(!aguardandoAceite && !jaFinalizado && prox) ? `<button class="small-gold mt-2" onclick="avancarPedido('${v.id}','${prox}')">Marcar como "${prox}"</button>` : ''}
       </div>`;
     }).join('') : ('<div class="notif-empty">'+(souGarcom_()?'Nenhum pedido de mesa em andamento.':'Nenhuma retirada em andamento.')+'</div>');
   }
@@ -356,7 +356,7 @@ function cardCozinha_(v, acao){
     ${itens}${obs}
     ${botaoOcorrenciaPedido(v)}
     ${acao||''}
-    <button type="button" class="ghost" style="margin-top:6px;" onclick="imprimirComandaPedido('${v.id}')">🖨️ Comanda</button>
+    <button type="button" class="ghost mt-2" onclick="imprimirComandaPedido('${v.id}')">🖨️ Comanda</button>
   </div>`;
 }
 /* comanda impressa na cozinha. Botão por pedido, "Imprimir novos" (um único trabalho de impressão, uma comanda por página)
@@ -441,7 +441,7 @@ function comandaHtml_(v){
     if(v.clienteTelefone) h += `<div><b>TEL:</b> ${escR(v.clienteTelefone)}</div>`;
     if(ehEnt){
       const end = [v.endereco, v.complemento].filter(Boolean).join(', ');
-      h += `<div style="margin-top:4px;"><b>ENDEREÇO:</b><br><span style="font-size:1.15em;">${escR(end||'(não informado)')}</span></div>`;
+      h += `<div class="mt-1"><b>ENDEREÇO:</b><br><span style="font-size:1.15em;">${escR(end||'(não informado)')}</span></div>`;
       if(v.referencia) h += `<div><b>REFERÊNCIA:</b> ${escR(v.referencia)}</div>`;
     }
   }
@@ -525,8 +525,8 @@ async function cozinhaIniciar(vendaId){
   try{
     const r = await apiCall('iniciarPreparoPedido', { vendaId });
     if(r.vendas){ vendas = r.vendas; salvarCache(); renderPedidos(); renderEntregas(); }
-    if(!r.ok) alert(r.message || 'Não foi possível iniciar o preparo.');
-  } catch(e){ alert('Sem conexão — o preparo não foi registrado.'); }
+    if(!r.ok) avisar(r.message || 'Não foi possível iniciar o preparo.');
+  } catch(e){ avisar('Sem conexão — o preparo não foi registrado.'); }
   finally { finalizarOperacaoUnica(chave); }
 }
 

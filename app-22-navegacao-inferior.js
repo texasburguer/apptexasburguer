@@ -12,7 +12,7 @@
     mais:'M5 12h.01M12 12h.01M19 12h.01'
   };
   const svg = k => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="' + (IC[k] || IC.mais) + '"/></svg>';
-  const rot = b => (b.dataset.tab === 'administrador') ? 'Admin' : String((b.childNodes[0] && b.childNodes[0].textContent) || b.dataset.tab || '').trim();
+  const rot = b => (b.dataset.tab === 'administrador') ? 'Admin' : (b.dataset.tab === 'meusganhos') ? 'Ganhos' : String((b.childNodes[0] && b.childNodes[0].textContent) || b.dataset.tab || '').trim();
   const esc = t => String(t).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   let ultima = '';
   function visiveis(){ return Array.prototype.slice.call(document.querySelectorAll('nav.tabs .tab-btn')).filter(b => !b.classList.contains('hidden-tab')); }

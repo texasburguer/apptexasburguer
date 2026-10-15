@@ -36,7 +36,7 @@
   window.botaoVerLocalizacao_ = function(v){
     if(!v || v.statusPedido !== 'Saiu para entrega' || !v.entregador) return '';
     if(!currentUser || (currentUser.nivel !== 'Admin' && currentUser.nivel !== 'Operador')) return '';
-    return '<div class="btnrow" style="margin-top:6px;"><button type="button" class="ghost" onclick="abrirMapaEntrega_(\'' + escH(v.id) + '\')">📍 Ver localização</button></div>';
+    return '<div class="btnrow mt-2"><button type="button" class="ghost" onclick="abrirMapaEntrega_(\'' + escH(v.id) + '\')">📍 Ver localização</button></div>';
   };
   function modal_(){
     let m = $('mapaEntregaModal');
@@ -72,7 +72,7 @@
     const cor = semSinal ? '#999' : '#d4af37';
     h += '<div style="position:absolute;left:' + (W / 2 - 11) + 'px;top:' + (H / 2 - 11) + 'px;width:22px;height:22px;border-radius:50%;background:' + cor + ';border:3px solid #fff;box-shadow:0 0 0 3px rgba(0,0,0,.35);box-sizing:border-box;"></div>';
     h += '<div style="position:absolute;left:8px;top:8px;display:flex;flex-direction:column;gap:6px;"><button type="button" aria-label="Aproximar" onclick="mapaEntregaZoom_(1)" style="width:36px;height:36px;padding:0;margin:0;border-radius:8px;background:#fff;color:#111;border:1px solid #999;font-size:20px;font-weight:700;line-height:1;">+</button><button type="button" aria-label="Afastar" onclick="mapaEntregaZoom_(-1)" style="width:36px;height:36px;padding:0;margin:0;border-radius:8px;background:#fff;color:#111;border:1px solid #999;font-size:20px;font-weight:700;line-height:1;">−</button></div>';
-    h += '<div style="position:absolute;right:0;bottom:0;background:rgba(255,255,255,.8);color:#222;font-size:10px;padding:1px 5px;">© OpenStreetMap</div>';
+    h += '<div style="position:absolute;right:0;bottom:0;background:rgba(255,255,255,.8);color:#222;font-size:12px;padding:1px 5px;">© OpenStreetMap</div>';
     div.innerHTML = h;
   }
   async function carregarMapa_(){
@@ -111,16 +111,16 @@ window.abrirMapaEntrega_ = function(vendaId){
     let html = '';
     if(r.statusPedido === 'Saiu para entrega'){
       let d = null; try{ d = await sbRpcPublico_('api_distancia_entrega_publico', { p:{ codigo:codigo } }); }catch(e){ d = null; }
-      if(d && d.ok && d.estado === 'ok') html += '<p class="sub" style="margin-top:8px;">🛵 O entregador está a cerca de <b>' + escH(String(d.km).replace('.', ',')) + ' km</b>.</p>';
-      else if(d && d.ok && d.estado === 'sem_sinal') html += '<p class="sub" style="margin-top:8px;">🛵 Posição do entregador indisponível no momento.</p>';
+      if(d && d.ok && d.estado === 'ok') html += '<p class="sub mt-2">🛵 O entregador está a cerca de <b>' + escH(String(d.km).replace('.', ',')) + ' km</b>.</p>';
+      else if(d && d.ok && d.estado === 'sem_sinal') html += '<p class="sub mt-2">🛵 Posição do entregador indisponível no momento.</p>';
     }
     if(!jaCompartilhou_(codigo) && navigator.geolocation && autoLoc_[codigo] !== 'falhou'){
       if(!autoLoc_[codigo]){ autoLoc_[codigo] = 'pedindo'; setTimeout(() => window.acCompartilharDestino_(codigo, true), 0); }
-      html += '<p class="sub" style="margin-top:8px;font-size:11.5px;" id="acLocalMsg">📍 Pedindo permissão de localização para o entregador chegar até você…</p>';
+      html += '<p class="sub mt-2 fs-2xs" id="acLocalMsg">📍 Pedindo permissão de localização para o entregador chegar até você…</p>';
     } else if(!jaCompartilhou_(codigo) && navigator.geolocation){
-      html += '<div style="margin-top:8px;"><p class="sub" style="font-size:11.5px;">Não conseguimos pegar sua localização automaticamente. Libere a localização no navegador e toque abaixo.</p><button type="button" class="ghost" onclick="acCompartilharDestino_(\'' + escH(codigo) + '\')">📍 Compartilhar minha localização</button><p class="sub" style="margin-top:4px;font-size:11.5px;">Opcional. Ajuda o entregador a chegar e permite mostrar a distância aproximada. O restaurante não guarda a localização depois da entrega.</p><div class="msg" id="acLocalMsg"></div></div>';
+      html += '<div class="mt-2"><p class="sub fs-2xs">Não conseguimos pegar sua localização automaticamente. Libere a localização no navegador e toque abaixo.</p><button type="button" class="ghost" onclick="acCompartilharDestino_(\'' + escH(codigo) + '\')">📍 Compartilhar minha localização</button><p class="sub mt-1 fs-2xs">Opcional. Ajuda o entregador a chegar e permite mostrar a distância aproximada. O restaurante não guarda a localização depois da entrega.</p><div class="msg" id="acLocalMsg"></div></div>';
     } else if(jaCompartilhou_(codigo)){
-      html += '<p class="sub" style="margin-top:8px;font-size:11.5px;">✅ Localização compartilhada.</p>';
+      html += '<p class="sub mt-2 fs-2xs">✅ Localização compartilhada.</p>';
     }
     box.innerHTML = html;
   };
@@ -130,7 +130,7 @@ window.abrirMapaEntrega_ = function(vendaId){
       const lat = Number(pos.coords.latitude), lng = Number(pos.coords.longitude);
       if(!Number.isFinite(lat) || !Number.isFinite(lng)) return;
       let r = null; try{ r = await sbRpcPublico_('api_compartilhar_destino_pedido', { p:{ codigo:codigo, lat:lat, lng:lng } }); }catch(e){ r = null; }
-      if(r && r.ok){ marcarCompartilhou_(codigo); delete autoLoc_[codigo]; const b = $('acLocal'); if(b) b.innerHTML = '<p class="sub" style="margin-top:8px;font-size:11.5px;">✅ Localização compartilhada.</p>'; }
+      if(r && r.ok){ marcarCompartilhou_(codigo); delete autoLoc_[codigo]; const b = $('acLocal'); if(b) b.innerHTML = '<p class="sub mt-2 fs-2xs">✅ Localização compartilhada.</p>'; }
       else { autoLoc_[codigo] = 'falhou'; showMsg('acLocalMsg', (r && r.message) || 'Não foi possível enviar agora. O acompanhamento continua normalmente.', 'warn'); }
     }, () => { autoLoc_[codigo] = 'falhou'; if(typeof window.acLocalAtualizar_ === 'function' && window.__acUltimo_ && window.__acUltimo_.codigo === codigo) window.acLocalAtualizar_(codigo, window.__acUltimo_.r); else showMsg('acLocalMsg', 'Não foi possível obter sua localização. O acompanhamento continua normalmente.', 'warn'); }, { enableHighAccuracy:true, timeout:15000, maximumAge:30000 });
   };

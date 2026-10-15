@@ -14,9 +14,9 @@ function renderFeedbacks(){
     .slice().sort((a,b)=> dataBrNum_(b.data) - dataBrNum_(a.data));
   box.innerHTML = lista.length ? lista.map(f=>`<div class="notif-card">
       <div>${'★'.repeat(Math.max(0,Math.min(5,f.nota||0)))}${'☆'.repeat(5-Math.max(0,Math.min(5,f.nota||0)))} <span class="obs-line">${f.data}${escH(f.telefone?' · '+f.telefone:'')}${f.vendaId?' · pedido #'+rotuloPedidoId(f.vendaId):''}${f.origem==='chat'?' · 💬 veio pelo chat':(f.origem==='aviso'?' · 🔔 veio pelo aviso do pedido':'')}${f.userId?' · 👤 com conta':' · sem conta'}</span></div>
-      ${f.comentario?`<div style="margin-top:4px;">${escH(f.comentario)}</div>`:''}
+      ${f.comentario?`<div class="mt-1">${escH(f.comentario)}</div>`:''}
       ${f.resposta?`<div class="obs-line" style="margin-top:6px;padding:6px 8px;border-left:3px solid var(--gold);"><b>Sua resposta</b> (${escH(f.respondidoEm||'')}${f.respondidoPor?' · '+escH(f.respondidoPor):''})<br>${escH(f.resposta)}</div>`:''}
-      <div class="btnrow" style="margin-top:8px;">
+      <div class="btnrow mt-2">
         <button class="ghost ${f.status==='Visto'?'small-gold':''}" onclick="alterarStatusFeedback('${f.id}','${f.status==='Novo'?'Visto':(f.status==='Visto'?'Novo':'Visto')}')">${f.status==='Novo'?'Marcar como visto':(f.status==='Visto'?'✓ Visto (tocar volta a Novo)':'Voltar para visto')}</button>
         <button class="small-gold" onclick="responderFeedback('${f.id}')">${f.resposta?'✏️ Editar resposta':'💬 Responder'}</button>
         ${(!f.userId && f.telefone)?`<button class="ghost" onclick="responderFeedbackZap_('${f.id}')">WhatsApp</button>`:''}
@@ -35,9 +35,9 @@ async function responderFeedback(id){
   if(!v) return;
   try{
     const r = await apiCall('responderFeedback', { id, resposta: v.resposta });
-    if(r && r.ok){ feedbacks = r.feedbacks || feedbacks; salvarCache(); renderFeedbacks(); alert(r.comConta ? 'Resposta enviada. O cliente vê em Minha conta.' : 'Resposta registrada (cliente sem conta).'); }
-    else alert((r && r.message) || 'Não foi possível salvar a resposta.');
-  }catch(e){ alert('Não foi possível salvar a resposta agora. Tente de novo.'); }
+    if(r && r.ok){ feedbacks = r.feedbacks || feedbacks; salvarCache(); renderFeedbacks(); avisar(r.comConta ? 'Resposta enviada. O cliente vê em Minha conta.' : 'Resposta registrada (cliente sem conta).'); }
+    else avisar((r && r.message) || 'Não foi possível salvar a resposta.');
+  }catch(e){ avisar('Não foi possível salvar a resposta agora. Tente de novo.'); }
 }
 function responderFeedbackZap_(id){
   const f = feedbacks.find(x=>x.id===id); if(!f || !f.telefone) return;
@@ -59,8 +59,8 @@ function ocorrenciasAbertas_(){ return (ocorrencias||[]).filter(o=>o.status!=='R
 function ocorrenciasAbertasDoPedido_(vendaId){ return ocorrenciasAbertas_().filter(o=>o.vendaId===vendaId); }
 function botaoOcorrenciaPedido(v){
   const abertas = ocorrenciasAbertasDoPedido_(v.id);
-  const aviso = abertas.length ? `<div class="obs-line" style="color:var(--gold);">⚠️ ${abertas.length} ocorrência(s) aberta(s): ${escOc_(abertas[0].tipo)} — ${escOc_(abertas[0].descricao.slice(0,60))}</div>` : '';
-  return aviso + `<button class="ghost" style="margin-top:6px;" onclick="abrirModalOcorrencia('${v.id}')">⚠️ Ocorrência</button>`;
+  const aviso = abertas.length ? `<div class="obs-line txt-ouro">⚠️ ${abertas.length} ocorrência(s) aberta(s): ${escOc_(abertas[0].tipo)} — ${escOc_(abertas[0].descricao.slice(0,60))}</div>` : '';
+  return aviso + `<button class="ghost mt-2" onclick="abrirModalOcorrencia('${v.id}')">⚠️ Ocorrência</button>`;
 }
 function abrirModalOcorrencia(vendaId){
   ocVendaIdAtual = vendaId || '';
@@ -108,10 +108,10 @@ function renderOcorrencias(){
     return `<div class="notif-card">
       <div><b>#${o.numero}</b> — ${escOc_(o.tipo)} <span class="obs-line" style="color:${cor};">· ${escOc_(o.status)}</span></div>
       <div class="obs-line">${escOc_(o.data)} · ${escOc_(o.setor)} · por ${escOc_(o.registradoPor)}${v?(' · pedido #'+rotuloPedido(v)):''}${o.clienteNome?(' · '+escOc_(o.clienteNome)):''}</div>
-      <div style="margin-top:4px;">${escOc_(o.descricao)}</div>
+      <div class="mt-1">${escOc_(o.descricao)}</div>
       ${o.responsavel?`<div class="obs-line">Responsável: ${escOc_(o.responsavel)}</div>`:''}
       ${o.solucao?`<div class="obs-line">Solução: ${escOc_(o.solucao)}</div>`:''}
-      ${podeTratar?`<button class="ghost" style="margin-top:6px;" onclick="abrirGerirOcorrencia('${o.id}')">Tratar</button>`:''}
+      ${podeTratar?`<button class="ghost mt-2" onclick="abrirGerirOcorrencia('${o.id}')">Tratar</button>`:''}
     </div>`;
   }).join('') : '<div class="notif-empty">'+(filtroOcorrencias==='abertas'?'Nenhuma ocorrência aberta.':'Nenhuma ocorrência registrada ainda.')+'</div>';
 }
@@ -288,7 +288,7 @@ async function registrarCompraUI(){
   if(!p.itens.length){ showMsg('cpMsg','Informe ao menos um item.','warn'); return; }
   const total = p.itens.reduce((s,i)=>s+i.valorTotal,0);
   const semEstoque = p.itens.filter(i=>!i.ingredienteId).map(i=>i.descricao||'item');
-  if(!confirm('Registrar compra de ' + formatarMoeda(total) + ' (' + p.itens.length + ' item(ns))?' + (p.status==='Recebida' ? '\nO estoque e o custo dos produtos serão atualizados agora.' : '') + (semEstoque.length ? '\n\nSem entrada no estoque (só despesa): ' + semEstoque.join(', ') : ''))) return;
+  if(!await confirmarTxt_('Registrar compra de ' + formatarMoeda(total) + ' (' + p.itens.length + ' item(ns))?' + (p.status==='Recebida' ? '\nO estoque e o custo dos produtos serão atualizados agora.' : '') + (semEstoque.length ? '\n\nSem entrada no estoque (só despesa): ' + semEstoque.join(', ') : ''))) return;
   try{
     const r = await apiCall('registrarCompra', p);
     showMsg('cpMsg', r.message, r.ok?'ok':'warn');
@@ -361,8 +361,8 @@ function iaPropHtml_(o){
   }
   if(o.pend.length) L.push('<span style="color:#b45309;">' + o.pend.map(escH).join('<br>') + '</span>');
   const bloqueia = o.pend.length && o.tipo==='registrar_compra';
-  return '<div class="notif-card" data-prop="' + o.id + '" style="margin-top:8px;">' + L.join('<br>') +
-    '<div class="btnrow" style="margin-top:8px;"><button type="button" class="small-gold" data-prop-ac="ok"' + (bloqueia ? ' disabled' : '') + '>Confirmar e gravar</button>' +
+  return '<div class="notif-card mt-2" data-prop="' + o.id + '">' + L.join('<br>') +
+    '<div class="btnrow mt-2"><button type="button" class="small-gold" data-prop-ac="ok"' + (bloqueia ? ' disabled' : '') + '>Confirmar e gravar</button>' +
     (o.tipo==='registrar_compra' ? ' <button type="button" class="ghost" data-prop-ac="rev">Revisar na tela</button>' : '') +
     ' <button type="button" class="ghost" data-prop-ac="no">Descartar</button></div><div class="obs-line" data-prop-msg></div></div>';
 }
@@ -521,8 +521,8 @@ function iaAcaoHtml_(o){
   const def = o.def; let h = '<b>' + escH(def.titulo) + '</b><br>' + o.linhas.join('<br>');
   if(o.pend.length) h += '<br><span style="color:#b45309;">' + o.pend.map(escH).join('<br>') + '</span>';
   if(def.senha) h += '<label style="display:block;margin-top:8px;font-size:13px;">Sua senha de Administrador, para confirmar</label><input type="password" data-prop-senha autocomplete="current-password" style="width:100%;">';
-  return '<div class="notif-card" data-prop="' + o.id + '" style="margin-top:8px;">' + h +
-    '<div class="btnrow" style="margin-top:8px;"><button type="button" class="small-gold" data-prop-ac="ok"' + (o.pend.length ? ' disabled' : '') + '>Confirmar e gravar</button> <button type="button" class="ghost" data-prop-ac="no">Descartar</button></div><div class="obs-line" data-prop-msg></div></div>';
+  return '<div class="notif-card mt-2" data-prop="' + o.id + '">' + h +
+    '<div class="btnrow mt-2"><button type="button" class="small-gold" data-prop-ac="ok"' + (o.pend.length ? ' disabled' : '') + '>Confirmar e gravar</button> <button type="button" class="ghost" data-prop-ac="no">Descartar</button></div><div class="obs-line" data-prop-msg></div></div>';
 }
 async function iaAcaoAgir_(card, o, msg){
   const def = o.def; let senha = '';
@@ -630,14 +630,14 @@ async function cdChipAlternar_(){
   const fechar = !f.ativo; let msg = '';
   if(fechar){ const r = await vsForm({ titulo:'Fechar o cardápio dos clientes', texto:'Os clientes não conseguem pedir até você reabrir.', ok:'Fechar cardápio', perigo:true,
     campos:[ { id:'msg', rotulo:'Mensagem para o cliente (opcional)', tipo:'texto', max:160 } ] }); if(!r) return; msg = String(r.msg || '').trim(); }
-  else if(!confirm('Reabrir o cardápio dos clientes?')) return;
+  else if(!await confirmarTxt_('Reabrir o cardápio dos clientes?')) return;
   if(!iniciarOperacaoUnica('fechaCardapio')) return;
   try{
     const r = await apiCall('salvarCardapioFechamento', { manualAtivo: fechar, manualMensagem: msg, periodos: (f.periodos||[]).map(p=>({ inicio:String(p.inicio||'').slice(0,10), fim:String(p.fim||'').slice(0,10), mensagem:p.mensagem||'' })) });
     if(r && r.ok){ if(r.config) configCardapio = r.config; try{ salvarCache(); }catch(e){} cdChipAtualizar_();
-      alert(fechar ? 'Cardápio fechado. Os clientes não conseguem pedir.' : ('Cardápio reaberto.' + (typeof sessaoCaixa !== 'undefined' && !sessaoCaixa ? ' Atenção: ele só recebe pedidos com o caixa aberto.' : ''))); }
-    else alert((r && r.message) || 'Não foi possível salvar agora.');
-  }catch(e){ alert('Não foi possível salvar agora.'); }
+      avisar(fechar ? 'Cardápio fechado. Os clientes não conseguem pedir.' : ('Cardápio reaberto.' + (typeof sessaoCaixa !== 'undefined' && !sessaoCaixa ? ' Atenção: ele só recebe pedidos com o caixa aberto.' : ''))); }
+    else avisar((r && r.message) || 'Não foi possível salvar agora.');
+  }catch(e){ avisar('Não foi possível salvar agora.'); }
   finally{ finalizarOperacaoUnica('fechaCardapio'); }
 }
 /* BATERIA: atualiza o botão quando os dados chegam, ao tocar na tela e ao voltar ao app (antes: a cada 3 s, até para o cliente) */

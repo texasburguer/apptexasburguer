@@ -94,7 +94,7 @@ async function sb5Simulacao_(){
     try{ carregarSaude_(); }catch(e){}
     return;
   }
-  if(!confirm('Simular queda do Supabase neste aparelho? Aparece a faixa laranja e as funções bloqueadas ficam indisponíveis. Para voltar, toque em "Encerrar simulação". Não afeta outros aparelhos.')) return;
+  if(!await confirmarTxt_('Simular queda do Supabase neste aparelho? Aparece a faixa laranja e as funções bloqueadas ficam indisponíveis. Para voltar, toque em "Encerrar simulação". Não afeta outros aparelhos.')) return;
   window._sb5Simulado_ = true; _sb5Queda_ = true; sb5EntrarReserva_();
   try{ carregarSaude_(); }catch(e){}
 }

@@ -209,7 +209,7 @@ async function garcomPedirFechamento(){
   const m = mesaSelecionadaGarcom_();
   if(!m){ showMsg('vMsg','Escolha a mesa.','warn'); return; }
   if(m.status!=='Ocupada'){ showMsg('vMsg','Só dá para pedir o fechamento de uma mesa ocupada.','warn'); return; }
-  if(!confirm('Pedir o fechamento da mesa '+m.numero+'? O caixa vai receber a conta.')) return;
+  if(!await confirmarTxt_('Pedir o fechamento da mesa '+m.numero+'? O caixa vai receber a conta.')) return;
   try{
     const r = await apiCall('editarStatusMesa', { id: m.id, novoStatus: 'Aguardando fechamento' });
     if(r.ok){ mesas = r.mesas || mesas; salvarCache(); renderMesasPickerCaixa(); renderMesas(); showMsg('vMsg','Fechamento da mesa '+m.numero+' solicitado ao caixa.','ok'); }
@@ -265,15 +265,15 @@ function renderEntregas(){
       const prox = proximoStatusPedido(v);
       const endereco = `<div class="obs-line">${escH(v.endereco||'')}${escH(v.complemento?', '+v.complemento:'')}${escH(v.referencia?' — ref: '+v.referencia:'')}</div>`;
       const obs = v.observacoesEntrega ? `<div class="obs-line">Obs: ${escH(v.observacoesEntrega)}</div>` : '';
-      const aReceber = v.statusPagamento==='A Receber' ? `<div class="obs-line" style="color:#f0d78c;">💰 A receber (${v.formaPagamento}) — ${(souEntregador||souGarcom_())?'':`<button class="ghost" style="padding:2px 8px;font-size:11px;" onclick="confirmarRecebimento('${v.id}')">marcar como recebido</button>`}</div>` : `<div class="obs-line">Pago (${v.formaPagamento})</div>`;
-      const linkMaps = v.endereco ? `<a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(v.endereco+' '+(v.complemento||''))}" target="_blank" class="obs-line" style="color:var(--gold);">📍 Ver no Maps</a>` : '';
+      const aReceber = v.statusPagamento==='A Receber' ? `<div class="obs-line" style="color:#f0d78c;">💰 A receber (${v.formaPagamento}) — ${(souEntregador||souGarcom_())?'':`<button class="ghost" style="padding:2px 8px;font-size:12px;" onclick="confirmarRecebimento('${v.id}')">marcar como recebido</button>`}</div>` : `<div class="obs-line">Pago (${v.formaPagamento})</div>`;
+      const linkMaps = v.endereco ? `<a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(v.endereco+' '+(v.complemento||''))}" target="_blank" class="obs-line txt-ouro">📍 Ver no Maps</a>` : '';
       const telefoneCliente = v.clienteTelefone ? `<div class="obs-line">📞 ${v.clienteTelefone}</div>` : '';
       const entregadorBox = souEntregador
         ? ''
-        : `<div style="margin-top:6px;"><label style="font-size:11.5px;">Entregador</label>${popularSelectEntregadoresHtml(v.id, v.entregador)}</div>`;
+        : `<div class="mt-2"><label class="fs-2xs">Entregador</label>${popularSelectEntregadoresHtml(v.id, v.entregador)}</div>`;
       const labelBotao = prox==='Entregue' ? '✅ Já entreguei' : `Marcar como "${prox}"`;
       const aguardandoAceite = v.statusPedido==='Recebido';
-      const botoesAceite = (aguardandoAceite && !souEntregador && !souGarcom_()) ? `<div class="btnrow" style="margin-top:6px;">
+      const botoesAceite = (aguardandoAceite && !souEntregador && !souGarcom_()) ? `<div class="btnrow mt-2">
           <button class="small-gold" onclick="aceitarPedidoUI('${v.id}')">✅ Aceitar</button>
           <button class="ghost" onclick="rejeitarPedidoUI('${v.id}')">❌ Rejeitar</button>
       ${podeEditarPedidoRecebido_() ? `<button class="ghost" onclick="abrirModalEditarVenda('${v.id}')">✏️ Editar</button>` : ''}
@@ -291,8 +291,8 @@ function renderEntregas(){
         ${!souEntregador ? botaoEnviarEntregador_(v) : ''}
         ${window.botaoVerLocalizacao_ ? botaoVerLocalizacao_(v) : ''}
         ${!souEntregador ? botaoImprimirEntrega_(v) : ''}
-        ${(!aguardandoAceite && prox && !(souEntregador && v.statusPedido==='Em preparo')) ? `<button class="small-gold" style="margin-top:6px;" onclick="avancarPedido('${v.id}','${prox}')">${labelBotao}</button>` : ''}
-${(souEntregador && v.statusPedido==='Em preparo') ? `<div class="obs-line" style="margin-top:6px;">👨‍🍳 Aguardando a cozinha deixar o pedido pronto.</div>` : ''}
+        ${(!aguardandoAceite && prox && !(souEntregador && v.statusPedido==='Em preparo')) ? `<button class="small-gold mt-2" onclick="avancarPedido('${v.id}','${prox}')">${labelBotao}</button>` : ''}
+${(souEntregador && v.statusPedido==='Em preparo') ? `<div class="obs-line mt-2">👨‍🍳 Aguardando a cozinha deixar o pedido pronto.</div>` : ''}
       </div>`;
     }).join('') : `<div class="notif-empty">${souEntregador?'Nenhuma entrega atribuída a você agora.':'Nenhuma entrega em andamento.'}</div>`;
   }
@@ -405,7 +405,7 @@ function renderEntregasFinanceiro(){
     const ajuda = (minhas.length && !jaFechouHoje) ? configEntrega.ajudaDiaria : 0;
     const ult = fechamentosEntrega.slice().reverse().slice(0,5);
     if(box) box.innerHTML = `<div class="obs-line">Entregas hoje: <b>${minhas.length}</b> · Taxas: <b>${formatarMoeda(taxas)}</b>${ajuda?` · Ajuda diária: <b>${formatarMoeda(ajuda)}</b>`:''}</div><div class="obs-line">Previsto hoje: <b>${formatarMoeda(taxas+ajuda)}</b> (o acerto oficial é feito pelo administrador no fechamento)</div>` +
-      (ult.length ? '<h3 style="margin-top:10px;">Últimos acertos</h3>' + ult.map(f=>`<div class="obs-line">${f.dataRef.split('-').reverse().join('/')} — ${f.qtd} entrega(s) · devido ${formatarMoeda(f.totalDevido)} · pago ${formatarMoeda(f.valorPago)}</div>`).join('') : '');
+      (ult.length ? '<h3 class="mt-3">Últimos acertos</h3>' + ult.map(f=>`<div class="obs-line">${f.dataRef.split('-').reverse().join('/')} — ${f.qtd} entrega(s) · devido ${formatarMoeda(f.totalDevido)} · pago ${formatarMoeda(f.valorPago)}</div>`).join('') : '');
   }
 }
 async function salvarConfigEntregaUI(){
@@ -597,12 +597,12 @@ function renderStatusCaixa(){
   box.innerHTML = `<div class="caixa-status-titulo">🟢 Caixa aberto<small>desde ${sessaoCaixa.abertura}${escH(sessaoCaixa.usuarioAbertura?(' · por '+sessaoCaixa.usuarioAbertura):'')}</small></div>
     ${(Date.now() - sessaoCaixa.aberturaTimestamp > 24*3600*1000) ? '<div class="obs-line" style="color:#e0b53a;margin:-4px 0 10px;">⚠️ Este caixa está aberto há mais de 24 horas. Confira e feche o caixa do dia anterior.</div>' : ''}
     <div class="stat-row">
-      <div class="stat-box"><b style="color:var(--gold);">${formatarMoeda(sessaoCaixa.fundoCaixa)}</b><span>FUNDO</span></div>
+      <div class="stat-box"><b class="txt-ouro">${formatarMoeda(sessaoCaixa.fundoCaixa)}</b><span>FUNDO</span></div>
       ${boxesFormas || '<div class="stat-box entrada"><b>R$ 0,00</b><span>VENDAS</span></div>'}
       <div class="stat-box saida"><b>${formatarMoeda(totalDespesas)}</b><span>DESPESAS</span></div>
       <div class="stat-box saida"><b>${formatarMoeda(totalSangrias)}</b><span>SANGRIAS</span></div>
     </div>
-    <div style="font-size:14px;margin-bottom:10px;">Saldo esperado em caixa (dinheiro): <b style="color:var(--gold);font-size:17px;">${formatarMoeda(saldoEsperado)}</b></div>
+    <div class="fs-md mb-3">Saldo esperado em caixa (dinheiro): <b style="color:var(--gold);font-size:17px;">${formatarMoeda(saldoEsperado)}</b></div>
     ${totalAcertosPrev>0 ? `<div style="font-size:13px;margin:-4px 0 10px;opacity:.9;">🛵 A pagar aos entregadores ao fechar: <b>${formatarMoeda(totalAcertosPrev)}</b> · ficam na gaveta ${formatarMoeda(arred2(saldoEsperado-totalAcertosPrev))}</div>` : ''}
     <button class="primary" onclick="fecharCaixaAgora()">Fechar caixa</button>`;
 
@@ -615,10 +615,10 @@ function renderStatusCaixa(){
   lBox.innerHTML = lista.length ? lista.map(l=>`
     <div class="lancamento-item">
       <span><span class="tag ${l.tipo}">${l.tipo}</span>${l.label}${l.extra?' · '+l.extra:''}${l.aReceber?' · 💰 a receber':''}</span>
-      <span style="display:flex;align-items:center;gap:6px;">
+      <span class="d-flex ai-centro gap-2">
         <b style="color:${l.valor<0?'#ffb3ab':'#bfe0ae'};">${formatarMoeda(Math.abs(l.valor))}</b>
-        ${l.tipo==='venda' ? `<button class="ghost" style="padding:2px 8px;font-size:11px;" onclick="abrirModalEditarVenda('${l.id}')">editar</button>` : (l.tipo==='despesa' ? `<button class="ghost" style="padding:2px 8px;font-size:11px;" onclick="abrirModalEditarDespesa('${l.id}')">editar</button>` : '')}
-        ${l.tipo!=='sangria' ? `<button class="ghost" style="padding:2px 8px;font-size:11px;" onclick="abrirModalCancelar('${l.tipo}','${l.id}')">excluir</button>` : ''}
+        ${l.tipo==='venda' ? `<button class="ghost" style="padding:2px 8px;font-size:12px;" onclick="abrirModalEditarVenda('${l.id}')">editar</button>` : (l.tipo==='despesa' ? `<button class="ghost" style="padding:2px 8px;font-size:12px;" onclick="abrirModalEditarDespesa('${l.id}')">editar</button>` : '')}
+        ${l.tipo!=='sangria' ? `<button class="ghost" style="padding:2px 8px;font-size:12px;" onclick="abrirModalCancelar('${l.tipo}','${l.id}')">excluir</button>` : ''}
       </span>
     </div>`).join('') : '<div class="notif-empty">Nenhum lançamento ainda nesta sessão.</div>';
 }
@@ -697,7 +697,7 @@ function atualizarResultadoGaveta_(){
 function fecharCaixaAgora(){
   if(!sessaoCaixa) return;
   const pend = pendenciasCaixaLocal_();
-  if(pend){ alert('Não é possível fechar o caixa enquanto houver pendências:\n\n'+pend+'\n\nFinalize, receba ou cancele e tente de novo.'); return; }
+  if(pend){ avisar('Não é possível fechar o caixa enquanto houver pendências:\n\n'+pend+'\n\nFinalize, receba ou cancele e tente de novo.'); return; }
   const acertos = acertosAutoEntregadores_();
   const totalAcertos = arred2(acertos.reduce((a,x)=>a+x.total, 0));
   const esperado = saldoEsperadoGaveta(); // NÃO subtrai o acerto: igual à tela do Caixa e ao servidor
@@ -721,7 +721,7 @@ async function confirmarFecharCaixa_(){
   if(document.getElementById('fcContado').value==='' || isNaN(contado) || contado<0) return showMsg('cxConfirmarMsg','Digite quanto dinheiro há na gaveta (pode ser zero).','warn');
   if(!senha) return showMsg('cxConfirmarMsg','Digite a sua senha para confirmar.','warn');
   const dif = diferencaGaveta_();
-  if(dif !== null && Math.abs(dif) >= 0.01 && !confirm((dif > 0 ? 'Sobra de ' : 'Falta de ') + formatarMoeda(Math.abs(dif)) + ' na gaveta. Fechar o caixa mesmo assim?')) return;
+  if(dif !== null && Math.abs(dif) >= 0.01 && !await confirmarTxt_((dif > 0 ? 'Sobra de ' : 'Falta de ') + formatarMoeda(Math.abs(dif)) + ' na gaveta. Fechar o caixa mesmo assim?', 'Fechar mesmo assim', false, 'Diferença na gaveta')) return;
   if(!iniciarOperacaoUnica('fecharCaixa')) return;
   const btn = document.getElementById('fcBtn'); btn.disabled = true;
   try{
