@@ -1464,25 +1464,44 @@
   <!-- =========================== CONTAS E ACESSOS (Admin → Sistema) =========================== -->
   <section class="tab" id="tab-contas">
     <div class="admin-subnav" data-admin-nav="1"></div>
-    <div class="card">
+    <div class="seg-abas">
+      <button type="button" data-aba="contas" onclick="abaInterna_('tab-contas','contas')">🔐 Contas</button>
+      <button type="button" data-aba="ias" onclick="abaInterna_('tab-contas','ias')">🤖 IAs</button>
+      <button type="button" data-aba="ifood" onclick="abaInterna_('tab-contas','ifood')">🛵 iFood</button>
+      <button type="button" data-aba="nfce" onclick="abaInterna_('tab-contas','nfce')">🧾 Nota fiscal</button>
+      <button type="button" data-aba="mercadopago" onclick="abaInterna_('tab-contas','mercadopago')">💳 Mercado Pago</button>
+    </div>
+    <div class="card" data-painel="contas">
       <h2>🔐 Contas e acessos</h2>
       <p class="sub">E-mails, links e senhas das contas que fazem este sistema funcionar. Só Administrador e Desenvolvedor veem. Para ver uma senha, o app pede a sua senha de administrador.</p>
       <button class="small-gold" onclick="abrirContaModal_('')">+ Nova conta</button>
       <div id="contasLista" style="margin-top:10px;"><div class="notif-empty">Carregando…</div></div>
       <div class="msg" id="contasMsg"></div>
     </div>
-    <div class="card">
+    <div class="card" data-painel="ias">
       <h2>🤖 Chaves das IAs</h2>
       <p class="sub">Chaves que os assistentes de IA usam. Para ver ou trocar, o app pede a sua senha de administrador. A chave nova vale na hora.</p>
       <div id="chavesIaLista"><div class="notif-empty">Carregando…</div></div>
       <div id="iaExtrasBox" style="margin-top:8px;"></div>
       <div class="msg" id="chavesIaMsg"></div>
     </div>
-    <div class="card" id="integCard">
-      <h2>🔌 Integrações (iFood, Nota fiscal e Mercado Pago)</h2>
-      <p class="sub">Já vêm prontas no sistema, mas DESLIGADAS. Desligado, tudo funciona exatamente como antes. Siga o guia de cada uma, preencha o checklist e só então ligue. Chaves são digitadas só aqui, nunca por mensagem.</p>
-      <div id="integLista"><div class="notif-empty">Carregando…</div></div>
-      <div class="msg" id="integMsg"></div>
+    <div class="card" data-painel="ifood" id="integCard_ifood">
+      <h2>🛵 iFood</h2>
+      <p class="sub">Pedidos do iFood entrando sozinhos no sistema. Já vem pronto, mas DESLIGADO: desligado, tudo funciona como antes.</p>
+      <div id="integLista_ifood"><div class="notif-empty">Carregando…</div></div>
+      <div class="msg" id="integMsg_ifood"></div>
+    </div>
+    <div class="card" data-painel="nfce" id="integCard_nfce">
+      <h2>🧾 Nota fiscal (NFC-e)</h2>
+      <p class="sub">Emissão da nota fiscal do consumidor pela Focus NFe. Já vem pronta, mas DESLIGADA: desligada, tudo funciona como antes.</p>
+      <div id="integLista_nfce"><div class="notif-empty">Carregando…</div></div>
+      <div class="msg" id="integMsg_nfce"></div>
+    </div>
+    <div class="card" data-painel="mercadopago" id="integCard_mercadopago">
+      <h2>💳 Mercado Pago</h2>
+      <p class="sub">Pix e cartão de crédito direto no cardápio. Já vem pronto, mas DESLIGADO: desligado, o cardápio só aceita pagar na entrega.</p>
+      <div id="integLista_mercadopago"><div class="notif-empty">Carregando…</div></div>
+      <div class="msg" id="integMsg_mercadopago"></div>
     </div>
   </section>
 
@@ -2370,15 +2389,15 @@
   </div>
 </div>
 
-<script src="app-01-base-e-api.js?v=e8433139" charset="utf-8" data-origem="__big0__"></script>
-<script src="app-02-abas.js?v=625338a4" charset="utf-8" data-origem="__big1__"></script>
+<script src="app-01-base-e-api.js?v=d40fd499" charset="utf-8" data-origem="__big0__"></script>
+<script src="app-02-abas.js?v=74d69f08" charset="utf-8" data-origem="__big1__"></script>
 <script src="app-03-cadastros.js?v=7dd3c514" charset="utf-8" data-origem="__big2__"></script>
-<script src="app-04-pedidos-entrega.js?v=d0d4fe5d" charset="utf-8" data-origem="__big3__"></script>
+<script src="app-04-pedidos-entrega.js?v=3214bf13" charset="utf-8" data-origem="__big3__"></script>
 <script src="app-05-avisos-push.js?v=67c3b080" charset="utf-8" data-origem="__big4__"></script>
 <script src="app-06-caixa.js?v=2eb0f13a" charset="utf-8" data-origem="__big5__"></script>
-<script src="app-07-impressao.js?v=54adbe1a" charset="utf-8" data-origem="__big6__"></script>
+<script src="app-07-impressao.js?v=cda6835c" charset="utf-8" data-origem="__big6__"></script>
 <script src="app-08-vendas-despesas.js?v=24761669" charset="utf-8" data-origem="__big7__"></script>
-<script src="app-09-ajuda.js?v=31dfa5fc" charset="utf-8" data-origem="__big8__"></script>
+<script src="app-09-ajuda.js?v=6d074b26" charset="utf-8" data-origem="__big8__"></script>
 <script src="app-10-backup-financeiro.js?v=16146730" charset="utf-8" data-origem="__big9__"></script>
 <script src="app-11-admin-integracoes.js?v=gemini2fix" charset="utf-8" data-origem="__big10__"></script>
 <script src="app-12-gestao-ia.js?v=56e78061" charset="utf-8" data-origem="__big11__"></script>
@@ -2404,19 +2423,19 @@
  Sem segundo cliente Supabase · sem listener duplicado · sem setInterval (nada de consumo automático) ·
  fora do renderizarTudo() · toda resposta da IA é escapada (nada de innerHTML cru, eval ou Function).
 ===================================================================== -->
-<link rel="stylesheet" href="estilo-03-ia.css?v=20261015" data-origem="iaCss">
+<link rel="stylesheet" href="estilo-03-ia.css?v=fc851e5f" data-origem="iaCss">
 
 <script src="app-19-ia.js?v=gemini2fix" charset="utf-8" data-origem="iaModulo"></script>
 <link rel="stylesheet" href="estilo-04-cardapio-compacto.css?v=a687a597" data-origem="cdCompactoCss">
 <link rel="stylesheet" href="estilo-05-cardapio-layout.css?v=b0fa2122" data-origem="cdLayoutA">
 <link rel="stylesheet" href="estilo-06-ia-publica.css?v=418a2d29" data-origem="iaPublicaCss">
 <link rel="stylesheet" href="estilo-07-tex.css?v=0b98b458" data-origem="texCss">
-<link rel="stylesheet" href="estilo-08-balao-interno.css?v=97c130e4" data-origem="balaoInternoCss">
+<link rel="stylesheet" href="estilo-08-balao-interno.css?v=7afcfb1a" data-origem="balaoInternoCss">
 <!-- =====================================================================
    BALÃO ÚNICO — parte da EQUIPE (Fase 3/4): só texto. O roteador do ai-gateway escolhe o robô; a fila de clientes aparece como aviso.
    Reaproveita IA.chamar, sbRpc_, sbSessaoLer_, sbJson_. Nenhum botão de função: tudo é texto (exceto Assumir/Encerrar/Sair da conversa).
    ===================================================================== -->
-<script src="app-20-balao-interno.js?v=20261015" charset="utf-8" data-origem="balaoInterno"></script>
+<script src="app-20-balao-interno.js?v=5cdf185d" charset="utf-8" data-origem="balaoInterno"></script>
 
 <!-- =====================================================================
    FASE 5 — Localização do entregador (plano V3 §49–§59). Aditivo.
@@ -2444,6 +2463,7 @@
 <script src="app-26-visual.js?v=3f2492e5" charset="utf-8" data-origem=""></script>
 <link rel="stylesheet" href="estilo-15-conta.css?v=767278d9" data-origem="">
 <link rel="stylesheet" href="estilo-16-pagamento.css?v=6dbe0f1d">
+<link rel="stylesheet" href="estilo-17-contas.css?v=87db096a">
 <script src="app-27-conta-cliente.js?v=dc74b07e" charset="utf-8" data-origem=""></script>
 </body>
 </html>

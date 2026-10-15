@@ -6,7 +6,7 @@
    - BACKEND: NADA de Apps Script (script.google.com) nem de Supabase (*.supabase.co) é guardado aqui.
      Dados, pedidos, login e RPCs nunca passam pelo cache do service worker — sempre vão direto para a rede.
    - O único cache de dados é o de fotos (FOTOS) e o da casca/ícones (SHELL/ASSETS). Não adicionar outros. */
-const SHELL = 'texas-shell-v39';
+const SHELL = 'texas-shell-v40';
 const ASSETS = 'texas-assets-v6';   // trocou ícone/logo/manifest/leaflet? suba para v5
 const FOTOS = 'texas-fotos-v1';
 /* Código do app dividido em arquivos (app-*.js e estilo-*.css). Cada arquivo tem ?v=<impressão digital> na página; o cache guarda
@@ -16,17 +16,16 @@ const CODIGO = 'texas-codigo-v2';
 const LISTA = [/*LISTA-INICIO*/
   'estilo-01-base.css?v=460bec22',
   'estilo-02-chat-publico.css?v=b0374956',
-  'app-01-base-e-api.js?v=e8433139',
-  'app-02-abas.js?v=625338a4',
+  'app-01-base-e-api.js?v=d40fd499',
+  'app-02-abas.js?v=74d69f08',
   'app-03-cadastros.js?v=7dd3c514',
-  'app-04-pedidos-entrega.js?v=d0d4fe5d',
+  'app-04-pedidos-entrega.js?v=3214bf13',
   'app-05-avisos-push.js?v=67c3b080',
   'app-06-caixa.js?v=2eb0f13a',
-  'app-07-impressao.js?v=54adbe1a',
+  'app-07-impressao.js?v=cda6835c',
   'app-08-vendas-despesas.js?v=24761669',
-  'app-09-ajuda.js?v=31dfa5fc',
+  'app-09-ajuda.js?v=6d074b26',
   'app-10-backup-financeiro.js?v=16146730',
-  'app-11-admin-integracoes.js?v=20261015',
   'app-12-gestao-ia.js?v=56e78061',
   'app-13-conexao-sync.js?v=64fab071',
   'app-14-relatorios.js?v=3c1364d9',
@@ -34,14 +33,13 @@ const LISTA = [/*LISTA-INICIO*/
   'app-16-sessao-final.js?v=ef1da8ab',
   'app-17-sessao-supabase.js?v=add7fc79',
   'app-18-queda-supabase.js?v=d409c0fe',
-  'estilo-03-ia.css?v=20261015',
-  'app-19-ia.js?v=iafix23',
+  'estilo-03-ia.css?v=fc851e5f',
   'estilo-04-cardapio-compacto.css?v=a687a597',
   'estilo-05-cardapio-layout.css?v=b0fa2122',
   'estilo-06-ia-publica.css?v=418a2d29',
   'estilo-07-tex.css?v=0b98b458',
-  'estilo-08-balao-interno.css?v=97c130e4',
-  'app-20-balao-interno.js?v=20261015',
+  'estilo-08-balao-interno.css?v=7afcfb1a',
+  'app-20-balao-interno.js?v=5cdf185d',
   'app-21-localizacao.js?v=595f823d',
   'estilo-09-navegacao-inferior.css?v=ca5c4081',
   'estilo-10-polimento.css?v=c19d94ad',
@@ -56,6 +54,7 @@ const LISTA = [/*LISTA-INICIO*/
   'app-26-visual.js?v=3f2492e5',
   'estilo-15-conta.css?v=767278d9',
   'estilo-16-pagamento.css?v=6dbe0f1d',
+  'estilo-17-contas.css?v=87db096a',
   'app-27-conta-cliente.js?v=dc74b07e',
 /*LISTA-FIM*/];
 const FOTOS_MAX = 150;

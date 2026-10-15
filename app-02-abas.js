@@ -56,7 +56,7 @@ function ativarApenasSecao_(id){
 }
 /* Abas internas: mostra só os cards marcados com data-painel="nome" (um card pode ter mais de um nome, separados por espaço).
    Cards sem data-painel ficam sempre visíveis. Lembra a última aba escolhida em cada tela. */
-const _abaInterna_ = { 'tab-produtos':'produtos', 'tab-cardapiodigital':'categorias', 'tab-historico':'vendas' };
+const _abaInterna_ = { 'tab-produtos':'produtos', 'tab-cardapiodigital':'categorias', 'tab-historico':'vendas', 'tab-contas':'contas' };
 function abaInterna_(tabId, q){
   const sec = document.getElementById(tabId); if(!sec) return;
   _abaInterna_[tabId] = q;
@@ -64,6 +64,7 @@ function abaInterna_(tabId, q){
   sec.querySelectorAll('.seg-abas button').forEach(b=>b.classList.toggle('active', b.dataset.aba === q));
 }
 function abrirAdministrador(sub){
+  if(['ias','ifood','nfce','mercadopago'].includes(sub)){ _abaInterna_['tab-contas'] = sub; sub = 'contas'; }   // atalho direto para o sub-menu
   if(sub === 'drive') sub = 'armazenamento';   // "Espaço e fotos" virou parte de "Backup e espaço"
   const permitidos = gruposAdmin_().reduce((a,g)=>a.concat(g.subs), []);
   const alvo = (ADMIN_SUBABAS.includes(sub) && permitidos.includes(sub)) ? sub : permitidos[0];

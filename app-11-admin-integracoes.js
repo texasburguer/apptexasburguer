@@ -144,12 +144,13 @@ function renderContas_(){
   box.innerHTML = contasLista_.map(c=>`<div class="notif-card">
       <div><b>${escH(c.servico)}</b></div>
       ${c.email?`<div class="obs-line">📧 ${escH(c.email)} <button class="ghost" style="width:auto;padding:4px 10px;min-height:32px;margin-left:6px;" onclick="contaCopiar_(this,'${escH(c.email).replace(/'/g,'&#39;')}')">Copiar</button></div>`:''}
-      ${c.link?`<div class="obs-line" style="overflow-wrap:anywhere;">🔗 <a href="${escH(c.link)}" target="_blank" rel="noopener noreferrer" style="color:var(--gold);">Abrir</a> · ${escH(c.link)}</div>`:''}
+      ${c.link?`<div class="obs-line" style="overflow-wrap:anywhere;">🔗 <a href="${escH(c.link)}" target="_blank" rel="noopener noreferrer" title="${escH(c.link)}" style="color:var(--gold);">Abrir ${escH(contaHost_(c.link))}</a></div>`:''}
       ${c.temSenha?`<div class="obs-line">🔑 <span id="ctSenhaVer_${c.id}">••••••••</span> <button class="ghost" style="width:auto;padding:4px 10px;min-height:32px;margin-left:6px;" onclick="verSenhaConta_('${c.id}')">Ver senha</button></div>`:''}
       ${c.observacao?`<div class="obs-line">${escH(c.observacao)}</div>`:''}
       <div class="btnrow" style="margin-top:8px;"><button class="ghost" onclick="abrirContaModal_('${c.id}')">Editar</button><button class="ghost" onclick="excluirContaUI_('${c.id}')">Excluir</button></div>
     </div>`).join('');
 }
+function contaHost_(u){ try{ return new URL(u).host.replace(/^www\./,''); }catch(e){ return ''; } }
 function contaCopiar_(btn, txt){
   const t = document.createElement('textarea'); t.innerHTML = txt; const v = t.value;
   (navigator.clipboard ? navigator.clipboard.writeText(v) : Promise.reject()).then(()=>{ btn.textContent = 'Copiado'; setTimeout(()=>btn.textContent='Copiar', 1500); }).catch(()=>{ prompt('Copie:', v); });
@@ -365,44 +366,75 @@ const INTEG_INFO_ = {
     opcoes:[] }
 };
 let integStatus_ = [];
+function integMsgId_(){ const a = (typeof _abaInterna_ !== 'undefined' && _abaInterna_['tab-contas']) || ''; return 'integMsg_' + (['ifood','nfce','mercadopago'].includes(a) ? a : 'ifood'); }
 async function carregarIntegracoes_(){
-  const box = document.getElementById('integLista'); if(!box) return;
+  const caixas = ['ifood','nfce','mercadopago'].map(p=>document.getElementById('integLista_'+p)).filter(Boolean); if(!caixas.length) return;
+  const erro = t=>{ caixas.forEach(b=>{ b.innerHTML = '<div class="notif-empty">' + escH(t) + '</div>'; }); };
   try{
     const r = await apiCall('integracoesStatus', {});
-    if(!r || !r.ok){ box.innerHTML = '<div class="notif-empty">' + escH((r && r.message) || 'Não foi possível carregar agora.') + '</div>'; return; }
+    if(!r || !r.ok){ erro((r && r.message) || 'Não foi possível carregar agora.'); return; }
     integStatus_ = r.integracoes || []; renderIntegracoes_();
-  }catch(e){ box.innerHTML = '<div class="notif-empty">Sem conexão para carregar.</div>'; }
+  }catch(e){ erro('Sem conexão para carregar.'); }
+}
+function integResumoHtml_(it, inf){
+  const mp = it.provedor === 'mercadopago', prod = mp && mpModoAtual_(it) === 'producao';
+  const ck = (it.checklist||[]).filter(c=>!(mp && !prod && (c.id==='teste_guiado' || c.id==='chaves_producao')));
+  const pend = mp ? ((prod ? it.pendenciasProducao : it.pendenciasTeste) || []) : (it.pendencias || []);
+  const total = ck.length || 1, feitos = Math.max(0, total - pend.length), pct = Math.round(feitos * 100 / total);
+  const quem = String((inf.guia||[])[0] || '').replace(/^Quem faz:\s*/i, '');
+  let msg, cls;
+  if(it.ligado){ msg = '✅ Funcionando' + (it.provedor==='ifood' ? '' : ' em ' + (it.modo==='producao' ? 'PRODUÇÃO' : 'TESTE')) + '. Nada a fazer agora; use as ferramentas do dia a dia mais abaixo.'; cls = 'ok'; }
+  else if(!pend.length){ msg = '🎉 Tudo pronto' + (mp ? ' para o modo ' + (prod ? 'PRODUÇÃO' : 'TESTE') : '') + '. Falta só ligar (botão "Ligar", mais abaixo).'; cls = 'ok'; }
+  else { msg = '👉 Próximo passo: ' + pend[0]; cls = 'falta'; }
+  return `<div class="ig-res ${cls}">
+    <div class="ig-res-topo"><b>${it.ligado ? 'LIGADO' : 'DESLIGADO'}</b><span>${feitos} de ${total} passos prontos</span></div>
+    <div class="ig-barra"><i style="width:${pct}%"></i></div>
+    <div class="ig-prox">${escH(msg)}</div>
+    ${pend.length > 1 ? `<div class="ig-resto">Depois: ${pend.slice(1).map(x=>escH(x)).join(' · ')}</div>` : ''}
+    ${quem ? `<div class="ig-quem">Quem faz: ${escH(quem)}</div>` : ''}
+    <button type="button" class="ghost ig-guiabtn" onclick="integAbrirGuia_('${it.provedor}')">📖 Ver como fazer, passo a passo</button>
+  </div>`;
+}
+function integAbrirGuia_(prov){
+  const g = prov === 'mercadopago' ? document.getElementById('mpGuia') : document.getElementById('integGuia_' + prov);
+  if(!g) return;
+  if(g.tagName === 'DETAILS') g.open = true; else g.hidden = false;
+  try{ g.scrollIntoView({ behavior:'smooth', block:'start' }); }catch(e){}
+}
+function integCardHtml_(it, inf){
+  const bt = 'class="ghost" style="width:auto;padding:4px 10px;min-height:32px;margin-left:6px;"', seg = it.segredos || {};
+  const sec = (tit, corpo, sub)=>`<div class="ig-sec"><h3>${tit}</h3>${sub?`<p class="ig-sub">${sub}</p>`:''}${corpo}</div>`;
+  const chaves = inf.segredos.map(([k,r])=>`<div class="obs-line">${seg[k]?'✅':'⬜'} ${escH(r)} ${seg[k]?'<span id="isVer_'+k+'">••••'+escH(seg[k].final||'')+'</span> <button '+bt+' onclick="verIntegSegredo_(\''+k+'\')">Ver</button>':''} <button ${bt} onclick="abrirIntegSegredo_('${k}','${escH(r)}')">${seg[k]?'Trocar':'Digitar'}</button></div>`).join('');
+  const lista = (it.checklist||[]).map(c=>`<label class="obs-line" style="display:flex;gap:8px;align-items:flex-start;${c.auto?'':'cursor:pointer;'}"><input type="checkbox" ${c.feito?'checked':''} ${c.auto?'disabled':''} onchange="marcarIntegPasso_('${it.provedor}','${c.id}',this.checked)" style="width:auto;margin-top:3px;"> <span>${escH(c.titulo)}${c.auto?' <i>(o sistema marca sozinho)</i>':''}</span></label>`).join('');
+  const opcoes = inf.opcoes.length ? inf.opcoes.map(([k,t])=>`<label class="obs-line" style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;"><input type="checkbox" ${(it.config||{})[k]?'checked':''} onchange="salvarIntegOpcao_('${it.provedor}','${k}',this.checked)" style="width:auto;margin-top:3px;"> <span>${escH(t)}</span></label>`).join('') : '';
+  const nf = it.provedor === 'nfce', fo = it.provedor === 'ifood';
+  return `<div class="ig-card ${it.ligado?'on':''}">
+    ${integResumoHtml_(it, inf)}
+    ${sec('📖 Como fazer', `<details id="integGuia_${it.provedor}" class="ig-guia"><summary>Abrir o passo a passo</summary>${inf.guia.map(g=>`<div class="obs-line">${escH(g)}</div>`).join('')}</details>`)}
+    ${sec('🔑 Chaves e códigos', chaves, 'Digite só aqui, nunca por mensagem. Pede a sua senha de administrador.')}
+    ${sec('✅ Lista de conferência', lista)}
+    ${nf ? sec('🧾 Cadastro fiscal', fiscalExtraHtml_(it, 'setup'), 'O contador define; você cadastra aqui antes de ligar.') : ''}
+    ${nf ? sec('⚙️ Onde e quando emitir', nfceOpcoesHtml_(it)) : ''}
+    ${fo ? sec('⚙️ Ajustes', opcoes) : ''}
+    ${fo ? sec('🔗 Ligar os itens aos produtos', ifoodExtraHtml_(it, 'setup'), 'Cada item do iFood precisa estar ligado a um produto seu.') : ''}
+    ${sec('🔌 Ligar ou desligar', `<div class="btnrow">${integBotoes_(it)}</div>${(!it.ligado && !it.podeLigar)?`<div class="obs-line">Ainda falta: ${escH((it.pendencias||[]).join('; '))}</div>`:''}`, 'Pede a sua senha de administrador. Dá para desligar a qualquer momento.')}
+    ${sec('📊 No dia a dia', (nf ? fiscalExtraHtml_(it, 'dia') : ifoodExtraHtml_(it, 'dia')) + `<div class="btnrow" style="margin-top:8px;"><button class="ghost" onclick="verLogInteg_('${it.provedor}')">Ver registro</button></div><div id="integLog_${it.provedor}"></div>`, it.ligado ? '' : 'Só funciona depois que estiver ligado.')}
+  </div>`;
 }
 function renderIntegracoes_(){
-  const box = document.getElementById('integLista'); if(!box) return;
-  const bt = 'class="ghost" style="width:auto;padding:4px 10px;min-height:32px;margin-left:6px;"';
-  box.innerHTML = integStatus_.map(it=>{ const inf = INTEG_INFO_[it.provedor]; if(!inf) return '';
-    if(it.provedor==='mercadopago') return mpCardHtml_(it, inf);
-    const seg = it.segredos || {};
-    return `<div class="notif-card" style="border-left:4px solid ${it.ligado?'#2e9e5b':'#888'};">
-      <div><b>${inf.icone} ${escH(inf.nome)}</b> — ${it.ligado?'<span style="color:#2e9e5b;">LIGADO'+((it.provedor==='nfce'||it.provedor==='mercadopago')?' ('+(it.modo==='producao'?'produção':'teste')+')':'')+'</span>':'<span style="color:#aaa;">desligado</span>'}</div>
-      <details style="margin-top:6px;"><summary style="cursor:pointer;color:var(--gold);">📖 Guia passo a passo</summary>${inf.guia.map(g=>`<div class="obs-line">${escH(g)}</div>`).join('')}</details>
-      <div style="margin-top:8px;"><b>Chaves</b>${inf.segredos.map(([k,r])=>`<div class="obs-line">${seg[k]?'✅':'⬜'} ${escH(r)} ${seg[k]?'<span id="isVer_'+k+'">••••'+escH(seg[k].final||'')+'</span> <button '+bt+' onclick="verIntegSegredo_(\''+k+'\')">Ver</button>':''} <button ${bt} onclick="abrirIntegSegredo_('${k}','${escH(r)}')">${seg[k]?'Trocar':'Digitar'}</button></div>`).join('')}</div>
-      <div style="margin-top:8px;"><b>Checklist</b>${(it.checklist||[]).map(c=>`<label class="obs-line" style="display:flex;gap:8px;align-items:flex-start;${c.auto?'':'cursor:pointer;'}"><input type="checkbox" ${c.feito?'checked':''} ${c.auto?'disabled':''} onchange="marcarIntegPasso_('${it.provedor}','${c.id}',this.checked)" style="width:auto;margin-top:3px;"> <span>${escH(c.titulo)}${c.auto?' <i>(o sistema marca sozinho)</i>':''}</span></label>`).join('')}</div>
-      ${inf.opcoes.length?`<div style="margin-top:8px;"><b>Ajustes</b>${inf.opcoes.map(([k,t])=>`<label class="obs-line" style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;"><input type="checkbox" ${(it.config||{})[k]?'checked':''} onchange="salvarIntegOpcao_('${it.provedor}','${k}',this.checked)" style="width:auto;margin-top:3px;"> <span>${escH(t)}</span></label>`).join('')}</div>`:''}
-      <div class="btnrow" style="margin-top:10px;">
-        ${integBotoes_(it)}
-        <button class="ghost" onclick="verLogInteg_('${it.provedor}')">Ver registro</button>
-      </div>
-      ${(!it.ligado && !it.podeLigar)?`<div class="obs-line">Ainda falta: ${escH((it.pendencias||[]).join('; '))}</div>`:''}
-      ${it.provedor==='ifood'?ifoodExtraHtml_(it):''}
-      ${it.provedor==='nfce'?fiscalExtraHtml_(it):''}
-      <div id="integLog_${it.provedor}"></div>
-    </div>`; }).join('') || '<div class="notif-empty">Nada disponível.</div>';
+  (integStatus_||[]).forEach(it=>{
+    const inf = INTEG_INFO_[it.provedor], box = document.getElementById('integLista_' + it.provedor); if(!inf || !box) return;
+    box.innerHTML = it.provedor === 'mercadopago' ? mpCardHtml_(it, inf) : integCardHtml_(it, inf);
+  });
   if(document.getElementById('mpRecentes')) carregarMpRecentes_();
   if(document.getElementById('mpPendenciasDecisaoBox')) mpCarregarPendenciasDecisao_();
 }
 async function marcarIntegPasso_(prov, item, feito){
-  try{ const r = await apiCall('integracoesMarcar', { provedor:prov, item, feito:!!feito }); if(r && r.ok){ integStatus_ = r.integracoes||integStatus_; } else showMsg('integMsg', (r&&r.message)||'Não foi possível salvar.', 'warn'); }catch(e){ showMsg('integMsg','Sem conexão.','warn'); }
+  try{ const r = await apiCall('integracoesMarcar', { provedor:prov, item, feito:!!feito }); if(r && r.ok){ integStatus_ = r.integracoes||integStatus_; } else showMsg(integMsgId_(), (r&&r.message)||'Não foi possível salvar.', 'warn'); }catch(e){ showMsg(integMsgId_(),'Sem conexão.','warn'); }
   renderIntegracoes_();
 }
 async function salvarIntegOpcao_(prov, chave, valor){
-  try{ const r = await apiCall('integracoesConfig', { provedor:prov, config:{ [chave]: !!valor } }); if(r && r.ok){ integStatus_ = r.integracoes||integStatus_; } else showMsg('integMsg', (r&&r.message)||'Não foi possível salvar.', 'warn'); }catch(e){ showMsg('integMsg','Sem conexão.','warn'); }
+  try{ const r = await apiCall('integracoesConfig', { provedor:prov, config:{ [chave]: !!valor } }); if(r && r.ok){ integStatus_ = r.integracoes||integStatus_; } else showMsg(integMsgId_(), (r&&r.message)||'Não foi possível salvar.', 'warn'); }catch(e){ showMsg(integMsgId_(),'Sem conexão.','warn'); }
   renderIntegracoes_();
 }
 function abrirIntegSegredo_(chave, rotulo){
@@ -416,7 +448,7 @@ function salvarIntegSegredo_(){
     if(!iniciarOperacaoUnica('integSegredo')) return;
     try{
       const r = await apiCall('integracoesSalvarSegredo', { chave, valor, senhaAdmin: senhaAdm });
-      if(r && r.ok){ document.getElementById('isValor').value=''; integStatus_ = r.integracoes||integStatus_; renderIntegracoes_(); fecharFormModal('integSegredoModal'); showMsg('integMsg', r.message||'Salvo.', 'ok'); }
+      if(r && r.ok){ document.getElementById('isValor').value=''; integStatus_ = r.integracoes||integStatus_; renderIntegracoes_(); fecharFormModal('integSegredoModal'); showMsg(integMsgId_(), r.message||'Salvo.', 'ok'); }
       else showMsg('isMsg', (r&&r.message)||'Não foi possível salvar.', 'warn');
     }catch(e){ showMsg('isMsg','Sem conexão. Tente de novo.','warn'); }
     finally{ finalizarOperacaoUnica('integSegredo'); }
@@ -427,10 +459,10 @@ function verIntegSegredo_(chave){
     const el = document.getElementById('isVer_'+chave); if(!el) return;
     try{
       const r = await apiCall('integracoesVerSegredo', { chave, senhaAdmin: senhaAdm });
-      if(!r || !r.ok){ showMsg('integMsg', (r&&r.message)||'Não foi possível mostrar.', 'warn'); return; }
+      if(!r || !r.ok){ showMsg(integMsgId_(), (r&&r.message)||'Não foi possível mostrar.', 'warn'); return; }
       const antes = el.textContent; el.textContent = r.valor; el.style.fontFamily='monospace'; el.style.overflowWrap='anywhere';
       clearTimeout(el._t); el._t = setTimeout(()=>{ el.textContent = antes; el.style.fontFamily=''; }, 30000);
-    }catch(e){ showMsg('integMsg','Sem conexão.','warn'); }
+    }catch(e){ showMsg(integMsgId_(),'Sem conexão.','warn'); }
   });
 }
 function ligarInteg_(prov, modo){
@@ -441,9 +473,9 @@ function ligarInteg_(prov, modo){
   abrirModalSenhaAdmin(async function(senhaAdm){
     try{
       const r = await apiCall('integracoesLigar', { provedor:prov, modo, senhaAdmin: senhaAdm });
-      if(r && r.ok){ integStatus_ = r.integracoes||integStatus_; renderIntegracoes_(); carregarIntegFlags_(); showMsg('integMsg', r.message||'Ligado.', 'ok'); }
-      else showMsg('integMsg', (r&&r.message)||'Não foi possível ligar.', 'warn');
-    }catch(e){ showMsg('integMsg','Sem conexão. Tente de novo.','warn'); }
+      if(r && r.ok){ integStatus_ = r.integracoes||integStatus_; renderIntegracoes_(); carregarIntegFlags_(); showMsg(integMsgId_(), r.message||'Ligado.', 'ok'); }
+      else showMsg(integMsgId_(), (r&&r.message)||'Não foi possível ligar.', 'warn');
+    }catch(e){ showMsg(integMsgId_(),'Sem conexão. Tente de novo.','warn'); }
   });
 }
 function desligarInteg_(prov){
@@ -451,9 +483,9 @@ function desligarInteg_(prov){
   abrirModalSenhaAdmin(async function(senhaAdm){
     try{
       const r = await apiCall('integracoesDesligar', { provedor:prov, senhaAdmin: senhaAdm });
-      if(r && r.ok){ integStatus_ = r.integracoes||integStatus_; renderIntegracoes_(); carregarIntegFlags_(); showMsg('integMsg', r.message||'Desligado.', 'ok'); }
-      else showMsg('integMsg', (r&&r.message)||'Não foi possível desligar.', 'warn');
-    }catch(e){ showMsg('integMsg','Sem conexão. Tente de novo.','warn'); }
+      if(r && r.ok){ integStatus_ = r.integracoes||integStatus_; renderIntegracoes_(); carregarIntegFlags_(); showMsg(integMsgId_(), r.message||'Desligado.', 'ok'); }
+      else showMsg(integMsgId_(), (r&&r.message)||'Não foi possível desligar.', 'warn');
+    }catch(e){ showMsg(integMsgId_(),'Sem conexão. Tente de novo.','warn'); }
   });
 }
 async function verLogInteg_(prov){
@@ -510,6 +542,7 @@ function mpCardHtml_(it, inf){
   return `<div class="mp-adm ${it.ligado?'on':''}">
     <h3>${inf.icone} Mercado Pago <span class="mp-estado ${it.ligado?'on':''}">${estado}</span></h3>
     <p class="mp-sub">Pagamento dentro do cardápio. Desligado, o cardápio funciona como sempre.</p>
+    ${integResumoHtml_(it, inf)}
     <ul class="mp-lista">${lista}</ul>
     ${mpPendenciasHtml_(it)}
     <div class="mp-camp">Modo<div class="mp-modo"><button type="button" aria-pressed="${!prod}" ${it.ligado?'disabled':''} onclick="mpEscolherModo_('homologacao')">Teste</button><button type="button" aria-pressed="${prod}" ${it.ligado?'disabled':''} onclick="mpEscolherModo_('producao')">Produção</button></div></div>
@@ -545,13 +578,13 @@ function mpExtraHtml_(it){
   }).join('') || '<div class="obs-line">Nenhuma forma de pagamento ativa no cardápio.</div>';
   const emails = Array.isArray(cfg.emailsTeste) ? cfg.emailsTeste.join(', ') : '';
   return `<div style="margin-top:10px;">
-    <b>Endereço do aviso (webhook)</b>
+    <b>🔔 Endereço do aviso (webhook)</b>
     <div class="obs-line" style="overflow-wrap:anywhere;font-family:monospace;">${escH(url)} <button ${bt} onclick="contaCopiar_(this,'${escH(url)}')">Copiar</button></div>
     <div class="obs-line">No Mercado Pago: Webhooks &gt; Configurar notificações &gt; cole este endereço e marque o evento "Order (Mercado Pago)".</div>
   </div>
-  <div style="margin-top:10px;"><b>Formas de pagamento pelo site</b>
+  <div style="margin-top:10px;"><b>💳 Formas de pagamento pelo site</b>
     <div class="obs-line">Escolha qual forma cadastrada vira Pix online e qual vira cartão de crédito online (uma de cada). Elas continuam valendo também na entrega. Os preços, taxas e acréscimos são os de cada forma.</div>${formas}</div>
-  <div style="margin-top:10px;"><b>Ajustes</b>
+  <div style="margin-top:10px;"><b>⚙️ Ajustes</b>
     <label class="obs-line" for="mpPixMin">Validade do Pix (minutos, de 5 a 120; combinado: 15)</label>
     <input type="number" id="mpPixMin" min="5" max="120" value="${Number(cfg.pixValidadeMin)||15}" style="width:90px;" onchange="salvarMpConfig_({ pixValidadeMin: Number(this.value) })">
     <label class="obs-line" for="mpEmailsTeste">E-mails que veem o pagamento online em TESTE (até 5, separados por vírgula): a conta Google que você vai usar no cardápio</label>
@@ -560,17 +593,17 @@ function mpExtraHtml_(it){
     <input type="text" id="mpEmailPagador" value="${escH(cfg.emailPagadorTeste||'')}" maxlength="120" placeholder="test_user_...@testuser.com" onchange="salvarMpConfig_({ emailPagadorTeste: this.value.trim() })">
     <label class="obs-line" style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;"><input type="checkbox" ${cfg.testeNoCardapio?'checked':''} onchange="salvarMpConfig_({ testeNoCardapio: this.checked })" style="width:auto;margin-top:3px;"> <span>Em TESTE, mostrar o pagamento online a TODOS os clientes (não recomendado: com chave de teste ninguém consegue pagar de verdade)</span></label>
   </div>
-  <div style="margin-top:10px;"><b>Teste guiado</b>
+  <div style="margin-top:10px;"><b>🧪 Teste guiado</b>
     <div class="obs-line">1) Ligue em TESTE. 2) Digite acima o e-mail da conta Google que você usa no cardápio. 3) Abra o cardápio, entre com essa conta e faça um pedido de entrega pagando com Pix pelo site. 4) Faça outro pagando com cartão de crédito (no cartão de teste do Mercado Pago, use o nome do titular APRO para aprovar e OTHE para recusar; confira a lista atual no site do Mercado Pago). 5) Quando os dois aparecerem aprovados abaixo, o passo do checklist se marca sozinho.</div>
     <div class="obs-line">⚠️ O pedido de teste aprovado vira pedido de verdade na cozinha e no caixa (e baixa estoque). Avise a equipe e cancele depois.</div>
     <div class="btnrow" style="margin-top:6px;"><button class="ghost" onclick="mpAbrirCardapio_()">Abrir o cardápio</button><button class="ghost" onclick="carregarMpRecentes_()">Atualizar lista</button></div>
     <div id="mpRecentes"><div class="obs-line">Carregando…</div></div>
-    <div style="margin-top:10px;border-top:1px solid var(--gold);padding-top:8px;"><b>Pagamentos que precisam de decisão</b><div class="obs-line">Use esta lista quando o dinheiro tiver sido aprovado, mas o pedido não puder entrar automaticamente na cozinha. Reembolsar registra a decisão e chama o Mercado Pago para devolver.</div><button class="ghost" onclick="mpCarregarPendenciasDecisao_()">Atualizar pendências</button><div id="mpPendenciasDecisaoBox"><div class="obs-line">Toque em Atualizar pendências.</div></div></div>
+    <div style="margin-top:10px;border-top:1px solid var(--gold);padding-top:8px;"><b>📊 No dia a dia: pagamentos que precisam de decisão</b><div class="obs-line">Use esta lista quando o dinheiro tiver sido aprovado, mas o pedido não puder entrar automaticamente na cozinha. Reembolsar registra a decisão e chama o Mercado Pago para devolver.</div><button class="ghost" onclick="mpCarregarPendenciasDecisao_()">Atualizar pendências</button><div id="mpPendenciasDecisaoBox"><div class="obs-line">Toque em Atualizar pendências.</div></div></div>
   </div>`;
 }
 function mpAbrirCardapio_(){
   const it = (integStatus_||[]).find(x=>x.provedor==='mercadopago');
-  if(!it || !it.ligado){ showMsg('integMsg','Ligue o Mercado Pago em TESTE antes de testar.','warn'); return; }
+  if(!it || !it.ligado){ showMsg(integMsgId_(),'Ligue o Mercado Pago em TESTE antes de testar.','warn'); return; }
   window.open('https://texasburguer.github.io/apptexasburguer/', '_blank', 'noopener');
 }
 async function carregarMpRecentes_(){
@@ -612,14 +645,14 @@ async function mpDecidirPagamento_(pagamentoId, decisao){
   if(box) box.insertAdjacentHTML('afterbegin','<div class="obs-line">Registrando decisão…</div>');
   try{
     const r = await apiCall('mpDecidirPagamento', { pagamentoId, decisao });
-    if(!r || !r.ok){ showMsg('integMsg',(r&&r.message)||'Não foi possível registrar a decisão.','warn'); await mpCarregarPendenciasDecisao_(); return; }
+    if(!r || !r.ok){ showMsg(integMsgId_(),(r&&r.message)||'Não foi possível registrar a decisão.','warn'); await mpCarregarPendenciasDecisao_(); return; }
     if(decisao==='reembolsar'){
       const rr = await sb410Edge_('mp-reembolsar', { pagamentoId }, 60000);
-      if(!rr || !rr.ok){ showMsg('integMsg','A decisão foi registrada, mas a devolução não foi confirmada: '+((rr&&rr.message)||'sem resposta')+'. Confira o painel do Mercado Pago antes de repetir.','warn'); }
-      else showMsg('integMsg','Reembolso confirmado pelo Mercado Pago: '+(rr.message||'devolução registrada.'),'ok');
-    } else showMsg('integMsg',r.message||'Pedido liberado.','ok');
+      if(!rr || !rr.ok){ showMsg(integMsgId_(),'A decisão foi registrada, mas a devolução não foi confirmada: '+((rr&&rr.message)||'sem resposta')+'. Confira o painel do Mercado Pago antes de repetir.','warn'); }
+      else showMsg(integMsgId_(),'Reembolso confirmado pelo Mercado Pago: '+(rr.message||'devolução registrada.'),'ok');
+    } else showMsg(integMsgId_(),r.message||'Pedido liberado.','ok');
     await mpCarregarPendenciasDecisao_(); await carregarMpRecentes_();
-  }catch(e){ showMsg('integMsg','Não foi possível confirmar o resultado. Confira o status antes de repetir.','warn'); await mpCarregarPendenciasDecisao_(); }
+  }catch(e){ showMsg(integMsgId_(),'Não foi possível confirmar o resultado. Confira o status antes de repetir.','warn'); await mpCarregarPendenciasDecisao_(); }
 }
 async function mpCarregarResumoOperacional_(){
   const box = document.getElementById('relMpOnlineBox'); if(!box) return;
@@ -633,34 +666,36 @@ async function mpCarregarResumoOperacional_(){
   }catch(e){ box.innerHTML = '<div class="obs-line">Sem conexão. Tente novamente.</div>'; }
 }
 async function salvarMpConfig_(config){
-  try{ const r = await apiCall('integracoesConfig', { provedor:'mercadopago', config }); if(r && r.ok){ integStatus_ = r.integracoes||integStatus_; showMsg('integMsg', r.message||'Ajustes salvos.', 'ok'); } else showMsg('integMsg', (r&&r.message)||'Não foi possível salvar.', 'warn'); }catch(e){ showMsg('integMsg','Sem conexão.','warn'); }
+  try{ const r = await apiCall('integracoesConfig', { provedor:'mercadopago', config }); if(r && r.ok){ integStatus_ = r.integracoes||integStatus_; showMsg(integMsgId_(), r.message||'Ajustes salvos.', 'ok'); } else showMsg(integMsgId_(), (r&&r.message)||'Não foi possível salvar.', 'warn'); }catch(e){ showMsg(integMsgId_(),'Sem conexão.','warn'); }
   renderIntegracoes_();
 }
 function salvarMpEmails_(txt){
   const lista = String(txt||'').split(/[,;\s]+/).map(x=>x.trim().toLowerCase()).filter(Boolean);
-  if(lista.length > 5){ showMsg('integMsg','No máximo 5 e-mails.','warn'); return; }
+  if(lista.length > 5){ showMsg(integMsgId_(),'No máximo 5 e-mails.','warn'); return; }
   salvarMpConfig_({ emailsTeste: lista });
 }
 async function mpFormaOnline_(formaId, tipo){
-  try{ const r = await apiCall('mpFormaOnline', { formaId, aceitaOnline: !!tipo, tipoOnline: tipo||'' }); if(r && r.ok){ integStatus_ = r.integracoes||integStatus_; showMsg('integMsg', r.message||'Salvo.', 'ok'); carregarIntegFlags_(); } else showMsg('integMsg', (r&&r.message)||'Não foi possível salvar.', 'warn'); }catch(e){ showMsg('integMsg','Sem conexão.','warn'); }
+  try{ const r = await apiCall('mpFormaOnline', { formaId, aceitaOnline: !!tipo, tipoOnline: tipo||'' }); if(r && r.ok){ integStatus_ = r.integracoes||integStatus_; showMsg(integMsgId_(), r.message||'Salvo.', 'ok'); carregarIntegFlags_(); } else showMsg(integMsgId_(), (r&&r.message)||'Não foi possível salvar.', 'warn'); }catch(e){ showMsg(integMsgId_(),'Sem conexão.','warn'); }
   renderIntegracoes_();
 }
 
 /* ---- Nota fiscal (Fase 4): dados da empresa, perfis fiscais, itens sem perfil, planilha do contador. Só aparece no cartão "Nota fiscal". ---- */
-function fiscalExtraHtml_(it){
-  return `<div style="margin-top:10px;border-top:1px solid var(--gold);padding-top:8px;">
+function fiscalExtraHtml_(it, parte){
+  if(parte === 'dia') return `<div><div class="btnrow">
+      <button class="ghost" onclick="carregarNfceLista_('')">Notas fiscais</button>
+      <button class="ghost" onclick="carregarNfceConf_()">Conferência</button>
+      <button class="ghost" onclick="carregarNfcePacote_()">Pacote do contador</button>
+    </div><div id="nfceLista"></div><div id="nfceConf"></div><div id="nfcePac"></div></div>`;
+  return `<div>
     <div class="btnrow">
       <button class="ghost" onclick="carregarFiscalEmpresa_()">Dados fiscais da empresa</button>
       <button class="ghost" onclick="carregarFiscalPerfis_()">Perfis fiscais</button>
       <button class="ghost" onclick="carregarFiscalSem_()">Itens sem perfil</button>
-      <button class="ghost" onclick="carregarNfceLista_('')">Notas fiscais</button>
-      <button class="ghost" onclick="carregarNfceConf_()">Conferência</button>
-      <button class="ghost" onclick="carregarNfcePacote_()">Pacote do contador</button>
       <button class="ghost" onclick="baixarPlanilhaFiscal_()">Baixar planilha do contador</button>
       <button class="ghost" onclick="document.getElementById('fiscalArq').click()">Enviar planilha preenchida</button>
       <input type="file" id="fiscalArq" accept=".csv,text/csv,text/plain" style="display:none;" onchange="enviarPlanilhaFiscal_(this)">
     </div>
-    ${nfceOpcoesHtml_(it)}<div id="nfceLista"></div><div id="nfceConf"></div><div id="nfcePac"></div><div id="fiscalEmpresa"></div><div id="fiscalPerfis"></div><div id="fiscalSem"></div></div>`;
+    <div id="fiscalEmpresa"></div><div id="fiscalPerfis"></div><div id="fiscalSem"></div></div>`;
 }
 const FISCAL_CAMPOS_ = [['razaoSocial','razao_social','Razão social'],['nomeFantasia','nome_fantasia','Nome fantasia'],['cnpj','cnpj','CNPJ (só números)'],['inscricaoEstadual','inscricao_estadual','Inscrição estadual'],
   ['cep','cep','CEP'],['logradouro','logradouro','Rua / avenida'],['numero','numero','Número'],['complemento','complemento','Complemento'],['bairro','bairro','Bairro'],['municipio','municipio','Cidade'],
@@ -796,7 +831,7 @@ function nfceOpcoesHtml_(it){
     <div class="obs-line">Dica: comece só com o Balcão e confira com o contador antes de incluir os outros.</div></div>`;
 }
 async function salvarNfceConfig_(config){
-  try{ const r = await apiCall('integracoesConfig', { provedor:'nfce', config }); if(r && r.ok){ integStatus_ = r.integracoes||integStatus_; } else showMsg('integMsg', (r&&r.message)||'Não foi possível salvar.', 'warn'); }catch(e){ showMsg('integMsg','Sem conexão.','warn'); }
+  try{ const r = await apiCall('integracoesConfig', { provedor:'nfce', config }); if(r && r.ok){ integStatus_ = r.integracoes||integStatus_; } else showMsg(integMsgId_(), (r&&r.message)||'Não foi possível salvar.', 'warn'); }catch(e){ showMsg(integMsgId_(),'Sem conexão.','warn'); }
   renderIntegracoes_();
 }
 function salvarNfceCanal_(canal, marcado){
@@ -829,10 +864,10 @@ async function carregarNfceLista_(estado){
 }
 async function reemitirNfce_(id){
   if(!confirm('Tentar emitir esta nota de novo?')) return;
-  try{ const r = await apiCall('nfceReemitir', { id }); showMsg('integMsg', (r&&r.message)||'Não foi possível.', r&&r.ok?'ok':'warn'); setTimeout(()=>carregarNfceLista_(), 5000); carregarNfceLista_(); }catch(e){ showMsg('integMsg','Sem conexão.','warn'); }
+  try{ const r = await apiCall('nfceReemitir', { id }); showMsg(integMsgId_(), (r&&r.message)||'Não foi possível.', r&&r.ok?'ok':'warn'); setTimeout(()=>carregarNfceLista_(), 5000); carregarNfceLista_(); }catch(e){ showMsg(integMsgId_(),'Sem conexão.','warn'); }
 }
 async function simularNfce_(){
-  try{ const r = await apiCall('nfceSimular', {}); showMsg('integMsg', (r&&r.message)||'Não foi possível.', r&&r.ok?'ok':'warn'); setTimeout(()=>carregarNfceLista_(), 8000); }catch(e){ showMsg('integMsg','Sem conexão.','warn'); }
+  try{ const r = await apiCall('nfceSimular', {}); showMsg(integMsgId_(), (r&&r.message)||'Não foi possível.', r&&r.ok?'ok':'warn'); setTimeout(()=>carregarNfceLista_(), 8000); }catch(e){ showMsg(integMsgId_(),'Sem conexão.','warn'); }
 }
 function atualizarCpfBox_(){ const b = document.getElementById('vCpfBox'); if(b) b.style.display = (window.INTEG_ && INTEG_.nfce && !(typeof souGarcom_==='function' && souGarcom_())) ? '' : 'none'; }
 
@@ -890,23 +925,22 @@ async function baixarPacoteNfce_(){
 }
 
 /* ---- iFood: pedidos, itens ligados, simulação (aparecem dentro do cartão Integrações) ---- */
-function ifoodExtraHtml_(it){
+function ifoodExtraHtml_(it, parte){
   const dev = currentUser && currentUser.nivelReal === 'Desenvolvedor';
-  return `<div style="margin-top:10px;border-top:1px solid var(--gold);padding-top:8px;">
+  const aviso = (()=>{ const f = (formasPagamento||[]).find(x=>String(x.nome||'').toLowerCase()==='ifood'); return (f && (Number(f.taxaPct)>0 || Number(f.taxaFixa)>0)) ? '' : '<div class="obs-line">⚠️ Cadastre a comissão do iFood em Operação → Pagamentos, na forma "iFood" (taxa %). Ela é tirada de cada pedido nos relatórios até o repasse trazer a comissão real.</div>'; })();
+  if(parte === 'setup') return `<div class="btnrow"><button class="ghost" onclick="carregarIfoodItens_()">Itens do iFood</button><button class="ghost" onclick="reprocessarIfood_()">Refazer pedidos sem ligação</button></div>${aviso}<div id="ifoodItens"></div>`;
+  return `<div>
     <div class="btnrow">
       <button class="ghost" onclick="carregarIfoodLoja_()">Loja no iFood</button>
       <button class="ghost" onclick="carregarIfoodNeg_()">Negociações</button>
       <button class="ghost" onclick="carregarIfoodPedidos_()">Pedidos do iFood</button>
-      <button class="ghost" onclick="carregarIfoodItens_()">Itens do iFood</button>
       <button class="ghost" onclick="carregarIfoodPrecos_()">Preços</button>
       <button class="ghost" onclick="carregarIfoodFin_()">Financeiro</button>
       <button class="ghost" onclick="carregarIfoodAval_()">Avaliações</button>
       <button class="ghost" onclick="carregarIfoodRel_()">Relatório por canal</button>
-      <button class="ghost" onclick="reprocessarIfood_()">Refazer pedidos sem ligação</button>
       ${dev?'<button class="ghost" onclick="simularIfood_()">🧪 Simular pedido do iFood (treino)</button>':''}
     </div>
-    ${(()=>{ const f = (formasPagamento||[]).find(x=>String(x.nome||'').toLowerCase()==='ifood'); return (f && (Number(f.taxaPct)>0 || Number(f.taxaFixa)>0)) ? '' : '<div class="obs-line">⚠️ Cadastre a comissão do iFood em Operação → Pagamentos, na forma "iFood" (taxa %). Ela é tirada de cada pedido nos relatórios até o repasse trazer a comissão real.</div>'; })()}
-    <div id="ifoodLoja"></div><div id="ifoodNeg"></div><div id="ifoodPedidos"></div><div id="ifoodItens"></div><div id="ifoodPrecos"></div><div id="ifoodFin"></div><div id="ifoodAval"></div><div id="ifoodRel"></div></div>`;
+    <div id="ifoodLoja"></div><div id="ifoodNeg"></div><div id="ifoodPedidos"></div><div id="ifoodPrecos"></div><div id="ifoodFin"></div><div id="ifoodAval"></div><div id="ifoodRel"></div></div>`;
 }
 const IFOOD_ESTADO_ROT_ = { novo:'aguardando confirmação', confirmado:'confirmado', em_preparo:'em preparo', pronto:'pronto', despachado:'saiu para entrega', concluido:'concluído', cancelado:'cancelado' };
 
@@ -923,7 +957,7 @@ async function carregarIfoodLoja_(){
   }catch(e){ box.innerHTML = '<div class="obs-line">Sem conexão.</div>'; }
 }
 async function lojaIfoodAcao_(acao, minutos){
-  try{ const r = await apiCall('ifoodLojaAcao', { acao, minutos }); showMsg('integMsg', (r && r.message) || 'Não foi possível.', r && r.ok ? 'ok' : 'warn'); setTimeout(carregarIfoodLoja_, 4000); carregarIfoodLoja_(); }catch(e){ showMsg('integMsg','Sem conexão.','warn'); }
+  try{ const r = await apiCall('ifoodLojaAcao', { acao, minutos }); showMsg(integMsgId_(), (r && r.message) || 'Não foi possível.', r && r.ok ? 'ok' : 'warn'); setTimeout(carregarIfoodLoja_, 4000); carregarIfoodLoja_(); }catch(e){ showMsg(integMsgId_(),'Sem conexão.','warn'); }
 }
 async function carregarIfoodNeg_(){
   const box = document.getElementById('ifoodNeg'); if(!box) return;
@@ -942,7 +976,7 @@ async function carregarIfoodNeg_(){
 }
 async function negIfood_(id, acao, alternativaId){
   if(acao==='recusar' && !confirm('Recusar o pedido do cliente? O iFood pode decidir por ele depois.')) return;
-  try{ const r = await apiCall('ifoodNegociacaoResponder', { id, acao, alternativaId }); showMsg('integMsg', (r && r.message) || 'Não foi possível.', r && r.ok ? 'ok' : 'warn'); carregarIfoodNeg_(); }catch(e){ showMsg('integMsg','Sem conexão.','warn'); }
+  try{ const r = await apiCall('ifoodNegociacaoResponder', { id, acao, alternativaId }); showMsg(integMsgId_(), (r && r.message) || 'Não foi possível.', r && r.ok ? 'ok' : 'warn'); carregarIfoodNeg_(); }catch(e){ showMsg(integMsgId_(),'Sem conexão.','warn'); }
 }
 
 const R$_ = v => formatarMoeda(v);
@@ -961,20 +995,20 @@ async function carregarIfoodPrecos_(){
   }catch(e){ box.innerHTML = '<div class="obs-line">Sem conexão.</div>'; }
 }
 const selPrecosIfood_ = ()=>[...document.querySelectorAll('.ifPrecoSel:checked')].map(x=>x.value);
-async function pedirCatalogoIfood_(){ try{ const r = await apiCall('ifoodPrecosPedirCatalogo', {}); showMsg('integMsg',(r&&r.message)||'Não foi possível.', r&&r.ok?'ok':'warn'); }catch(e){ showMsg('integMsg','Sem conexão.','warn'); } }
+async function pedirCatalogoIfood_(){ try{ const r = await apiCall('ifoodPrecosPedirCatalogo', {}); showMsg(integMsgId_(),(r&&r.message)||'Não foi possível.', r&&r.ok?'ok':'warn'); }catch(e){ showMsg(integMsgId_(),'Sem conexão.','warn'); } }
 async function aplicarPrecosIfood_(){
-  const ch = selPrecosIfood_(); if(!ch.length) return showMsg('integMsg','Marque os itens que quer gravar no sistema.','warn');
+  const ch = selPrecosIfood_(); if(!ch.length) return showMsg(integMsgId_(),'Marque os itens que quer gravar no sistema.','warn');
   if(!confirm('Gravar no sistema o preço do iFood de '+ch.length+' item(ns)? (muda o campo "Preço no iFood")')) return;
-  try{ const r = await apiCall('ifoodPrecosAplicar', { chaves: ch }); showMsg('integMsg',(r&&r.message)||'Não foi possível.', r&&r.ok?'ok':'warn'); carregarIfoodPrecos_(); }catch(e){ showMsg('integMsg','Sem conexão.','warn'); }
+  try{ const r = await apiCall('ifoodPrecosAplicar', { chaves: ch }); showMsg(integMsgId_(),(r&&r.message)||'Não foi possível.', r&&r.ok?'ok':'warn'); carregarIfoodPrecos_(); }catch(e){ showMsg(integMsgId_(),'Sem conexão.','warn'); }
 }
 async function enviarPrecosIfood_(){
-  const ch = selPrecosIfood_(); if(!ch.length) return showMsg('integMsg','Marque os itens que quer enviar ao iFood.','warn');
+  const ch = selPrecosIfood_(); if(!ch.length) return showMsg(integMsgId_(),'Marque os itens que quer enviar ao iFood.','warn');
   if(!confirm('ENVIAR ao iFood o nosso preço de '+ch.length+' item(ns)? Os clientes do iFood passarão a ver o novo preço. Dá para desfazer pelo histórico.')) return;
-  try{ const r = await apiCall('ifoodPrecosEnviar', { chaves: ch, confirmar: 'true' }); showMsg('integMsg',(r&&r.message)||'Não foi possível.', r&&r.ok?'ok':'warn'); carregarIfoodPrecos_(); }catch(e){ showMsg('integMsg','Sem conexão.','warn'); }
+  try{ const r = await apiCall('ifoodPrecosEnviar', { chaves: ch, confirmar: 'true' }); showMsg(integMsgId_(),(r&&r.message)||'Não foi possível.', r&&r.ok?'ok':'warn'); carregarIfoodPrecos_(); }catch(e){ showMsg(integMsgId_(),'Sem conexão.','warn'); }
 }
 async function desfazerPrecoIfood_(id){
   if(!confirm('Reenviar o preço anterior ao iFood?')) return;
-  try{ const r = await apiCall('ifoodPrecosDesfazer', { id }); showMsg('integMsg',(r&&r.message)||'Não foi possível.', r&&r.ok?'ok':'warn'); carregarIfoodPrecos_(); }catch(e){ showMsg('integMsg','Sem conexão.','warn'); }
+  try{ const r = await apiCall('ifoodPrecosDesfazer', { id }); showMsg(integMsgId_(),(r&&r.message)||'Não foi possível.', r&&r.ok?'ok':'warn'); carregarIfoodPrecos_(); }catch(e){ showMsg(integMsgId_(),'Sem conexão.','warn'); }
 }
 async function carregarIfoodFin_(){
   const box = document.getElementById('ifoodFin'); if(!box) return;
@@ -998,7 +1032,7 @@ async function carregarIfoodAval_(){
 }
 async function responderAvalIfood_(id){
   const t = (document.getElementById('avR_'+id)||{}).value || '';
-  try{ const r = await apiCall('ifoodAvaliacaoResponder', { id, texto: t }); showMsg('integMsg',(r&&r.message)||'Não foi possível.', r&&r.ok?'ok':'warn'); carregarIfoodAval_(); }catch(e){ showMsg('integMsg','Sem conexão.','warn'); }
+  try{ const r = await apiCall('ifoodAvaliacaoResponder', { id, texto: t }); showMsg(integMsgId_(),(r&&r.message)||'Não foi possível.', r&&r.ok?'ok':'warn'); carregarIfoodAval_(); }catch(e){ showMsg(integMsgId_(),'Sem conexão.','warn'); }
 }
 async function carregarIfoodRel_(){
   const box = document.getElementById('ifoodRel'); if(!box) return;
@@ -1055,21 +1089,21 @@ async function ligarIfoodItem_(ix, modo){
   const r0 = ifoodItensDados_; const i = r0 && r0.itens[ix]; if(!i) return;
   let corpo = { chave: i.chave };
   if(modo==='sugestao' && i.sugestao){ corpo.tipo = i.sugestao.tipo; corpo.id = i.sugestao.id; }
-  else if(modo==='escolha'){ const v = (document.getElementById('ifSel_'+ix)||{}).value || ''; if(!v) return showMsg('integMsg','Escolha um item do sistema.','warn'); const p = v.split(':'); corpo.tipo = p[0]; corpo.id = p[1]; }
+  else if(modo==='escolha'){ const v = (document.getElementById('ifSel_'+ix)||{}).value || ''; if(!v) return showMsg(integMsgId_(),'Escolha um item do sistema.','warn'); const p = v.split(':'); corpo.tipo = p[0]; corpo.id = p[1]; }
   else if(modo==='ignorar'){ corpo.ignorar = true; }
   else if(modo==='desligar'){ corpo.tipo = 'desligar'; }
   try{
     const r = await apiCall('ifoodLigarItem', corpo);
-    if(r && r.ok){ ifoodItensDados_ = r; renderIfoodItens_(); showMsg('integMsg','Salvo. Pedidos antigos sem ligação podem ser refeitos com "Refazer pedidos sem ligação".','ok'); }
-    else showMsg('integMsg',(r&&r.message)||'Não foi possível salvar.','warn');
-  }catch(e){ showMsg('integMsg','Sem conexão.','warn'); }
+    if(r && r.ok){ ifoodItensDados_ = r; renderIfoodItens_(); showMsg(integMsgId_(),'Salvo. Pedidos antigos sem ligação podem ser refeitos com "Refazer pedidos sem ligação".','ok'); }
+    else showMsg(integMsgId_(),(r&&r.message)||'Não foi possível salvar.','warn');
+  }catch(e){ showMsg(integMsgId_(),'Sem conexão.','warn'); }
 }
 async function reprocessarIfood_(){
   if(!confirm('Refazer os pedidos do iFood que ficaram sem ligação, com as ligações atuais? (corrige custo e estoque)')) return;
-  try{ const r = await apiCall('ifoodReprocessar', {}); if(r && r.ok){ showMsg('integMsg', r.message||'Pronto.','ok'); carregarIfoodPedidos_(); } else showMsg('integMsg',(r&&r.message)||'Não foi possível.','warn'); }catch(e){ showMsg('integMsg','Sem conexão.','warn'); }
+  try{ const r = await apiCall('ifoodReprocessar', {}); if(r && r.ok){ showMsg(integMsgId_(), r.message||'Pronto.','ok'); carregarIfoodPedidos_(); } else showMsg(integMsgId_(),(r&&r.message)||'Não foi possível.','warn'); }catch(e){ showMsg(integMsgId_(),'Sem conexão.','warn'); }
 }
 async function simularIfood_(){
   if(!confirm('Criar um pedido de TESTE do iFood? Ele vira uma venda de verdade (marcada como teste) — cancele depois. Nada é enviado ao iFood.')) return;
-  try{ const r = await apiCall('ifoodSimular', { pagoNoApp: true }); if(r && r.ok){ showMsg('integMsg', r.message||'Criado.','ok'); carregarIfoodPedidos_(); } else showMsg('integMsg',(r&&r.message)||'Não foi possível.','warn'); }catch(e){ showMsg('integMsg','Sem conexão.','warn'); }
+  try{ const r = await apiCall('ifoodSimular', { pagoNoApp: true }); if(r && r.ok){ showMsg(integMsgId_(), r.message||'Criado.','ok'); carregarIfoodPedidos_(); } else showMsg(integMsgId_(),(r&&r.message)||'Não foi possível.','warn'); }catch(e){ showMsg(integMsgId_(),'Sem conexão.','warn'); }
 }
 
