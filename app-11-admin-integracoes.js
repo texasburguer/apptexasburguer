@@ -320,6 +320,7 @@ async function carregarIntegFlags_(){
   try{ const r = await apiCall('integracoesFlags', {}); if(r && r.ok){
     window.INTEG_ = { ifood:!!r.ifood, nfce:!!r.nfce, mp:!!r.mercadopago, nfceModo:r.nfceModo||'homologacao', impostoPct:Number(r.impostoPct)||0, impostoPadrao:Number(r.impostoPadrao)||0, impostoMeses:(r.impostoMeses && typeof r.impostoMeses==='object') ? r.impostoMeses : {} };
     try{ atualizarCpfBox_(); }catch(e){}
+    try{ mpFaixaAtualizar_(true); }catch(e){}
     /* a alíquota do imposto chega depois do login: redesenha o que já estiver aberto com ela */
     try{ const at = (document.querySelector('section.tab.active')||{}).id || '';
       if(at==='tab-visaogeral') renderVisaoGeral();
@@ -623,6 +624,34 @@ async function carregarMpRecentes_(){
       + (it.length ? '<div style="max-height:200px;overflow:auto;margin-top:6px;">' + it.map(x=>`<div class="obs-line">${escH(x.em)} · ${x.modo==='producao'?'produção':'teste'} · ${x.metodo==='pix'?'Pix':x.metodo==='debito'?'Débito':'Crédito'} · R$ ${Number(x.valor).toFixed(2).replace('.',',')} · ${escH(rot[x.status]||x.status)}${x.aDecidir?' · A DECIDIR':''}${x.detalhe?' · '+escH(x.detalhe):''}</div>`).join('') + '</div>' : '<div class="obs-line">Nenhum pagamento online ainda.</div>');
   }catch(e){ box.innerHTML = '<div class="obs-line">Sem conexão.</div>'; }
 }
+/* Faixa do Caixa: só aparece com o Mercado Pago LIGADO e pagamento esperando decisão (Admin/Operador). Sem pendência, não aparece nada. */
+let _mpFaixaEm_ = 0;
+function mpFaixaMostrar_(n){
+  const card = document.getElementById('mpPendenciasCaixaCard'); if(!card) return;
+  const txt = document.getElementById('mpFaixaTxt'), box = document.getElementById('mpPendenciasDecisaoCaixaBox');
+  if(!n || !(window.INTEG_ && INTEG_.mp)){ card.style.display = 'none'; if(box){ box.hidden = true; box.innerHTML = ''; } return; }
+  card.style.display = '';
+  if(txt) txt.textContent = n === 1 ? '1 pagamento online aguardando decisão' : n + ' pagamentos online aguardando decisão';
+}
+async function mpFaixaAtualizar_(forcar){
+  const card = document.getElementById('mpPendenciasCaixaCard'); if(!card) return;
+  const nivel = currentUser && currentUser.nivel;
+  if(!(window.INTEG_ && INTEG_.mp) || !(nivel === 'Admin' || nivel === 'Operador' || nivel === 'Desenvolvedor') || (currentUser && currentUser.emergencia)){ mpFaixaMostrar_(0); return; }
+  if(!forcar && Date.now() - _mpFaixaEm_ < 60000) return;
+  _mpFaixaEm_ = Date.now();
+  try{
+    const r = await apiCall('mpPendenciasDecisao', {});
+    mpFaixaMostrar_(r && r.ok ? (r.itens || []).length : 0);
+  }catch(e){ mpFaixaMostrar_(0); }
+}
+function mpFaixaAlternar_(){
+  const box = document.getElementById('mpPendenciasDecisaoCaixaBox'), btn = document.getElementById('mpFaixaBtn'), ver = document.getElementById('mpFaixaVer'); if(!box) return;
+  const abrir = box.hidden;
+  box.hidden = !abrir;
+  if(btn) btn.setAttribute('aria-expanded', abrir ? 'true' : 'false');
+  if(ver) ver.textContent = abrir ? 'Fechar' : 'Ver';
+  if(abrir) mpCarregarPendenciasDecisao_();
+}
 async function mpCarregarPendenciasDecisao_(){
   const boxes = [document.getElementById('mpPendenciasDecisaoBox'), document.getElementById('mpPendenciasDecisaoCaixaBox')].filter(Boolean); if(!boxes.length) return;
   boxes.forEach(box=>box.innerHTML = (typeof esqueletoLista_ === 'function') ? esqueletoLista_(2) : '<div class="obs-line">Carregando pendências…</div>');
@@ -630,9 +659,10 @@ async function mpCarregarPendenciasDecisao_(){
     const r = await apiCall('mpPendenciasDecisao', {});
     if(!r || !r.ok){ boxes.forEach(box=>box.innerHTML = '<div class="obs-line">'+escH((r&&r.message)||'Não foi possível carregar as pendências.')+'</div>'); return; }
     const itens = r.itens || [];
-    if(!itens.length){ boxes.forEach(box=>box.innerHTML = '<div class="obs-line">✅ Nenhum pagamento aguardando decisão.</div>'); return; }
-    const html = itens.map(x=>`<div class="notif-card" style="margin-top:8px;border-left:4px solid #d89b27;">
-      <b>${escH(x.metodo==='pix'?'Pix':'Cartão de crédito')} · ${formatarMoeda(Number(x.valor)||0)}</b>
+    mpFaixaMostrar_(itens.length);
+    if(!itens.length){ boxes.forEach(box=>box.innerHTML = '<div class="obs-line">Nenhum pagamento aguardando decisão.</div>'); return; }
+    const html = itens.map(x=>`<div class="notif-card mt-2">
+      <b>${escH(x.metodo==='pix'?'Pix':x.metodo==='debito'?'Cartão de débito':'Cartão de crédito')} · ${formatarMoeda(Number(x.valor)||0)}</b>
       <div class="obs-line">${escH(x.clienteNome||'Cliente sem nome')} · ${escH(x.telefone||'sem telefone')}</div>
       <div class="obs-line">${escH(x.criadoEm||'')} · ${escH(x.modo==='producao'?'Produção':'Teste')}</div>
       <div class="obs-line">Motivo: ${escH(x.motivo||'Pagamento aprovado sem pedido confirmado.')}</div>

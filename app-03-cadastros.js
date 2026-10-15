@@ -502,7 +502,7 @@ function renderProdutos(){
   const tbody = document.getElementById('pTable');
   const lista = produtos.filter(p=>!filtro||p.nome.toLowerCase().includes(filtro));
   if(typeof cfAvisos === 'function') cfAvisos();
-  if(lista.length===0){ tbody.innerHTML = '<tr class="empty-row"><td colspan="4">Nenhum produto cadastrado ainda.</td></tr>'; return; }
+  if(lista.length===0){ tbody.innerHTML = '<tr class="empty-row"><td colspan="4">' + (filtro ? estadoVazio_('Nenhum produto encontrado.') : estadoVazio_('Nenhum produto cadastrado ainda.', '+ Novo produto', "abrirFormModal('produtoNovoModal');cfIniciarProduto('p',null)")) + '</td></tr>'; return; }
   tbody.innerHTML = lista.map(p=>{
     const { preco, custo } = precoDisplayProduto(p.id);
     const margem = preco - custo;

@@ -226,3 +226,14 @@ th[align="right"]{ text-align:right; }
   #navInf button .pt{width:11px;height:11px;top:2px;}
   #navInf button[aria-label="Mais"] .pt{animation:cdPulse 1.3s ease-in-out infinite;}
 }
+
+/* ===== Faixa discreta de pagamentos online a decidir (Caixa) ===== */
+.mp-faixa{margin:0 0 6px;background:transparent;border:1px solid var(--line);border-radius:var(--raio-pilula);overflow:hidden;}
+.mp-faixa .mp-faixa-btn{display:flex;align-items:center;gap:6px;width:100%;min-height:32px;margin:0;padding:2px 12px;background:none;border:0;box-shadow:none;border-radius:0;color:var(--muted);font-size:var(--fs-2xs);font-weight:600;text-align:left;text-transform:none;letter-spacing:0;}
+.mp-faixa .mp-faixa-btn .ic{width:14px;height:14px;color:var(--orange);margin:0;}
+.mp-faixa .mp-faixa-ver{margin-left:auto;color:var(--gold);font-weight:700;}
+.mp-faixa #mpPendenciasDecisaoCaixaBox{padding:0 10px 10px;border-top:1px solid var(--line);}
+.mp-faixa #mpPendenciasDecisaoCaixaBox[hidden]{display:none;}
+
+/* Fase 7: links de texto em janelas (ex.: "Agora não") com alvo de toque confortável no celular */
+@media (max-width:899px){ .modal-box .link-btn, .lock-box .link-btn{ min-height:var(--alvo-toque-compacto); padding:8px 14px; } }

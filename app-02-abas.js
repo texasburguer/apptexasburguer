@@ -20,7 +20,21 @@ const IC_SVG_ = {
   dinheiro:'M12 3v18M16 7h-6a3 3 0 0 0 0 6h4a3 3 0 0 1 0 6H8',
   engrenagem:'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM12 3v3M12 18v3M3 12h3M18 12h3',
   aniversario:'M5 20h14v-6H5zM12 14V9M12 9a2 2 0 0 0 0-4 2 2 0 0 0 0 4zM5 17h14',
-  inativo:'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7v5l3 2'
+  inativo:'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7v5l3 2',
+  imprimir:'M7 9V3h10v6M7 17H4v-7h16v7h-3M7 14h10v7H7z',
+  check:'M5 12.5l4.5 4.5L19 7.5',
+  x:'M6 6l12 12M18 6L6 18',
+  editar:'M4 20h4L19 9l-4-4L4 16v4zM13.5 6.5l4 4',
+  cartao:'M3 6h18v12H3zM3 10h18M7 15h3',
+  celular:'M8 3h8v18H8zM11 18h2',
+  repetir:'M21 12a9 9 0 1 1-3-6.7M21 4v5h-5',
+  sino:'M6 17v-6a6 6 0 0 1 12 0v6l2 2H4l2-2zM10 21h4',
+  teste:'M9 3h6M10 3v6l-5 9a2 2 0 0 0 2 3h10a2 2 0 0 0 2-3l-5-9V3',
+  livro:'M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2V5zM8 7h8',
+  pin:'M12 21s7-6 7-11a7 7 0 1 0-14 0c0 5 7 11 7 11zM12 12a2 2 0 1 0 0-4 2 2 0 0 0 0 4z',
+  download:'M12 4v11M7 11l5 5 5-5M5 20h14',
+  lixeira:'M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6',
+  busca:'M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM21 21l-5-5'
 };
 function icSvg_(k){ return '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="' + (IC_SVG_[k] || IC_SVG_.sistema) + '"/></svg>'; }
 const ADMIN_GRUPOS = [
@@ -118,6 +132,7 @@ document.querySelectorAll('.tab-btn').forEach(btn=>{
     ativarApenasSecao_('tab-'+btn.dataset.tab);
     if(btn.dataset.tab==='inicio') { try{ renderInicio(); }catch(e){} }
     if(btn.dataset.tab==='meusganhos') { try{ renderMeusGanhos(); }catch(e){} }
+    if(btn.dataset.tab==='caixa') { try{ mpFaixaAtualizar_(); }catch(e){} }
   });
 });
 /* Pedidos e Entregas NÃO atualizam mais ao abrir a aba. A atualização é: botão "Atualizar" (na hora) ou o timer de 3 minutos
@@ -308,7 +323,7 @@ function renderClientes(){
     lista = lista.filter(c=>{ const ult = ultimaAtividadeCliente(c); return !ult || (agora - ult) / 86400000 > dias; });
   }
   lista = lista.slice().reverse();
-  if(lista.length===0){ tbody.innerHTML = '<tr class="empty-row"><td colspan="3">Nenhum cliente encontrado.</td></tr>'; return; }
+  if(lista.length===0){ tbody.innerHTML = '<tr class="empty-row"><td colspan="3">' + ((filtro || modoInativos) ? estadoVazio_('Nenhum cliente encontrado.') : estadoVazio_('Nenhum cliente ainda. Eles entram na lista quando fazem um pedido.')) + '</td></tr>'; return; }
   tbody.innerHTML = lista.map(c=>`<tr><td>${c.nome?escH(c.nome):'<em class="txt-muted">(sem nome)</em>'}</td><td>${escH(c.telefone)}</td><td><button class="small-gold" onclick="abrirPerfilCliente('${c.id}')">abrir</button></td></tr>`).join('');
 }
 var _histFiltro_ = { tel:'', per:'todos', tipo:'todos', pag:'todos' };
