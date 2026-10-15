@@ -430,7 +430,7 @@ function comandaHtml_(v){
   /* MODELO ÚNICO DE COMANDA: serve para cozinha, retirada, mesa e entrega (a cozinha imprime, grampeia no pedido e ela segue para o entregador). */
   const itens = itensVenda.filter(it=>it.vendaId===v.id).map(it=>{
     const ad = (it.adicionaisIds||[]).map(id=>{ const a = adicionais.find(x=>x.id===id); return a ? a.nome : ''; }).filter(Boolean);
-    return `<div style="font-size:1.25em;margin-top:5px;"><b>${escR(it.quantidade)}x</b> ${escR(it.descricao).replace(' — Obs: ','<br>&nbsp;&nbsp;📝 ')}</div>` + (ad.length ? `<div>&nbsp;&nbsp;+ ${escR(ad.join(', '))}</div>` : '');
+    return `<div style="font-size:1.38em;line-height:1.35;margin-top:7px;font-weight:700;"><b>${escR(it.quantidade)}x</b> ${escR(it.descricao).replace(' — Obs: ','<br>&nbsp;&nbsp;📝 ')}</div>` + (ad.length ? `<div style="font-size:1.12em;line-height:1.35;margin-top:3px;font-weight:600;">&nbsp;&nbsp;+ ${escR(ad.join(', '))}</div>` : '');
   }).join('') || '<div>(itens não carregados — confira na tela)</div>';
   const ehMesa = v.tipoEntrega==='Mesa', ehEnt = v.tipoEntrega==='Entrega';
   const destino = ehMesa ? 'MESA '+nomeMesa(v.mesaId) : (ehEnt ? 'ENTREGA' : 'RETIRADA');

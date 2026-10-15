@@ -282,13 +282,13 @@
   function montar_(){
     const c = $('chatPublicoConteudo');
     c.innerHTML = '<div class="bi-seg" id="biSeg"><button type="button" data-bi="vista" data-v="conversa" class="on">✨ Conversa</button><button type="button" data-bi="vista" data-v="avisos">🔔 Avisos<i id="biSegN" hidden>0</i></button></div><div class="bi-avisos" id="biAvisos" hidden></div><div class="bi-aviso" id="biAviso" data-bi="fila" hidden></div><div class="bi-modo" id="iaModoChatAviso" role="status" hidden></div><div class="bi-ctrl" id="biCtrl" hidden></div><div class="chat-msgs bi-msgs" id="biMsgs"></div>' +
-      '<div class="chat-envio"><div class="bi-foto-row"><button type="button" class="ghost bi-foto-btn" data-bi="foto">📷 Subir foto</button><input type="file" id="biFotoArquivo" accept="image/*" capture="environment" hidden></div><input type="text" id="biTexto" maxlength="600" autocomplete="off" placeholder="Escreva o que precisa…"><button type="button" class="primary" data-bi="enviar">Enviar</button></div>';
+      '<div class="chat-envio"><input type="text" id="biTexto" maxlength="600" autocomplete="off" placeholder="Escreva o que precisa…"><button type="button" class="primary" data-bi="enviar">Enviar</button></div>';
     const tt = $('balaoIaTitulo'); if(tt) tt.innerHTML = '<span class="tex-av g" role="img" aria-label="Tex"></span> Tex';
     const ex = $('balaoIaHdrExtra');
     if(ex){
       ex.innerHTML = '';
       if(window.IA && IA.podeUsar && IA.podeUsar()){
-        const b = document.createElement('button'); b.id = 'iaDot'; b.type = 'button'; b.className = 'ia-dot visivel desligada'; b.title = 'Status da IA'; b.setAttribute('aria-label', 'Status da IA');
+        const b = document.createElement('button'); b.id = 'iaDot'; b.type = 'button'; b.className = 'ia-dot visivel normal'; b.title = 'Status da IA'; b.setAttribute('aria-label', 'Status da IA');
         b.innerHTML = '<span>✨</span><i></i>'; b.addEventListener('click', () => IA.abrirStatus()); ex.appendChild(b);
       }
     }
@@ -411,20 +411,11 @@
   const fecharPublico = window.fecharChatPublico_;
   window.fecharChatPublico_ = function(){ if(IN.aberto) fechar_(); else if(fecharPublico) fecharPublico(); };
 
-  document.addEventListener('change', ev => {
-    const inp = ev.target;
-    if(!inp || inp.id !== 'biFotoArquivo' || !inp.files || !inp.files[0] || !IN.aberto) return;
-    if(typeof window.fiscalLeitorProcessarFoto_ === 'function') window.fiscalLeitorProcessarFoto_(inp.files[0]);
-    else { const box = document.getElementById('biMsgs'); if(box) box.insertAdjacentHTML('beforeend','<div class="bi-msg erro"><div class="bi-balao">O leitor de notas não está disponível agora. Recarregue o app.</div></div>'); }
-    inp.value='';
-  });
-
   /* ---------- eventos ---------- */
   document.addEventListener('click', ev => {
     const el = ev.target && ev.target.closest && ev.target.closest('#chatPublicoConteudo [data-bi]'); if(!el || !IN.aberto) return;
     const a = el.getAttribute('data-bi');
     if(a === 'enviar') enviar_();
-    else if(a === 'foto'){ const inp = document.getElementById('biFotoArquivo'); if(inp) inp.click(); }
     else if(a === 'fila'){ carregarFila_().then(mostrarFila_); }
     else if(a === 'vista') vista_(el.getAttribute('data-v'));
     else if(a === 'avmais'){ const ev2 = el.getAttribute('data-ev'); IN.avMais[ev2] = true; const cp = el.parentElement; if(cp) cp.classList.add('mais'); }

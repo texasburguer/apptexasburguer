@@ -3,7 +3,7 @@
   .ia-dot{position:relative;padding:0 8px;height:30px;border-radius:15px;display:none;align-items:center;gap:5px;font-size:13px;cursor:pointer;}
   .ia-dot.visivel{display:inline-flex;}
   .ia-dot i{display:block;width:10px;height:10px;border-radius:50%;background:#7a7a7a;}
-  .ia-dot.normal i{background:#4cc35f;box-shadow:0 0 8px #4cc35f99;}
+  .ia-dot.normal i{background:#4cc35f !important;box-shadow:0 0 8px #4cc35f99;}
   .ia-dot.reserva i{background:#f0c93c;box-shadow:0 0 8px #f0c93c99;}
   .ia-dot.indisponivel i{background:#e0443a;box-shadow:0 0 8px #e0443a99;}
   .ia-card button.primary,.ia-btn{width:auto;margin-top:0;padding:10px 16px;}

@@ -208,8 +208,8 @@ const CHAVES_IA_INFO_ = {
   groq:   { nome:'Groq', link:'https://console.groq.com/keys' },
   nvidia: { nome:'NVIDIA — 3º recurso', link:'https://build.nvidia.com/settings/api-keys', extra:true, dica:'IA de reserva: só entra quando o Gemini e a Groq falham. Precisa de conta gratuita no NVIDIA Developer Program.' },
   cloudflare: { nome:'Cloudflare — 4º recurso', link:'https://dash.cloudflare.com/profile/api-tokens', extra:true, conta:true, dica:'IA de reserva: precisa de DOIS dados — o Account ID e um token com permissão "Workers AI".' },
-  gemini_fotos: { nome:'Gemini 2 — dedicada para fotos fiscais', link:'https://aistudio.google.com/apikey', extra:true, fiscal:true, dica:'Chave dedicada para ler fotos/XML de notas fiscais. Não é usada no atendimento público.' },
-  groq_2: { nome:'Groq 2 — 2º recurso de texto', link:'https://console.groq.com/keys', extra:true, fiscal:true, dica:'Chave alternativa para o atendimento de texto. Não é usada para fotos; fotos usam exclusivamente a Gemini 2 dedicada.' }
+  gemini_fotos: { nome:'Gemini 2 (Google) — 2º recurso de texto', link:'https://aistudio.google.com/apikey', extra:true, dica:'Segunda chave Gemini para atendimento de texto. Entra no circuito para distribuir o uso entre as seis chaves.' },
+  groq_2: { nome:'Groq 2 — 2º recurso de texto', link:'https://console.groq.com/keys', extra:true, dica:'Segunda chave Groq para atendimento de texto.' }
 };
 let chavesIaLista_ = [], iaExtrasPublico_ = false;
 async function carregarChavesIa_(){
@@ -229,7 +229,7 @@ function renderChavesIa_(){
       ${c.temChave
         ? `<div class="obs-line">🔑 <span id="ciVer_${c.provedor}">••••••••${escH(c.final||'')}</span> <button ${bt} onclick="verChaveIa_('${c.provedor}')">Ver chave</button></div>
            <div class="obs-line">Trocada em ${escH(c.atualizadoEm ? fmtDiaHoraBr_(c.atualizadoEm) : '—')}</div>`
-        : (info.fiscal ? `<div class="obs-line">Sem chave: a função fiscal usa as reservas disponíveis ou permite digitação manual.</div>` : (info.extra ? `<div class="obs-line">Sem chave: tudo segue como hoje (Gemini e Groq).</div>` : `<div class="obs-line">⚠️ Sem chave cadastrada: esta IA não funciona.</div>`))}
+        : (info.extra ? `<div class="obs-line">Sem chave: esta IA fica fora do circuito até você cadastrar a chave.</div>` : `<div class="obs-line">⚠️ Sem chave cadastrada: esta IA não funciona.</div>`)}
       ${info.dica?`<div class="obs-line">${escH(info.dica)}</div>`:''}
       ${c.descansando?`<div class="obs-line">😴 Descansando: deu erros agora há pouco; o sistema usa as outras IAs e tenta de novo sozinho.</div>`:''}
       ${info.link?`<div class="obs-line">🔗 <a href="${info.link}" target="_blank" rel="noopener noreferrer" style="color:var(--gold);">Onde pegar uma chave nova</a></div>`:''}
@@ -249,7 +249,7 @@ async function testarChaveIa_(prov, alvoId, btn){
   let ok = false;
   try{
     if(!window.IA || !IA.chamar) throw new Error('sem_ia');
-    const acaoTeste = prov === 'gemini_fotos' ? 'testar_ia_foto' : 'testar_ia';
+    const acaoTeste = 'testar_ia';
     const r = await IA.chamar(acaoTeste, { provedor: prov }, { forcar:true, ttl:1 });
     if(r && r.ok){
       ok = !!r.funcionando;
