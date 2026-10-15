@@ -56,9 +56,9 @@
     const r=await fetch(SUPABASE_URL_+'/functions/v1/leitor-fiscal',{method:'POST',headers:{apikey:SUPABASE_CHAVE_,Authorization:'Bearer '+t,'Content-Type':'application/json'},body:JSON.stringify(body)});
     const j=await r.json().catch(()=>null); if(!r.ok||!j||!j.ok) throw new Error((j&&j.message)||'A leitura não foi concluída.'); return j;
   }
-  async function ler(){
+  async function ler(arquivoOverride){
     if(!pode()) return msg('Este recurso está disponível somente para Admin e Operador.','warn'); if(bloqueado)return;
-    const foto=$('fiscalNotaArquivo').files[0], xml=$('fiscalXmlArquivo').files[0], texto=$('fiscalNotaTexto').value.trim(); const f=foto||xml; if(!f&&!texto)return msg('Envie uma foto/XML ou cole o texto da nota.','warn');
+    const foto=arquivoOverride || $('fiscalNotaArquivo').files[0], xml=arquivoOverride ? null : $('fiscalXmlArquivo').files[0], texto=arquivoOverride ? '' : $('fiscalNotaTexto').value.trim(); const f=foto||xml; if(!f&&!texto)return msg('Envie uma foto/XML ou cole o texto da nota.','warn');
     bloqueado=true; $('fiscalLerBtn').disabled=true; $('fiscalLeitorResultado').innerHTML='';msg('Preparando a leitura com segurança…','warn');
     try{
       await comprinhas(); let body={acao:'ler',texto:texto||'',origem:texto?'texto':'foto'};
@@ -125,20 +125,16 @@
     try{const r=await chamarLeitor({acao:'historico'});const h=htmlHistorico(r.leituras||[]);if(a)a.innerHTML=h;if(b)b.innerHTML=h;}
     catch(e){const h='<div class="notif-empty">Não foi possível carregar o histórico agora.</div>';if(a)a.innerHTML=h;if(b)b.innerHTML=h;}
   }
+  window.fiscalLeitorProcessarFoto_ = async function(file){
+    if(!file) return;
+    if(!pode()){ const m=$('fiscalLeitorMsg'); if(m){m.textContent='Este recurso está disponível somente para Admin e Operador.';m.className='msg warn';} return; }
+    card();
+    if($('fiscalNotaArquivo')){ try{ const dt=new DataTransfer(); dt.items.add(file); $('fiscalNotaArquivo').files=dt.files; }catch(_){} }
+    await ler(file);
+    const cardEl=$('fiscalLeitorCard'); if(cardEl) cardEl.scrollIntoView({behavior:'smooth',block:'start'});
+  };
+
   function init(){ if(!pode())return; card(); carregarHistorico(); }
   document.addEventListener('DOMContentLoaded',init); const old=window.IA&&window.IA.abrirAba; if(window.IA&&typeof old==='function')window.IA.abrirAba=async function(){await old.apply(this,arguments);init();};
   window.fiscalLeitorAbrir_=init;
-  /* Usado pelo balão do Tex: lê a foto (mesmo caminho do cartão: reduz, guarda no bucket privado, leitor-fiscal com a chave gemini_fotos) */
-  window.fiscalLerFoto_=async function(file){
-    if(!pode()) throw new Error('Este recurso está disponível somente para Admin e Operador.');
-    const path=await uploadFoto(file); return await chamarLeitor({acao:'ler',origem:'foto',storagePath:path});
-  };
-  /* Leva a leitura feita no Tex para o cartão de conferência (onde se confirma ou descarta) */
-  window.fiscalMostrarLeitura_=async function(r){
-    if(!pode()||!r||!r.leitura) return false; card(); if(!$('fiscalLeitorResultado')) return false;
-    try{ await comprinhas(); }catch(_){}
-    atual=r.leitura; renderResultado(r.leitura);
-    msg(r.duplicada?'Esta chave fiscal já foi usada em outra leitura. Confira o histórico antes de continuar.':'Leitura pronta para conferência. Nada foi lançado ainda.',r.duplicada?'warn':'ok');
-    const c=$('fiscalLeitorCard'); if(c&&c.scrollIntoView) c.scrollIntoView({block:'start'}); return true;
-  };
 })();

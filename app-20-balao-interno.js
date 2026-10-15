@@ -116,7 +116,7 @@
   }
 
   /* ---------- conversa com cliente ---------- */
-  function ph_(){ const fb = $('biFotoBox'); if(fb) fb.hidden = !!IN.conv || !equipe_(); const t = $('biTexto'); if(t) t.placeholder = IN.conv ? (IN.pedindoSol ? 'Escreva a solução para encerrar…' : 'Mensagem para o cliente…') : 'Escreva o que precisa…'; }
+  function ph_(){ const t = $('biTexto'); if(t) t.placeholder = IN.conv ? (IN.pedindoSol ? 'Escreva a solução para encerrar…' : 'Mensagem para o cliente…') : 'Escreva o que precisa…'; }
   function ctrl_(){
     const c = $('biCtrl'); if(!c) return;
     if(!IN.conv){
@@ -265,31 +265,6 @@
     }catch(e){ rm_(esp); bolha_('ia', 'Assistente', 'Não consegui concluir agora. O restante do sistema funciona normal.'); logIa_('ia', 'Assistente', 'Não consegui concluir agora. O restante do sistema funciona normal.', false); }
     finally{ IN.ocupado = false; }
   }
-  /* ---------- foto da nota fiscal (IA dedicada gemini_fotos, via leitor-fiscal; nunca passa pelo ai-gateway) ---------- */
-  function fotoStatus_(txt, cls){ const e = $('biFotoStatus'); if(!e) return; if(!txt){ e.hidden = true; e.textContent = ''; return; } e.hidden = false; e.className = 'bi-foto-status ' + (cls || ''); e.textContent = txt; }
-  async function analisarFotoTex_(file){
-    if(IN.ocupado) return; if(typeof window.fiscalLerFoto_ !== 'function'){ bolha_('sis', '', 'O leitor de notas não está disponível agora. Recarregue o app.'); return; }
-    IN.ocupado = true; const btn = document.querySelector('#biFotoBox [data-bi="foto"]'); if(btn) btn.disabled = true;
-    bolha_('eu', '', '📷 Foto da nota enviada');
-    try{
-      fotoStatus_('⏳ Enviando e analisando a foto com a IA dedicada…', 'warn');
-      const r = await window.fiscalLerFoto_(file); const l = r.leitura || {};
-      fotoStatus_('');
-      const f = n => (typeof formatarMoeda === 'function' ? formatarMoeda(Number(n) || 0) : 'R$ ' + (Number(n) || 0).toFixed(2));
-      const itens = (l.itens || []).slice(0, 12).map(i => '<li>' + esc(i.descricao) + ' — ' + esc(i.quantidade) + ' ' + esc(i.unidade || 'un') + ' · ' + f(i.valorTotal) + '</li>').join('');
-      const mais = (l.itens || []).length > 12 ? '<div class="bi-sub">+ ' + ((l.itens || []).length - 12) + ' itens (veja todos na conferência)</div>' : '';
-      const alertas = (l.alertas || []).map(a => '<div>⚠️ ' + esc(a) + '</div>').join('');
-      const h = '<b>📷 Leitura da foto</b><br>Emitente: ' + esc(l.emitenteNome || 'não identificado') + '<br>CNPJ: ' + esc(l.emitenteCnpj || '—') + '<br>Data: ' + esc(l.dataEmissao || '—') + ' · Nº ' + esc(l.numeroDocumento || '—') + '<br>Total: <b>' + f(l.total) + '</b>' +
-        (itens ? '<ul style="margin:6px 0 6px 18px;padding:0;">' + itens + '</ul>' + mais : '<br>Nenhum item identificado.') + alertas +
-        '<div class="bi-sub" style="margin-top:6px;">Analisada pela IA dedicada a imagens. <b>Nada foi lançado.</b> Confira os dados antes de lançar qualquer compra.</div>' +
-        '<button type="button" class="primary" data-bi="conferir" style="margin-top:8px;">Conferir e lançar compra</button>';
-      const b = bolha_('ia', 'Assistente', h, true); if(b) b._fiscal = r;
-      IN.ultFiscal = r;
-    }catch(e){
-      fotoStatus_('');
-      bolha_('sis', '', (e && e.message) || 'Não consegui ler a foto agora. Tente de novo ou use o Leitor Fiscal.');
-    }finally{ IN.ocupado = false; if(btn) btn.disabled = false; const fi = $('biFotoArquivo'); if(fi) fi.value = ''; }
-  }
   function enviar_(){
     const el = $('biTexto'); const t = String((el && el.value) || '').trim().slice(0, IN.conv ? 600 : 300);
     if(!t || IN.ocupado) return;
@@ -307,8 +282,7 @@
   function montar_(){
     const c = $('chatPublicoConteudo');
     c.innerHTML = '<div class="bi-seg" id="biSeg"><button type="button" data-bi="vista" data-v="conversa" class="on">✨ Conversa</button><button type="button" data-bi="vista" data-v="avisos">🔔 Avisos<i id="biSegN" hidden>0</i></button></div><div class="bi-avisos" id="biAvisos" hidden></div><div class="bi-aviso" id="biAviso" data-bi="fila" hidden></div><div class="bi-modo" id="iaModoChatAviso" role="status" hidden></div><div class="bi-ctrl" id="biCtrl" hidden></div><div class="chat-msgs bi-msgs" id="biMsgs"></div>' +
-      '<div class="chat-foto-acoes" id="biFotoBox"' + (equipe_() ? '' : ' hidden') + '><button type="button" class="ghost chat-foto-btn" data-bi="foto" title="Subir foto">📷 Subir foto</button><input type="file" id="biFotoArquivo" accept="image/*" hidden></div><div class="bi-foto-status" id="biFotoStatus" role="status" hidden></div>' +
-      '<div class="chat-envio"><input type="text" id="biTexto" maxlength="600" autocomplete="off" placeholder="Escreva o que precisa…"><button type="button" class="primary" data-bi="enviar">Enviar</button></div>';
+      '<div class="chat-envio"><div class="bi-foto-row"><button type="button" class="ghost bi-foto-btn" data-bi="foto">📷 Subir foto</button><input type="file" id="biFotoArquivo" accept="image/*" capture="environment" hidden></div><input type="text" id="biTexto" maxlength="600" autocomplete="off" placeholder="Escreva o que precisa…"><button type="button" class="primary" data-bi="enviar">Enviar</button></div>';
     const tt = $('balaoIaTitulo'); if(tt) tt.innerHTML = '<span class="tex-av g" role="img" aria-label="Tex"></span> Tex';
     const ex = $('balaoIaHdrExtra');
     if(ex){
@@ -437,25 +411,28 @@
   const fecharPublico = window.fecharChatPublico_;
   window.fecharChatPublico_ = function(){ if(IN.aberto) fechar_(); else if(fecharPublico) fecharPublico(); };
 
+  document.addEventListener('change', ev => {
+    const inp = ev.target;
+    if(!inp || inp.id !== 'biFotoArquivo' || !inp.files || !inp.files[0] || !IN.aberto) return;
+    if(typeof window.fiscalLeitorProcessarFoto_ === 'function') window.fiscalLeitorProcessarFoto_(inp.files[0]);
+    else { const box = document.getElementById('biMsgs'); if(box) box.insertAdjacentHTML('beforeend','<div class="bi-msg erro"><div class="bi-balao">O leitor de notas não está disponível agora. Recarregue o app.</div></div>'); }
+    inp.value='';
+  });
+
   /* ---------- eventos ---------- */
   document.addEventListener('click', ev => {
     const el = ev.target && ev.target.closest && ev.target.closest('#chatPublicoConteudo [data-bi]'); if(!el || !IN.aberto) return;
     const a = el.getAttribute('data-bi');
     if(a === 'enviar') enviar_();
+    else if(a === 'foto'){ const inp = document.getElementById('biFotoArquivo'); if(inp) inp.click(); }
     else if(a === 'fila'){ carregarFila_().then(mostrarFila_); }
     else if(a === 'vista') vista_(el.getAttribute('data-v'));
     else if(a === 'avmais'){ const ev2 = el.getAttribute('data-ev'); IN.avMais[ev2] = true; const cp = el.parentElement; if(cp) cp.classList.add('mais'); }
     else if(a === 'abrir') abrirConv_(el.getAttribute('data-id'));
     else if(a === 'assumir') assumir_();
     else if(a === 'encerrar') pedirSolucao_();
-    else if(a === 'foto'){ const fi = $('biFotoArquivo'); if(fi) fi.click(); }
-    else if(a === 'conferir'){ const r = IN.ultFiscal; fechar_(); if(typeof abrirAdministrador === 'function') abrirAdministrador('ia'); setTimeout(() => { if(typeof window.fiscalMostrarLeitura_ === 'function') window.fiscalMostrarLeitura_(r); }, 400); }
     else if(a === 'novaia') novaConversaIa_();
     else if(a === 'sair') sairConv_();
-  });
-  document.addEventListener('change', ev => {
-    const i = ev.target; if(!i || i.id !== 'biFotoArquivo' || !IN.aberto) return;
-    const file = i.files && i.files[0]; if(file) analisarFotoTex_(file);
   });
   document.addEventListener('keydown', ev => {
     if(!IN.aberto) return;

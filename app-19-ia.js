@@ -170,12 +170,11 @@
   IA.montarTeste = async function(){
     const box = $('iaTesteBox'); if(!box || !ehAdmin()) return;
     let lista = [];
-    try{ const r = await apiCall('listarChavesIa', {}); if(r && r.ok) lista = (r.chaves || []).filter(c => c.temChave && ['groq','groq_2','nvidia','cloudflare','gemini','gemini_fotos'].includes(c.provedor)).map(c => c.provedor); }catch(e){}
+    try{ const r = await apiCall('listarChavesIa', {}); if(r && r.ok){ lista = (r.chaves || []).filter(c => c.temChave && ['groq','groq_2','nvidia','cloudflare','gemini','gemini_fotos'].includes(c.provedor)).map(c => c.provedor); if(!lista.includes('gemini')) lista.push('gemini'); if(!lista.includes('gemini_fotos')) lista.push('gemini_fotos'); } }catch(e){}
     if(!lista.length){ box.innerHTML = '<p class="ia-sub">Nenhuma chave de IA cadastrada para testar (Administrador → Contas e acessos).</p>'; return; }
-    const nomes = { groq:'Groq', groq_2:'Groq 2', nvidia:'NVIDIA', cloudflare:'Cloudflare', gemini:'Gemini (Google)', gemini_fotos:'Gemini 2 — Fotos 📷' };
-    const usos = { gemini:'Uso: chat / último recurso', gemini_fotos:'Uso: fotos e notas fiscais (nunca entra no chat)' };
-    box.innerHTML = '<h3 style="margin:14px 0 4px;">🧪 Testar as IAs</h3><p class="ia-sub">Faz uma pergunta mínima a cada IA para ver se a chave está funcionando. A Gemini 2 é testada lendo uma imagem pequena. Não gasta as consultas do dia.</p>' +
-      lista.map(pv => '<div class="notif-card"><div><b>' + esc(nomes[pv] || pv) + '</b>' + (usos[pv] ? '<div class="obs-line">' + esc(usos[pv]) + '</div>' : '') + '</div><div class="obs-line" id="testeIaM_' + pv + '">Ainda não testada nesta tela.</div><div class="btnrow" style="margin-top:6px;"><button class="ghost" type="button" data-teste-ia="' + pv + '">' + (pv === 'gemini_fotos' ? '📷 Testar foto' : 'Testar') + '</button></div></div>').join('') +
+    const nomes = { groq:'Groq', groq_2:'Groq 2', nvidia:'NVIDIA', cloudflare:'Cloudflare', gemini:'Gemini (Google) · Chat', gemini_fotos:'Gemini 2 · Fotos 📷' };
+    box.innerHTML = '<h3 style="margin:14px 0 4px;">🧪 Testar as IAs</h3><p class="ia-sub">Faz uma pergunta mínima a cada IA para ver se a chave está funcionando. Não gasta as consultas do dia.</p>' +
+      lista.map(pv => '<div class="notif-card"><div><b>' + esc(nomes[pv] || pv) + '</b></div><div class="obs-line" id="testeIaM_' + pv + '">Ainda não testada nesta tela.</div><div class="btnrow" style="margin-top:6px;"><button class="ghost" type="button" data-teste-ia="' + pv + '">' + (pv === 'gemini_fotos' ? '📷 Testar foto' : 'Testar') + '</button></div></div>').join('') +
       '<div class="btnrow"><button class="primary" type="button" id="iaTesteTodas">Testar todas</button></div>';
     box.querySelectorAll('[data-teste-ia]').forEach(b => b.addEventListener('click', () => testarChaveIa_(b.getAttribute('data-teste-ia'), 'testeIaM_' + b.getAttribute('data-teste-ia'), b)));
     $('iaTesteTodas').addEventListener('click', e => testarTodasIas_(lista, e.currentTarget, 'testeIaM_'));

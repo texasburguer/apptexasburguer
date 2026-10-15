@@ -240,7 +240,7 @@ function renderChavesIa_(){
   if(eb) eb.innerHTML = `<div class="notif-card"><label style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;"><input type="checkbox" id="iaExtrasPub" ${iaExtrasPublico_?'checked':''} onchange="salvarIaExtras_(this.checked)" style="width:auto;margin-top:4px;"> <span><b>Usar as IAs de reserva também no atendimento ao cliente (cardápio)</b><div class="obs-line">Deixe desligado até confirmar os termos de privacidade de cada provedor: as conversas dos clientes passariam por ele. Desligado, NVIDIA e Cloudflare atendem só o uso interno (equipe).</div></span></label></div>`;
 }
 /* Teste de cada IA (só Admin/Desenvolvedor): faz uma pergunta mínima ao provedor e mostra se respondeu. Não gasta a cota das consultas. */
-const TESTE_IA_MOTIVO_ = { sem_chave:'Sem chave cadastrada.', sem_conta:'Falta o Account ID da Cloudflare.', http_400:'O provedor recusou o pedido (confira o modelo configurado).', http_401:'Chave recusada (errada, expirada ou sem permissão). Troque a chave.', http_403:'Chave sem permissão para usar a IA. Confira as permissões da chave.', http_404:'Endereço ou modelo não encontrado nesse provedor.', http_503:'O Google/provedor está sobrecarregado agora (erro 503). Costuma passar sozinho; se insistir, troque o modelo.', http_429:'Limite do plano gratuito atingido agora. Tente mais tarde.', rede_ou_timeout:'Sem resposta do provedor no tempo esperado.', vazio:'O provedor respondeu, mas vazio.', erro:'Erro inesperado.' };
+const TESTE_IA_MOTIVO_ = { sem_chave:'Sem chave cadastrada.', sem_conta:'Falta o Account ID da Cloudflare.', http_400:'O provedor recusou o pedido (confira o modelo configurado).', http_401:'Chave recusada (errada, expirada ou sem permissão). Troque a chave.', http_403:'Chave sem permissão para usar a IA. Confira as permissões da chave.', http_404:'Endereço ou modelo não encontrado nesse provedor.', http_429:'Limite do plano gratuito atingido agora. Tente mais tarde.', http_503:'Serviço/modelo temporariamente indisponível. Tente novamente.', rede_ou_timeout:'Sem resposta do provedor no tempo esperado.', vazio:'O provedor respondeu, mas vazio.', erro:'Erro inesperado.' };
 function testeIaMotivo_(cod){ cod = String(cod||'erro'); return TESTE_IA_MOTIVO_[cod] || (/^http_5/.test(cod) ? 'O provedor está com problema do lado dele (' + cod.replace('http_','erro ') + '). Tente mais tarde.' : 'Falhou (' + cod + ').'); }
 async function testarChaveIa_(prov, alvoId, btn){
   const el = document.getElementById(alvoId); if(!el) return false;
@@ -249,12 +249,12 @@ async function testarChaveIa_(prov, alvoId, btn){
   let ok = false;
   try{
     if(!window.IA || !IA.chamar) throw new Error('sem_ia');
-    const foto = (prov === 'gemini_fotos');   /* a Gemini 2 só lê imagem: teste próprio, com uma imagem de verdade (guardada no servidor) */
-    const r = await IA.chamar(foto ? 'testar_ia_foto' : 'testar_ia', foto ? {} : { provedor: prov }, { forcar:true, ttl:1 });
+    const acaoTeste = prov === 'gemini_fotos' ? 'testar_ia_foto' : 'testar_ia';
+    const r = await IA.chamar(acaoTeste, { provedor: prov }, { forcar:true, ttl:1 });
     if(r && r.ok){
       ok = !!r.funcionando;
-      el.textContent = ok ? ('✅ Funcionando · respondeu em ' + (Math.round((r.ms||0)/100)/10).toString().replace('.',',') + ' s' + (r.modelo ? ' · modelo ' + r.modelo : '') + (foto ? (r.confere ? ' · leu a imagem corretamente' : ' · respondeu, mas não leu o texto da imagem como esperado') : ''))
-                          : ('❌ ' + testeIaMotivo_(r.codigo) + (r.modelo ? ' · modelo ' + r.modelo : ''));
+      el.textContent = ok ? ('✅ Funcionando · respondeu em ' + (Math.round((r.ms||0)/100)/10).toString().replace('.',',') + ' s' + (r.modelo ? ' · modelo ' + r.modelo : ''))
+                          : ('❌ ' + testeIaMotivo_(r.codigo));
     }else if(r && r.codigo === 'sem_permissao'){ el.textContent = '⚠️ Só o Administrador pode testar.'; }
     else if(r && (r.codigo === 'rede' || r.codigo === 'offline' || r.codigo === 'pausado' || r.codigo === 'sessao')){ el.textContent = '⚠️ Não consegui falar com o servidor agora. Confira a conexão e tente de novo.'; }
     else{ el.textContent = '⚠️ Não foi possível testar agora.'; }
