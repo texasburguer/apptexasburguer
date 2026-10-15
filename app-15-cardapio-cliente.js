@@ -328,7 +328,7 @@ function cdRenderResumoPag_(){
 function cdRotuloEnviar_(){
   if((typeof mesaQr !== 'undefined' && mesaQr) || !cdMpAtivo_()) return 'Enviar pedido';
   const t = cdMpTipoForma_(cdFormaAtualId_()), tot = cdMpR_(Math.max(0.01, totalCarrinhoCd()));
-  return t==='pix' ? 'Pagar com Pix · ' + tot : t==='credito' ? 'Pagar com cartão · ' + tot : 'Enviar pedido (pagar na entrega)';
+  return t==='pix' ? 'Pagar com Pix · ' + tot : (t==='credito' || t==='debito') ? 'Pagar com cartão · ' + tot : 'Enviar pedido (pagar na entrega)';
 }
 function cdAtualizarBotaoEnviar_(){ const b = document.getElementById('cdEnviarPedidoBtn'); if(b && !b.disabled) b.textContent = cdRotuloEnviar_(); }
 
@@ -468,7 +468,7 @@ async function cdMpAprovar_(st){
   const msgHtml = wa ? escH(wa.msg).replace(/(PAGO via[^\n]*\nNão cobrar na entrega)/, '<b>✅ $1</b>').replace(/\n/g, '<br>') : '';
   cdMpMostrarModal_('<div class="mp-ok">' + CD_MP_SVG_OK_ + '</div><h2 class="mp-topo mp-centro">Pagamento aprovado</h2>'
     + '<p class="mp-sub mp-centro">' + (numero ? 'Pedido #' + escH(numero) + ' registrado. ' : 'Pedido registrado. ') + 'Agora é só enviar para o WhatsApp do restaurante.</p>'
-    + '<div class="mp-resumo mp-num"><div><span>Forma</span><span>' + (metodo==='pix' ? 'Pix' : 'Cartão de crédito') + ' · Mercado Pago</span></div><div><span>Pago</span><span>' + cdMpR_(total) + '</span></div>' + (tempo ? '<div><span>Previsão</span><span>' + escH(tempo) + '</span></div>' : '') + '</div>'
+    + '<div class="mp-resumo mp-num"><div><span>Forma</span><span>' + (metodo==='pix' ? 'Pix' : metodo==='debito' ? 'Cartão de débito' : 'Cartão de crédito') + ' · Mercado Pago</span></div><div><span>Pago</span><span>' + cdMpR_(total) + '</span></div>' + (tempo ? '<div><span>Previsão</span><span>' + escH(tempo) + '</span></div>' : '') + '</div>'
     + (wa ? '<p class="mp-grupo">Mensagem que vai para o WhatsApp</p><div class="mp-zap">' + msgHtml + '</div><a class="mp-btn mp-zapbtn" href="' + escH(wa.url) + '" target="_blank" rel="noopener">Enviar pedido no WhatsApp</a>' : '')
     + '<p class="mp-rod">Você pode acompanhar o pedido em "Acompanhe seu pedido".</p><button type="button" class="mp-btn mp-sec" onclick="cdMpFinalizar_()">Fechar</button>', 'cdMpFinalizar_()');
 }
@@ -485,11 +485,11 @@ async function cdMpIniciarPagamento_(dados, tipoOnline){
   try{
     const cfg = await cdMpConfigPublica_();
     if(!cfg || !cfg.ligado) throw new Error('O pagamento pelo site está indisponível agora. Escolha pagar na entrega.');
-    if(tipoOnline==='credito' && !cfg.publicKey) throw new Error('O pagamento por cartão está sem chave pública configurada. Escolha pagar na entrega.');
+    if((tipoOnline==='credito' || tipoOnline==='debito') && !cfg.publicKey) throw new Error('O pagamento por cartão está sem chave pública configurada. Escolha pagar na entrega.');
     const reserva = await cdMpRpcCliente_('api_mp_reservar', dados);
     if(!reserva || !reserva.ok || !reserva.reservaId) throw new Error((reserva&&reserva.message)||'Não foi possível reservar o pedido.');
-    cdMpReservaAtiva_ = reserva.reservaId; cdMpUltimaReserva_ = reserva.reservaId; cdMpUltimoMetodo_ = tipoOnline==='credito' ? 'credito' : 'pix';
-    if(tipoOnline==='credito'){ await cdMpAbrirCartao_(reserva, cfg); return; }
+    cdMpReservaAtiva_ = reserva.reservaId; cdMpUltimaReserva_ = reserva.reservaId; cdMpUltimoMetodo_ = tipoOnline==='credito' ? 'credito' : tipoOnline==='debito' ? 'debito' : 'pix';
+    if(tipoOnline==='credito' || tipoOnline==='debito'){ await cdMpAbrirCartao_(reserva, cfg, tipoOnline); return; }
     const tok = await window.contaTokenOuNull_();
     const rr = await sbJson_(SUPABASE_URL_+'/functions/v1/mp-criar',{method:'POST',headers:{'apikey':SUPABASE_CHAVE_,'Authorization':'Bearer '+tok,'Content-Type':'application/json'},body:JSON.stringify({reservaId:reserva.reservaId})},45000);
     const pag = await rr.json().catch(()=>null);
@@ -507,7 +507,7 @@ async function cdMpIniciarPagamento_(dados, tipoOnline){
   }finally{ btn.disabled = false; btn.textContent = cdRotuloEnviar_(); }
 }
 
-/* ---------- cartão de crédito: formulário seguro do Mercado Pago (Brick) com as cores do cardápio ---------- */
+/* ---------- cartão de crédito ou débito: formulário seguro do Mercado Pago (Brick) com as cores do cardápio ---------- */
 async function cdMpCarregarSdk_(){
   if(window.MercadoPago) return;
   let tag = document.querySelector('script[data-mp-sdk="1"]');
@@ -530,11 +530,13 @@ function cdMpCpfDoCartao_(fd){
   const doBrick = String(fd && fd.payer && fd.payer.identification && fd.payer.identification.number || '').replace(/\D/g,'');
   return cdMpCpfOk_(meu) ? meu : (cdMpCpfOk_(doBrick) ? doBrick : meu);
 }
-async function cdMpAbrirCartao_(reserva, cfg){
+async function cdMpAbrirCartao_(reserva, cfg, tipo){
+  tipo = tipo === 'debito' ? 'debito' : 'credito';
+  const rotCartao = tipo === 'debito' ? 'Cartão de débito' : 'Cartão de crédito';
   await cdMpCarregarSdk_();
   const valor = Number(reserva.valorTotal ?? reserva.valor ?? 0);
   if(!(valor>0)) throw new Error('Não foi possível confirmar o valor do pedido. Atualize o cardápio e tente novamente.');
-  cdMpMostrarModal_('<h2 class="mp-topo">Cartão de crédito</h2><div class="mp-resumo mp-num"><div class="mp-tot mp-so"><span>Total</span><span>' + cdMpR_(valor) + '</span></div></div>'
+  cdMpMostrarModal_('<h2 class="mp-topo">' + rotCartao + '</h2><div class="mp-resumo mp-num"><div class="mp-tot mp-so"><span>Total</span><span>' + cdMpR_(valor) + '</span></div></div>'
     + '<label class="mp-c" id="cdMpCpfBox" for="cdMpCpf">CPF do titular<input class="mp-inp" id="cdMpCpf" type="text" inputmode="numeric" autocomplete="off" maxlength="14" placeholder="000.000.000-00" oninput="cdMpMascaraCpf_(this)"></label>'
     + '<div id="cdMpCardBrick" class="mp-brick"></div>'
     + '<p class="mp-seguro">🔒 Os dados do cartão são digitados numa tela segura do Mercado Pago. O restaurante nunca vê o número.</p>'
@@ -544,23 +546,23 @@ async function cdMpAbrirCartao_(reserva, cfg){
   cdMpBrickController_ = await mp.bricks().create('cardPayment', 'cdMpCardBrick', {
     initialization: { amount: Math.round(valor*100)/100 },
     customization: {
-      paymentMethods: { creditCard:'all', debitCard:'none', prepaidCard:'none', maxInstallments:1 },
+      paymentMethods: { creditCard: tipo==='credito' ? 'all' : 'none', debitCard: tipo==='debito' ? 'all' : 'none', prepaidCard:'none', maxInstallments:1 },
       visual: { hideFormTitle:true,
         style: { theme:'dark', customVariables:{ baseColor:'#d20807', baseColorFirstVariant:'#a50606', baseColorSecondVariant:'#d20807', buttonTextColor:'#ffffff', formBackgroundColor:'#17100a', inputBackgroundColor:'#ffffff', textPrimaryColor:'#fff3d6', textSecondaryColor:'#bfae8f', outlinePrimaryColor:'#e0b53a', outlineSecondaryColor:'#3d2a12', errorColor:'#ff8a80', successColor:'#6dbb2e', borderRadiusMedium:'8px', borderRadiusLarge:'10px' } },
         texts: { formSubmit:'Pagar ' + cdMpR_(valor), cardNumber:{label:'Número do cartão'}, cardholderName:{label:'Nome como está no cartão'}, expirationDate:{label:'Validade'}, securityCode:{label:'Código'}, cardholderIdentification:{label:'CPF do titular'} } }
     },
     callbacks: {
       onReady: ()=>{
-        const e = document.getElementById('cdMpCardStatus'); if(e) e.textContent = 'Cartão de crédito · pagamento à vista (1x)';
+        const e = document.getElementById('cdMpCardStatus'); if(e) e.textContent = rotCartao + ' · pagamento à vista';
         setTimeout(()=>{ const b = document.getElementById('cdMpCardBrick'), c = document.getElementById('cdMpCpfBox');   // se o formulário do Mercado Pago já pede o CPF, não pedimos duas vezes
           if(b && c && /CPF|documento/i.test(b.innerText||'')) c.style.display = 'none'; }, 800);
       },
-      onSubmit: (fd)=>cdMpEnviarCartao_(reserva, fd),
+      onSubmit: (fd)=>cdMpEnviarCartao_(reserva, fd, tipo),
       onError: ()=>{ const e = document.getElementById('cdMpCardStatus'); if(e) e.textContent = 'O formulário do cartão encontrou um problema. Confira os dados ou tente novamente.'; }
     }
   });
 }
-async function cdMpEnviarCartao_(reserva, fd){
+async function cdMpEnviarCartao_(reserva, fd, tipo){
   const dizer = t=>{ const e = document.getElementById('cdMpCardStatus'); if(e) e.textContent = t; };
   const cpf = cdMpCpfDoCartao_(fd);
   if(!cdMpCpfOk_(cpf)){ dizer('Informe um CPF válido para o titular do cartão.'); throw new Error('CPF inválido'); }
@@ -568,10 +570,10 @@ async function cdMpEnviarCartao_(reserva, fd){
   if(!tok){ dizer('Sua sessão expirou. Entre novamente para continuar.'); throw new Error('Sessão expirada'); }
   dizer('Enviando pagamento com segurança…'); cdMpPagamentoEmAndamento_ = true;
   try{
-    const rr = await sbJson_(SUPABASE_URL_+'/functions/v1/mp-criar',{method:'POST',headers:{'apikey':SUPABASE_CHAVE_,'Authorization':'Bearer '+tok,'Content-Type':'application/json'},body:JSON.stringify({reservaId:reserva.reservaId,token:fd.token,paymentMethodId:fd.payment_method_id||fd.paymentMethodId,paymentTypeId:'credit_card',payerCpf:cpf})},45000);
+    const rr = await sbJson_(SUPABASE_URL_+'/functions/v1/mp-criar',{method:'POST',headers:{'apikey':SUPABASE_CHAVE_,'Authorization':'Bearer '+tok,'Content-Type':'application/json'},body:JSON.stringify({reservaId:reserva.reservaId,token:fd.token,paymentMethodId:fd.payment_method_id||fd.paymentMethodId,paymentTypeId:(tipo==='debito'?'debit_card':'credit_card'),payerCpf:cpf})},45000);
     const pag = await rr.json().catch(()=>null);
     if(!rr.ok || !pag || !pag.ok) throw new Error((pag&&pag.message)||'Não foi possível processar o cartão. Tente novamente ou pague na entrega.');
-    if(pag.estado==='aprovado'){ await cdMpAprovar_({ estado:'aprovado', metodo:'credito', vendaId:pag.vendaId, numero:pag.numero, valorTotal:pag.valor }); return pag; }
+    if(pag.estado==='aprovado'){ await cdMpAprovar_({ estado:'aprovado', metodo:(tipo==='debito'?'debito':'credito'), vendaId:pag.vendaId, numero:pag.numero, valorTotal:pag.valor }); return pag; }
     if(pag.estado==='conferindo'){ cdMpTelaConferindo_(); return pag; }
     if(pag.estado==='aguardando'){ cdMpTelaAguardando_(pag.desafio && pag.desafio.url); cdMpAcompanhar_(reserva.reservaId, reserva.expiraEm || ''); return pag; }
     if(pag.estado==='erro'){ cdMpReservaAtiva_ = ''; cdMpTelaFalha_(pag.mensagem || 'O pagamento não pôde ser concluído. Escolha pagar na entrega.'); return pag; }   // o banco já soltou a reserva
@@ -1010,7 +1012,7 @@ async function finalizarPedidoPublico(){
 
   await cdMpConfigPublica_();
   const tipoOnline = cdMpTipoForma_(formaPagamentoId);
-  if(tipoOnline==='pix' || tipoOnline==='credito'){
+  if(tipoOnline==='pix' || tipoOnline==='credito' || tipoOnline==='debito'){
     const dadosMp=cdMpPayloadPedido_(nome,telefone,tipoEntrega,dadosEntrega,trocoParaObs);
     return cdMpIniciarPagamento_(dadosMp,tipoOnline);
   }

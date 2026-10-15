@@ -6,7 +6,7 @@
    - BACKEND: NADA de Apps Script (script.google.com) nem de Supabase (*.supabase.co) é guardado aqui.
      Dados, pedidos, login e RPCs nunca passam pelo cache do service worker — sempre vão direto para a rede.
    - O único cache de dados é o de fotos (FOTOS) e o da casca/ícones (SHELL/ASSETS). Não adicionar outros. */
-const SHELL = 'texas-shell-v40';
+const SHELL = 'texas-shell-v41';
 const ASSETS = 'texas-assets-v6';   // trocou ícone/logo/manifest/leaflet? suba para v5
 const FOTOS = 'texas-fotos-v1';
 /* Código do app dividido em arquivos (app-*.js e estilo-*.css). Cada arquivo tem ?v=<impressão digital> na página; o cache guarda
@@ -29,7 +29,7 @@ const LISTA = [/*LISTA-INICIO*/
   'app-12-gestao-ia.js?v=56e78061',
   'app-13-conexao-sync.js?v=64fab071',
   'app-14-relatorios.js?v=3c1364d9',
-  'app-15-cardapio-cliente.js?v=6d962eea',
+  'app-15-cardapio-cliente.js?v=a7d74814',
   'app-16-sessao-final.js?v=ef1da8ab',
   'app-17-sessao-supabase.js?v=add7fc79',
   'app-18-queda-supabase.js?v=d409c0fe',

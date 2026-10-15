@@ -533,7 +533,7 @@ function mpCardHtml_(it, inf){
     return c.auto ? `<li>${ic}<span>${escH(c.titulo)}</span></li>`
       : `<li><label style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;"><input type="checkbox" ${c.feito?'checked':''} onchange="marcarIntegPasso_('mercadopago','${c.id}',this.checked)" style="position:absolute;opacity:0;width:1px;height:1px;">${ic}<span>${escH(c.titulo)} <small style="color:var(--muted)">(toque para marcar)</small></span></label></li>`;
   }).join('');
-  const formasOn = (it.formas||[]).filter(f=>f.aceitaOnline && f.tipoOnline).map(f=>f.tipoOnline==='pix'?'Pix':'Cartão de crédito');
+  const formasOn = (it.formas||[]).filter(f=>f.aceitaOnline && f.tipoOnline).map(f=>mpRotuloTipo_(f.tipoOnline));
   const min = Number((it.config||{}).pixValidadeMin) || 15;
   const estado = it.ligado ? 'LIGADO · ' + (it.modo==='producao' ? 'PRODUÇÃO' : 'TESTE') : 'DESLIGADO';
   const trocaModo = it.ligado ? (it.modo==='producao'
@@ -566,15 +566,21 @@ function mpPendenciasHtml_(it){
   if(!(it.ligado && it.modo==='producao') && !it.podeLigarProducao) l.push('Para ' + (it.ligado ? 'passar para' : 'ligar em') + ' PRODUÇÃO ainda falta: ' + (it.pendenciasProducao||[]).join('; '));
   return l.map(t=>`<div class="obs-line">${escH(t)}</div>`).join('');
 }
+function mpRotuloTipo_(t){ return t==='pix' ? 'Pix' : t==='debito' ? 'Cartão de débito' : t==='credito' ? 'Cartão de crédito' : String(t||''); }
+function mpTipoDoNome_(nome){   // mesmo critério do banco: o tipo vem do nome da forma
+  const n = String(nome||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  return /(^|[^a-z])pix([^a-z]|$)/.test(n) ? 'pix' : /credito/.test(n) ? 'credito' : /debito/.test(n) ? 'debito' : '';
+}
 function mpExtraHtml_(it){
   const cfg = it.config || {};
   const url = (typeof SUPABASE_URL_!=='undefined' ? SUPABASE_URL_ : '') + '/functions/v1/mp-webhook';
   const bt = 'class="ghost" style="width:auto;padding:4px 10px;min-height:32px;margin-left:6px;"';
   const formas = (it.formas||[]).map(f=>{
-    const v = f.aceitaOnline ? (f.tipoOnline||'') : '';
+    const tp = f.aceitaOnline ? (f.tipoOnline||mpTipoDoNome_(f.nome)) : mpTipoDoNome_(f.nome), on = !!f.aceitaOnline;
+    if(!tp) return `<div class="obs-line" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;"><span style="min-width:120px;">${escH(f.nome)}</span><span style="opacity:.75;">Só na entrega (não há pagamento online para esta forma)</span></div>`;
     return `<div class="obs-line" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;"><span style="min-width:120px;">${escH(f.nome)}</span>
-      <select style="width:auto;" onchange="mpFormaOnline_('${f.id}', this.value)" aria-label="Pagar online com ${escH(f.nome)}">
-        <option value="" ${v===''?'selected':''}>Só na entrega</option><option value="pix" ${v==='pix'?'selected':''}>Também online: Pix</option><option value="credito" ${v==='credito'?'selected':''}>Também online: cartão de crédito</option></select></div>`;
+      <select style="width:auto;" onchange="mpFormaOnline_('${f.id}', this.value==='on')" aria-label="Pagar online com ${escH(f.nome)}">
+        <option value="off" ${on?'':'selected'}>Só na entrega</option><option value="on" ${on?'selected':''}>Também online (${mpRotuloTipo_(tp)})</option></select></div>`;
   }).join('') || '<div class="obs-line">Nenhuma forma de pagamento ativa no cardápio.</div>';
   const emails = Array.isArray(cfg.emailsTeste) ? cfg.emailsTeste.join(', ') : '';
   return `<div style="margin-top:10px;">
@@ -583,7 +589,7 @@ function mpExtraHtml_(it){
     <div class="obs-line">No Mercado Pago: Webhooks &gt; Configurar notificações &gt; cole este endereço e marque o evento "Order (Mercado Pago)".</div>
   </div>
   <div style="margin-top:10px;"><b>💳 Formas de pagamento pelo site</b>
-    <div class="obs-line">Escolha qual forma cadastrada vira Pix online e qual vira cartão de crédito online (uma de cada). Elas continuam valendo também na entrega. Os preços, taxas e acréscimos são os de cada forma.</div>${formas}</div>
+    <div class="obs-line">Para cada forma, escolha: só na entrega ou também online. Online funciona para Pix, cartão de crédito e cartão de débito. Elas continuam valendo também na entrega. Os preços, taxas e acréscimos são os de cada forma.</div>${formas}</div>
   <div style="margin-top:10px;"><b>⚙️ Ajustes</b>
     <label class="obs-line" for="mpPixMin">Validade do Pix (minutos, de 5 a 120; combinado: 15)</label>
     <input type="number" id="mpPixMin" min="5" max="120" value="${Number(cfg.pixValidadeMin)||15}" style="width:90px;" onchange="salvarMpConfig_({ pixValidadeMin: Number(this.value) })">
@@ -594,7 +600,7 @@ function mpExtraHtml_(it){
     <label class="obs-line" style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;"><input type="checkbox" ${cfg.testeNoCardapio?'checked':''} onchange="salvarMpConfig_({ testeNoCardapio: this.checked })" style="width:auto;margin-top:3px;"> <span>Em TESTE, mostrar o pagamento online a TODOS os clientes (não recomendado: com chave de teste ninguém consegue pagar de verdade)</span></label>
   </div>
   <div style="margin-top:10px;"><b>🧪 Teste guiado</b>
-    <div class="obs-line">1) Ligue em TESTE. 2) Digite acima o e-mail da conta Google que você usa no cardápio. 3) Abra o cardápio, entre com essa conta e faça um pedido de entrega pagando com Pix pelo site. 4) Faça outro pagando com cartão de crédito (no cartão de teste do Mercado Pago, use o nome do titular APRO para aprovar e OTHE para recusar; confira a lista atual no site do Mercado Pago). 5) Quando os dois aparecerem aprovados abaixo, o passo do checklist se marca sozinho.</div>
+    <div class="obs-line">1) Ligue em TESTE. 2) Digite acima o e-mail da conta Google que você usa no cardápio. 3) Abra o cardápio, entre com essa conta e faça um pedido de entrega pagando pelo site com cada forma que você ligou como online (Pix, crédito, débito). 4) Nos cartões (no cartão de teste do Mercado Pago, use o nome do titular APRO para aprovar e OTHE para recusar; confira a lista atual no site do Mercado Pago). 5) Quando todas as formas ligadas aparecerem aprovadas abaixo, o passo do checklist se marca sozinho.</div>
     <div class="obs-line">⚠️ O pedido de teste aprovado vira pedido de verdade na cozinha e no caixa (e baixa estoque). Avise a equipe e cancele depois.</div>
     <div class="btnrow" style="margin-top:6px;"><button class="ghost" onclick="mpAbrirCardapio_()">Abrir o cardápio</button><button class="ghost" onclick="carregarMpRecentes_()">Atualizar lista</button></div>
     <div id="mpRecentes"><div class="obs-line">Carregando…</div></div>
@@ -613,8 +619,8 @@ async function carregarMpRecentes_(){
     if(!r || !r.ok){ box.innerHTML = '<div class="obs-line">' + escH((r&&r.message)||'Não foi possível carregar.') + '</div>'; return; }
     const it = r.itens || [];
     const rot = {aguardando:'aguardando',aprovado:'aprovado',recusado:'recusado',expirado:'vencido',cancelado:'cancelado',reembolso_parcial:'reembolso parcial',reembolsado:'reembolsado',erro:'erro'};
-    box.innerHTML = `<div class="obs-line">${r.testePix?'✅':'⬜'} Pix aprovado em TESTE · ${r.testeCredito?'✅':'⬜'} Cartão aprovado em TESTE${r.aDecidir?` · ⚠️ ${r.aDecidir} pagamento(s) esperando decisão (seguir ou reembolsar)`:''}</div>`
-      + (it.length ? '<div style="max-height:200px;overflow:auto;margin-top:6px;">' + it.map(x=>`<div class="obs-line">${escH(x.em)} · ${x.modo==='producao'?'produção':'teste'} · ${x.metodo==='pix'?'Pix':'Cartão'} · R$ ${Number(x.valor).toFixed(2).replace('.',',')} · ${escH(rot[x.status]||x.status)}${x.aDecidir?' · A DECIDIR':''}${x.detalhe?' · '+escH(x.detalhe):''}</div>`).join('') + '</div>' : '<div class="obs-line">Nenhum pagamento online ainda.</div>');
+    box.innerHTML = `<div class="obs-line">${mpTestesHtml_(r)}${r.aDecidir?` · ⚠️ ${r.aDecidir} pagamento(s) esperando decisão (seguir ou reembolsar)`:''}</div>`
+      + (it.length ? '<div style="max-height:200px;overflow:auto;margin-top:6px;">' + it.map(x=>`<div class="obs-line">${escH(x.em)} · ${x.modo==='producao'?'produção':'teste'} · ${x.metodo==='pix'?'Pix':x.metodo==='debito'?'Débito':'Crédito'} · R$ ${Number(x.valor).toFixed(2).replace('.',',')} · ${escH(rot[x.status]||x.status)}${x.aDecidir?' · A DECIDIR':''}${x.detalhe?' · '+escH(x.detalhe):''}</div>`).join('') + '</div>' : '<div class="obs-line">Nenhum pagamento online ainda.</div>');
   }catch(e){ box.innerHTML = '<div class="obs-line">Sem conexão.</div>'; }
 }
 async function mpCarregarPendenciasDecisao_(){
@@ -674,8 +680,14 @@ function salvarMpEmails_(txt){
   if(lista.length > 5){ showMsg(integMsgId_(),'No máximo 5 e-mails.','warn'); return; }
   salvarMpConfig_({ emailsTeste: lista });
 }
-async function mpFormaOnline_(formaId, tipo){
-  try{ const r = await apiCall('mpFormaOnline', { formaId, aceitaOnline: !!tipo, tipoOnline: tipo||'' }); if(r && r.ok){ integStatus_ = r.integracoes||integStatus_; showMsg(integMsgId_(), r.message||'Salvo.', 'ok'); carregarIntegFlags_(); } else showMsg(integMsgId_(), (r&&r.message)||'Não foi possível salvar.', 'warn'); }catch(e){ showMsg(integMsgId_(),'Sem conexão.','warn'); }
+function mpTestesHtml_(r){
+  const mp = (integStatus_||[]).find(x=>x.provedor==='mercadopago') || {}, tipos = [...new Set((mp.formas||[]).filter(f=>f.aceitaOnline && f.tipoOnline).map(f=>f.tipoOnline))];
+  if(!tipos.length) return '⬜ Ligue pelo menos uma forma online acima para poder testar';
+  const ok = { pix:r.testePix, credito:r.testeCredito, debito:r.testeDebito };
+  return tipos.map(t=>`${ok[t]?'✅':'⬜'} ${mpRotuloTipo_(t)} aprovado em TESTE`).join(' · ');
+}
+async function mpFormaOnline_(formaId, ligar){
+  try{ const r = await apiCall('mpFormaOnline', { formaId, aceitaOnline: !!ligar, tipoOnline: '' }); if(r && r.ok){ integStatus_ = r.integracoes||integStatus_; showMsg(integMsgId_(), r.message||'Salvo.', 'ok'); carregarIntegFlags_(); } else showMsg(integMsgId_(), (r&&r.message)||'Não foi possível salvar.', 'warn'); }catch(e){ showMsg(integMsgId_(),'Sem conexão.','warn'); }
   renderIntegracoes_();
 }
 
