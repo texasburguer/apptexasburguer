@@ -190,7 +190,7 @@ function relMapArq_(c){
       endereco:v.endereco||'', complemento:v.complemento||'', referencia:v.referencia||'', observacoesEntrega:v.observacoes_entrega||'', timestampPronta:t(v.pronta_em), timestampConcluida:t(v.concluida_em),
       statusPagamento:v.status_pagamento||'Pago', timestampRecebimento:t(v.recebido_em), valorOriginal:Number(v.valor_original)||Number(v.valor_total)||0, valorDesconto:Number(v.valor_desconto)||0,
       descontoDetalhe:v.desconto_detalhe||'', entregador:lg[v.entregador_id]||'', timestampSaiu:t(v.saiu_em), origem:v.origem||'Balcão', mesaId:v.mesa_id||'', taxaEntrega:Number(v.taxa_entrega)||0,
-      fechamentoEntregaId:v.fechamento_entrega_id||'', registradoPor:lg[v.registrado_por]||'', numero:Number(v.numero_pedido)||0, timestampInicioPreparo:t(v.inicio_preparo_em) })),
+      fechamentoEntregaId:v.fechamento_entrega_id||'', registradoPor:lg[v.registrado_por]||'', numero:Number(v.numero_pedido)||0, timestampInicioPreparo:t(v.inicio_preparo_em), clienteId:v.cliente_id||'', acrescimoForma:Number(v.acrescimo_forma)||0, cpfNota:v.cpf_nota||'', canal:v.canal||'' })),
     itens: (c.itens||[]).map(i=>({ id:i.id, vendaId:i.venda_id, produtoId:i.produto_id||'', comboId:i.combo_id||'', descricao:i.descricao||'', quantidade:Number(i.quantidade), valorUnitario:Number(i.valor_unitario),
       custoUnitario:Number(i.custo_unitario)||0, valorTotalItem:Number(i.valor_total_item), adicionaisIds:Array.isArray(i.adicionais_ids) ? i.adicionais_ids : [] })),
     pagamentos: (c.pagamentos||[]).map(x=>({ id:x.id, vendaId:x.venda_id, forma:x.forma_pagamento, valor:Number(x.valor), taxa:Number(x.taxa_aplicada)||0 }))

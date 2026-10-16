@@ -402,6 +402,10 @@
       <div class="btnrow">
         <button class="toggle-mode active" id="filtroTodosBtn" onclick="setFiltroClientes('todos')">Todos</button>
         <button class="toggle-mode" id="filtroInativosBtn" onclick="setFiltroClientes('inativos')">Inativos</button>
+        <button class="toggle-mode" id="filtroRiscoBtn" onclick="setFiltroClientes('risco')">Em risco</button>
+        <button class="toggle-mode" id="filtroVipBtn" onclick="setFiltroClientes('vip')">VIP</button>
+        <button class="toggle-mode" id="filtroFielBtn" onclick="setFiltroClientes('fiel')">Fiéis</button>
+        <button class="toggle-mode" id="filtroNovoBtn" onclick="setFiltroClientes('novo')">Novos</button>
       </div>
       <div id="diasInativoBox" style="display:none;">
         <label for="diasInativo">Sem atividade há mais de (dias)</label>
@@ -1544,11 +1548,18 @@
     </div>
     <label for="mEndereco">Endereço</label><input type="text" id="mEndereco" placeholder="Rua, número, bairro">
     <label for="mObs">Observações</label><input type="text" id="mObs" placeholder="Observações gerais sobre o cliente">
+    <div id="mPrefBox" style="display:none;">
+      <label for="mPreferencias">Preferências fixas (aparecem na comanda de todo pedido dele)</label>
+      <input type="text" id="mPreferencias" maxlength="300" placeholder="Ex.: sem cebola, alérgico a amendoim">
+      <button type="button" class="small-gold" style="width:100%;margin-top:6px;" onclick="salvarPreferenciasCliente_()">Salvar preferências</button>
+      <div class="obs-line" id="mPrefMsg"></div>
+    </div>
     <div class="btnrow">
       <button class="primary mt-0" onclick="salvarModalCliente()">Salvar</button>
       <button class="primary" style="margin-top:0;background:var(--panel-2);border:1px solid var(--red);" id="mExcluirBtn" onclick="excluirModalCliente()">Excluir</button>
     </div>
     <div class="msg" id="mMsg"></div>
+    <div id="mPerfil360Section"></div>
     <div id="mHistoricoSection"></div>
     <div id="mFeedbackSection"></div>
     <div id="mPromoSections"></div>
@@ -2412,26 +2423,26 @@
   </div>
 </div>
 
-<script src="app-01-base-e-api.js?v=79bc0140" charset="utf-8" data-origem="__big0__"></script>
-<script src="app-02-abas.js?v=94a1eaea" charset="utf-8" data-origem="__big1__"></script>
+<script src="app-01-base-e-api.js?v=64d002dc" charset="utf-8" data-origem="__big0__"></script>
+<script src="app-02-abas.js?v=854db4dd" charset="utf-8" data-origem="__big1__"></script>
 <script src="app-03-cadastros.js?v=78549205" charset="utf-8" data-origem="__big2__"></script>
-<script src="app-04-pedidos-entrega.js?v=daae5a58" charset="utf-8" data-origem="__big3__"></script>
+<script src="app-04-pedidos-entrega.js?v=2fd904dd" charset="utf-8" data-origem="__big3__"></script>
 <script src="app-05-avisos-push.js?v=d76d4b0a" charset="utf-8" data-origem="__big4__"></script>
 <script src="app-06-caixa.js?v=63feb38b" charset="utf-8" data-origem="__big5__"></script>
 <script src="app-07-impressao.js?v=5fce9035" charset="utf-8" data-origem="__big6__"></script>
 <script src="app-08-vendas-despesas.js?v=42c06d58" charset="utf-8" data-origem="__big7__"></script>
-<script src="app-09-ajuda.js?v=01eb5d4b" charset="utf-8" data-origem="__big8__"></script>
+<script src="app-09-ajuda.js?v=5970503a" charset="utf-8" data-origem="__big8__"></script>
 <script src="app-10-backup-financeiro.js?v=76b19b51" charset="utf-8" data-origem="__big9__"></script>
 <script src="app-11-admin-integracoes.js?v=02f73c8a" charset="utf-8" data-origem="__big10__"></script>
 <script src="app-12-gestao-ia.js?v=59f30b6d" charset="utf-8" data-origem="__big11__"></script>
 <script src="app-13-conexao-sync.js?v=4169baef" charset="utf-8" data-origem="__big12__"></script>
-<script src="app-14-relatorios.js?v=e7f44853" charset="utf-8" data-origem="__big13__"></script>
+<script src="app-14-relatorios.js?v=0e32f822" charset="utf-8" data-origem="__big13__"></script>
 <script src="app-15-cardapio-cliente.js?v=183362dd" charset="utf-8" data-origem="__big14__"></script>
 <script src="app-16-sessao-final.js?v=ef1da8ab" charset="utf-8" data-origem="__big15__"></script>
 <!-- ═══════════ SINCRONIZAÇÃO, BACKUP, ESPAÇO E INTEGRIDADE ═══════════
      app-17 cria cartões (ids sb410*) nas telas Backup e espaço e Sincronização e contingência. -->
 
-<script src="app-17-sessao-supabase.js?v=393a4b1f" charset="utf-8" data-origem=""></script>
+<script src="app-17-sessao-supabase.js?v=8b1b601b" charset="utf-8" data-origem=""></script>
 
 <!-- ═══════════ MODO RESERVA (queda do Supabase) ═══════════
      Detecta a queda do Supabase, avisa com faixa laranja e reenvia a fila do aparelho sozinha na volta.
@@ -2476,7 +2487,7 @@
 <script src="app-26-visual.js?v=3f2492e5" charset="utf-8" data-origem=""></script>
 <link rel="stylesheet" href="estilo-conta-pagamento.css?v=c8bbf776">
 <script src="app-28-dialogos.js?v=58e2325f" charset="utf-8" data-origem=""></script>
-<script src="app-27-conta-cliente.js?v=2062e899" charset="utf-8" data-origem=""></script>
+<script src="app-27-conta-cliente.js?v=c19be7f0" charset="utf-8" data-origem=""></script>
 <script src="app-29-usabilidade.js?v=8c6dd0c8" charset="utf-8" data-origem=""></script>
 </body>
 </html>

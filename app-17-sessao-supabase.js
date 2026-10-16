@@ -200,6 +200,7 @@ async function sb410Espaco(){
       <div style="margin-top:10px;border-top:1px solid #3a2c1c;padding-top:10px;">
         <label for="sb410ArqDias">Regra de arquivamento (vale para o envio automático e para o botão abaixo): mandar para a planilha o que tem mais de</label>
         <select id="sb410ArqDias" onchange="sb410ArqSalvarRegra(this.value)" style="width:100%;margin:6px 0;"><option value="90">90 dias</option><option value="60">60 dias</option><option value="30">30 dias (mínimo permitido)</option></select>
+        <button class="ghost" style="width:100%;padding:10px;margin-bottom:6px;" onclick="sb410SimularArquivo()">Simular (só mostra quantos sairiam, não move nada)</button>
         <button class="small-gold" style="width:100%;padding:10px;" onclick="sb410ArquivarAgora()">Mandar para a planilha agora</button>
         <div class="msg" id="sb410ArqMsg"></div>
       </div>
@@ -239,6 +240,24 @@ async function sb410ArqSalvarRegra(v){
   }catch(e){ if(m) m.textContent = 'Não foi possível salvar a regra agora.'; }
 }
 
+async function sb410SimularArquivo(){
+  const dias = Number((document.getElementById('sb410ArqDias')||{}).value) || 90, m = document.getElementById('sb410ArqMsg');
+  if(m) m.textContent = 'Simulando… (nada é movido)';
+  try{
+    const j = await rpcArq_('api_simular_arquivamento', { p_dias: dias });
+    if(!j || !j.ok) throw new Error((j && j.message) || 'falha');
+    const d = iso => { const t = Date.parse(iso||''); return t ? new Date(t).toLocaleDateString('pt-BR') : ''; };
+    let t = 'Simulação (mais de ' + j.dias + ' dias): ' + j.vendasAntigas + ' venda(s) antiga(s); ' + j.vendasArquivaveis + ' sairiam agora' + (j.vendasArquivaveis && j.maisAntiga ? ' (de ' + d(j.maisAntiga) + ' a ' + d(j.maisNova) + ')' : '') + ' e ' + j.vendasBloqueadas + ' ficam' + (j.vendasBloqueadas ? ' (' + (j.bloqReembolso||0) + ' com reembolso; as demais têm pedido em andamento, ocorrência aberta ou ajuste pendente)' : '') + '. ' + j.caixasArquivaveis + ' caixa(s) fechado(s) sairiam.';
+    t += ' Resumo guardado no Supabase: ' + j.resumoGuardado + ' pedido(s)' + (Number(j.resumoGuardado) !== Number(j.historicoArquivadas) ? ' — ⚠️ o histórico de arquivados tem ' + j.historicoArquivadas + '; confira antes de arquivar.' : ' (confere com o histórico).');
+    try{
+      const pl = await sb410Edge_('planilha-admin', { acao:'arquivoContagem' }, 60000);
+      if(pl && pl.ok) t += ' Planilha: ' + pl.pedidos + ' pedido(s) arquivado(s)' + (Number(pl.pedidos) !== Number(j.resumoGuardado) ? ' — ⚠️ o resumo do Supabase tem ' + j.resumoGuardado + '; pedidos arquivados antes do resumo existir explicam a diferença, senão confira antes de arquivar.' : ' (confere com o resumo).');
+      else t += ' Não consegui contar os pedidos da planilha agora.';
+    }catch(e2){ t += ' Não consegui contar os pedidos da planilha agora.'; }
+    if(Number(j.filaAnonimizacao) > 0) t += ' Anonimização pendente na planilha: ' + j.filaAnonimizacao + ' cliente(s) (roda sozinha de madrugada).';
+    if(m) m.textContent = t;
+  }catch(e){ if(m) m.textContent = 'Não consegui simular agora. Tente de novo.'; }
+}
 async function sb410ArquivarAgora(){
   const dias = Number((document.getElementById('sb410ArqDias')||{}).value) || 90;
   if(!await confirmarTxt_('Mandar para a planilha as vendas e caixas fechados com mais de ' + dias + ' dias e tirá-los do Supabase? Eles continuam guardados nas abas Arquivo_* da planilha. Pode levar alguns minutos; não feche a página.')) return;

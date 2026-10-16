@@ -263,9 +263,14 @@ function carregarCache(){
 /* ============================================================
    CLIENTES
    ============================================================ */
+const FILTROS_CLIENTES_ = { todos:'filtroTodosBtn', inativos:'filtroInativosBtn', risco:'filtroRiscoBtn', vip:'filtroVipBtn', fiel:'filtroFielBtn', novo:'filtroNovoBtn' };
+const FILTRO_SEGMENTO_ = { risco:'Em risco', vip:'VIP', fiel:'Fiel', novo:'Novo' };
+function filtroClientesAtual_(){
+  for(const k in FILTROS_CLIENTES_){ const b = document.getElementById(FILTROS_CLIENTES_[k]); if(b && b.classList.contains('active')) return k; }
+  return 'todos';
+}
 function setFiltroClientes(modo){
-  document.getElementById('filtroTodosBtn').classList.toggle('active', modo==='todos');
-  document.getElementById('filtroInativosBtn').classList.toggle('active', modo==='inativos');
+  Object.keys(FILTROS_CLIENTES_).forEach(k=>{ const b = document.getElementById(FILTROS_CLIENTES_[k]); if(b) b.classList.toggle('active', k===modo); });
   document.getElementById('diasInativoBox').style.display = modo==='inativos' ? 'block' : 'none';
   renderClientes();
 }
@@ -288,6 +293,8 @@ function ultimaAtividadeCliente(cliente){
   if(fid && fid.atualizado) candidatos.push(parseDataBR(fid.atualizado));
   const ultVenda = ultimaVendaPorTel_()[tel];
   if(ultVenda) candidatos.push(ultVenda);
+  const arq = _arqResumoTel_ && _arqResumoTel_[tel];
+  if(arq && arq.ultimo) candidatos.push(arq.ultimo);   // última compra já arquivada (o telefone é a chave do cliente)
   const validos = candidatos.filter(Boolean);
   return validos.length ? Math.max(...validos) : null;
 }
@@ -305,7 +312,9 @@ const CUP_AUTO_ = {
   boas_vindas:{ t:'🎉 Boas-vindas', d:'Quem cria a conta recebe este cupom.' },
   aniversario:{ t:'🎂 Aniversário', d:'No dia do aniversário (conta com data de nascimento e criada há mais de 30 dias).' },
   indicacao_indicador:{ t:'🎁 Indique e ganhe — quem indicou', d:'Quando o amigo indicado conclui o primeiro pedido. Pode valer junto com o produto-prêmio de indicação (Editar produto › Mais opções): quem indicou ganha o cupom e o brinde.' },
-  indicacao_indicado:{ t:'🎁 Indique e ganhe — quem foi indicado', d:'Quando o indicado conclui o primeiro pedido com a conta.' }
+  indicacao_indicado:{ t:'🎁 Indique e ganhe — quem foi indicado', d:'Quando o indicado conclui o primeiro pedido com a conta.' },
+  em_risco:{ t:'💌 Sentimos sua falta (cliente em risco)', d:'Todo dia de manhã: quem tem conta, aceitou promoções e está há mais de 45 dias sem pedir recebe este cupom (no máximo 1 a cada 60 dias).' },
+  vip:{ t:'⭐ Cliente VIP', d:'Todo dia de manhã: cliente VIP (10 ou mais pedidos, ou R$ 800 ou mais gastos) com conta e promoções aceitas recebe este cupom (no máximo 1 por trimestre).' }
 };
 function cupBeneficio_(c){ return c.tipo==='percentual'?c.valor+'%':c.tipo==='fixo'?'R$ '+Number(c.valor).toFixed(2).replace('.',','):c.tipo==='progressivo'?faixasResumo_(c):'Frete grátis'; }
 function cupClienteNome_(id){ const c=(clientes||[]).find(x=>x.id===id); return c ? (c.nome||'Sem nome') : 'cliente'; }
@@ -373,9 +382,76 @@ function calcTrocarProduto_(){ const e=document.getElementById('calcPrecoSimulad
 async function calcularCustoUI(){const p=document.getElementById('calcProduto').value,f=document.getElementById('calcForma').value;if(!p||!f)return;const prec=(produtoPrecos||[]).find(x=>x.produtoId===p&&x.formaPagamentoId===f);document.getElementById('calcCusto').textContent=formatarMoeda(prec?prec.custo:0);document.getElementById('calcPrecoAtual').textContent=formatarMoeda(prec?prec.preco:0);if(!document.getElementById('calcPrecoSimulado').value)document.getElementById('calcPrecoSimulado').value=prec?prec.preco:'';if(!apiConfigurada())return;try{const r=await apiCall('simularPrecificacao',{produtoId:p,formaPagamentoId:f,precoSimulado:document.getElementById('calcPrecoSimulado').value,embalagem:document.getElementById('calcEmbalagem').value,outrosCustos:document.getElementById('calcOutros').value,taxaMarketplace:document.getElementById('calcMarketplace').value});if(r.ok){document.getElementById('calcCusto').textContent=formatarMoeda(r.custoTecnico);document.getElementById('calcResultado').textContent='Custo total: '+formatarMoeda(r.custoTotal)+' · taxa pagamento: '+formatarMoeda(r.taxaPagamento)+(Number(r.impostos)>0?' · imposto ('+String(r.impostosPct).replace('.',',')+'%): '+formatarMoeda(r.impostos):'')+' · resultado: '+formatarMoeda(r.resultado)+' · margem: '+r.margem.toFixed(2).replace('.',',')+'% · markup: '+r.markup.toFixed(2)+'x';}else document.getElementById('calcResultado').textContent=r.message;}catch(e){document.getElementById('calcResultado').textContent='Não foi possível simular agora.';}}
 function prepararCalculadoraUI(){const sp=document.getElementById('calcProduto'),sf=document.getElementById('calcForma');if(!sp||!sf)return;sp.innerHTML=(produtos||[]).filter(p=>p.ativo).map(p=>`<option value="${p.id}">${escH(p.nome)}</option>`).join('');sf.innerHTML=(formasPagamento||[]).filter(f=>f.ativa).map(f=>`<option value="${f.id}">${escH(f.nome)}</option>`).join('');calcularCustoUI();}
 async function aplicarPrecoCalculadoraUI(){const p=document.getElementById('calcProduto').value,f=document.getElementById('calcForma').value,v=document.getElementById('calcPrecoSimulado').value;try{if(!(Number(v)>0)){showMsg('calcMsg','Informe o preço base simulado.','warn');return;}if(!await confirmarTxt_('Aplicar R$ '+Number(v).toFixed(2).replace('.',',')+' como preço base deste produto? Vale para todas as formas de pagamento (o acréscimo de cada forma é somado na venda).'))return;const r=await apiCall('aplicarPrecoCalculadora',{produtoId:p,formaPagamentoId:f,novoPreco:v});showMsg('calcMsg',r.message,r.ok?'ok':'warn');if(r.ok){produtoPrecos=r.produtoPrecos||produtoPrecos;document.getElementById('calcPrecoSimulado').value='';calcularCustoUI();}}catch(e){showMsg('calcMsg','Erro ao aplicar preço.','warn');}}
+/* ---------- PEDIDOS ARQUIVADOS: o TELEFONE é a chave do cliente (nem todo cliente tem conta Google) ----------
+   Os pedidos que saíram do banco ficam num resumo leve no Supabase (vendas_resumo_arquivo); o detalhe completo continua na planilha. */
+let _arqResumoTel_ = null, _arqResumoQuando_ = 0, _arqResumoCarregando_ = false;
+const _arqCli_ = {};   // telefone -> { estado:'carregando'|'ok'|'erro', pedidos:[] }
+async function rpcArq_(fn, args){
+  const t = await sb410Token_();
+  const r = await sbJson_(SUPABASE_URL_+'/rest/v1/rpc/'+fn, { method:'POST', headers:{ apikey:SUPABASE_CHAVE_, Authorization:'Bearer '+t, 'Content-Type':'application/json' }, body: JSON.stringify(args||{}) }, 30000, 1);
+  return await r.json();
+}
+function arqPodeLer_(){ return typeof USAR_SUPABASE_!=='undefined' && USAR_SUPABASE_ && typeof sb410Gestor_==='function' && sb410Gestor_(); }
+function arqLinhaParaVenda_(r){
+  return { id:r.venda_id, arquivado:true, data:sbDataBr_(r.data_hora), timestamp:Date.parse(r.data_hora)||0, valorTotal:Number(r.valor_total)||0,
+    tipoEntrega:r.tipo||'Retirada', formaPagamento:r.forma_pagamento||'', statusPagamento:r.status_pagamento||'Pago', statusPedido:r.status_pedido||'', status:r.status||'Confirmada',
+    endereco:r.endereco||'', complemento:r.complemento||'', clienteTelefone:r.telefone||'', clienteNome:r.cliente_nome||'', numero:Number(r.numero_pedido)||0, itensTexto:r.itens_texto||'' };
+}
+async function carregarArquivoCliente_(tel, clienteId, forcar){
+  if(!tel || !arqPodeLer_()) return;
+  const atual = _arqCli_[tel];
+  if(atual && !forcar && (atual.estado==='carregando' || atual.estado==='ok')) return;
+  _arqCli_[tel] = { estado:'carregando', pedidos: atual ? atual.pedidos : [] };
+  try{
+    const j = await rpcArq_('api_historico_cliente_arquivo', { p_telefone: tel, p_cliente_id: clienteId || null });
+    if(!j || !j.ok) throw new Error((j && j.message) || 'falha');
+    _arqCli_[tel] = { estado:'ok', pedidos:(j.pedidos||[]).map(arqLinhaParaVenda_) };
+  }catch(e){ _arqCli_[tel] = { estado:'erro', pedidos: [] }; }
+  if(_histFiltro_ && _histFiltro_.tel===tel && document.getElementById('mHistoricoSection') && document.getElementById('clienteModal').classList.contains('open')) renderHistoricoCliente(tel, true);
+}
+async function carregarResumoArquivoClientes_(){
+  if(!arqPodeLer_() || _arqResumoCarregando_ || (_arqResumoTel_ && Date.now()-_arqResumoQuando_ < 300000)) return;
+  _arqResumoCarregando_ = true;
+  try{
+    const j = await rpcArq_('api_clientes_arquivo_resumo', {});
+    if(j && j.ok){
+      const m = {}; (j.clientes||[]).forEach(c=>{ m[normTel(c.telefone)] = { pedidos:Number(c.pedidos)||0, total:Number(c.total)||0, ultimo: Date.parse(c.ultimo)||0 }; });
+      const era = _arqResumoTel_; _arqResumoTel_ = m; _arqResumoQuando_ = Date.now();
+      if(!era && Object.keys(m).length && document.getElementById('cTable')) renderClientes();
+    }
+  }catch(e){ /* sem o arquivo, a lista segue só com o que está no sistema */ }
+  finally{ _arqResumoCarregando_ = false; }
+}
+/* ---------- SEGMENTOS (Fase 4): Novo, Fiel, VIP, Em risco — calculados no Supabase pelo TELEFONE, juntando pedidos ativos + arquivados ---------- */
+const SEG_DIAS_RISCO_ = 45;
+const SEG_REGRAS_ = { 'Novo':'1 a 3 pedidos', 'Fiel':'4 ou mais pedidos', 'VIP':'10 ou mais pedidos, ou R$ 800 ou mais gastos', 'Em risco':'sem pedir há mais de '+SEG_DIAS_RISCO_+' dias' };
+const SEG_CLASSE_ = { 'Novo':'neutro', 'Fiel':'ok', 'VIP':'aviso', 'Em risco':'erro' };
+let _segTel_ = null, _segQuando_ = 0, _segCarregando_ = false;
+async function carregarSegmentosClientes_(forcar){
+  if(!arqPodeLer_() || _segCarregando_ || (!forcar && _segTel_ && Date.now()-_segQuando_ < 300000)) return;
+  _segCarregando_ = true;
+  try{
+    const j = await rpcArq_('api_clientes_segmentos', { p_dias_risco: SEG_DIAS_RISCO_ });
+    if(j && j.ok){
+      const m = {}; (j.clientes||[]).forEach(c=>{ m[normTel(c.telefone)] = c; });
+      const era = _segTel_; _segTel_ = m; _segQuando_ = Date.now();
+      if(!era && document.getElementById('cTable')) renderClientes();
+    }
+  }catch(e){ /* sem o Supabase, a lista segue sem os selos */ }
+  finally{ _segCarregando_ = false; }
+}
+function seloSegmento_(tel){
+  const s = _segTel_ && _segTel_[normTel(tel)];
+  if(!s || !SEG_CLASSE_[s.segmento]) return '';
+  return ` <span class="badge ${SEG_CLASSE_[s.segmento]}">${escH(s.segmento)}</span>`;
+}
 function renderClientes(){
+  carregarResumoArquivoClientes_();
+  carregarSegmentosClientes_();
   const filtro = document.getElementById('cSearch').value.toLowerCase();
-  const modoInativos = document.getElementById('filtroInativosBtn').classList.contains('active');
+  const modo = filtroClientesAtual_();
+  const modoInativos = modo==='inativos';
+  const segAlvo = FILTRO_SEGMENTO_[modo] || '';
   const dias = Number(document.getElementById('diasInativo').value) || 30;
   const tbody = document.getElementById('cTable');
   let lista = clientes.filter(c => clienteCombinaBusca_(c, filtro));
@@ -383,9 +459,58 @@ function renderClientes(){
     const agora = Date.now();
     lista = lista.filter(c=>{ const ult = ultimaAtividadeCliente(c); return !ult || (agora - ult) / 86400000 > dias; });
   }
+  if(segAlvo){
+    if(!arqPodeLer_()){ tbody.innerHTML = '<tr class="empty-row"><td colspan="3">' + estadoVazio_('Os segmentos precisam do servidor principal (Supabase) e de um perfil de gestão. Agora ele não está disponível.') + '</td></tr>'; return; }
+    if(!_segTel_){ tbody.innerHTML = '<tr class="empty-row"><td colspan="3">' + estadoVazio_('⏳ Calculando os segmentos…') + '</td></tr>'; return; }
+    lista = lista.filter(c=>{ const s = _segTel_[normTel(c.telefone)]; return s && s.segmento===segAlvo; });
+  }
   lista = lista.slice().reverse();
-  if(lista.length===0){ tbody.innerHTML = '<tr class="empty-row"><td colspan="3">' + ((filtro || modoInativos) ? estadoVazio_('Nenhum cliente encontrado.') : estadoVazio_('Nenhum cliente ainda. Eles entram na lista quando fazem um pedido.')) + '</td></tr>'; return; }
-  tbody.innerHTML = lista.map(c=>`<tr><td>${c.nome?escH(c.nome):'<em class="txt-muted">(sem nome)</em>'}</td><td>${escH(c.telefone)}</td><td><button class="small-gold" onclick="abrirPerfilCliente('${c.id}')">abrir</button></td></tr>`).join('');
+  if(lista.length===0){ tbody.innerHTML = '<tr class="empty-row"><td colspan="3">' + ((filtro || modo!=='todos') ? estadoVazio_(segAlvo ? 'Nenhum cliente '+segAlvo+' agora ('+SEG_REGRAS_[segAlvo]+').' : 'Nenhum cliente encontrado.') : estadoVazio_('Nenhum cliente ainda. Eles entram na lista quando fazem um pedido.')) + '</td></tr>'; return; }
+  tbody.innerHTML = lista.map(c=>`<tr><td>${c.nome?escH(c.nome):'<em class="txt-muted">(sem nome)</em>'}${seloSegmento_(c.telefone)}</td><td>${escH(c.telefone)}</td><td><button class="small-gold" onclick="abrirPerfilCliente('${c.id}')">abrir</button></td></tr>`).join('');
+}
+/* ---------- PERFIL 360 (Fase 4): ficha do cliente no topo do perfil ---------- */
+const _p360_ = {};   // telefone -> { quando, dados }
+function p360Data_(iso){ const t = Date.parse(iso||''); return t ? new Date(t).toLocaleDateString('pt-BR') : '—'; }
+function p360Dias_(n){ return n===null||n===undefined ? '' : (n===0 ? 'hoje' : n===1 ? 'ontem' : 'há '+n+' dias'); }
+function htmlPerfil360_(d){
+  const seg = d.segmento || 'Sem pedido';
+  const selo = SEG_CLASSE_[seg] ? `<span class="badge ${SEG_CLASSE_[seg]}">${escH(seg)}</span>` : '<span class="badge neutro">Sem pedido</span>';
+  const conta = d.conta || {};
+  const linhaConta = conta.temConta
+    ? `✅ Tem conta Google · ${conta.aceitaPromocoes ? 'aceita receber promoções' : 'não aceitou promoções'}${conta.ultimoAcesso ? ' · último acesso '+p360Data_(conta.ultimoAcesso) : ''}`
+    : 'Sem conta Google (cadastro só pelo telefone)';
+  let h = `<div class="modal-section"><h3>Perfil 360 ${selo}</h3>`;
+  if(!d.pedidos){
+    h += `<div class="obs-line">Ainda sem pedidos confirmados. ${escH(linhaConta)}</div></div>`;
+    return h;
+  }
+  if(SEG_REGRAS_[seg]) h += `<div class="obs-line mb-2">${escH(seg)}: ${escH(SEG_REGRAS_[seg])}.${seg==='Em risco' ? ' Último pedido '+p360Dias_(d.diasDesdeUltimo)+'.' : ''}</div>`;
+  h += `<div class="info-line">Pedidos: <b>${d.pedidos}</b>${d.pedidosArquivados ? ' <span class="txt-muted">('+d.pedidosArquivados+' arquivado'+(d.pedidosArquivados>1?'s':'')+')</span>' : ''} · Gasto total: <b class="txt-ouro">${formatarMoeda(d.totalGasto)}</b></div>`;
+  h += `<div class="info-line">Ticket médio: <b>${formatarMoeda(d.ticketMedio)}</b> · Últimos 90 dias: ${d.pedidos90d} pedido(s), ${formatarMoeda(d.gasto90d)}</div>`;
+  h += `<div class="info-line">Primeiro pedido: ${p360Data_(d.primeiroPedido)} · Último: ${p360Data_(d.ultimoPedido)} (${p360Dias_(d.diasDesdeUltimo)})</div>`;
+  if(d.frequenciaDias!==null && d.frequenciaDias!==undefined) h += `<div class="info-line">Frequência: um pedido a cada ~${String(d.frequenciaDias).replace('.',',')} dia(s)</div>`;
+  if((d.itensFavoritos||[]).length) h += `<div class="info-line">Favoritos: ${d.itensFavoritos.map(f=>escH(f.item)+' <span class="txt-muted">('+f.qtd+'x)</span>').join(' · ')}</div>`;
+  const costuma = [d.tipoPreferido, d.formaPreferida].filter(Boolean).map(escH).join(' · ');
+  if(costuma) h += `<div class="info-line">Costuma pedir: ${costuma}</div>`;
+  h += `<div class="info-line">${escH(linhaConta)}</div></div>`;
+  return h;
+}
+async function renderPerfil360_(cliente, forcar){
+  const box = document.getElementById('mPerfil360Section');
+  if(!box) return;
+  if(!cliente || !arqPodeLer_()){ box.innerHTML = ''; return; }
+  const tel = normTel(cliente.telefone), id = cliente.id;
+  const cache = _p360_[tel];
+  if(cache && !forcar && Date.now()-cache.quando < 60000){ box.innerHTML = htmlPerfil360_(cache.dados); return; }
+  box.innerHTML = '<div class="modal-section"><h3>Perfil 360</h3><div class="obs-line">⏳ Calculando…</div></div>';
+  try{
+    const j = await rpcArq_('api_cliente_360', { p_telefone: tel, p_cliente_id: id || null, p_dias_risco: SEG_DIAS_RISCO_ });
+    if(!j || !j.ok) throw new Error((j && j.message) || 'falha');
+    _p360_[tel] = { quando: Date.now(), dados: j };
+    if(modalClienteId===id) box.innerHTML = htmlPerfil360_(j);
+  }catch(e){
+    if(modalClienteId===id) box.innerHTML = '<div class="modal-section"><h3>Perfil 360</h3><div class="obs-line">⚠️ Não consegui calcular agora. <button type="button" class="small-gold" onclick="renderPerfil360_(clientes.find(c=>c.id===modalClienteId), true)">Tentar de novo</button></div></div>';
+  }
 }
 var _histFiltro_ = { tel:'', per:'todos', tipo:'todos', pag:'todos' };
 function histFiltroMudou_(){
@@ -397,7 +522,12 @@ function renderHistoricoCliente(telefone, manterFiltro){
   if(!box) return;
   const tel = normTel(telefone);
   if(!manterFiltro || _histFiltro_.tel !== tel) _histFiltro_ = { tel: tel, per:'todos', tipo:'todos', pag:'todos' };
-  const todos = vendas.filter(v=>normTel(v.clienteTelefone)===tel && v.status==='Confirmada').sort((a,b)=>b.timestamp-a.timestamp);
+  const cadastro = clientes.find(c=>normTel(c.telefone)===tel);
+  carregarArquivoCliente_(tel, cadastro ? cadastro.id : null);
+  const arq = _arqCli_[tel] || { estado:'carregando', pedidos:[] };
+  const idsAtivos = new Set(vendas.map(v=>v.id));
+  const todos = vendas.filter(v=>normTel(v.clienteTelefone)===tel && v.status==='Confirmada')
+    .concat(arq.pedidos.filter(v=>v.status==='Confirmada' && !idsAtivos.has(v.id))).sort((a,b)=>b.timestamp-a.timestamp);
   const F = _histFiltro_, limite = F.per==='todos' ? 0 : Date.now() - Number(F.per)*86400000;
   const pedidos = todos.filter(v=> (!limite || v.timestamp >= limite) && (F.tipo==='todos' || v.tipoEntrega===F.tipo) && (F.pag==='todos' || (F.pag==='receber' ? v.statusPagamento==='A Receber' : v.statusPagamento!=='A Receber')));
   const sel = (id, atual, ops) => `<select id="${id}" onchange="histFiltroMudou_()" style="width:auto;display:inline-block;margin:0 6px 6px 0;">${ops.map(o=>`<option value="${o[0]}"${String(atual)===String(o[0])?' selected':''}>${o[1]}</option>`).join('')}</select>`;
@@ -414,20 +544,34 @@ function renderHistoricoCliente(telefone, manterFiltro){
     <div class="fs-xs txt-muted mb-3">
       ${pedidos.length} pedido(s) · Total gasto: <b class="txt-ouro">${formatarMoeda(totalGasto)}</b> · Ticket médio: <b class="txt-ouro">${formatarMoeda(ticketMedio)}</b>
     </div>
-    <div class="obs-line mb-2">Mostra só os pedidos que ainda estão no sistema. Pedidos mais antigos ficam arquivados na planilha e não entram nesta soma (veja em Relatórios, "Outro mês").</div>
+    ${arq.estado==='carregando' ? '<div class="obs-line mb-2">⏳ Buscando pedidos antigos (arquivados)… os totais acima serão atualizados.</div>'
+      : arq.estado==='erro' ? '<div class="obs-line mb-2">⚠️ Não consegui buscar os pedidos antigos agora; os totais podem estar incompletos. <button type="button" class="small-gold" onclick="carregarArquivoCliente_(\''+tel+'\', '+(cadastro?'\''+cadastro.id+'\'':'null')+', true)">Tentar de novo</button></div>'
+      : '<div class="obs-line mb-2">Inclui os pedidos antigos arquivados (' + arq.pedidos.length + ' arquivado(s)). Telefone é a chave do cliente.</div>'}
     <div style="max-height:220px;overflow-y:auto;">`;
   html += pedidos.map(v=>{
     const tipoIcone = v.tipoEntrega==='Entrega' ? '🛵 Entrega' : '🥡 Retirada';
     const endereco = v.tipoEntrega==='Entrega' && v.endereco ? `<div class="obs-line">${escH(v.endereco)}${escH(v.complemento?', '+v.complemento:'')}</div>` : '';
     return `<div class="notif-card">
       <div>${v.data} — <b>${formatarMoeda(v.valorTotal)}</b></div>
-      <div class="obs-line">${itensDoPedido(v.id)}</div>
+      <div class="obs-line">${v.arquivado ? escH(String(v.itensTexto||'').replace(/ \| /g, ', ')) + ' <span class="txt-muted">(arquivado)</span>' : itensDoPedido(v.id)}</div>
       <div class="obs-line">${tipoIcone} · ${escH(v.formaPagamento)}${v.statusPagamento==='A Receber'?' · 💰 a receber':''} · ${v.statusPedido||''}</div>
       ${endereco}
     </div>`;
   }).join('');
   html += `</div></div>`;
   box.innerHTML = html;
+}
+async function salvarPreferenciasCliente_(){
+  const msg = document.getElementById('mPrefMsg'), id = modalClienteId;
+  if(!id) return;
+  const txt = document.getElementById('mPreferencias').value.trim();
+  msg.textContent = 'Salvando…';
+  try{
+    const j = await rpcArq_('api_cliente_preferencias', { p_cliente: id, p_texto: txt });
+    if(!j || !j.ok) throw new Error((j && j.message) || 'falha');
+    const c = clientes.find(x=>x.id===id); if(c) c.preferencias = j.preferencias || '';
+    msg.textContent = '✅ Salvo. Vale para os próximos pedidos dele.';
+  }catch(e){ msg.textContent = '⚠️ Não consegui salvar: ' + (e.message||'erro'); }
 }
 function abrirPerfilCliente(clienteId){
   modalClienteId = clienteId;
@@ -439,8 +583,10 @@ function abrirPerfilCliente(clienteId){
   document.getElementById('mComoConheceu').value = cliente ? (cliente.comoConheceu||'') : '';
   document.getElementById('mEndereco').value = cliente ? (cliente.endereco||'') : '';
   document.getElementById('mObs').value = cliente ? (cliente.observacao||'') : '';
+  { const pb = document.getElementById('mPrefBox'); if(pb){ pb.style.display = (cliente && arqPodeLer_()) ? 'block' : 'none'; document.getElementById('mPreferencias').value = cliente ? (cliente.preferencias||'') : ''; document.getElementById('mPrefMsg').textContent = ''; } }
   document.getElementById('mExcluirBtn').style.display = cliente ? 'block' : 'none';
   document.getElementById('mMsg').className = 'msg';
+  renderPerfil360_(cliente);
   if(cliente) renderHistoricoCliente(cliente.telefone); else document.getElementById('mHistoricoSection').innerHTML = '';
   const box = document.getElementById('mPromoSections');
   if(!cliente){ box.innerHTML = ''; }

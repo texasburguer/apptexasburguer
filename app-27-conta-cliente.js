@@ -315,7 +315,7 @@ async function desenharAba(){
   else if(a === 'fidelidade') html = await abaFidelidade();
   else if(a === 'enderecos') html = await abaEnderecos();
   else if(a === 'indique') html = await abaIndique();
-  else html = abaDados();
+  else { var pr = await rpc('api_conta_preferencias', { p:{} }); estado.pref = pr.ok ? (pr.preferencias || '') : null; html = abaDados(); }
   if(estado.aba === ab) corpo(html);
 }
 function erroAba(r){ return '<p class="sub">' + esc((r && r.message) || 'Não foi possível carregar agora.') + '</p><button type="button" class="ghost" onclick="contaAba_(\'' + estado.aba + '\')">Tentar de novo</button>'; }
@@ -514,6 +514,9 @@ function abaDados(){
     '<label>Telefone</label><input type="text" value="' + esc(c.telefone ? foneBonito(c.telefone) : 'Aparece depois do seu primeiro pedido concluído') + '" disabled>' +
     '<label class="ct-check"><input type="checkbox" id="ctDPromo"' + (c.promoOk ? ' checked' : '') + '> <span>Quero receber novidades e promoções</span></label>' +
     '<div id="ctDMsg" class="msg"></div><button type="button" class="primary" onclick="contaSalvarDados_()">Salvar</button>' +
+    (estado.pref === null ? '' : '<h3 class="ct-h3 mt-4">Minhas preferências</h3><p class="sub" style="font-size:12.5px;margin:2px 0 6px;">Vão na comanda de todo pedido seu (ex.: sem cebola, alergia a amendoim).</p>' +
+      '<input type="text" id="ctDPref" maxlength="300" value="' + esc(estado.pref || '') + '" placeholder="Ex.: sem cebola, alérgico a amendoim">' +
+      '<div id="ctPMsg" class="msg"></div><button type="button" class="small-gold" onclick="contaSalvarPref_()">Salvar preferências</button>') +
     '<h3 class="ct-h3 mt-4">Privacidade</h3>' +
     '<div class="ct-linha ct-col"><button type="button" class="ghost" onclick="abrirAvisoPrivacidade()">📄 Ler o Aviso de Privacidade</button><button type="button" class="ghost" onclick="contaBaixarDados_()">📥 Baixar meus dados</button>' +
     '<button type="button" class="ghost" onclick="contaSairBotao_()">↪️ Sair da conta</button><button type="button" class="ct-perigo" onclick="contaApagar_()">🗑️ Apagar minha conta</button></div>';
@@ -524,6 +527,12 @@ window.contaSalvarDados_ = async function(){
   if(!r.ok){ msg.textContent = r.message || 'Não foi possível salvar.'; msg.className = 'msg warn'; return; }
   msg.textContent = 'Dados salvos.'; msg.className = 'msg ok';
   var ini = await rpc('api_conta_iniciar', { p:{} }); if(ini.ok){ estado.conta = ini.conta; atualizarBotao(); }
+};
+window.contaSalvarPref_ = async function(){
+  var msg = $('ctPMsg');
+  var r = await rpc('api_conta_preferencias', { p:{ texto: ($('ctDPref').value || '').trim() } });
+  if(!r.ok){ msg.textContent = r.message || 'Não foi possível salvar.'; msg.className = 'msg warn'; return; }
+  estado.pref = r.preferencias || ''; msg.textContent = 'Preferências salvas.'; msg.className = 'msg ok';
 };
 window.contaSairBotao_ = function(){ sair(false); };
 window.contaBaixarDados_ = async function(){
@@ -557,7 +566,7 @@ function montarBrindesCheckout(){
   d.innerHTML = linhas.join('') + '<p class="sub" style="font-size:12px;margin:6px 0 0;">O brinde sai grátis e a entrega continua sendo cobrada.</p>';
   f.insertBefore(d, f.firstChild);
 }
-function limparCheckout(){ var z = $('cdContaBrindes'); if(z) z.remove(); var a = $('cdContaChamada'); if(a) a.remove(); var b = $('cdContaCupons'); if(b) b.remove(); var c = $('cdContaEndBox'); if(c) c.remove(); }
+function limparCheckout(){ var z = $('cdContaBrindes'); if(z) z.remove(); var a = $('cdContaChamada'); if(a) a.remove(); var b = $('cdContaCupons'); if(b) b.remove(); var c = $('cdContaEndBox'); if(c) c.remove(); var d = $('cdContaPref'); if(d) d.remove(); }
 window.contaPreencherCheckout_ = async function(){
   limparCheckout();
   var form = $('cdCheckoutForm'); if(!form) return;
@@ -580,6 +589,16 @@ window.contaPreencherCheckout_ = async function(){
     s.innerHTML = '<label for="cdContaEndSel">📍 Meus endereços</label><select id="cdContaEndSel" onchange="contaUsarEndereco_(this.value)"><option value="">Escolher um endereço salvo…</option>' +
       estado.enderecos.map(function(e, i){ return '<option value="' + i + '">' + esc((e.apelido ? e.apelido + ' — ' : '') + e.endereco + (e.numero ? ', ' + e.numero : '')) + '</option>'; }).join('') + '</select>';
     box.insertBefore(s, box.firstChild);
+  }
+  var pr = await rpc('api_conta_preferencias', { p:{} });
+  estado.pref = pr.ok ? (pr.preferencias || '') : null;
+  var ob = $('cdObservacoes');
+  if(ob && estado.pref !== null && !$('cdContaPref')){
+    var pf = document.createElement('div'); pf.id = 'cdContaPref'; pf.className = 'ct-chamada cd-hide-mesa';
+    pf.innerHTML = estado.pref
+      ? '<span>⚠️ Suas preferências vão junto no pedido: <b>' + esc(estado.pref) + '</b></span><button type="button" class="small-gold" onclick="abrirMinhaConta(\'dados\')">Editar</button>'
+      : '<span>Quer guardar preferências, como <b>sem cebola</b> ou alergias, para todo pedido?</span><button type="button" class="small-gold" onclick="abrirMinhaConta(\'dados\')">Guardar</button>';
+    ob.parentNode.insertBefore(pf, ob.previousElementSibling && ob.previousElementSibling.tagName === 'LABEL' ? ob.previousElementSibling : ob);
   }
   await carregarBrindes();
   montarBrindesCheckout();

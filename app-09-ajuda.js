@@ -482,7 +482,7 @@ Operador:{ nome:'Caixa', secoes:[
     'Atalho mais rápido no dia a dia: no Assistente, a aba "🔔 Avisos" mostra as ocorrências abertas, com botão "Tratar" direto.',
     'Você NÃO tem acesso às outras telas do Administrador (financeiro, usuários, backup, catálogo etc.).' ]},
 
-  { t:'Clientes e fidelidade', passos:['Clientes → "+ Novo cliente": só nome e telefone são obrigatórios.','Toque no cliente para ver histórico, total gasto, indicação e cartão fidelidade.','Com as 10 marcas, ou com uma indicação pendente, escolha o prêmio e toque em "🎁 Resgatar". Precisa do caixa aberto; o estoque baixa e o cliente não paga.','No histórico do cliente, use os filtros de período, entrega/retirada e pago/a receber.'],
+  { t:'Clientes e fidelidade', passos:['Clientes → "+ Novo cliente": só nome e telefone são obrigatórios.','Toque no cliente para ver histórico, total gasto, indicação e cartão fidelidade.','Com as 10 marcas, ou com uma indicação pendente, escolha o prêmio e toque em "🎁 Resgatar". Precisa do caixa aberto; o estoque baixa e o cliente não paga.','No histórico do cliente, use os filtros de período, entrega/retirada e pago/a receber.','No alto do perfil está o Perfil 360: segmento (Novo, Fiel, VIP ou Em risco), gasto total, ticket médio, frequência, itens favoritos e se tem conta Google. Já soma os pedidos antigos arquivados.','Na lista de clientes, os botões Em risco, VIP, Fiéis e Novos mostram só aquele grupo. Em risco = sem pedir há mais de 45 dias.'],
     comuns:['"Nenhum prêmio cadastrado": peça ao Administrador para marcar um produto como prêmio.'] },
 
   _aj.ocorr('Ela aparece na aba "🔔 Avisos" do Assistente e você pode tratar direto pelo botão "Tratar".')

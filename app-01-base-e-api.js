@@ -6,7 +6,7 @@ const API_URL = "https://script.google.com/macros/s/AKfycbwCftUm-1pxhA8XLNqMB7dM
 const CONTINGENCIA_API_URL = "https://script.google.com/macros/s/AKfycby3WljBnr7gpJrHdkbTvBCh5uIXqS4KCS6wkBYB5idxf5gI04efoDumQj264kR_smoW/exec";
 
 /* ===================== VERSÃO DO APP ===================== */
-const APP_VERSAO = '1.2';
+const APP_VERSAO = '1.5';
 const APP_ATUALIZADO_EM = '16/10/2026';
 window.APP_VERSAO = APP_VERSAO;
 
@@ -18,6 +18,16 @@ window.APP_VERSAO = APP_VERSAO;
    A seção "🆕 O que mudou" do manual é gerada daqui. */
 const APP_NOVIDADES = {
   Admin: [
+    { v:'1.5', em:'16/10/2026', itens:[
+      'Novo em Clientes › perfil: \"Preferências fixas\" (ex.: sem cebola, alergias). Cada pedido novo do cliente guarda uma cópia, para a comanda mostrar. As preferências aparecem na tela da cozinha, na comanda impressa e nos detalhes do pedido. O cliente com conta também edita as suas em Minha conta › Meus dados e as vê no checkout antes de pedir. Quem está em Em risco ou VIP agora também recebe um aviso (push) junto com o cupom automático, se tiver o aviso ligado no aparelho.'
+    ]},
+    { v:'1.4', em:'16/10/2026', itens:[
+      'Novo em Promoções › Cupons automáticos: "Sentimos sua falta" (cliente em risco, mais de 45 dias sem pedir) e "Cliente VIP". Já vêm DESLIGADOS: ajuste o valor e ligue. Só recebe quem tem conta Google e aceitou promoções; o cupom aparece em Minha conta.'
+    ]},
+    { v:'1.3', em:'16/10/2026', itens:[
+      'Novo em Clientes: Perfil 360 no topo do perfil (segmento Novo, Fiel, VIP ou Em risco, gasto total, ticket médio, frequência, itens favoritos e se tem conta Google) e selo do segmento na lista, com filtros Em risco, VIP, Fiéis e Novos. Os pedidos antigos arquivados entram na conta, pelo telefone do cliente.',
+      'Novo em Backup e espaço: botão "Simular" no arquivamento. Mostra quantos pedidos e caixas sairiam do Supabase, quantos ficam e se o resumo guardado confere com o que há na planilha, sem mover nada. Ao anonimizar um cliente (LGPD), os pedidos dele arquivados na planilha também são limpos, de madrugada.'
+    ]},
     { v:'1.2', em:'16/10/2026', itens:[
       'Menu do Administrador reorganizado em 6 grupos: Hoje, Dinheiro, Produtos, Vendas e cardápio, Loja e equipe e Sistema. Nenhuma tela foi retirada; só mudaram de grupo ou de nome (por exemplo, \"Contas e acessos\" agora é \"Integrações e contas\" e \"Ajustes pós-venda\" é \"Reembolsos e ajustes\").',
       'Novo no menu do Administrador: campo \"Ir para…\". Digite uma palavra (cupom, estoque, iFood, reembolso) e toque na tela que aparece.',
@@ -93,6 +103,9 @@ const APP_NOVIDADES = {
     ]}
   ],
   Operador: [
+    { v:'1.3', em:'16/10/2026', itens:[
+      'Novo em Clientes: Perfil 360 no topo do perfil (segmento Novo, Fiel, VIP ou Em risco, gasto total, ticket médio, itens favoritos) e selo do segmento na lista, com filtros Em risco, VIP, Fiéis e Novos.'
+    ]},
     { v:'1.0', em:'09/10/2026', itens:[
       'Novo: você pode responder feedbacks. Em Operação → Feedbacks cada feedback mostra "👤 com conta" ou "sem conta" e tem o botão "💬 Responder": o cliente com conta vê a sua resposta em Minha conta › Pedidos. Sem conta, o botão "WhatsApp" abre a conversa com o telefone dele. O botão de feedback do rodapé do cardápio continua igual e aceita anônimos.',
       'Novo: no Início, "Cardápio hoje" mostra quantos clientes abriram o cardápio eletrônico hoje (cada aparelho conta 1 vez por dia; aparelhos da equipe não contam). O alerta virou uma faixa fina no topo e a conta das mesas foi para dentro do cartão Mesas.',
@@ -534,7 +547,7 @@ async function sbMontarDados_(nivel, chaves){
   };
   const din = {
     usuarios: usuarios.map(u=>({ login:u.login, nivel:u.nivel, ativo:u.ativo, criadoEm:sbDataBr_(u.criado_em), nome:u.nome||'', telefone:u.telefone||'', id:u.id })),
-    logRecentes: [], clientes: clientes.map(x=>{ const y = { id:x.id, nome:x.nome, telefone:x.telefone||'', dataNascimento:x.data_nascimento||'', endereco:x.endereco||'', comoConheceu:x.como_conheceu||'', primeiroContato:sbDataBr_(x.primeiro_contato), observacao:x.observacoes||'' }; if(nivel==='Garçom') delete y.observacao; return y; }), promocoes: nivel==='Garçom' ? [] : promos.map(p=>({ nome:p.nome, tipo:p.tipo, regra:p.regra_duplicidade, beneficio:p.beneficio, ativa:p.ativa })),
+    logRecentes: [], clientes: clientes.map(x=>{ const y = { id:x.id, nome:x.nome, telefone:x.telefone||'', dataNascimento:x.data_nascimento||'', endereco:x.endereco||'', comoConheceu:x.como_conheceu||'', primeiroContato:sbDataBr_(x.primeiro_contato), observacao:x.observacoes||'', preferencias:x.preferencias||'' }; if(nivel==='Garçom') delete y.observacao; return y; }), promocoes: nivel==='Garçom' ? [] : promos.map(p=>({ nome:p.nome, tipo:p.tipo, regra:p.regra_duplicidade, beneficio:p.beneficio, ativa:p.ativa })),
     cupons: cupDb.map(c=>({ id:c.id, codigo:String(c.codigo||'').toUpperCase(), nome:c.nome||'', tipo:c.tipo||'percentual', valor:Number(c.valor)||0, faixas:Array.isArray(c.faixas)?c.faixas:[], freteGratis:!!c.frete_gratis, dataInicio:c.data_inicio||'', dataFim:c.data_fim||'', horaInicio:String(c.hora_inicio||'').slice(0,5), horaFim:String(c.hora_fim||'').slice(0,5), limiteTotal:Number(c.limite_total)||0, limitePorCliente:Number(c.limite_por_cliente)||0, valorMinimo:Number(c.valor_minimo)||0, ativa:c.ativa!==false, acumula:!!c.acumula, somenteConta:!!c.somente_conta, clienteId:c.cliente_id||'', mensagem:c.mensagem||'', visivelConta:!!c.visivel_conta, automatico:c.automatico||'', validadeDias:Number(c.validade_dias)||30, criadoEm:sbDataBr_(c.criado_em) })),
     eventos: evDb.map(e=>({ id:e.id, nome:e.nome||'', tipo:e.tipo||'', data:e.data||'', horaInicio:String(e.hora_inicio||'').slice(0,5), horaFim:String(e.hora_fim||'').slice(0,5), local:e.local||'', contratante:e.contratante||'', telefone:e.telefone||'', status:e.status||'Orçamento', valorContratado:Number(e.valor_contratado)||0, valorRecebido:Number(e.valor_recebido)||0, valorAReceber:Number(e.valor_a_receber)||0, custoTotal:Number(e.custo_total)||0, resultado:Number(e.resultado)||0, observacoes:e.observacoes||'' })),
     indicacoes: indDb.map(i=>({ nomeIndicador:i.nome_indicador||'', telIndicador:i.telefone_indicador||'', nomeIndicado:i.nome_indicado||'', telIndicado:i.telefone_indicado||'', data:sbDataBr_(i.data), resgatado:i.status==='Resgatado', observacao:i.observacoes||'', idIndicador:i.indicador_id||'', idIndicado:i.indicado_id||'' })),
@@ -547,7 +560,7 @@ async function sbMontarDados_(nivel, chaves){
     maisPedidos: maisEqDb.map(m=>({ tipo:m.tipo, id:m.id })),
     vendas: vendasDb.map(v=>({ id:v.id, data:sbDataBr_(v.data_hora), timestamp:Date.parse(v.data_hora)||0, clienteNome:v.cliente_nome||'', clienteTelefone:v.cliente_telefone||'', formaPagamento:v.forma_pagamento||'',
       valorTotal:Number(v.valor_total)||0, custoTotal:Number(v.custo_total)||0, status:v.status, motivoCancelamento:v.motivo_cancelamento||'', tipoEntrega:v.tipo_entrega||'Retirada', statusPedido:v.status_pedido||'',
-      endereco:v.endereco||'', complemento:v.complemento||'', referencia:v.referencia||'', observacoesEntrega:v.observacoes_entrega||'',
+      endereco:v.endereco||'', complemento:v.complemento||'', referencia:v.referencia||'', observacoesEntrega:v.observacoes_entrega||'', preferenciasCliente:v.preferencias_cliente||'',
       timestampPronta:v.pronta_em?Date.parse(v.pronta_em):null, timestampConcluida:v.concluida_em?Date.parse(v.concluida_em):null,
       statusPagamento:v.status_pagamento||'Pago', timestampRecebimento:v.recebido_em?Date.parse(v.recebido_em):null,
       valorOriginal:Number(v.valor_original)||Number(v.valor_total)||0, valorDesconto:Number(v.valor_desconto)||0, acrescimoForma:Number(v.acrescimo_forma)||0, descontoDetalhe:v.desconto_detalhe||'', entregador:v.entregador||'',

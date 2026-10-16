@@ -20,6 +20,7 @@ function pdClienteHtml_(v){
     if(v.referencia) linha('🧭 Referência', escH(v.referencia));
     linha('🛵 Entregador', v.entregador ? escH(pdEntregadorNome_(v.entregador)) : '<i>não atribuído</i>');
   }
+  if(v.preferenciasCliente) linha('⚠️ Preferências do cliente', escH(v.preferenciasCliente));
   if(v.observacoesEntrega) linha('📝 Observações', escH(v.observacoesEntrega));
   linha('🕒 Feito em', escH(v.data||'')+' · há '+tempoDecorridoDesde(v.timestamp));
   const quem = quemFezPedido_(v);
@@ -341,7 +342,7 @@ function cardCozinha_(v, acao){
   const destino = v.tipoEntrega==='Mesa' ? '🍽️ Mesa '+escOc_(nomeMesa(v.mesaId)) : (v.tipoEntrega==='Entrega' ? '🛵 Entrega' : '🥡 Retirada'+(v.clienteNome?' · '+escOc_(v.clienteNome):''));
   const min = Math.floor((Date.now()-v.timestamp)/60000);
   const atrasado = (v.statusPedido==='Recebido' || v.statusPedido==='Em preparo') && min>=20;
-  const obs = v.observacoesEntrega ? `<div class="cz-obs">📝 ${escOc_(v.observacoesEntrega)}</div>` : '';
+  const obs = (v.preferenciasCliente ? `<div class="cz-obs">⚠️ Preferências: ${escOc_(v.preferenciasCliente)}</div>` : '') + (v.observacoesEntrega ? `<div class="cz-obs">📝 ${escOc_(v.observacoesEntrega)}</div>` : '');
   const alterado = (['Retirada','Entregue','Servida'].indexOf(v.statusPedido)===-1) && comandaFotoTirar_(v); // ITEM 2.4 (concluído não alerta)
   let faixaAlterado = '';
   if(alterado){
@@ -446,6 +447,7 @@ function comandaHtml_(v){
     }
   }
   h += `<hr>${itens}`;
+  if(v.preferenciasCliente) h += `<hr><div style="font-size:1.2em;font-weight:700;">⚠ PREFERÊNCIAS: ${escR(v.preferenciasCliente)}</div>`;
   if(v.observacoesEntrega) h += `<hr><div><b>OBS:</b> ${escR(v.observacoesEntrega)}</div>`;
   h += '<hr>';
   const taxa = Number(v.taxaEntrega)||0;
