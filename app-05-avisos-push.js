@@ -596,8 +596,7 @@ function renderStatusCaixa(){
   ).join('');
 
   box.innerHTML = `<div class="caixa-status-titulo">🟢 Caixa aberto<small>desde ${sessaoCaixa.abertura}${escH(sessaoCaixa.usuarioAbertura?(' · por '+sessaoCaixa.usuarioAbertura):'')}</small></div>
-    ${caixaFaixaHtml_()}
-    ${(currentUser && (currentUser.nivel==='Admin' || currentUser.nivel==='Desenvolvedor')) ? '<button type="button" class="ghost mb-3" onclick="caixaRegraAbrir_()">Regra do caixa vencido</button>' : ''}
+    ${caixaFaixaHtml_('caixa')}
     <div class="stat-row">
       <div class="stat-box"><b class="txt-ouro">${formatarMoeda(sessaoCaixa.fundoCaixa)}</b><span>FUNDO</span></div>
       ${boxesFormas || '<div class="stat-box entrada"><b>R$ 0,00</b><span>VENDAS</span></div>'}
@@ -606,7 +605,8 @@ function renderStatusCaixa(){
     </div>
     <div class="fs-md mb-3">Saldo esperado em caixa (dinheiro): <b style="color:var(--gold);font-size:17px;">${formatarMoeda(saldoEsperado)}</b></div>
     ${totalAcertosPrev>0 ? `<div style="font-size:13px;margin:-4px 0 10px;opacity:.9;">🛵 A pagar aos entregadores ao fechar: <b>${formatarMoeda(totalAcertosPrev)}</b> · ficam na gaveta ${formatarMoeda(arred2(saldoEsperado-totalAcertosPrev))}</div>` : ''}
-    <button class="primary" onclick="fecharCaixaAgora()">${(caixaEstado_()||{}).passou ? 'Fechar caixa vencido' : 'Fechar caixa'}</button>`;
+    <button class="primary" onclick="fecharCaixaAgora()">${(caixaEstado_()||{}).passou ? 'Fechar caixa vencido' : 'Fechar caixa'}</button>
+    ${(currentUser && (currentUser.nivel==='Admin' || currentUser.nivel==='Desenvolvedor')) ? '<button type="button" class="ghost mt-3" onclick="caixaRegraAbrir_()">Regra do caixa vencido</button>' : ''}`;
 
   const lista = [
     ...vendasSessao.map(v=>({tipo:'venda', ts:v.timestamp, label:(v.clienteNome||'Sem cadastro'), valor:v.valorTotal, extra:v.formaPagamento, id:v.id, aReceber:v.statusPagamento==='A Receber'})),
@@ -805,21 +805,24 @@ function caixaEstado_(){
   const agora = Date.now(), passou = agora >= s.venceEm, liberado = passou && s.liberadoAte > agora;
   return { passou, liberado, vencido: passou && !liberado, aviso: !passou && (s.venceEm - agora) <= (s.avisoHoras || 2) * 3600000 };
 }
-function caixaFaixaHtml_(){
+/* ctx 'caixa' = dentro da tela do Caixa (o botão de fechar fica no fim da tela, só ali);
+   ctx 'inicio' = faixa do topo do Início (leva ao Caixa, sem repetir o botão de fechar). */
+function caixaIrParaTela_(){ const b = document.querySelector('.tab-btn[data-tab="caixa"]'); if(b) b.click(); }
+function caixaFaixaHtml_(ctx){
   const e = caixaEstado_(); if(!e || !currentUser) return '';
-  const nivel = currentUser.nivel, fecha = (nivel === 'Admin' || nivel === 'Operador' || nivel === 'Desenvolvedor');
+  const noCaixa = ctx === 'caixa';
+  const nivel = currentUser.nivel, fecha = (nivel === 'Admin' || nivel === 'Operador' || nivel === 'Desenvolvedor'), admin = (nivel === 'Admin' || nivel === 'Desenvolvedor');
   const quando = sessaoCaixa.abertura || '';
   const ext = (vendas||[]).filter(v=>v.status==='Confirmada' && v.statusPedido==='Recebido' && v.origem && v.origem!=='Balcão' && v.origem!=='Garçom').length;
   const extTxt = ext ? ' <b>' + ext + ' pedido(s) do iFood/cardápio aguardando aceite: aceite normalmente, não trava.</b>' : '';
+  const irCaixa = (!noCaixa && fecha) ? '<div class="caixa-faixa-btns"><button type="button" class="small-gold" onclick="caixaIrParaTela_()">Ir ao Caixa</button></div>' : '';
   if(e.vencido){
     if(!fecha) return '<div class="caixa-faixa erro" role="alert">' + icSvg_('sino') + ' Caixa vencido — chame o responsável.</div>';
-    return '<div class="caixa-faixa erro" role="alert"><div>' + icSvg_('sino') + ' <b>Caixa vencido</b> (aberto em ' + escH(quando) + '). Venda nova de balcão e de mesa está bloqueada. Pedidos do iFood e do cardápio continuam entrando.' + extTxt + '</div>'
-      + '<div class="caixa-faixa-btns"><button type="button" class="small-gold" onclick="fecharCaixaAgora()">Fechar caixa vencido</button>'
-      + ((nivel === 'Admin' || nivel === 'Desenvolvedor') ? '<button type="button" class="ghost" onclick="caixaLiberarAbrir_()">Liberar por algumas horas</button>' : '') + '</div></div>';
+    return '<div class="caixa-faixa erro" role="alert"><div>' + icSvg_('sino') + ' <b>Caixa vencido</b> (aberto em ' + escH(quando) + '). Venda nova de balcão e de mesa está bloqueada. Pedidos do iFood e do cardápio continuam entrando.' + extTxt + (noCaixa ? ' Para voltar a vender, feche o caixa no botão no fim desta tela e abra um novo.' : '') + '</div>'
+      + (noCaixa ? (admin ? '<div class="caixa-faixa-btns"><button type="button" class="ghost" onclick="caixaLiberarAbrir_()">Liberar por algumas horas</button></div>' : '') : irCaixa) + '</div>';
   }
-  if(e.liberado) return '<div class="caixa-faixa aviso">' + icSvg_('sino') + ' Caixa vencido liberado por ' + escH(sessaoCaixa.liberadoPor || 'Admin') + ' até ' + caixaHora_(sessaoCaixa.liberadoAte) + (sessaoCaixa.liberadoMotivo ? ' — ' + escH(sessaoCaixa.liberadoMotivo) : '') + '.'
-    + (fecha ? ' <button type="button" class="ghost" onclick="fecharCaixaAgora()">Fechar caixa</button>' : '') + '</div>';
-  if(e.aviso) return '<div class="caixa-faixa aviso">' + icSvg_('sino') + ' O caixa vence às ' + caixaHora_(sessaoCaixa.venceEm) + '. Feche e abra um novo antes disso.' + (fecha ? ' <button type="button" class="ghost" onclick="fecharCaixaAgora()">Fechar caixa</button>' : '') + '</div>';
+  if(e.liberado) return '<div class="caixa-faixa aviso"><div>' + icSvg_('sino') + ' Caixa vencido liberado por ' + escH(sessaoCaixa.liberadoPor || 'Admin') + ' até ' + caixaHora_(sessaoCaixa.liberadoAte) + (sessaoCaixa.liberadoMotivo ? ' — ' + escH(sessaoCaixa.liberadoMotivo) : '') + '.</div>' + irCaixa + '</div>';
+  if(e.aviso) return '<div class="caixa-faixa aviso"><div>' + icSvg_('sino') + ' O caixa vence às ' + caixaHora_(sessaoCaixa.venceEm) + '. Feche e abra um novo antes disso.</div>' + irCaixa + '</div>';
   return '';
 }
 /* faixa no topo do Início (todos os perfis); no Caixa ela vem dentro do cartão de status */
@@ -844,7 +847,7 @@ function caixaFaixaAtualizar_(){
   const alvo = document.getElementById('inicioResumo'); if(!alvo || !alvo.parentNode) return;
   let f = document.getElementById('caixaFaixaInicio');
   if(!f){ f = document.createElement('div'); f.id = 'caixaFaixaInicio'; alvo.parentNode.insertBefore(f, alvo); }
-  f.innerHTML = caixaFaixaHtml_();
+  f.innerHTML = caixaFaixaHtml_('inicio');
 }
 async function caixaLiberarAbrir_(){
   const e = caixaEstado_(); if(!e || !e.vencido) return;

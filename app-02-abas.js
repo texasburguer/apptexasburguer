@@ -164,7 +164,6 @@ function abrirAdministrador(sub){
   if(sub === 'drive') sub = 'armazenamento';   // "Espaço e fotos" virou parte de "Backup e espaço"
   const permitidos = gruposAdmin_().reduce((a,g)=>a.concat(g.subs), []);
   const alvo = (ADMIN_SUBABAS.includes(sub) && permitidos.includes(sub)) ? sub : permitidos[0];
-  adminLembrar_(alvo);
   montarBarrasAdmin_(alvo);
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
   document.querySelector('[data-tab="administrador"]').classList.add('active');
@@ -619,31 +618,8 @@ function fotoFalhou_(img){
 
 
 
-/* ---------- INÍCIO DO ADMINISTRADOR (6.4): pendências que abrem a tela certa + últimas telas vistas ---------- */
-const ADMIN_RECENTES_CHAVE_ = 'texas_admin_recentes';
-function adminRecentes_(){ try{ const a = JSON.parse(localStorage.getItem(ADMIN_RECENTES_CHAVE_) || '[]'); return Array.isArray(a) ? a.filter(id=>ADMIN_SUBABAS_ROTULOS[id]) : []; }catch(e){ return []; } }
-function adminLembrar_(id){
-  if(!ADMIN_SUBABAS_ROTULOS[id]) return;
-  try{ localStorage.setItem(ADMIN_RECENTES_CHAVE_, JSON.stringify([id].concat(adminRecentes_().filter(x=>x!==id)).slice(0,3))); }catch(e){}
-}
-function adminIrParaAba_(aba){ const b = document.querySelector('.tab-btn[data-tab="' + aba + '"]'); if(b) b.click(); }
+/* ---------- ENTRADA DO ADMINISTRADOR: só o menu; a tela abre quando você toca nela ---------- */
 function renderAdminInicio_(){
   const box = document.getElementById('adminInicioConteudo'); if(!box) return;
-  const permitidos = gruposAdmin_().reduce((a,g)=>a.concat(g.subs), []);
-  const cards = [], add = (n, txt, js, grave)=>{ if(n > 0) cards.push(`<button type="button" class="adm-pend${grave?' grave':''}" onclick="${js}"><b>${n}</b><span>${txt}</span></button>`); };
-  const ce = (typeof caixaEstado_ === 'function') ? caixaEstado_() : null;
-  if(ce && ce.vencido) cards.push('<button type="button" class="adm-pend grave" onclick="adminIrParaAba_(\'caixa\')"><b>!</b><span>Caixa vencido: feche o caixa ou libere por algumas horas</span></button>');
-  else if(ce && ce.liberado) cards.push('<button type="button" class="adm-pend" onclick="adminIrParaAba_(\'caixa\')"><b>🔓</b><span>Caixa vencido liberado até ' + caixaHora_(sessaoCaixa.liberadoAte) + '</span></button>');
-  else if(ce && ce.aviso) cards.push('<button type="button" class="adm-pend" onclick="adminIrParaAba_(\'caixa\')"><b>⏰</b><span>O caixa vence às ' + caixaHora_(sessaoCaixa.venceEm) + '</span></button>');
-  if(currentUser && currentUser.nivel !== 'Operador'){
-    add((vendas||[]).filter(v=>v.status==='Confirmada' && v.statusPedido==='Recebido').length, 'pedido(s) aguardando aceite', "adminIrParaAba_('pedidos')", true);
-    add((estoque||[]).filter(e=>e.ativo && Number(e.minimo)>0 && Number(e.quantidade)<=Number(e.minimo)).length, 'ingrediente(s) no mínimo', "abrirAdministrador('estoque')");
-  }
-  add(typeof ocorrenciasAbertas_ === 'function' ? ocorrenciasAbertas_().length : 0, 'ocorrência(s) aberta(s)', "abrirAdministrador('ocorrencias')");
-  add((feedbacks||[]).filter(f=>!f.resposta).length, 'feedback(s) sem resposta', "abrirAdministrador('feedbacks')");
-  const rec = adminRecentes_().filter(id=>permitidos.includes(id));
-  box.innerHTML = '<div class="card"><h2>Início do Administrador</h2>'
-    + (cards.length ? '<div class="adm-pends">' + cards.join('') + '</div>' : '<div class="notif-empty">Nenhuma pendência agora.</div>')
-    + (rec.length ? '<h3 class="mt-3">Vistas por último</h3><div class="adm-recentes">' + rec.map(id=>`<button type="button" class="ghost" onclick="abrirAdministrador('${id}')">${ADMIN_SUBABAS_ROTULOS[id]}</button>`).join('') + '</div>' : '')
-    + '<p class="obs-line mt-3">Escolha uma tela no menu' + (gruposAdmin_().length > 1 ? ' ou use o campo “Ir para…”.' : '.') + '</p></div>';
+  box.innerHTML = '<p class="obs-line mt-3">Escolha uma tela no menu' + (gruposAdmin_().length > 1 ? ' ou use o campo “Ir para…”.' : '.') + '</p>';
 }

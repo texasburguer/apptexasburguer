@@ -246,10 +246,3 @@ th[align="right"]{ text-align:right; }
 .caixa-faixa-btns{display:flex;flex-wrap:wrap;gap:var(--esp-2);margin-top:var(--esp-2);}
 .caixa-faixa:empty{display:none;}
 
-/* Início do Administrador */
-.adm-pends{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:var(--esp-2);margin-top:var(--esp-2);}
-.adm-pend{display:flex;align-items:center;gap:var(--esp-3);text-align:left;padding:var(--esp-3);min-height:var(--alvo-toque);background:var(--panel,transparent);border:1px solid var(--line-forte);border-radius:var(--raio-card);color:inherit;font-size:var(--fs-sm);cursor:pointer;}
-.adm-pend b{font-size:var(--fs-xl);color:var(--gold);min-width:32px;text-align:center;}
-.adm-pend.grave{border-color:var(--erro);background:var(--erro-fundo);}
-.adm-pend.grave b{color:var(--erro-texto);}
-.adm-recentes{display:flex;flex-wrap:wrap;gap:var(--esp-2);margin-top:var(--esp-2);}
