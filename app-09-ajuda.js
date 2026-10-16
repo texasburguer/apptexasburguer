@@ -75,11 +75,11 @@ Admin:{ nome:'Administrador', secoes:[
 
   { t:'Onde fica cada coisa', itens:[
     'Ao tocar em Admin, nada abre sozinho: aparecem só os 6 grupos; toque num grupo para ver as telas dele e depois na tela que quer abrir.',
-    'A aba Administrador tem uma barra dividida em 6 grupos: Painel (Visão Geral, Ocorrências, Feedbacks, Relatórios); Financeiro (Contas e despesas, Análise, Ajustes pós-venda, Histórico); Catálogo (Produtos, Estoque, Custos e Precificação, Cardápio Digital); Campanhas (Promoções, Eventos); Operação (Mesas e QR Codes, Pagamentos, Entregadores e taxas, Configurar notificações); Sistema (Usuários e Permissões, Auditoria, Backup e espaço, Sincronização e contingência, Contas e acessos).',
+    'A aba Administrador tem uma barra dividida em 6 grupos: Hoje (Visão Geral, Ocorrências, Feedbacks); Dinheiro (Contas a pagar e despesas, Histórico, Reembolsos e ajustes, Previsto e metas, Relatórios e DRE); Produtos (Produtos, combos e adicionais, Estoque, Compras e fornecedores, Custos e precificação); Vendas e cardápio (Cardápio Digital, Formas de pagamento, Promoções e cupons, Eventos); Loja e equipe (Mesas e QR Codes, Entregadores e taxas, Usuários e permissões, Configurar avisos); Sistema (Integrações e contas, Backup e espaço, Sincronização e contingência, Auditoria).',
     'Caixa, Pedidos, Entregas e Clientes funcionam como nos outros perfis, e você pode tudo.' ]},
 
   { t:'Criar usuário e trocar senha', passos:[
-    'Administrador → Sistema → Usuários e Permissões.',
+    'Administrador → Loja e equipe → Usuários e permissões.',
     'Em "Criar acesso", preencha Login e Senha e escolha o perfil (Operador, Garçom, Cozinha, Entregador, Admin ou Desenvolvedor).',
     'Digite "Sua senha de administrador" e toque em "Criar acesso".',
     'Perfil Desenvolvedor: você cria como qualquer outro, mas depois de criado fica travado — só o próprio Desenvolvedor edita ou troca a senha. Nem você nem ele excluem esse acesso.',
@@ -89,14 +89,14 @@ Admin:{ nome:'Administrador', secoes:[
       'Você esqueceu a sua: rode redefinirSenhaAdminEmergencia no editor do Apps Script.'] },
 
   { t:'Cadastrar produtos e estoque', passos:[
-    'Administrador → Catálogo → Produtos → "+ Novo produto". Preencha nome, categoria, preço de venda e, se quiser, foto e descrição.',
+    'Administrador → Produtos → Produtos, combos e adicionais → "+ Novo produto". Preencha nome, categoria, preço de venda e, se quiser, foto e descrição.',
     'Em "Como é feito?" escolha: 🍳 Preparado aqui (lanches, porções), 🥤 Comprado pronto (bebidas, sobremesa embalada) ou ✍️ Sem controle.',
     'Preparado aqui: digite o ingrediente (ex.: "quei"), toque nele e diga quanto vai em cada um. Ingrediente comprado por kg ou litro pede gramas ou ml. Não existe? Toque em "+ criar" ali mesmo. Para ir mais rápido, use "📋 Copiar receita de outro produto" e só ajuste. O custo aparece sozinho.',
     'Comprado pronto: informe "Paguei R$ __ por __ unidades" (ex.: 30 por 12 = R$ 2,50 por lata), quanto tem agora e o mínimo para avisar. Cada venda baixa 1 do estoque.',
     'Sem controle: digite o custo se souber.',
     'Em "⚙️ Mais opções" ficam o preço próprio do iFood (em branco = preço de venda), os adicionais, o destaque no cardápio e o prêmio (fidelidade/indicação).',
     'Produto novo já vem com os adicionais marcados que os outros produtos da mesma categoria têm ("Comprado pronto", como bebida, vem sem nenhum). Desmarque o que não vale para ele.',
-    'Ingredientes: Catálogo → Estoque → "+ Novo ingrediente": nome, como você compra (un, kg, litro) e "Paguei R$ __ por __". Para dar preço a vários de uma vez, use "💲 Preços em lote".' ],
+    'Ingredientes: Produtos → Estoque → "+ Novo ingrediente": nome, como você compra (un, kg, litro) e "Paguei R$ __ por __". Para dar preço a vários de uma vez, use "💲 Preços em lote".' ],
     comuns:['O custo dos produtos e combos se atualiza sozinho quando o preço de um ingrediente muda (edição, lote ou compra recebida). O custo do combo é a soma dos produtos dele.',
       'Trocar a unidade de um ingrediente de kg para g (ou l para ml) converte as receitas sozinho. Trocar de "un" para kg não converte: o sistema avisa quais receitas revisar.',
       'O Estoque tem duas abas: Ingredientes e Bebidas e itens prontos. Bebidas não aparecem na hora de montar receita.',
@@ -107,13 +107,13 @@ Admin:{ nome:'Administrador', secoes:[
       'Bebida e item comprado pronto não têm adicionais.'] },
 
   { t:'Prêmios: fidelidade e indicação', passos:[
-    'Marque os produtos que podem ser prêmio em Catálogo → Produtos → Editar → "🎁 Este produto é um prêmio".',
+    'Marque os produtos que podem ser prêmio em Produtos → Produtos, combos e adicionais → Editar → "🎁 Este produto é um prêmio".',
     'Clientes → toque no cliente. Com as 10 marcas do cartão, ou com uma indicação pendente, aparece o prêmio para escolher e o botão "🎁 Resgatar prêmio" (ou "Resgatar indicação").',
     'Confirme. O cartão zera (ou a indicação é marcada), o estoque do produto baixa e o custo entra no financeiro. O cliente não paga nada.' ],
     comuns:['O caixa precisa estar aberto: o prêmio fica registrado no turno.','"Nenhum prêmio cadastrado": nenhum produto ativo está marcado como prêmio daquele tipo.','As indicações pendentes também aparecem em 🔔 Avisos (no Assistente).'] },
 
   { t:'QR Code das mesas', passos:[
-    'Administrador → Operação → Mesas e QR Codes → "📲 QR Codes das mesas".',
+    'Administrador → Loja e equipe → Mesas e QR Codes → "📲 QR Codes das mesas".',
     'Escolha a mesa e toque em "🖨️ Imprimir esta mesa" (ou "Imprimir todas"). Também dá para "⬇️ Baixar PNG".',
     'Plastifique e deixe na mesa. O cliente pede pelo celular e você aceita o pedido em Pedidos.',
     'Se alguém espalhar o QR, use "🔄 Gerar novo código" e imprima o QR novo daquela mesa.' ],
@@ -158,21 +158,21 @@ Admin:{ nome:'Administrador', secoes:[
     'O cliente que aceita os avisos (convite no topo do cardápio ou no cartão "Pedido enviado") recebe no celular: confirmado (quando o pedido vai para "Em preparo"), pronto (só retirada), saiu para entrega, entregue/retirado e cancelado.',
     'O aviso sai sozinho quando a equipe muda o status do pedido. O texto mostra só o número do pedido, nunca nome, telefone ou endereço.',
     '30 minutos depois de entregue (até 3 horas), quem aceitou recebe "⭐ Como foi seu pedido?". Se o cliente já deu feedback daquele pedido, não pergunta.',
-    'Feedbacks (Painel → Feedbacks) mostram de onde vieram: "🔔 veio pelo aviso do pedido", "💬 veio pelo chat" (o atendente oferece registrar quando o cliente elogia ou sugere) ou sem marca (rodapé do cardápio).',
+    'Feedbacks (Hoje → Feedbacks) mostram de onde vieram: "🔔 veio pelo aviso do pedido", "💬 veio pelo chat" (o atendente oferece registrar quando o cliente elogia ou sugere) ou sem marca (rodapé do cardápio).',
     'Responder um feedback: em Feedbacks, toque em "💬 Responder" e escreva (até 1000 letras). Se o cliente deu o feedback com a conta dele (aparece "👤 com conta"), ele vê a sua resposta em Minha conta › Pedidos e o feedback vira "Respondido". Sem conta ("sem conta"), a resposta fica só registrada aqui; use o botão "WhatsApp" para falar com ele pelo telefone. Dá para editar a resposta depois.',
     'Feedback anônimo ou de quem não fez login continua chegando normalmente pelo botão do rodapé do cardápio.',
     'Pedidos de mesa (QR Code) não recebem avisos. No iPhone, o cliente precisa instalar o app para receber.' ]},
 
-  { t:'Contas e acessos', itens:[
-    'Administrador → Sistema → Contas e acessos: lista das contas que fazem o sistema funcionar (Supabase, GitHub, planilhas, etc.), com e-mail, link e observação.',
+  { t:'Integrações e contas', itens:[
+    'Administrador → Sistema → Integrações e contas: lista das contas que fazem o sistema funcionar (Supabase, GitHub, planilhas, etc.), com e-mail, link e observação.',
     '"+ Nova conta" cadastra; "Editar" muda os dados ou a senha; "Excluir" apaga a conta e a senha guardada.',
     'A senha fica no cofre criptografado do Supabase. Para ver, toque em "Ver senha" e digite a SUA senha de administrador; ela aparece por 30 segundos. Cada visualização fica na Auditoria.',
     'Chaves das IAs (Gemini, Gemini 2, Groq, Groq 2, NVIDIA e Cloudflare): ficam na mesma tela. "Ver chave" e "Trocar chave" pedem a sua senha de administrador. A chave nova vale na hora. As seis chaves participam do circuito de texto; o sistema distribui as chamadas pelo uso do dia e usa outra chave quando uma falha ou está indisponível. A Cloudflare pede também o Account ID. Para usá-las no atendimento ao cliente do cardápio, marque a opção abaixo da lista (só depois de conferir a privacidade do provedor).',
-    'Contas e acessos tem 5 sub-menus no topo: 🔐 Contas, 🤖 IAs, 🛵 iFood, 🧾 Nota fiscal e 💳 Mercado Pago. Em iFood, Nota fiscal e Mercado Pago, o quadro do topo mostra "👉 Próximo passo" (o que falta fazer, quem faz e quantos passos já estão prontos). Abaixo: Como fazer, Chaves, Lista de conferência, Cadastro/Ajustes, Ligar ou desligar e No dia a dia.',
+    'Integrações e contas tem 5 sub-menus no topo: 🔐 Contas, 🤖 IAs, 🛵 iFood, 🧾 Nota fiscal e 💳 Mercado Pago. Em iFood, Nota fiscal e Mercado Pago, o quadro do topo mostra "👉 Próximo passo" (o que falta fazer, quem faz e quantos passos já estão prontos). Abaixo: Como fazer, Chaves, Lista de conferência, Cadastro/Ajustes, Ligar ou desligar e No dia a dia.',
     'Cartão "Integrações (iFood e Nota fiscal)": guia passo a passo, chaves, checklist e interruptor Ligar/Desligar de cada uma. Nascem DESLIGADAS: desligado, o sistema funciona como sempre. Ligar e desligar pedem a sua senha de administrador.',
     'iFood ligado: os pedidos entram sozinhos como venda normal (marca "iFood #número"), com aviso no celular da equipe e baixa dos ingredientes. Em "Itens do iFood" ligue cada item do iFood a um produto do sistema (o sistema sugere pelo nome); item sem ligação entra com o aviso "SEM LIGAÇÃO" e dá para refazer depois em "Refazer pedidos sem ligação". Ao mudar o status do pedido (em preparo, pronta, saiu para entrega) o iFood é avisado sozinho; se ele não confirmar, aparece o alerta "Ação não confirmada no iFood". Se o iFood cancelar, a venda é cancelada e o estoque volta. Desenvolvedor: "Simular pedido do iFood (treino)" cria um pedido de mentira.',
     'iFood — valor da venda: a venda grava o que fica para a loja: itens − desconto que a LOJA paga + taxa de entrega (só quando a loja entrega). Cupom pago pelo iFood e a taxa de serviço que o iFood cobra do cliente ficam fora. Quando o entregador é do iFood, o pedido mostra "ENTREGA PELO iFOOD", a taxa de entrega não é da loja e "Saiu para entrega" não é enviado ao iFood. Dinheiro pago ao entregador do iFood vem no repasse; só fica "a receber" na gaveta quando a loja entrega e o cliente paga na entrega.',
-    'iFood — comissão: cadastre a comissão do iFood em Operação → Pagamentos, na forma "iFood" (taxa %). Ela entra nas taxas de cada pedido nos relatórios e no DRE. Quando o repasse chega, o sistema troca pela comissão real daquele pedido. Pedido do iFood cancelado não cria reembolso para a loja devolver: quem devolve ao cliente é o iFood.',
+    'iFood — comissão: cadastre a comissão do iFood em Vendas e cardápio → Formas de pagamento, na forma "iFood" (taxa %). Ela entra nas taxas de cada pedido nos relatórios e no DRE. Quando o repasse chega, o sistema troca pela comissão real daquele pedido. Pedido do iFood cancelado não cria reembolso para a loja devolver: quem devolve ao cliente é o iFood.',
     'iFood — Preços, financeiro e avaliações: em Integrações → iFood, "Preços" compara o preço do sistema com o do iFood (importe o cardápio do iFood primeiro); "Gravar preços do iFood no sistema" atualiza o campo "Preço no iFood"; "Enviar nossos preços ao iFood" só aparece com o ajuste ligado, bloqueia variações acima do limite e tem histórico com "Desfazer". "Financeiro" mostra quanto falta receber do iFood (já sem a comissão) e os repasses. "Avaliações" traz as notas e permite responder. "Relatório por canal" compara balcão, cardápio e iFood; a margem já tira custo, taxas e comissão e o imposto estimado. Com o ajuste "Pausar no iFood o item que acabar no estoque", o item some do iFood quando um ingrediente acaba e volta quando repõe.',
     'iFood — Negociações: quando o cliente pede cancelamento ou reembolso, a equipe recebe um aviso no celular. Em Integrações → iFood → "Negociações" toque em Aceitar, Recusar ou numa alternativa antes do prazo (o iFood decide se o prazo acabar). "Loja no iFood": Pausar 30 min / 1 h, Retomar, Fechar e Abrir; com o ajuste "Abrir e fechar a loja junto com o caixa" ligado, abrir o caixa abre a loja e fechar o caixa fecha.',
     'Janelas: os botões de Nota fiscal e de iFood abrem em uma janela por cima da tela, com rolagem só dentro dela. Para voltar, toque no ✕ do topo ou em "Fechar" no fim; salvar continua no botão de salvar de cada janela.',
@@ -189,7 +189,7 @@ Admin:{ nome:'Administrador', secoes:[
     comuns:['Auditoria e IPs são só do Administrador e do Desenvolvedor.'] },
 
   { t:'Compras, fornecedores e análises avançadas', itens:[
-    'Compras e fornecedores (só Administrador): Administrador → Catálogo → "Compras e fornecedores". Cadastre o fornecedor e registre a compra: em "O que você comprou?" digite e toque no ingrediente ou bebida da lista (aí dá entrada no estoque). Texto que não é da lista vira só despesa e aparece um aviso laranja. Informe quantidade, unidade e o valor total pago. Bebida em fardo: preencha "Embalagens" e "Unidades em cada" (ex.: 2 × 12 = 24).',
+    'Compras e fornecedores (só Administrador): Administrador → Produtos → "Compras e fornecedores". Cadastre o fornecedor e registre a compra: em "O que você comprou?" digite e toque no ingrediente ou bebida da lista (aí dá entrada no estoque). Texto que não é da lista vira só despesa e aparece um aviso laranja. Informe quantidade, unidade e o valor total pago. Bebida em fardo: preencha "Embalagens" e "Unidades em cada" (ex.: 2 × 12 = 24).',
     'Compra "Recebida" já soma no estoque e atualiza o custo médio do insumo; "Pedido" só guarda o pedido e você marca como recebida quando chegar. Toda compra recebida vira uma despesa (Paga ou A pagar, com vencimento).',
     'Marque "saiu do caixa" só se o dinheiro saiu da gaveta. Compra já recebida não é cancelada: corrija pelo estoque ou pela despesa. Pedido ainda não recebido pode ser cancelado com motivo.',
     'Ao marcar um pedido de compra como recebido, escolha "✅ Já paguei" ou "🕒 Vou pagar depois" (aí aparece o calendário do vencimento).',
@@ -199,7 +199,7 @@ Admin:{ nome:'Administrador', secoes:[
     comuns:['Compras e a gravação pela IA são só do Administrador e do Desenvolvedor.'] },
 
   { t:'Imposto sobre vendas (estimado)', itens:[
-    'Administrador → Painel → Relatórios → cartão "DRE e relatório mensal": escolha o mês e, em "Imposto sobre vendas deste mês", digite a alíquota que o contador informar (ex.: 6 ou 6,5) e toque em Salvar.',
+    'Administrador → Dinheiro → Relatórios e DRE → cartão "DRE e relatório mensal": escolha o mês e, em "Imposto sobre vendas deste mês", digite a alíquota que o contador informar (ex.: 6 ou 6,5) e toque em Salvar.',
     'A alíquota vale para aquele mês e para os seguintes, até você salvar outra. Mês sem alíquota própria usa a do mês anterior mais próximo; sem nenhuma, usa a dos dados fiscais da empresa. Apagar e salvar volta a usar a anterior.',
     'O imposto é calculado sobre tudo o que foi faturado no mês (vendas e eventos) e aparece no DRE ("Imposto sobre vendas (estimado)"), na Visão Geral (IMPOSTOS), nos relatórios (Resultado, Margem por forma, Ponto de equilíbrio, Projeção) e na margem mostrada no cadastro de produto, de combo e na Calculadora. Funciona com ou sem a nota fiscal ligada.',
     'O custo do produto NÃO muda: continua sendo só ingredientes ou o valor de compra. O imposto sai do resultado e da margem.',
@@ -220,12 +220,12 @@ Admin:{ nome:'Administrador', secoes:[
     'Mercado Pago: Pix e cartão pelo site só ficam disponíveis quando a integração está ligada e a forma foi marcada para pagamento online. O pedido só entra como Pago após confirmação do Mercado Pago. Se aparecer em Pagamentos online que precisam de decisão, confira o motivo; liberar envia o pedido para a cozinha. Reembolsar registra a decisão e solicita a devolução. Confira o resultado antes de repetir uma tentativa.',
     'Dados do restaurante: nome, endereço, telefone, horário e redes sociais (texto livre) aparecem no rodapé do cardápio do cliente e nas mensagens de WhatsApp e relatórios.',
     'O cliente pode escrever uma observação em cada item; ela aparece na comanda da cozinha e no pedido.',
-    'Item "Esgotado": se "bloquear venda sem estoque" estiver ligado (Catálogo → Estoque), o cardápio mostra "Esgotado" no que o estoque não cobre.',
+    'Item "Esgotado": se "bloquear venda sem estoque" estiver ligado (Produtos → Estoque), o cardápio mostra "Esgotado" no que o estoque não cobre.',
     'No celular, "Mais pedidos", "Destaques" e cada categoria rolam para o lado. O cliente toca no botão vermelho "+" para adicionar e na foto para ver o item ampliado. O botão "💬" redondo abre o Atendimento.',
     'Na entrega, o endereço vem com rua e bairro preenchidos pela localização do cliente (só se ele permitir). O número da casa é sempre digitado por ele e o pedido não segue sem ele.',
     'O cardápio abre rápido porque guarda cópia no aparelho do cliente. Mudanças suas aparecem em instantes.',
     'O cardápio só recebe pedidos com o caixa aberto; fechado, aparece "Estamos fechados no momento".',
-    'Promoções: cupons. Eventos: custos e recebimentos por evento. Custos e Precificação: simulador de preço; "Aplicar como preço base" vale para todas as formas de pagamento.' ]},
+    'Promoções: cupons. Eventos: custos e recebimentos por evento. Custos e precificação: simulador de preço; "Aplicar como preço base" vale para todas as formas de pagamento.' ]},
 
   { t:'Caixa: abrir, vender e fechar', passos:[
     'Aba Caixa → "Abrir caixa" e informe o fundo de troco.',
@@ -275,7 +275,7 @@ Admin:{ nome:'Administrador', secoes:[
     'A conversa com o assistente continua ao fechar e reabrir o botão ✨. Ela some ao recarregar o app, ao sair da conta ou depois de 2 horas parada. Para começar do zero, toque em "🗑️ Nova conversa".',
     'Dentro do assistente há duas abas: "✨ Conversa" (perguntas à IA e atendimento de clientes) e "🔔 Avisos" (o que antes ficava em Notificações). O botão do canto mostra "🔔 n" quando há aviso.',
     'Em Avisos aparecem só os itens que precisam de você, em grupos que se abrem ao toque: pedidos aguardando aceite, ocorrências, entregas com problema, contas vencidas, falhas do sistema, estoque baixo, cartão fidelidade quase completo, indicações pendentes, aniversariantes do mês e clientes inativos. O que está em dia fica numa linha só ("✅ Em dia: …").',
-    'Quais avisos aparecem para cada perfil se escolhe em Administrador → Operação → Configurar notificações. Botões como "Tratar" abrem a tela da ocorrência por cima.',
+    'Quais avisos aparecem para cada perfil se escolhe em Administrador → Loja e equipe → Configurar avisos. Botões como "Tratar" abrem a tela da ocorrência por cima.',
     'Assistente (Admin e Operador, só leitura): escreva em português. Exemplos: "como faço uma venda?", "quanto tem de pão no estoque?", "tem cliente aguardando?", "qual produto vendeu mais hoje?".',
     'Período: reconhece "hoje", "ontem", "7 dias", "30 dias", "mês". Pergunta de mês anterior avisa que os dados estão arquivados (veja Relatórios).',
     'A IA é somente leitura. Não altera preço, não cancela, não muda status. Ela só responde assuntos do restaurante e nunca mostra senha nem dados de contato de clientes. O Operador recebe só o que é da função de Caixa.',
@@ -315,10 +315,10 @@ Admin:{ nome:'Administrador', secoes:[
 
   { t:'Ocorrências', itens:[
     'Você trata direto pelo Assistente: aba "🔔 Avisos" → "⚠️ Ocorrências abertas" → botão "Tratar".',
-    'A tela completa (com filtro Abertas/Todas) continua em Administrador → Painel → Ocorrências.' ]},
+    'A tela completa (com filtro Abertas/Todas) continua em Administrador → Hoje → Ocorrências.' ]},
 
   { t:'Ajustes pós-venda (reembolso, crédito, cortesia)', passos:[
-    'Administrador → Financeiro → Ajustes pós-venda.',
+    'Administrador → Dinheiro → Reembolsos e ajustes.',
     'Busque a venda (nº do pedido, nome ou telefone) — só aparecem pedidos já entregues.',
     'Escolha o tipo (Reembolso em dinheiro, Crédito para próxima compra, Cortesia ou Desconto retroativo), o valor e o motivo.',
     'Em reembolso e desconto retroativo, escolha se o dinheiro sai do caixa (o caixa precisa estar aberto) ou fora dele.',
@@ -329,7 +329,7 @@ Admin:{ nome:'Administrador', secoes:[
 
   { t:'Reembolsos de vendas canceladas', passos:[
     'Cancelou uma venda que já estava paga? O sistema cria sozinho um reembolso "pendente".',
-    'Administrador → Financeiro → Ajustes pós-venda → "Reembolsos de vendas canceladas".',
+    'Administrador → Dinheiro → Reembolsos e ajustes → "Reembolsos de vendas canceladas".',
     'Devolva o dinheiro ao cliente (Pix, dinheiro ou estorno no cartão).',
     'Toque em "marcar devolvido" e, se quiser, escreva como foi devolvido.' ],
     comuns:['Só o Administrador marca como devolvido; o Operador consegue ver a lista.',

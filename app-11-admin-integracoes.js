@@ -128,7 +128,7 @@ function renderLog(){
   box.innerHTML = logRecentes.map(l=>`<div class="log-item"><div class="quando">${l.data} · ${escH(l.usuario||'—')}${l.perfil?(' ('+l.perfil+')'):''}</div><div>${l.acao}${escH(l.detalhes?(' — '+l.detalhes):'')}</div>${l.autorizador?`<div class="quando">Autorizado por ${l.autorizador}</div>`:''}${l.ip?`<div class="quando">🌐 IP ${escH(l.ip)}</div>`:''}${l.aparelho?`<div class="quando">📱 ${escH(l.aparelho)}</div>`:''}</div>`).join('');
 }
 
-/* ---------- CONTAS E ACESSOS (Admin → Sistema): e-mails, links e senhas das contas do sistema. Senha fica no cofre do Supabase. ---------- */
+/* ---------- INTEGRAÇÕES E CONTAS (Admin → Sistema): e-mails, links e senhas das contas do sistema. Senha fica no cofre do Supabase. ---------- */
 let contasLista_ = [];
 async function carregarContas_(){
   const box = document.getElementById('contasLista'); if(!box) return;
@@ -203,7 +203,7 @@ function verSenhaConta_(id){
   });
 }
 
-/* ---------- CHAVES DAS IAs (Contas e acessos): ficam em ai_segredos, onde os assistentes já leem. Ver e trocar pedem senha de administrador. ---------- */
+/* ---------- CHAVES DAS IAs (Integrações e contas): ficam em ai_segredos, onde os assistentes já leem. Ver e trocar pedem senha de administrador. ---------- */
 const CHAVES_IA_INFO_ = {
   gemini: { nome:'Gemini (Google) — chat / último recurso', link:'https://aistudio.google.com/apikey' },
   groq:   { nome:'Groq', link:'https://console.groq.com/keys' },
@@ -742,7 +742,7 @@ function fiscalExtraHtml_(it, parte){
 const FISCAL_CAMPOS_ = [['razaoSocial','razao_social','Razão social'],['nomeFantasia','nome_fantasia','Nome fantasia'],['cnpj','cnpj','CNPJ (só números)'],['inscricaoEstadual','inscricao_estadual','Inscrição estadual'],
   ['cep','cep','CEP'],['logradouro','logradouro','Rua / avenida'],['numero','numero','Número'],['complemento','complemento','Complemento'],['bairro','bairro','Bairro'],['municipio','municipio','Cidade'],
   ['codigoMunicipio','codigo_municipio','Código do município (7 números — o contador informa)'],['uf','uf','Estado (ex.: SP)'],['telefone','telefone','Telefone'],['cscId','csc_id','Número do CSC (identificador, não o código secreto)'],
-  ['serie','serie','Série das notas (normalmente 1)'],['aliquotaSimples','aliquota_simples','Alíquota padrão do imposto em % (vale para os meses sem alíquota própria em Painel → Relatórios, cartão DRE; só para estimar o imposto no resultado e nas margens)']];
+  ['serie','serie','Série das notas (normalmente 1)'],['aliquotaSimples','aliquota_simples','Alíquota padrão do imposto em % (vale para os meses sem alíquota própria em Dinheiro → Relatórios e DRE, cartão DRE; só para estimar o imposto no resultado e nas margens)']];
 async function carregarFiscalEmpresa_(){
   const box = document.getElementById('fiscalEmpresa'); if(!box) return;
   try{
@@ -969,7 +969,7 @@ async function baixarPacoteNfce_(){
 /* ---- iFood: pedidos, itens ligados, simulação (aparecem dentro do cartão Integrações) ---- */
 function ifoodExtraHtml_(it, parte){
   const dev = currentUser && currentUser.nivelReal === 'Desenvolvedor';
-  const aviso = (()=>{ const f = (formasPagamento||[]).find(x=>String(x.nome||'').toLowerCase()==='ifood'); return (f && (Number(f.taxaPct)>0 || Number(f.taxaFixa)>0)) ? '' : '<div class="obs-line">⚠️ Cadastre a comissão do iFood em Operação → Pagamentos, na forma "iFood" (taxa %). Ela é tirada de cada pedido nos relatórios até o repasse trazer a comissão real.</div>'; })();
+  const aviso = (()=>{ const f = (formasPagamento||[]).find(x=>String(x.nome||'').toLowerCase()==='ifood'); return (f && (Number(f.taxaPct)>0 || Number(f.taxaFixa)>0)) ? '' : '<div class="obs-line">⚠️ Cadastre a comissão do iFood em Vendas e cardápio → Formas de pagamento, na forma "iFood" (taxa %). Ela é tirada de cada pedido nos relatórios até o repasse trazer a comissão real.</div>'; })();
   if(parte === 'setup') return `<div class="btnrow"><button class="ghost" onclick="carregarIfoodItens_()">Itens do iFood</button><button class="ghost" onclick="reprocessarIfood_()">Refazer pedidos sem ligação</button></div>${aviso}<div id="ifoodItens"></div>`;
   return `<div>
     <div class="btnrow">

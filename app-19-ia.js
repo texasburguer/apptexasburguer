@@ -120,41 +120,6 @@
     return r;
   }
 
-  /* ---------- IA-04/06/08: aba "Pergunte à IA" dentro do Administrador (sem aba nova no menu principal) ---------- */
-  function criarAbaAdmin(){
-    if($('tab-ia')) return;
-    const ancora = $('tab-armazenamento') || document.querySelector('section.tab'); if(!ancora) return;
-    const s = document.createElement('section'); s.className = 'tab'; s.id = 'tab-ia'; s.hidden = true; s.setAttribute('aria-hidden','true');
-    s.innerHTML = '<div class="admin-subnav" data-admin-nav="1"></div>' +
-      '<div class="card ia-card"><h2>✨ Pergunte ao Texas Burger</h2><p class="sub">A IA lê só números resumidos do sistema (nunca nome, telefone ou endereço de cliente) e não altera nada.</p>' +
-      '<div class="ia-linha"><label for="iaPeriodo">Período</label><select id="iaPeriodo"><option value="hoje">Hoje</option><option value="ontem">Ontem</option><option value="7d">Últimos 7 dias</option><option value="30d">Últimos 30 dias</option><option value="mes">Este mês</option></select></div>' +
-      '<textarea id="iaPergunta" maxlength="300" placeholder="Ex.: Qual produto vendeu mais e em que horário o movimento foi maior?"></textarea>' +
-      '<div class="ia-chips" id="iaChips"></div><button class="primary" id="iaPerguntarBtn" type="button">Perguntar</button><div id="iaSaida"></div></div>' +
-      '<div class="card ia-card" id="iaAjudaCard"><h2>❓ Ajuda do sistema</h2><p class="sub">Pergunte como fazer uma tarefa (ex.: "como cancelo uma venda?"). A resposta vem do manual do sistema; a IA não executa nada.</p>' +
-      '<textarea id="iaAjudaPergunta" maxlength="300" placeholder="Como eu faço…?"></textarea><div class="ia-linha"><button class="primary" id="iaAjudaBtn" type="button">Ver o passo a passo</button></div><div id="iaAjudaSaida"></div></div>' +
-      '<div class="card ia-card"><h2>🔎 Anomalias do dia</h2><p class="sub">As regras são calculadas no banco; a IA só explica possíveis causas.</p><div id="iaAnomSaida"></div>' +
-      '<div class="ia-linha"><button class="ghost ia-btn" id="iaAnomBtn" type="button">Verificar agora</button><button class="ghost ia-btn" id="iaAnomIABtn" type="button">✨ Explicar com IA</button></div><div id="iaAnomIA"></div></div>' +
-      '<div class="card ia-card"><h2>🛒 Compras inteligentes</h2><p class="sub">Estoque atual × consumo dos últimos 14 dias, cobrindo 7 dias. Só funciona bem com estoque, mínimo e custo cadastrados.</p><div id="iaComprasSaida"></div>' +
-      '<div class="ia-linha"><button class="ghost ia-btn" id="iaComprasBtn" type="button">Ver sugestão</button><button class="ghost ia-btn" id="iaComprasIABtn" type="button">✨ Resumir com IA</button></div><div id="iaComprasIA"></div></div>';
-    const diag = document.createElement('div'); diag.className = 'card ia-card'; diag.id = 'iaDiagCard'; diag.hidden = true;
-    diag.innerHTML = '<h2>🩺 Diagnóstico do sistema</h2><p class="sub">Somente leitura, só para o Desenvolvedor. Mostra o que está acontecendo (sincronização, fila, backups, integridade, erros da IA) e possíveis soluções. <b>A IA não altera nada</b>; as correções você pede depois.</p><div id="iaDiagSaida"></div><div class="ia-linha"><button class="primary" id="iaDiagBtn" type="button">Rodar diagnóstico</button></div>';
-    s.appendChild(diag);
-    const painel = document.createElement('div'); painel.className = 'card ia-card'; painel.id = 'iaPainelCard'; painel.hidden = true;
-    painel.innerHTML = '<h2>📊 Uso da IA</h2><p class="sub">Para acompanhar custo, erros e utilidade nas primeiras semanas. Só Administrador.</p><div id="iaPainelSaida"></div><div class="ia-linha"><button class="ghost ia-btn" id="iaPainelBtn" type="button">Atualizar</button></div>';
-    s.appendChild(painel);
-    ancora.insertAdjacentElement('afterend', s);
-    const chips = ['Qual produto vendeu mais?', 'Em que horário vendemos mais?', 'Como estão as vendas comparadas ao período anterior?', 'Qual forma de pagamento mais usada?'];
-    $('iaChips').innerHTML = chips.map(t => '<button class="ghost" type="button">' + esc(t) + '</button>').join('');
-    $('iaChips').querySelectorAll('button').forEach(b => b.addEventListener('click', () => { $('iaPergunta').value = b.textContent; $('iaPergunta').focus(); }));
-    $('iaPerguntarBtn').addEventListener('click', () => executar($('iaPerguntarBtn'), $('iaSaida'), 'pergunte', { periodo:$('iaPeriodo').value, pergunta:$('iaPergunta').value }, htmlResumo));
-    $('iaAjudaBtn').addEventListener('click', () => executar($('iaAjudaBtn'), $('iaAjudaSaida'), 'ajuda', { pergunta:$('iaAjudaPergunta').value }, () => ''));
-    $('iaPainelBtn').addEventListener('click', IA.carregarPainel);
-    $('iaDiagBtn').addEventListener('click', () => executar($('iaDiagBtn'), $('iaDiagSaida'), 'diagnostico', {}, htmlDiag, { ttl:60000 }));
-    $('iaAnomBtn').addEventListener('click', async () => { const r = await IA.chamar('alertas', { periodo:'hoje' }, { forcar:true, ttl:1 }); $('iaAnomSaida').innerHTML = r && r.ok ? htmlAlertas(r.dados) : htmlResposta(r); });
-    $('iaAnomIABtn').addEventListener('click', () => executar($('iaAnomIABtn'), $('iaAnomIA'), 'anomalias', { periodo:'hoje' }, () => ''));
-    $('iaComprasBtn').addEventListener('click', async () => { const r = await IA.chamar('compras', {}, { forcar:true, ttl:1 }); $('iaComprasSaida').innerHTML = r && r.ok ? htmlCompras(r.dados) + (r.aviso ? '<p class="ia-aviso">' + esc(r.aviso) + '</p>' : '') : htmlResposta(r); });
-    $('iaComprasIABtn').addEventListener('click', () => executar($('iaComprasIABtn'), $('iaComprasIA'), 'compras', {}, htmlCompras));
-  }
   IA.carregarPainel = async function(){
     const box = $('iaPainelSaida'); if(!box || !ehAdmin()) return; box.innerHTML = '<p class="ia-sub">⏳ Lendo…</p>';
     try{
@@ -171,7 +136,7 @@
     const box = $('iaTesteBox'); if(!box || !ehAdmin()) return;
     let lista = [];
     try{ const r = await apiCall('listarChavesIa', {}); if(r && r.ok){ lista = ['groq','groq_2','nvidia','cloudflare','gemini','gemini_2']; } }catch(e){}
-    if(!lista.length){ box.innerHTML = '<p class="ia-sub">Nenhuma chave de IA cadastrada para testar (Administrador → Contas e acessos).</p>'; return; }
+    if(!lista.length){ box.innerHTML = '<p class="ia-sub">Nenhuma chave de IA cadastrada para testar (Administrador → Sistema → Integrações e contas).</p>'; return; }
     const nomes = { groq:'Groq', groq_2:'Groq 2', nvidia:'NVIDIA', cloudflare:'Cloudflare', gemini:'Gemini (Google) · Chat', gemini_2:'Gemini 2 (Google) · Chat' };
     box.innerHTML = '<h3 style="margin:14px 0 4px;">🧪 Testar as IAs</h3><p class="ia-sub">Faz uma pergunta mínima a cada IA para ver se a chave está funcionando. Não gasta as consultas do dia.</p>' +
       lista.map(pv => '<div class="notif-card"><div><b>' + esc(nomes[pv] || pv) + '</b></div><div class="obs-line" id="testeIaM_' + pv + '">Ainda não testada nesta tela.</div><div class="btnrow mt-2"><button class="ghost" type="button" data-teste-ia="' + pv + '">' + 'Testar' + '</button></div></div>').join('') +
@@ -179,24 +144,6 @@
     box.querySelectorAll('[data-teste-ia]').forEach(b => b.addEventListener('click', () => testarChaveIa_(b.getAttribute('data-teste-ia'), 'testeIaM_' + b.getAttribute('data-teste-ia'), b)));
     $('iaTesteTodas').addEventListener('click', e => testarTodasIas_(lista, e.currentTarget, 'testeIaM_'));
   };
-  IA.abrirAba = async function(){
-    criarAbaAdmin();
-    const st = await IA.atualizarStatus();                       // Operador: esconde o que o Admin não liberou
-    const card = $('iaPerguntarBtn') && $('iaPerguntarBtn').closest('.card');
-    if(card) card.hidden = !!(st && st.ok && st.recursos && st.recursos.pergunte === false);
-    const dg = $('iaDiagCard'); if(dg) dg.hidden = true;
-    const pn = $('iaPainelCard'); if(pn){ pn.hidden = !ehAdmin(); if(ehAdmin()) IA.carregarPainel(); }
-    const aj = $('iaAjudaCard'); if(aj) aj.hidden = !!(st && st.ok && st.recursos && st.recursos.ajuda === false);
-  };
-  function registrarNoAdmin(){
-    if(typeof ADMIN_GRUPOS === 'undefined' || ADMIN_SUBABAS.indexOf('ia') !== -1) return;
-    ADMIN_GRUPOS[0].subs.push('ia'); ADMIN_SUBABAS.push('ia'); ADMIN_SUBABAS_ROTULOS.ia = 'Pergunte à IA';
-    if(typeof ADMIN_GRUPOS_OPERADOR_ !== 'undefined' && ADMIN_GRUPOS_OPERADOR_[0]) ADMIN_GRUPOS_OPERADOR_[0].subs.push('ia');
-    criarAbaAdmin();
-    if(typeof montarBarrasAdmin_ === 'function') montarBarrasAdmin_('visaogeral');
-  }
-
-  /* ---------- IA-02: bolinha de status + pop-up (liga/desliga só para Admin) ---------- */
   function montarBolinha(){
     let b = $('iaDot');
     if(!b){ return;   /* o status da IA fica no cabeçalho do balão */
@@ -253,12 +200,11 @@
   }
   envolver('entrarNoApp', () => { setTimeout(() => { IA.montar(); IA.atualizarStatus(); }, 1500); });
   envolver('aplicarPermissoesNivel', () => { IA.montar(); });
-  envolver('abrirAdministrador', sub => { if(sub === 'ia') IA.abrirAba(); });
   if(typeof window.sair === 'function' && !window.sair.__ia){
     const so = window.sair; window.sair = async function(){ cache.clear(); ultimoStatus = null; const b = $('iaDot'); if(b) b.classList.remove('visivel'); const c = $('iaInicioCard'); if(c) c.remove(); return so.apply(this, arguments); };
     window.sair.__ia = true;
   }
-  /* registrarNoAdmin() desativado (D2): sem sub-aba "Pergunte à IA"; a IA só é acessada pelo balão único */
+  /* A IA só é acessada pelo balão do Tex: não existe tela "Pergunte à IA" no Administrador. */
   IA.html = { resposta:htmlResposta, resumo:htmlResumo, diag:htmlDiag, alertas:htmlAlertas, compras:htmlCompras };
   IA.msgErro = msgErro; IA.podeUsar = podeUsar; IA.ehAdmin = ehAdmin;
 })();

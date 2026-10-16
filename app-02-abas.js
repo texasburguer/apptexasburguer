@@ -1,7 +1,7 @@
 /* ---------- TABS ---------- */
-/* "Administrador" (ITEM 4, 50, 66) não é uma seção única — é um hub que agrupa
-   Produtos e Estoque, Financeiro e Usuários e Permissões, que continuam sendo
-   as mesmas seções de sempre (nenhum cadastro foi duplicado). */
+/* "Administrador" (ITEM 4, 50, 66) não é uma seção única — é um hub que agrupa as telas em 6 grupos
+   (Hoje, Dinheiro, Produtos, Vendas e cardápio, Loja e equipe, Sistema). Os ids das telas (visaogeral, contas, ...) NÃO mudam:
+   só o grupo e o nome mostrado. Cada id aparece em um único grupo. A IA não tem tela no Administrador: só o balão do Tex. */
 /* Ícones em SVG (um só conjunto, no mesmo traço do menu de baixo). Use icSvg_('nome') em HTML novo; emoji só em textos de aviso/conversa. */
 const IC_SVG_ = {
   painel:'M4 20V10M10 20V4M16 20v-7M22 20H2',
@@ -38,29 +38,87 @@ const IC_SVG_ = {
 };
 function icSvg_(k){ return '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="' + (IC_SVG_[k] || IC_SVG_.sistema) + '"/></svg>'; }
 const ADMIN_GRUPOS = [
-  { nome:'Painel',     ico:'painel',     subs:['visaogeral', 'ocorrencias', 'feedbacks', 'relatorios'] },
-  { nome:'Financeiro', ico:'financeiro', subs:['financeiro', 'analise', 'ajustes', 'historico'] },
-  { nome:'Catálogo',   ico:'catalogo',   subs:['produtos', 'estoque', 'compras', 'custosprecificacao', 'cardapiodigital'] },
-  { nome:'Campanhas',  ico:'campanhas',  subs:['promocoes', 'eventos'] },
-  { nome:'Operação',   ico:'operacao',   subs:['restaurante', 'pagamentos', 'taxasentregas', 'notifadmin'] },
-  { nome:'Sistema',    ico:'sistema',    subs:['usuarios', 'auditoria', 'armazenamento', 'integridade', 'contas'] }
+  { nome:'Hoje',               ico:'painel',     subs:['visaogeral', 'ocorrencias', 'feedbacks'] },
+  { nome:'Dinheiro',           ico:'financeiro', subs:['financeiro', 'historico', 'ajustes', 'analise', 'relatorios'] },
+  { nome:'Produtos',           ico:'catalogo',   subs:['produtos', 'estoque', 'compras', 'custosprecificacao'] },
+  { nome:'Vendas e cardápio',  ico:'campanhas',  subs:['cardapiodigital', 'pagamentos', 'promocoes', 'eventos'] },
+  { nome:'Loja e equipe',      ico:'operacao',   subs:['restaurante', 'taxasentregas', 'usuarios', 'notifadmin'] },
+  { nome:'Sistema',            ico:'sistema',    subs:['contas', 'armazenamento', 'integridade', 'auditoria'] }
 ];
 const ADMIN_SUBABAS = ADMIN_GRUPOS.reduce((a,g)=>a.concat(g.subs), []);
 /* a barra do Administrador existia copiada em 13 telas. Agora há UMA definição, desenhada em todas. */
-const ADMIN_SUBABAS_ROTULOS = { contas:'Contas e acessos', visaogeral:'Visão Geral', ocorrencias:'Ocorrências', feedbacks:'Feedbacks', relatorios:'Relatórios', financeiro:'Contas e despesas', analise:'Análise', ajustes:'Ajustes pós-venda', historico:'Histórico', produtos:'Produtos', estoque:'Estoque', compras:'Compras e fornecedores', custosprecificacao:'Custos e Precificação', cardapiodigital:'Cardápio Digital', promocoes:'Promoções', eventos:'Eventos', restaurante:'Mesas e QR Codes', pagamentos:'Pagamentos', taxasentregas:'Entregadores e taxas', notifadmin:'Configurar notificações', usuarios:'Usuários e Permissões', auditoria:'Auditoria', armazenamento:'Backup e espaço', integridade:'Sincronização e contingência' };
+const ADMIN_SUBABAS_ROTULOS = {
+  visaogeral:'Visão Geral', ocorrencias:'Ocorrências', feedbacks:'Feedbacks',
+  financeiro:'Contas a pagar e despesas', historico:'Histórico', ajustes:'Reembolsos e ajustes', analise:'Previsto e metas', relatorios:'Relatórios e DRE',
+  produtos:'Produtos, combos e adicionais', estoque:'Estoque', compras:'Compras e fornecedores', custosprecificacao:'Custos e precificação',
+  cardapiodigital:'Cardápio Digital', pagamentos:'Formas de pagamento', promocoes:'Promoções e cupons', eventos:'Eventos',
+  restaurante:'Mesas e QR Codes', taxasentregas:'Entregadores e taxas', usuarios:'Usuários e permissões', notifadmin:'Configurar avisos',
+  contas:'Integrações e contas', armazenamento:'Backup e espaço', integridade:'Sincronização e contingência', auditoria:'Auditoria'
+};
 const ADMIN_GRUPOS_OPERADOR_ = [ { nome:'Atendimento', ico:'atendimento', subs:['ocorrencias', 'feedbacks'] } ];
 function gruposAdmin_(){ return (currentUser && currentUser.nivel==='Operador') ? ADMIN_GRUPOS_OPERADOR_ : ADMIN_GRUPOS; }
+/* Uma linha explicando cada tela, mostrada embaixo do nome no menu (celular e PC). Ao criar tela nova, acrescentar aqui. */
+const ADMIN_SUBABAS_DESCRICOES = {
+  visaogeral:'Resumo do dia e saúde do sistema', ocorrencias:'Problemas registrados e como tratar', feedbacks:'O que os clientes escreveram; responder',
+  financeiro:'Boletos, aluguel e despesas fixas', historico:'Vendas, despesas e caixas já feitos', ajustes:'Devolver dinheiro, dar crédito ou cortesia', analise:'Quanto entra e sai nos próximos 30 dias, e metas', relatorios:'DRE, imposto, mais vendidos e Excel',
+  produtos:'Cadastro de produtos, combos e adicionais', estoque:'Ingredientes, bebidas e movimentações', compras:'Registrar compras e fornecedores', custosprecificacao:'Simular custo e preço de venda',
+  cardapiodigital:'O que o cliente vê no cardápio: dados, visual, ordem e destaques', pagamentos:'Taxas, prazos, troco e o que aparece no cardápio', promocoes:'Cupons, cupons automáticos e privacidade', eventos:'Custos e recebimentos por evento',
+  restaurante:'Mesas do salão e QR Codes', taxasentregas:'Taxa, ajuda diária e fechamento dos entregadores', usuarios:'Quem acessa o sistema e o que pode fazer', notifadmin:'Quais avisos ligam e para quem',
+  contas:'iFood, Nota fiscal, Mercado Pago, chaves das IAs e contas do sistema', armazenamento:'Backups, fotos e espaço do Google Drive', integridade:'Planilha de contingência e sincronização', auditoria:'Ações sensíveis registradas'
+};
+function adminBtnTxt_(id){
+  const d = ADMIN_SUBABAS_DESCRICOES[id];
+  return '<span class="adm-t">' + ADMIN_SUBABAS_ROTULOS[id] + '</span>' + (d ? '<small class="adm-d">' + d + '</small>' : '');
+}
+/* Campo "Ir para…": filtra as telas pelo nome, pelo grupo e por palavras parecidas (ADMIN_BUSCA_PALAVRAS_). Não redesenha o menu enquanto se digita. */
+const ADMIN_BUSCA_PALAVRAS_ = {
+  visaogeral:'resumo painel inicio hoje vendas dia saude', ocorrencias:'problema reclamacao erro incidente', feedbacks:'avaliacao opiniao elogio cliente responder',
+  financeiro:'despesa conta pagar boleto aluguel mensal gasto', historico:'vendas passadas caixa sessoes arquivo', ajustes:'reembolso estorno devolucao credito cortesia desconto pos venda',
+  analise:'meta previsto fluxo categoria', relatorios:'dre imposto lucro excel mercado pago resumo mensal produtos mais vendidos',
+  produtos:'combo categoria adicional receita foto preco cardapio item lanche', estoque:'ingrediente bebida inventario entrada perda minimo', compras:'fornecedor nota compra comprei',
+  custosprecificacao:'calculadora margem custo preco simulador', cardapiodigital:'cardapio online cliente qr logo banner horario fechamento dados do restaurante', pagamentos:'pix cartao credito debito dinheiro taxa troco prazo online ifood',
+  promocoes:'cupom desconto lgpd privacidade indicacao fidelidade brinde', eventos:'evento festa',
+  restaurante:'mesa qr code salao', taxasentregas:'entregador motoboy frete taxa ajuda diaria fechamento', usuarios:'usuario login senha acesso perfil garcom cozinha operador permissao', notifadmin:'aviso notificacao alerta push',
+  contas:'ifood nota fiscal nfce mercado pago ia chave gemini groq senha conta email supabase github integracao', armazenamento:'backup drive foto espaco restaurar', integridade:'sincronizar sincronizacao contingencia planilha espelho saude',
+  auditoria:'log registro historico acao'
+};
+function adminNorm_(t){ return String(t==null?'':t).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim(); }
+function adminBuscaHtml_(){
+  return '<div class="admin-busca"><input type="text" inputmode="search" enterkeyhint="search" autocomplete="off" placeholder="Ir para… (ex.: cupom, estoque, iFood)" aria-label="Ir para uma tela do Administrador" oninput="adminBuscar_(this)" onkeydown="adminBuscarTecla_(event,this)"><div class="admin-busca-res" hidden></div></div>';
+}
+function adminBuscar_(inp){
+  const box = inp.parentNode.querySelector('.admin-busca-res'); if(!box) return;
+  const termos = adminNorm_(inp.value).split(/\s+/).filter(Boolean);
+  if(!termos.length){ box.hidden = true; box.innerHTML = ''; return; }
+  const grupos = gruposAdmin_(), ach = [];
+  grupos.forEach(g=>g.subs.forEach(id=>{
+    const rot = ADMIN_SUBABAS_ROTULOS[id]; if(!rot) return;
+    const palheiro = adminNorm_(rot + ' ' + g.nome + ' ' + (ADMIN_BUSCA_PALAVRAS_[id]||''));
+    if(termos.every(t=>palheiro.indexOf(t) !== -1)) ach.push({id, rot, grupo:g.nome, ini: adminNorm_(rot).indexOf(termos[0]) === 0 ? 0 : 1});
+  }));
+  ach.sort((a,b)=>a.ini-b.ini);
+  box.innerHTML = ach.length
+    ? ach.slice(0,8).map(a=>`<button type="button" onclick="abrirAdministrador('${a.id}')"><span>${a.rot}</span><small>${a.grupo}</small></button>`).join('')
+    : '<div class="admin-busca-vazio">Nenhuma tela com esse nome. Tente outra palavra.</div>';
+  box.hidden = false;
+}
+function adminBuscarTecla_(ev, inp){
+  if(ev.key === 'Escape'){ inp.value = ''; adminBuscar_(inp); return; }
+  if(ev.key !== 'Enter') return;
+  const b = inp.parentNode.querySelector('.admin-busca-res button'); if(b){ ev.preventDefault(); b.click(); }
+}
 function montarBarrasAdmin_(alvo, grupoIdx){
   /* alvo = tela aberta; sem alvo, mostra só os grupos (ou as telas do grupo escolhido), nada aberto até tocar */
   const grupos = gruposAdmin_();
   const ativo = alvo ? (grupos.find(g=>g.subs.includes(alvo)) || grupos[0]) : (grupoIdx != null ? grupos[grupoIdx] : (grupos.length === 1 ? grupos[0] : null));
   const abas = grupos.length>1 ? grupos.map((g,i)=>`<button class="admin-gbtn${g===ativo?' active':''}" onclick="abrirAdminGrupo_(${i})">${icSvg_(g.ico)}<span>${g.nome}</span></button>`).join('') : '';
-  const subs = ativo ? (`<div class="admin-grupo">${icSvg_(ativo.ico)}${grupos.length>1 ? ativo.nome : (ativo.nome+' — o que você pode tratar aqui')}</div>` + ativo.subs.map(id=>`<button data-sub="${id}" class="${id===alvo?'active':''}" onclick="abrirAdministrador('${id}')">${ADMIN_SUBABAS_ROTULOS[id]}</button>`).join('')) : '';
-  document.querySelectorAll('.admin-subnav[data-admin-nav]').forEach(nav=>{ nav.innerHTML = abas + subs; });
+  const subs = ativo ? (`<div class="admin-grupo">${icSvg_(ativo.ico)}${grupos.length>1 ? ativo.nome : (ativo.nome+' — o que você pode tratar aqui')}</div>` + ativo.subs.map(id=>`<button data-sub="${id}" class="${id===alvo?'active':''}" onclick="abrirAdministrador('${id}')">${adminBtnTxt_(id)}</button>`).join('')) : '';
+  const busca = grupos.length>1 ? adminBuscaHtml_() : '';
+  document.querySelectorAll('.admin-subnav[data-admin-nav]').forEach(nav=>{ nav.innerHTML = busca + abas + subs; });
   _adminGrupoAtivo_ = ativo ? grupos.indexOf(ativo) : null;
   /* Computador: menu lateral com todos os grupos e telas à vista (um clique). No celular ele fica escondido (CSS). */
   const lat = document.getElementById('adminLateral');
-  if(lat) lat.innerHTML = grupos.map(g=>`<div class="al-grupo">${icSvg_(g.ico)}${g.nome}</div>` + g.subs.map(id=>`<button type="button" data-sub="${id}" class="${id===alvo?'active':''}" onclick="abrirAdministrador('${id}')">${ADMIN_SUBABAS_ROTULOS[id]}</button>`).join('')).join('');
+  if(lat) lat.innerHTML = busca + grupos.map(g=>`<div class="al-grupo">${icSvg_(g.ico)}${g.nome}</div>` + g.subs.map(id=>`<button type="button" data-sub="${id}" class="${id===alvo?'active':''}" onclick="abrirAdministrador('${id}')">${adminBtnTxt_(id)}</button>`).join('')).join('');
 }
 let _adminGrupoAtivo_ = null;
 /* Entrar no Admin: só os grupos, nenhuma tela aberta. Tocar num grupo mostra as telas dele; a tela abre só quando você toca nela. */
@@ -70,6 +128,7 @@ function abrirAdminGrupo_(i){
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
   const bt = document.querySelector('[data-tab="administrador"]'); if(bt) bt.classList.add('active');
   ativarApenasSecao_('tab-admininicio');
+  try{ renderAdminInicio_(); }catch(e){}
 }
 function abrirAdminInicio_(){ abrirAdminGrupo_(null); }
 montarBarrasAdmin_('visaogeral');
@@ -91,18 +150,21 @@ function ativarApenasSecao_(id){
 }
 /* Abas internas: mostra só os cards marcados com data-painel="nome" (um card pode ter mais de um nome, separados por espaço).
    Cards sem data-painel ficam sempre visíveis. Lembra a última aba escolhida em cada tela. */
-const _abaInterna_ = { 'tab-produtos':'produtos', 'tab-cardapiodigital':'categorias', 'tab-historico':'vendas', 'tab-contas':'contas' };
+const _abaInterna_ = { 'tab-produtos':'produtos', 'tab-cardapiodigital':'categorias', 'tab-historico':'vendas', 'tab-contas':'contas', 'tab-pagamentos':'taxas' };
 function abaInterna_(tabId, q){
   const sec = document.getElementById(tabId); if(!sec) return;
   _abaInterna_[tabId] = q;
   sec.querySelectorAll('[data-painel]').forEach(p=>{ p.style.display = (p.dataset.painel.split(' ').indexOf(q) !== -1) ? '' : 'none'; });
   sec.querySelectorAll('.seg-abas button').forEach(b=>b.classList.toggle('active', b.dataset.aba === q));
 }
+/* Do Cardápio Digital (o que aparece) para o cadastro em Produtos → Produtos, combos e adicionais, já na aba certa. */
+function abrirCadastro_(aba){ _abaInterna_['tab-produtos'] = aba; abrirAdministrador('produtos'); }
 function abrirAdministrador(sub){
   if(['ias','ifood','nfce','mercadopago'].includes(sub)){ _abaInterna_['tab-contas'] = sub; sub = 'contas'; }   // atalho direto para o sub-menu
   if(sub === 'drive') sub = 'armazenamento';   // "Espaço e fotos" virou parte de "Backup e espaço"
   const permitidos = gruposAdmin_().reduce((a,g)=>a.concat(g.subs), []);
   const alvo = (ADMIN_SUBABAS.includes(sub) && permitidos.includes(sub)) ? sub : permitidos[0];
+  adminLembrar_(alvo);
   montarBarrasAdmin_(alvo);
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
   document.querySelector('[data-tab="administrador"]').classList.add('active');
@@ -555,3 +617,33 @@ function fotoFalhou_(img){
   img.src = alternativas[tentativa];
 }
 
+
+
+/* ---------- INÍCIO DO ADMINISTRADOR (6.4): pendências que abrem a tela certa + últimas telas vistas ---------- */
+const ADMIN_RECENTES_CHAVE_ = 'texas_admin_recentes';
+function adminRecentes_(){ try{ const a = JSON.parse(localStorage.getItem(ADMIN_RECENTES_CHAVE_) || '[]'); return Array.isArray(a) ? a.filter(id=>ADMIN_SUBABAS_ROTULOS[id]) : []; }catch(e){ return []; } }
+function adminLembrar_(id){
+  if(!ADMIN_SUBABAS_ROTULOS[id]) return;
+  try{ localStorage.setItem(ADMIN_RECENTES_CHAVE_, JSON.stringify([id].concat(adminRecentes_().filter(x=>x!==id)).slice(0,3))); }catch(e){}
+}
+function adminIrParaAba_(aba){ const b = document.querySelector('.tab-btn[data-tab="' + aba + '"]'); if(b) b.click(); }
+function renderAdminInicio_(){
+  const box = document.getElementById('adminInicioConteudo'); if(!box) return;
+  const permitidos = gruposAdmin_().reduce((a,g)=>a.concat(g.subs), []);
+  const cards = [], add = (n, txt, js, grave)=>{ if(n > 0) cards.push(`<button type="button" class="adm-pend${grave?' grave':''}" onclick="${js}"><b>${n}</b><span>${txt}</span></button>`); };
+  const ce = (typeof caixaEstado_ === 'function') ? caixaEstado_() : null;
+  if(ce && ce.vencido) cards.push('<button type="button" class="adm-pend grave" onclick="adminIrParaAba_(\'caixa\')"><b>!</b><span>Caixa vencido: feche o caixa ou libere por algumas horas</span></button>');
+  else if(ce && ce.liberado) cards.push('<button type="button" class="adm-pend" onclick="adminIrParaAba_(\'caixa\')"><b>🔓</b><span>Caixa vencido liberado até ' + caixaHora_(sessaoCaixa.liberadoAte) + '</span></button>');
+  else if(ce && ce.aviso) cards.push('<button type="button" class="adm-pend" onclick="adminIrParaAba_(\'caixa\')"><b>⏰</b><span>O caixa vence às ' + caixaHora_(sessaoCaixa.venceEm) + '</span></button>');
+  if(currentUser && currentUser.nivel !== 'Operador'){
+    add((vendas||[]).filter(v=>v.status==='Confirmada' && v.statusPedido==='Recebido').length, 'pedido(s) aguardando aceite', "adminIrParaAba_('pedidos')", true);
+    add((estoque||[]).filter(e=>e.ativo && Number(e.minimo)>0 && Number(e.quantidade)<=Number(e.minimo)).length, 'ingrediente(s) no mínimo', "abrirAdministrador('estoque')");
+  }
+  add(typeof ocorrenciasAbertas_ === 'function' ? ocorrenciasAbertas_().length : 0, 'ocorrência(s) aberta(s)', "abrirAdministrador('ocorrencias')");
+  add((feedbacks||[]).filter(f=>!f.resposta).length, 'feedback(s) sem resposta', "abrirAdministrador('feedbacks')");
+  const rec = adminRecentes_().filter(id=>permitidos.includes(id));
+  box.innerHTML = '<div class="card"><h2>Início do Administrador</h2>'
+    + (cards.length ? '<div class="adm-pends">' + cards.join('') + '</div>' : '<div class="notif-empty">Nenhuma pendência agora.</div>')
+    + (rec.length ? '<h3 class="mt-3">Vistas por último</h3><div class="adm-recentes">' + rec.map(id=>`<button type="button" class="ghost" onclick="abrirAdministrador('${id}')">${ADMIN_SUBABAS_ROTULOS[id]}</button>`).join('') + '</div>' : '')
+    + '<p class="obs-line mt-3">Escolha uma tela no menu' + (gruposAdmin_().length > 1 ? ' ou use o campo “Ir para…”.' : '.') + '</p></div>';
+}

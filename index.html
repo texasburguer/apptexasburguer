@@ -87,7 +87,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alfa+Slab+One&display=swap">
 <title>Texas Burger — Sistema Completo</title>
-<link rel="stylesheet" href="estilo-base.css?v=373d2e26">
+<link rel="stylesheet" href="estilo-base.css?v=576313f4">
 </head>
 <body>
 
@@ -197,12 +197,17 @@
 </div>
 <div class="modal-overlay" id="cxConfirmarModal">
   <div class="modal-box">
-    <div class="modal-header"><h2>Fechar o caixa</h2><button class="close-btn" onclick="fecharModalConfirmarCaixa_()">✕</button></div>
+    <div class="modal-header"><h2 id="fcTitulo">Fechar o caixa</h2><button class="close-btn" onclick="fecharModalConfirmarCaixa_()">✕</button></div>
     <p class="sub">Conte todo o dinheiro que está na gaveta, antes de pagar os entregadores, e digite o valor. O sistema compara com o esperado e avisa se bateu, sobrou ou faltou.</p><span id="fcEsperado" style="display:none;"></span>
     <div id="fcAcertosEntregadores" class="obs-line" style="display:none;margin:6px 0;"></div>
     <label for="fcContado">Dinheiro contado na gaveta (R$)</label>
     <input type="number" id="fcContado" inputmode="decimal" step="0.01" min="0" placeholder="0,00" oninput="atualizarResultadoGaveta_()">
     <div id="fcResultado" style="margin:6px 0 2px;min-height:22px;font-weight:700;"></div>
+    <div id="fcMotivoBox" hidden>
+      <div class="caixa-faixa aviso">Este caixa passou do vencimento. A diferença fica registrada como fechamento atrasado; a contagem completa pode ser feita depois.</div>
+      <label for="fcMotivo">Motivo (opcional)</label>
+      <input type="text" id="fcMotivo" maxlength="200" placeholder="Ex.: esqueci de fechar ontem">
+    </div>
     <label for="fcSenha">Sua senha, para confirmar o fechamento</label>
     <input type="password" id="fcSenha" autocomplete="current-password">
     <div class="msg" id="cxConfirmarMsg"></div>
@@ -504,7 +509,7 @@
         <button type="button" class="primary" onclick="cfAbrirNovoIngrediente()">+ Novo ingrediente</button>
         <button type="button" class="ghost" onclick="cfAbrirLote()"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v18M16 7h-6a3 3 0 0 0 0 6h4a3 3 0 0 1 0 6H8"/></svg>Preços em lote</button>
       </div>
-      <p class="sub" id="estBebAjuda" style="display:none;">Bebidas e itens prontos são cadastrados como produto: Catálogo → Produtos → + Novo produto → "🥤 Comprado pronto". Aqui você vê e ajusta o estoque deles.</p>
+      <p class="sub" id="estBebAjuda" style="display:none;">Bebidas e itens prontos são cadastrados como produto: Produtos → Produtos, combos e adicionais → + Novo produto → "🥤 Comprado pronto". Aqui você vê e ajusta o estoque deles.</p>
       <div class="msg" id="eMsgLista"></div>
       <table class="mt-3">
         <thead><tr><th>Ingrediente</th><th>Qtd</th><th>Status</th><th></th></tr></thead>
@@ -1179,15 +1184,15 @@
     </div>
 
     <div class="seg-abas">
-      <button type="button" data-aba="categorias" onclick="abaInterna_('tab-cardapiodigital','categorias')">Categorias</button>
-      <button type="button" data-aba="produtos" onclick="abaInterna_('tab-cardapiodigital','produtos')">Produtos</button>
-      <button type="button" data-aba="combos" onclick="abaInterna_('tab-cardapiodigital','combos')">Combos</button>
-      <button type="button" data-aba="adicionais" onclick="abaInterna_('tab-cardapiodigital','adicionais')">Adicionais</button>
-      <button type="button" data-aba="pagamentos" onclick="abaInterna_('tab-cardapiodigital','pagamentos')">Pagamentos</button>
+      <button type="button" data-aba="categorias" onclick="abaInterna_('tab-cardapiodigital','categorias')">Categorias no cardápio</button>
+      <button type="button" data-aba="produtos" onclick="abaInterna_('tab-cardapiodigital','produtos')">Produtos no cardápio</button>
+      <button type="button" data-aba="combos" onclick="abaInterna_('tab-cardapiodigital','combos')">Combos no cardápio</button>
+      <button type="button" data-aba="adicionais" onclick="abaInterna_('tab-cardapiodigital','adicionais')">Adicionais no cardápio</button>
     </div>
 
     <div class="card" data-painel="categorias">
       <h2>Categorias no cardápio</h2>
+      <button type="button" class="ghost" onclick="abrirCadastro_('categorias')">Editar cadastro de categorias</button>
       <p class="sub">Marque quais aparecem pro cliente e a ordem de exibição na navegação horizontal.</p>
       <table>
         <thead><tr><th>Categoria</th><th>Ordem</th><th>Aparece</th></tr></thead>
@@ -1195,17 +1200,9 @@
       </table>
     </div>
 
-    <div class="card" data-painel="pagamentos">
-      <h2>Formas de pagamento no cardápio</h2>
-      <p class="sub">Marque quais formas o cliente pode escolher ao pedir pelo cardápio. O cadastro (taxa, prazo, troco) fica em Administrador → Operação → Pagamentos.</p>
-      <table>
-        <thead><tr><th>Forma</th><th>Aparece</th></tr></thead>
-        <tbody id="formaCuradoriaTable"></tbody>
-      </table>
-    </div>
-
     <div class="card" data-painel="produtos">
       <h2>Produtos no cardápio</h2>
+      <button type="button" class="ghost" onclick="abrirCadastro_('produtos')">Editar cadastro de produtos</button>
       <p class="sub">Aparece decide se o cliente vê o produto. Destaque coloca em "📌 Destaques". Ordem é a posição dentro da categoria.</p>
       <table>
         <thead><tr><th>Produto</th><th>Aparece</th><th>Destaque</th><th>Ordem</th></tr></thead>
@@ -1215,6 +1212,7 @@
 
     <div class="card" data-painel="combos">
       <h2>Combos no cardápio</h2>
+      <button type="button" class="ghost" onclick="abrirCadastro_('combos')">Editar cadastro de combos</button>
       <table>
         <thead><tr><th>Combo</th><th>Aparece</th><th>Destaque</th><th>Ordem</th></tr></thead>
         <tbody id="comboCuradoriaTable"></tbody>
@@ -1223,6 +1221,7 @@
 
     <div class="card" data-painel="adicionais">
       <h2>Adicionais no cardápio</h2>
+      <button type="button" class="ghost" onclick="abrirCadastro_('adicionais')">Editar cadastro de adicionais</button>
       <table>
         <thead><tr><th>Adicional</th><th>Aparece</th></tr></thead>
         <tbody id="adCuradoriaTable"></tbody>
@@ -1233,7 +1232,7 @@
 
   <section class="tab" id="tab-admininicio">
     <div class="admin-subnav" data-admin-nav="1"></div>
-    <div class="card so-pc admin-dica">👈 Escolha uma tela no menu ao lado.</div>
+    <div id="adminInicioConteudo"></div>
   </section>
   <section class="tab" id="tab-visaogeral">
     <div class="admin-subnav" data-admin-nav="1"></div>
@@ -1296,7 +1295,13 @@
   <section class="tab" id="tab-pagamentos">
         <div class="admin-subnav" data-admin-nav="1"></div>
 
-    <div class="card">
+    <div class="seg-abas">
+      <button type="button" data-aba="taxas" onclick="abaInterna_('tab-pagamentos','taxas')">Taxas e prazos</button>
+      <button type="button" data-aba="cardapio" onclick="abaInterna_('tab-pagamentos','cardapio')">No cardápio</button>
+    </div>
+
+
+    <div class="card" data-painel="taxas">
       <h2>Formas de pagamento</h2>
       <p class="sub">Nunca são apagadas — só desativadas. Taxa e prazo valem para vendas futuras; vendas antigas guardam a taxa da época.</p>
       <input type="text" id="fpNome" placeholder="Ex: Vale Refeição">
@@ -1320,6 +1325,17 @@
         <thead><tr><th>Forma</th><th>Taxa (paga)</th><th>Acréscimo (cliente)</th><th>Prazo</th><th></th></tr></thead>
         <tbody id="fpTable"></tbody>
       </table>
+    </div>
+
+    <div class="card" data-painel="cardapio">
+      <h2>Formas de pagamento no cardápio</h2>
+      <p class="sub">Marque quais formas o cliente pode escolher ao pedir pelo cardápio. Taxa, prazo e troco ficam na aba <b>Taxas e prazos</b>, aqui ao lado.</p>
+      <table>
+        <thead><tr><th>Forma</th><th>Aparece</th></tr></thead>
+        <tbody id="formaCuradoriaTable"></tbody>
+      </table>
+      <p class="sub mt-3">Para o cliente pagar online (Pix, crédito ou débito), ligue "Também online" na forma, em Sistema → Integrações e contas → Mercado Pago.</p>
+      <button type="button" class="ghost" onclick="abrirAdministrador('mercadopago')">Ir para Mercado Pago</button>
     </div>
 
   </section>
@@ -1433,6 +1449,11 @@
 
   <section class="tab" id="tab-armazenamento">
     <div class="admin-subnav" data-admin-nav="1"></div>
+    <div class="card" data-atalho-saude="1">
+      <p class="sub" style="margin:0 0 8px;">Backup e espaço são parte da saúde do sistema. Para ver tudo de uma vez (bolinha verde, amarela ou vermelha e cada item), abra a saúde do sistema.</p>
+      <button type="button" class="ghost" onclick="abrirModalConexao_()">Ver saúde do sistema</button>
+    </div>
+
     <!-- app-17 acrescenta aqui Backup e Uso do Supabase; o Google Drive fica por último -->
     <div class="card" id="driveCard">
       <h2>Google Drive</h2>
@@ -1446,6 +1467,11 @@
   <section class="tab" id="tab-integridade">
         <div class="admin-subnav" data-admin-nav="1"></div>
 
+    <div class="card" data-atalho-saude="1">
+      <p class="sub" style="margin:0 0 8px;">A contingência e a sincronização são parte da saúde do sistema. Para ver tudo de uma vez (bolinha verde, amarela ou vermelha e cada item), abra a saúde do sistema.</p>
+      <button type="button" class="ghost" onclick="abrirModalConexao_()">Ver saúde do sistema</button>
+    </div>
+
     <div class="card">
       <h2>Contingência</h2>
       <p class="sub">Uma segunda planilha, numa conta Google separada, que mantém o Cardápio Digital funcionando (cliente continua pedindo) se o Supabase e a planilha principal ficarem fora do ar. Ela guarda uma cópia dos produtos/preços/clientes e enfileira as vendas feitas nesse meio tempo.</p>
@@ -1458,7 +1484,7 @@
     </div>
 
   </section>
-  <!-- =========================== CONTAS E ACESSOS (Admin → Sistema) =========================== -->
+  <!-- =========================== INTEGRAÇÕES E CONTAS (Admin → Sistema) =========================== -->
   <section class="tab" id="tab-contas">
     <div class="admin-subnav" data-admin-nav="1"></div>
     <div class="seg-abas">
@@ -1469,7 +1495,7 @@
       <button type="button" data-aba="mercadopago" onclick="abaInterna_('tab-contas','mercadopago')"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18v12H3zM3 10h18M7 15h3"/></svg>Mercado Pago</button>
     </div>
     <div class="card" data-painel="contas">
-      <h2><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 11h12v10H6zM8 11V8a4 4 0 0 1 8 0v3"/></svg>Contas e acessos</h2>
+      <h2><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 11h12v10H6zM8 11V8a4 4 0 0 1 8 0v3"/></svg>Integrações e contas</h2>
       <p class="sub">E-mails, links e senhas das contas que fazem este sistema funcionar. Só Administrador e Desenvolvedor veem. Para ver uma senha, o app pede a sua senha de administrador.</p>
       <button class="small-gold" onclick="abrirContaModal_('')">+ Nova conta</button>
       <div id="contasLista" class="mt-3"><div class="notif-empty">Carregando…</div></div>
@@ -1594,7 +1620,7 @@
           </div>
           <label for="ppEstoqueMin">Avisar quando chegar a (un)</label><input type="number" id="ppEstoqueMin" step="1" min="0" inputmode="numeric" placeholder="0">
           <select id="ppEstoqueUnidade" hidden aria-hidden="true" tabindex="-1"><option value="un" selected>un</option><option value="g">g</option><option value="kg">kg</option><option value="ml">ml</option><option value="l">l</option></select>
-          <p class="sub">A quantidade em estoque muda pelas vendas, compras e em Catálogo → Estoque (entrada, perda, inventário).</p>
+          <p class="sub">A quantidade em estoque muda pelas vendas, compras e em Produtos → Estoque (entrada, perda, inventário).</p>
         </div>
       </div>
       <div class="row2 mt-3">
@@ -2156,7 +2182,7 @@
 </div>
 
 <!-- MODAL SENHA ADMIN (excluir cliente) -->
-<!-- POP-UP: Conta (Contas e acessos) -->
+<!-- POP-UP: Conta (Integrações e contas) -->
 <div class="modal-overlay" id="contaModal">
   <div class="modal-box">
     <div class="modal-header"><h2 id="contaModalTitulo">Nova conta</h2><button class="close-btn" onclick="fecharFormModal('contaModal')" aria-label="Fechar">✕</button></div>
@@ -2171,7 +2197,7 @@
     <div class="msg" id="ctMsg"></div>
   </div>
 </div>
-<!-- POP-UP: Trocar chave de IA (Contas e acessos) -->
+<!-- POP-UP: Trocar chave de IA (Integrações e contas) -->
 <div class="modal-overlay" id="chaveIaModal">
   <div class="modal-box">
     <div class="modal-header"><h2 id="chaveIaTitulo">Trocar chave</h2><button class="close-btn" onclick="fecharFormModal('chaveIaModal')" aria-label="Fechar">✕</button></div>
@@ -2386,20 +2412,20 @@
   </div>
 </div>
 
-<script src="app-01-base-e-api.js?v=85e6aee3" charset="utf-8" data-origem="__big0__"></script>
-<script src="app-02-abas.js?v=24d06fd3" charset="utf-8" data-origem="__big1__"></script>
-<script src="app-03-cadastros.js?v=2985d30e" charset="utf-8" data-origem="__big2__"></script>
-<script src="app-04-pedidos-entrega.js?v=02bda7ac" charset="utf-8" data-origem="__big3__"></script>
-<script src="app-05-avisos-push.js?v=13fa906c" charset="utf-8" data-origem="__big4__"></script>
-<script src="app-06-caixa.js?v=8ac2969c" charset="utf-8" data-origem="__big5__"></script>
+<script src="app-01-base-e-api.js?v=79bc0140" charset="utf-8" data-origem="__big0__"></script>
+<script src="app-02-abas.js?v=4b872a36" charset="utf-8" data-origem="__big1__"></script>
+<script src="app-03-cadastros.js?v=78549205" charset="utf-8" data-origem="__big2__"></script>
+<script src="app-04-pedidos-entrega.js?v=daae5a58" charset="utf-8" data-origem="__big3__"></script>
+<script src="app-05-avisos-push.js?v=4c1df4f2" charset="utf-8" data-origem="__big4__"></script>
+<script src="app-06-caixa.js?v=63feb38b" charset="utf-8" data-origem="__big5__"></script>
 <script src="app-07-impressao.js?v=5fce9035" charset="utf-8" data-origem="__big6__"></script>
-<script src="app-08-vendas-despesas.js?v=9cdd4207" charset="utf-8" data-origem="__big7__"></script>
-<script src="app-09-ajuda.js?v=4d7ff3ff" charset="utf-8" data-origem="__big8__"></script>
-<script src="app-10-backup-financeiro.js?v=b2f40f24" charset="utf-8" data-origem="__big9__"></script>
-<script src="app-11-admin-integracoes.js?v=4c1a1572" charset="utf-8" data-origem="__big10__"></script>
-<script src="app-12-gestao-ia.js?v=5001c217" charset="utf-8" data-origem="__big11__"></script>
+<script src="app-08-vendas-despesas.js?v=42c06d58" charset="utf-8" data-origem="__big7__"></script>
+<script src="app-09-ajuda.js?v=01eb5d4b" charset="utf-8" data-origem="__big8__"></script>
+<script src="app-10-backup-financeiro.js?v=76b19b51" charset="utf-8" data-origem="__big9__"></script>
+<script src="app-11-admin-integracoes.js?v=02f73c8a" charset="utf-8" data-origem="__big10__"></script>
+<script src="app-12-gestao-ia.js?v=59f30b6d" charset="utf-8" data-origem="__big11__"></script>
 <script src="app-13-conexao-sync.js?v=4169baef" charset="utf-8" data-origem="__big12__"></script>
-<script src="app-14-relatorios.js?v=304374c8" charset="utf-8" data-origem="__big13__"></script>
+<script src="app-14-relatorios.js?v=e7f44853" charset="utf-8" data-origem="__big13__"></script>
 <script src="app-15-cardapio-cliente.js?v=183362dd" charset="utf-8" data-origem="__big14__"></script>
 <script src="app-16-sessao-final.js?v=ef1da8ab" charset="utf-8" data-origem="__big15__"></script>
 <!-- ═══════════ SINCRONIZAÇÃO, BACKUP, ESPAÇO E INTEGRIDADE ═══════════
@@ -2422,7 +2448,7 @@
 ===================================================================== -->
 <link rel="stylesheet" href="estilo-ia-cardapio.css?v=22645202">
 
-<script src="app-19-ia.js?v=95162a20" charset="utf-8" data-origem="iaModulo"></script>
+<script src="app-19-ia.js?v=37d36dbd" charset="utf-8" data-origem="iaModulo"></script>
 <!-- =====================================================================
    BALÃO ÚNICO — parte da EQUIPE (Fase 3/4): só texto. O roteador do ai-gateway escolhe o robô; a fila de clientes aparece como aviso.
    Reaproveita IA.chamar, sbRpc_, sbSessaoLer_, sbJson_. Nenhum botão de função: tudo é texto (exceto Assumir/Encerrar/Sair da conversa).
@@ -2437,7 +2463,7 @@
    ===================================================================== -->
 <script src="app-21-localizacao.js?v=bb28de16" charset="utf-8" data-origem="fase5Localizacao"></script>
 
-<link rel="stylesheet" href="estilo-equipe.css?v=37b3d29c">
+<link rel="stylesheet" href="estilo-equipe.css?v=84e31270">
 <nav id="navInf" aria-label="Navegação principal"></nav>
 <div id="navInfMais" onclick="if(event.target===this)navInfFechar_()"><div class="nm-box" id="navInfMaisBox"></div></div>
 <script src="app-22-navegacao-inferior.js?v=9c0835e7" charset="utf-8" data-origem="navInfJs"></script>

@@ -221,7 +221,7 @@ function cpInfoItem_(i){
     }
   } else if(String(it.descricao||'').trim()){
     const q2 = cpNorm_(it.descricao), parecido = (estoque||[]).filter(x=>x.ativo!==false && (cpNorm_(x.nome).indexOf(q2)!==-1 || q2.indexOf(cpNorm_(x.nome))!==-1)).slice(0,3);
-    html = `<div class="cf-alerta">⚠️ Este item <b>não vai dar entrada no estoque</b> (entra só como despesa).${parecido.length ? ' É algum destes? ' + parecido.map(x=>`<button type="button" class="link-btn" onclick="cpEscolher_(${i},'${x.id}')">${escH(x.nome)}</button>`).join(' ') : ' Se for ingrediente, cadastre em Catálogo → Estoque.'}</div>`;
+    html = `<div class="cf-alerta">⚠️ Este item <b>não vai dar entrada no estoque</b> (entra só como despesa).${parecido.length ? ' É algum destes? ' + parecido.map(x=>`<button type="button" class="link-btn" onclick="cpEscolher_(${i},'${x.id}')">${escH(x.nome)}</button>`).join(' ') : ' Se for ingrediente, cadastre em Produtos → Estoque.'}</div>`;
   }
   el.innerHTML = html;
 }

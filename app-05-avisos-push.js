@@ -331,7 +331,7 @@ function alertasDeEntregas(){
     const dias = {};
     abertas.forEach(v=>{ const d = dataLocalISO(new Date(v.timestampConcluida)); if(d<hoje) dias[v.entregador+'|'+d] = 1; });
     const n = Object.keys(dias).length;
-    if(n) out.push(`<b>${n}</b> fechamento(s) de entregador de dias anteriores pendente(s) (Administrador → Operação → Entregadores e taxas).`);
+    if(n) out.push(`<b>${n}</b> fechamento(s) de entregador de dias anteriores pendente(s) (Administrador → Loja e equipe → Entregadores e taxas).`);
   }
   return out;
 }
@@ -496,6 +496,7 @@ function atualizarAtalhosInicio_(d){
 }
 function renderInicio(){
   const box = document.getElementById('inicioResumo'); if(!box || !currentUser) return;
+  try{ caixaFaixaAtualizar_(); }catch(e){}
   const nivel = currentUser.nivel;
   const staff = nivel==='Admin' || nivel==='Operador';
   const agora = new Date();
@@ -569,7 +570,7 @@ async function inicioCarregarVisitas_(){
   finally{ _visitasCdBuscando_ = false; }
 }
 function renderStatusCaixa(){
-  _rotuloBotaoCaixa_();
+  _rotuloBotaoCaixa_(); try{ caixaFaixaAtualizar_(); }catch(e){}
   const card = document.getElementById('caixaStatusCard');
   const box = document.getElementById('caixaStatusConteudo');
   if(!sessaoCaixa){
@@ -595,7 +596,8 @@ function renderStatusCaixa(){
   ).join('');
 
   box.innerHTML = `<div class="caixa-status-titulo">🟢 Caixa aberto<small>desde ${sessaoCaixa.abertura}${escH(sessaoCaixa.usuarioAbertura?(' · por '+sessaoCaixa.usuarioAbertura):'')}</small></div>
-    ${(Date.now() - sessaoCaixa.aberturaTimestamp > 24*3600*1000) ? '<div class="obs-line" style="color:#e0b53a;margin:-4px 0 10px;">⚠️ Este caixa está aberto há mais de 24 horas. Confira e feche o caixa do dia anterior.</div>' : ''}
+    ${caixaFaixaHtml_()}
+    ${(currentUser && (currentUser.nivel==='Admin' || currentUser.nivel==='Desenvolvedor')) ? '<button type="button" class="ghost mb-3" onclick="caixaRegraAbrir_()">Regra do caixa vencido</button>' : ''}
     <div class="stat-row">
       <div class="stat-box"><b class="txt-ouro">${formatarMoeda(sessaoCaixa.fundoCaixa)}</b><span>FUNDO</span></div>
       ${boxesFormas || '<div class="stat-box entrada"><b>R$ 0,00</b><span>VENDAS</span></div>'}
@@ -604,7 +606,7 @@ function renderStatusCaixa(){
     </div>
     <div class="fs-md mb-3">Saldo esperado em caixa (dinheiro): <b style="color:var(--gold);font-size:17px;">${formatarMoeda(saldoEsperado)}</b></div>
     ${totalAcertosPrev>0 ? `<div style="font-size:13px;margin:-4px 0 10px;opacity:.9;">🛵 A pagar aos entregadores ao fechar: <b>${formatarMoeda(totalAcertosPrev)}</b> · ficam na gaveta ${formatarMoeda(arred2(saldoEsperado-totalAcertosPrev))}</div>` : ''}
-    <button class="primary" onclick="fecharCaixaAgora()">Fechar caixa</button>`;
+    <button class="primary" onclick="fecharCaixaAgora()">${(caixaEstado_()||{}).passou ? 'Fechar caixa vencido' : 'Fechar caixa'}</button>`;
 
   const lista = [
     ...vendasSessao.map(v=>({tipo:'venda', ts:v.timestamp, label:(v.clienteNome||'Sem cadastro'), valor:v.valorTotal, extra:v.formaPagamento, id:v.id, aReceber:v.statusPagamento==='A Receber'})),
@@ -710,6 +712,9 @@ function fecharCaixaAgora(){
   document.getElementById('fcEsperado').textContent = formatarMoeda(esperado);
   document.getElementById('fcContado').value = ''; _fcEsperado_ = esperado; atualizarResultadoGaveta_();
   document.getElementById('fcSenha').value = '';
+  const _ce = caixaEstado_(), _atr = !!(_ce && _ce.passou);
+  const _mb = document.getElementById('fcMotivoBox'); if(_mb){ _mb.hidden = !_atr; document.getElementById('fcMotivo').value = ''; }
+  const _ft = document.getElementById('fcTitulo'); if(_ft) _ft.textContent = _atr ? 'Fechar caixa vencido' : 'Fechar o caixa';
   const m = document.getElementById('cxConfirmarMsg'); m.textContent = ''; m.className = 'msg';
   document.getElementById('fcBtn').disabled = false;
   document.getElementById('cxConfirmarModal').classList.add('open');
@@ -725,7 +730,7 @@ async function confirmarFecharCaixa_(){
   if(!iniciarOperacaoUnica('fecharCaixa')) return;
   const btn = document.getElementById('fcBtn'); btn.disabled = true;
   try{
-    const r = await apiCall('fecharCaixa', { id: sessaoCaixa.id, valorContado: contado, senhaConfirmacao: senha });
+    const r = await apiCall('fecharCaixa', { id: sessaoCaixa.id, valorContado: contado, senhaConfirmacao: senha, motivo: (document.getElementById('fcMotivo')||{}).value || '' });
     if(r.ok){
       fecharModalConfirmarCaixa_(); fecharCaixaStatus_(); fecharLancamentos_();
       sessaoCaixa = null;
@@ -789,3 +794,65 @@ function enviarRelatorioWhatsapp(){ window.open('https://wa.me/?text=' + encodeU
 /* ============================================================
    CAIXA — VENDA (CARRINHO + PAGAMENTO DIVIDIDO)
    ============================================================ */
+
+
+/* ---------- CAIXA VENCIDO (regra no banco: caixa_config, _caixa_vencido, api_caixa_liberar) ----------
+   A tela só mostra o estado. Quem decide é o servidor: venda nova de balcão/mesa, sangria e resgate de prêmio param quando o caixa vence;
+   pedido do iFood e do cardápio continuam entrando e sendo aceitos. */
+function caixaHora_(ts){ try{ return new Date(ts).toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit', timeZone:'America/Sao_Paulo' }); }catch(e){ return ''; } }
+function caixaEstado_(){
+  const s = sessaoCaixa; if(!s || !s.venceEm) return null;
+  const agora = Date.now(), passou = agora >= s.venceEm, liberado = passou && s.liberadoAte > agora;
+  return { passou, liberado, vencido: passou && !liberado, aviso: !passou && (s.venceEm - agora) <= (s.avisoHoras || 2) * 3600000 };
+}
+function caixaFaixaHtml_(){
+  const e = caixaEstado_(); if(!e || !currentUser) return '';
+  const nivel = currentUser.nivel, fecha = (nivel === 'Admin' || nivel === 'Operador' || nivel === 'Desenvolvedor');
+  const quando = sessaoCaixa.abertura || '';
+  const ext = (vendas||[]).filter(v=>v.status==='Confirmada' && v.statusPedido==='Recebido' && v.origem && v.origem!=='Balcão' && v.origem!=='Garçom').length;
+  const extTxt = ext ? ' <b>' + ext + ' pedido(s) do iFood/cardápio aguardando aceite: aceite normalmente, não trava.</b>' : '';
+  if(e.vencido){
+    if(!fecha) return '<div class="caixa-faixa erro" role="alert">' + icSvg_('sino') + ' Caixa vencido — chame o responsável.</div>';
+    return '<div class="caixa-faixa erro" role="alert"><div>' + icSvg_('sino') + ' <b>Caixa vencido</b> (aberto em ' + escH(quando) + '). Venda nova de balcão e de mesa está bloqueada. Pedidos do iFood e do cardápio continuam entrando.' + extTxt + '</div>'
+      + '<div class="caixa-faixa-btns"><button type="button" class="small-gold" onclick="fecharCaixaAgora()">Fechar caixa vencido</button>'
+      + ((nivel === 'Admin' || nivel === 'Desenvolvedor') ? '<button type="button" class="ghost" onclick="caixaLiberarAbrir_()">Liberar por algumas horas</button>' : '') + '</div></div>';
+  }
+  if(e.liberado) return '<div class="caixa-faixa aviso">' + icSvg_('sino') + ' Caixa vencido liberado por ' + escH(sessaoCaixa.liberadoPor || 'Admin') + ' até ' + caixaHora_(sessaoCaixa.liberadoAte) + (sessaoCaixa.liberadoMotivo ? ' — ' + escH(sessaoCaixa.liberadoMotivo) : '') + '.'
+    + (fecha ? ' <button type="button" class="ghost" onclick="fecharCaixaAgora()">Fechar caixa</button>' : '') + '</div>';
+  if(e.aviso) return '<div class="caixa-faixa aviso">' + icSvg_('sino') + ' O caixa vence às ' + caixaHora_(sessaoCaixa.venceEm) + '. Feche e abra um novo antes disso.' + (fecha ? ' <button type="button" class="ghost" onclick="fecharCaixaAgora()">Fechar caixa</button>' : '') + '</div>';
+  return '';
+}
+/* faixa no topo do Início (todos os perfis); no Caixa ela vem dentro do cartão de status */
+async function caixaRegraAbrir_(){
+  const c = await apiCall('caixaConfig', {});
+  if(!c || !c.ok){ avisar((c && c.message) || 'Não foi possível ler a regra do caixa.', 'erro'); return; }
+  const v = await vsForm({ titulo:'Regra do caixa vencido', texto:'O caixa vence no primeiro horário de corte depois da abertura, desde que tenha a vida mínima. Nunca passa do teto.', ok:'Salvar', campos:[
+    { id:'corteHora', tipo:'texto', rotulo:'Horário de corte (HH:MM, Brasília)', valor:c.corteHora, obrigatorio:true, max:5 },
+    { id:'vidaMinimaHoras', tipo:'numero', rotulo:'Vida mínima do caixa', sufixo:'horas', valor:c.vidaMinimaHoras, obrigatorio:true, minimo:0 },
+    { id:'tetoHoras', tipo:'numero', rotulo:'Teto absoluto', sufixo:'horas', valor:c.tetoHoras, obrigatorio:true, maiorQueZero:true },
+    { id:'avisoHoras', tipo:'numero', rotulo:'Avisar antes do corte', sufixo:'horas', valor:c.avisoHoras, obrigatorio:true, minimo:0 },
+    { id:'liberacaoPadraoHoras', tipo:'numero', rotulo:'Liberação de emergência: padrão', sufixo:'horas', valor:c.liberacaoPadraoHoras, obrigatorio:true, maiorQueZero:true },
+    { id:'liberacaoMaxHoras', tipo:'numero', rotulo:'Liberação de emergência: máximo', sufixo:'horas', valor:c.liberacaoMaxHoras, obrigatorio:true, maiorQueZero:true } ] });
+  if(!v) return;
+  if(!/^([01]?\d|2[0-3]):[0-5]\d$/.test(v.corteHora)){ avisar('Horário de corte inválido. Use HH:MM, por exemplo 06:00.', 'aviso'); return; }
+  Object.keys(v).forEach(k=>{ if(typeof v[k] === 'number') v[k] = Math.round(v[k]); });
+  const r = await apiCall('caixaSalvarConfig', v);
+  avisar((r && r.message) || 'Não foi possível salvar.', r && r.ok ? 'ok' : 'erro');
+  if(r && r.ok){ await recarregarHistoricoCaixa(); try{ renderStatusCaixa(); renderInicio(); }catch(e){} }
+}
+function caixaFaixaAtualizar_(){
+  const alvo = document.getElementById('inicioResumo'); if(!alvo || !alvo.parentNode) return;
+  let f = document.getElementById('caixaFaixaInicio');
+  if(!f){ f = document.createElement('div'); f.id = 'caixaFaixaInicio'; alvo.parentNode.insertBefore(f, alvo); }
+  f.innerHTML = caixaFaixaHtml_();
+}
+async function caixaLiberarAbrir_(){
+  const e = caixaEstado_(); if(!e || !e.vencido) return;
+  const v = await vsForm({ titulo:'Liberar caixa vencido', texto:'Use só em emergência. Fica registrado na auditoria, expira sozinho e avisa os Administradores. Depois feche o caixa e abra um novo.', ok:'Liberar',
+    campos:[ { id:'horas', tipo:'numero', rotulo:'Liberar por quantas horas', valor:4, obrigatorio:true, maiorQueZero:true }, { id:'motivo', tipo:'texto', rotulo:'Motivo', obrigatorio:true, minLetras:3 } ] });
+  if(!v) return;
+  const r = await apiCall('caixaLiberar', { horas: Math.round(v.horas), motivo: v.motivo });
+  if(r && r.ok){ avisar(r.message || 'Caixa liberado.', 'ok'); await recarregarHistoricoCaixa(); try{ renderStatusCaixa(); renderInicio(); }catch(e2){} }
+  else avisar((r && r.message) || 'Não foi possível liberar o caixa.', 'erro');
+}
+setInterval(()=>{ try{ if(sessaoCaixa && currentUser && !document.hidden){ caixaFaixaAtualizar_(); } }catch(e){} }, 60000);

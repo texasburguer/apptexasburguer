@@ -726,3 +726,18 @@ button:has(> .ic:only-child), .close-btn .ic{margin-right:0;}
 
 /* Janelas: o botão principal fica sempre à vista no fim do formulário */
 .modal-box > button.primary{position:sticky;bottom:6px;z-index:3;box-shadow:0 -14px 14px -8px var(--panel),0 4px 12px rgba(0,0,0,.45);}
+
+/* Menu do Administrador: campo "Ir para…" */
+.admin-subnav .admin-busca{grid-column:1/-1;}
+.admin-busca{margin:0 0 8px;}
+.admin-busca input{width:100%;box-sizing:border-box;margin:0;}
+.admin-busca-res{display:flex;flex-direction:column;gap:4px;margin-top:6px;}
+.admin-busca-res[hidden]{display:none;}
+.admin-busca-res button{display:flex;justify-content:space-between;align-items:center;gap:8px;width:100%;text-align:left;margin:0;}
+.admin-busca-res small{opacity:.7;font-weight:600;white-space:nowrap;}
+.admin-busca-vazio{font-size:var(--fs-sm);opacity:.75;padding:6px 2px;}
+
+/* Menu do Administrador: uma linha de explicação embaixo de cada tela */
+.admin-subnav button .adm-t,#adminLateral button .adm-t{display:block;}
+.admin-subnav button .adm-d,#adminLateral button .adm-d{display:block;margin-top:2px;font-size:var(--fs-2xs);font-weight:500;line-height:1.2;opacity:.7;}
+#adminLateral button .adm-d{font-size:var(--fs-2xs);}

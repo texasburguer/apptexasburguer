@@ -217,7 +217,7 @@ async function fecharContaMesaUI(mesaIdParam, msgIdParam){
   const vendasDaMesa = vendas.filter(v=>v.mesaId===mesaId && v.status==='Confirmada' && v.statusPagamento==='A Receber');
   if(!vendasDaMesa.length){ if(await confirmarTxt_('Essa mesa não tem conta pendente. Liberar a mesa mesmo assim?', 'Liberar mesa', false, 'Mesa sem conta')){ liberarMesaSemConta_(mesaId, msgId); } return; }
   if(!sessaoCaixa){ showMsg(msgId, souGarcom_() ? 'O caixa está fechado — peça ao caixa para abrir.' : 'Abra o caixa antes de fechar a conta da mesa.','warn'); return; }
-  if(!formasPagamento.some(f=>f.ativa)){ showMsg(msgId,'Não há forma de pagamento ativa. Cadastre uma em Administrador → Operação → Pagamentos.','warn'); return; }
+  if(!formasPagamento.some(f=>f.ativa)){ showMsg(msgId,'Não há forma de pagamento ativa. Cadastre uma em Administrador → Vendas e cardápio → Formas de pagamento.','warn'); return; }
   fcmMesaId = mesaId;
   fcmTotal = Math.round(vendasDaMesa.reduce((s,v)=>s+v.valorTotal,0)*100)/100;
   document.getElementById('fcmTitulo').textContent = 'Fechar conta — Mesa '+(mesa?mesa.numero:'');

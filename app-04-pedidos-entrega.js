@@ -254,7 +254,7 @@ function botaoEnviarEntregador_(v){
   if(!podeEnviarEntregador_() || v.tipoEntrega!=='Entrega' || v.statusPedido==='Recebido') return '';
   if(!v.entregador) return '<div class="obs-line mt-2">📲 Escolha um entregador acima para poder enviar a entrega pelo WhatsApp.</div>';
   const ent = entregadorDe_(v);
-  if(!ent || !telefoneWhatsApp_(ent.telefone)) return '<div class="obs-line" style="margin-top:6px;color:#ffb3ab;">⚠ O entregador '+escH(pdEntregadorNome_(v.entregador))+' está sem telefone válido. Cadastre em Administrador → Sistema → Usuários e Permissões → editar.</div>';
+  if(!ent || !telefoneWhatsApp_(ent.telefone)) return '<div class="obs-line" style="margin-top:6px;color:#ffb3ab;">⚠ O entregador '+escH(pdEntregadorNome_(v.entregador))+' está sem telefone válido. Cadastre em Administrador → Loja e equipe → Usuários e permissões → editar.</div>';
   const feito = lerAvisosEntregador_()[v.id+'|'+v.entregador];
   const hora = feito ? new Date(feito).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) : '';
   return '<div class="btnrow mt-2 ai-centro"><button type="button" class="ghost" onclick="enviarEntregaWhatsApp(\''+v.id+'\')">📲 '+(feito?'Enviar de novo ao entregador':'Enviar ao entregador')+'</button>'+(feito?'<span class="obs-line sem-margem">✔ enviado às '+hora+'</span>':'')+'</div>';

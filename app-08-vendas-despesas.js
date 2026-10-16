@@ -303,7 +303,7 @@ function renderDespesas(){
   tbody.innerHTML = lista.map(d=>`
     <tr class="${d.status==='Cancelada'?'cancelada':''}">
       <td>${escH(d.descricao)}<span class="obs-line">${d.categoria||'Outros'}${d.saiuDoCaixa===false?' • fora do caixa':''}${escH(d.observacao?' • '+d.observacao:'')}</span></td><td>${formatarMoeda(d.valor)}</td>
-      <td>${d.status==='Confirmada'?(d.categoria==='Ajuste pós-venda'?`<span class="obs-line">veja em Ajustes pós-venda</span>`:`<button class="ghost" onclick="abrirModalEditarDespesa('${d.id}')">editar</button><button class="ghost" onclick="abrirModalCancelar('despesa','${d.id}')">cancelar</button>`):`<span class="obs-line">${escH(d.motivoCancelamento)}</span>`}</td>
+      <td>${d.status==='Confirmada'?(d.categoria==='Ajuste pós-venda'?`<span class="obs-line">veja em Reembolsos e ajustes</span>`:`<button class="ghost" onclick="abrirModalEditarDespesa('${d.id}')">editar</button><button class="ghost" onclick="abrirModalCancelar('despesa','${d.id}')">cancelar</button>`):`<span class="obs-line">${escH(d.motivoCancelamento)}</span>`}</td>
     </tr>`).join('');
 }
 

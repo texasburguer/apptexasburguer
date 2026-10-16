@@ -6,7 +6,7 @@
    - BACKEND: NADA de Apps Script (script.google.com) nem de Supabase (*.supabase.co) é guardado aqui.
      Dados, pedidos, login e RPCs nunca passam pelo cache do service worker — sempre vão direto para a rede.
    - O único cache de dados é o de fotos (FOTOS) e o da casca/ícones (SHELL/ASSETS). Não adicionar outros. */
-const SHELL = 'texas-shell-v48';
+const SHELL = 'texas-shell-v57';
 const ASSETS = 'texas-assets-v6';   // trocou ícone/logo/manifest/leaflet? suba para v5
 const FOTOS = 'texas-fotos-v1';
 /* Código do app dividido em arquivos (app-*.js e estilo-*.css). Cada arquivo tem ?v=<impressão digital> na página; o cache guarda
@@ -14,30 +14,30 @@ const FOTOS = 'texas-fotos-v1';
    A lista abaixo é gerada pelo script de selagem (selar.py) a cada entrega. */
 const CODIGO = 'texas-codigo-v2';
 const LISTA = [/*LISTA-INICIO*/
-  'estilo-base.css?v=373d2e26',
-  'app-01-base-e-api.js?v=85e6aee3',
-  'app-02-abas.js?v=24d06fd3',
-  'app-03-cadastros.js?v=2985d30e',
-  'app-04-pedidos-entrega.js?v=02bda7ac',
-  'app-05-avisos-push.js?v=13fa906c',
-  'app-06-caixa.js?v=8ac2969c',
+  'estilo-base.css?v=576313f4',
+  'app-01-base-e-api.js?v=79bc0140',
+  'app-02-abas.js?v=4b872a36',
+  'app-03-cadastros.js?v=78549205',
+  'app-04-pedidos-entrega.js?v=daae5a58',
+  'app-05-avisos-push.js?v=4c1df4f2',
+  'app-06-caixa.js?v=63feb38b',
   'app-07-impressao.js?v=5fce9035',
-  'app-08-vendas-despesas.js?v=9cdd4207',
-  'app-09-ajuda.js?v=4d7ff3ff',
-  'app-10-backup-financeiro.js?v=b2f40f24',
-  'app-11-admin-integracoes.js?v=4c1a1572',
-  'app-12-gestao-ia.js?v=5001c217',
+  'app-08-vendas-despesas.js?v=42c06d58',
+  'app-09-ajuda.js?v=01eb5d4b',
+  'app-10-backup-financeiro.js?v=76b19b51',
+  'app-11-admin-integracoes.js?v=02f73c8a',
+  'app-12-gestao-ia.js?v=59f30b6d',
   'app-13-conexao-sync.js?v=4169baef',
-  'app-14-relatorios.js?v=304374c8',
+  'app-14-relatorios.js?v=e7f44853',
   'app-15-cardapio-cliente.js?v=183362dd',
   'app-16-sessao-final.js?v=ef1da8ab',
   'app-17-sessao-supabase.js?v=393a4b1f',
   'app-18-queda-supabase.js?v=02bb8c67',
   'estilo-ia-cardapio.css?v=22645202',
-  'app-19-ia.js?v=95162a20',
+  'app-19-ia.js?v=37d36dbd',
   'app-20-balao-interno.js?v=5cdf185d',
   'app-21-localizacao.js?v=bb28de16',
-  'estilo-equipe.css?v=37b3d29c',
+  'estilo-equipe.css?v=84e31270',
   'app-22-navegacao-inferior.js?v=9c0835e7',
   'app-23-janelas-popup.js?v=6f031891',
   'app-24-acessibilidade.js?v=1567f2c1',

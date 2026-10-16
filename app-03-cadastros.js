@@ -40,7 +40,7 @@ function atualizarMargemPreview(){
 }
 /* ---------- PREÇO ÚNICO (produto/combo) ----------
    Um preço só vale para todas as formas de pagamento. O que muda por forma é o "Acréscimo"
-   cadastrado na própria forma de pagamento (Administrador → Operação → Pagamentos). */
+   cadastrado na própria forma de pagamento (Administrador → Vendas e cardápio → Formas de pagamento). */
 let excecoesPreco = { p: [], ko: [], pp: [], kk: [] };   // legado: sem uso
 function formaReferenciaPreco_(){ const l = (formasPagamento||[]).slice().sort((a,b)=>(a.ordem||0)-(b.ordem||0)); return l.find(f=>!f.precoProprio) || l[0] || null; }
 function linhaPrecoRef_(lista, chaveId, id){
@@ -361,7 +361,7 @@ function renderAdicionaisChecklist(containerId, selecionados){
   const cont = document.getElementById(containerId);
   if(!cont) return;
   const ativos = adicionais.filter(a=>a.ativo);
-  if(!ativos.length){ cont.innerHTML = '<span class="txt-muted fs-xs">Nenhum adicional cadastrado ainda (cadastre em Administrador → Catálogo → Produtos → Adicionais).</span>'; return; }
+  if(!ativos.length){ cont.innerHTML = '<span class="txt-muted fs-xs">Nenhum adicional cadastrado ainda (cadastre em Administrador → Produtos → Produtos, combos e adicionais → Adicionais).</span>'; return; }
   cont.innerHTML = ativos.map(a=>`<label class="d-flex ai-centro gap-2 fs-sm"><input type="checkbox" value="${a.id}" ${selecionados.includes(a.id)?'checked':''} class="largura-auto"> ${escH(a.nome)} (+ ${formatarMoeda(a.preco)})</label>`).join('');
 }
 function coletarAdicionaisChecklist(containerId){

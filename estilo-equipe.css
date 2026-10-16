@@ -237,3 +237,19 @@ th[align="right"]{ text-align:right; }
 
 /* Fase 7: links de texto em janelas (ex.: "Agora não") com alvo de toque confortável no celular */
 @media (max-width:899px){ .modal-box .link-btn, .lock-box .link-btn{ min-height:var(--alvo-toque-compacto); padding:8px 14px; } }
+
+/* Caixa vencido: faixa de aviso (Início e Caixa) */
+.caixa-faixa{padding:10px 12px;margin:0 0 var(--esp-3);border-radius:var(--raio-controle);border:1px solid var(--line-forte);font-size:var(--fs-sm);line-height:1.4;}
+.caixa-faixa.erro{background:var(--erro-fundo);border-color:var(--erro);color:var(--erro-texto);}
+.caixa-faixa.aviso{background:transparent;border-color:var(--gold-dim);color:var(--gold);}
+.caixa-faixa .ic{width:16px;height:16px;vertical-align:-3px;}
+.caixa-faixa-btns{display:flex;flex-wrap:wrap;gap:var(--esp-2);margin-top:var(--esp-2);}
+.caixa-faixa:empty{display:none;}
+
+/* Início do Administrador */
+.adm-pends{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:var(--esp-2);margin-top:var(--esp-2);}
+.adm-pend{display:flex;align-items:center;gap:var(--esp-3);text-align:left;padding:var(--esp-3);min-height:var(--alvo-toque);background:var(--panel,transparent);border:1px solid var(--line-forte);border-radius:var(--raio-card);color:inherit;font-size:var(--fs-sm);cursor:pointer;}
+.adm-pend b{font-size:var(--fs-xl);color:var(--gold);min-width:32px;text-align:center;}
+.adm-pend.grave{border-color:var(--erro);background:var(--erro-fundo);}
+.adm-pend.grave b{color:var(--erro-texto);}
+.adm-recentes{display:flex;flex-wrap:wrap;gap:var(--esp-2);margin-top:var(--esp-2);}
