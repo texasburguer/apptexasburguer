@@ -425,7 +425,7 @@ async function carregarResumoArquivoClientes_(){
 /* ---------- SEGMENTOS (Fase 4): Novo, Fiel, VIP, Em risco — calculados no Supabase pelo TELEFONE, juntando pedidos ativos + arquivados ---------- */
 const SEG_DIAS_RISCO_ = 45;
 const SEG_REGRAS_ = { 'Novo':'1 a 3 pedidos', 'Fiel':'4 ou mais pedidos', 'VIP':'10 ou mais pedidos, ou R$ 800 ou mais gastos', 'Em risco':'sem pedir há mais de '+SEG_DIAS_RISCO_+' dias' };
-const SEG_CLASSE_ = { 'Novo':'neutro', 'Fiel':'ok', 'VIP':'aviso', 'Em risco':'erro' };
+const SEG_CLASSE_ = { 'Novo':'neutro', 'Fiel':'ok', 'VIP':'ouro', 'Em risco':'erro' };
 let _segTel_ = null, _segQuando_ = 0, _segCarregando_ = false;
 async function carregarSegmentosClientes_(forcar){
   if(!arqPodeLer_() || _segCarregando_ || (!forcar && _segTel_ && Date.now()-_segQuando_ < 300000)) return;
