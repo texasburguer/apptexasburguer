@@ -609,7 +609,7 @@ async function sbVersoes_(){
 function sbVersoesDesconhecidas_(){ const x = 'x' + Date.now(); return { cad:x, din:x }; } // banco não respondeu: valor sempre diferente, força baixar tudo (seguro)
 const SB_CHAVES_VERSAO_ = { cad:['produtos','combos','adicionais','formasPagamento','categorias'], din:['clientes','cupons','eventos','despesas','despesasRecorrentes','usuarios','vendas'] };
 /* ações que mudam dados "filhos" (preços, adicionais) e, por isso, a versão de um registro que a resposta não devolve: a tela se atualiza sozinha logo depois */
-const SB_REFRESH_APOS_ = new Set(['addFormaPagamento','vincularAdicionaisEmLote','excluirAdicional','aplicarPrecoCalculadora']);
+const SB_REFRESH_APOS_ = new Set(['addFormaPagamento','vincularAdicionaisEmLote','desvincularAdicionaisEmLote','excluirAdicional','aplicarPrecoCalculadora']);
 function sbAnexarVersao_(action, payload){ // como a planilha fazia: a edição leva a versão (_v) que a pessoa estava vendo
   try{
     if(!VERSAO_FRONT_[action] || !payload || payload.versaoEsperada !== undefined) return payload;
@@ -655,7 +655,7 @@ const SB_ESCRITAS_ = {
   addCategoria:['categorias'], editarCategoria:['categorias'], excluirCategoria:['categorias'],
   addIngrediente:['estoque','movimentacoesEstoque'], editarIngrediente:['estoque','movimentacoesEstoque','produtoPrecos','comboPrecos','produtoIngredientes'], excluirIngrediente:['estoque'],
   salvarPrecosLote:['estoque','produtoPrecos','comboPrecos','produtoIngredientes','adicionais'],
-  addAdicional:['adicionais'], editarAdicional:['adicionais'], excluirAdicional:['adicionais','produtoAdicionais'], vincularAdicionaisEmLote:['produtoAdicionais'],
+  addAdicional:['adicionais'], editarAdicional:['adicionais'], excluirAdicional:['adicionais','produtoAdicionais'], vincularAdicionaisEmLote:['produtoAdicionais'], desvincularAdicionaisEmLote:['produtoAdicionais'],
   registrarBrinde:['fidelidade','indicacoes','estoque','movimentacoesEstoque'], editarPremioProduto:['produtos'],
   addProduto:['produtos','produtoPrecos','produtoIngredientes','produtoAdicionais','estoque','comboPrecos'], editarProduto:['produtos','produtoPrecos','produtoIngredientes','produtoAdicionais','estoque','comboPrecos'],
   excluirProduto:['produtos','produtoPrecos','produtoIngredientes'], editarVisibilidadeCardapioProduto:['produtos'], editarOrdemCardapioProduto:['produtos'],

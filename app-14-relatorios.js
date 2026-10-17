@@ -182,6 +182,12 @@ function renderRelatorio(){
 }
 /* Mês arquivado: busca as vendas na planilha (abas Arquivo_*), junta às que ainda estão no app (sem repetir) só durante o desenho do relatório. */
 const _relArqCache_ = {};
+/* Lista vinda do arquivo: a planilha guarda como texto JSON ('["a","b"]'); aceita lista pronta ou texto. */
+function relLista_(v){
+  if(Array.isArray(v)) return v;
+  if(typeof v === 'string' && v){ try{ const o = JSON.parse(v.replace(/^'/,'')); return Array.isArray(o) ? o : []; }catch(e){} }
+  return [];
+}
 function relMapArq_(c){
   const lg = c.logins || {}, t = x => x ? (Date.parse(x) || null) : null;
   return {
@@ -190,10 +196,10 @@ function relMapArq_(c){
       endereco:v.endereco||'', complemento:v.complemento||'', referencia:v.referencia||'', observacoesEntrega:v.observacoes_entrega||'', timestampPronta:t(v.pronta_em), timestampConcluida:t(v.concluida_em),
       statusPagamento:v.status_pagamento||'Pago', timestampRecebimento:t(v.recebido_em), valorOriginal:Number(v.valor_original)||Number(v.valor_total)||0, valorDesconto:Number(v.valor_desconto)||0,
       descontoDetalhe:v.desconto_detalhe||'', entregador:lg[v.entregador_id]||'', timestampSaiu:t(v.saiu_em), origem:v.origem||'Balcão', mesaId:v.mesa_id||'', taxaEntrega:Number(v.taxa_entrega)||0,
-      fechamentoEntregaId:v.fechamento_entrega_id||'', registradoPor:lg[v.registrado_por]||'', numero:Number(v.numero_pedido)||0, timestampInicioPreparo:t(v.inicio_preparo_em), clienteId:v.cliente_id||'', acrescimoForma:Number(v.acrescimo_forma)||0, cpfNota:v.cpf_nota||'', canal:v.canal||'' })),
+      fechamentoEntregaId:v.fechamento_entrega_id||'', registradoPor:lg[v.registrado_por]||'', numero:Number(v.numero_pedido)||0, timestampInicioPreparo:t(v.inicio_preparo_em), clienteId:v.cliente_id||'', acrescimoForma:Number(v.acrescimo_forma)||0, cpfNota:v.cpf_nota||'', canal:v.canal||'', preferenciasCliente:v.preferencias_cliente||'', caixaId:v.caixa_id||'' })),
     itens: (c.itens||[]).map(i=>({ id:i.id, vendaId:i.venda_id, produtoId:i.produto_id||'', comboId:i.combo_id||'', descricao:i.descricao||'', quantidade:Number(i.quantidade), valorUnitario:Number(i.valor_unitario),
-      custoUnitario:Number(i.custo_unitario)||0, valorTotalItem:Number(i.valor_total_item), adicionaisIds:Array.isArray(i.adicionais_ids) ? i.adicionais_ids : [] })),
-    pagamentos: (c.pagamentos||[]).map(x=>({ id:x.id, vendaId:x.venda_id, forma:x.forma_pagamento, valor:Number(x.valor), taxa:Number(x.taxa_aplicada)||0 }))
+      custoUnitario:Number(i.custo_unitario)||0, valorTotalItem:Number(i.valor_total_item), adicionaisIds:relLista_(i.adicionais_ids) })),
+    pagamentos: (c.pagamentos||[]).map(x=>({ id:x.id, vendaId:x.venda_id, forma:x.forma_pagamento, valor:Number(x.valor), taxa:Number(x.taxa_aplicada)||0, acrescimo:Number(x.acrescimo)||0 }))
   };
 }
 /* D17 — período que começa antes do corte (30 dias = mínimo do arquivamento) busca os meses arquivados na planilha.
@@ -230,9 +236,17 @@ async function relRenderPeriodo_(p, cod){
   if(!meses.length) return renderRelatorioP_(p);
   const cs = [];
   try{
-    for(let i=0; i<meses.length; i+=2){
-      box.innerHTML = '<div class="notif-empty">Buscando dados antigos… ' + Math.min(i+2, meses.length) + ' de ' + meses.length + ' meses</div>';
-      cs.push(...await Promise.all(meses.slice(i, i+2).map(relBuscarMes_)));
+    /* O primeiro mês que ainda não está na memória vai sozinho: é ele que prepara o índice do arquivo na planilha; os outros já o encontram pronto
+       (três ao mesmo tempo). Mês que já foi buscado antes não vai de novo. */
+    const faltam = meses.filter(m=>!_relArqCache_[m]);
+    if(faltam.length > 1){
+      box.innerHTML = '<div class="notif-empty">Buscando dados antigos… preparando ' + meses.length + ' meses</div>';
+      await relBuscarMes_(faltam[0]);
+      if(document.getElementById('relPeriodo').value !== cod) return;   // mudou de ideia durante a busca
+    }
+    for(let i=0; i<meses.length; i+=3){
+      box.innerHTML = '<div class="notif-empty">Buscando dados antigos… ' + Math.min(i+3, meses.length) + ' de ' + meses.length + ' meses</div>';
+      cs.push(...await Promise.all(meses.slice(i, i+3).map(relBuscarMes_)));
       if(document.getElementById('relPeriodo').value !== cod) return;   // mudou de ideia durante a busca
     }
   }catch(e){

@@ -343,12 +343,16 @@ async function hcCarregarArquivo_(){
     try{ const j = await sb410Edge_('planilha-admin', { acao:'arquivoCaixa', mes: ym }, 120000); if(!j || !j.ok) throw new Error('arquivo'); c = _hcArqCache_[ym] = j; }
     catch(e){ box.innerHTML = '<div class="notif-empty">Não foi possível ler este mês arquivado agora. Os dados continuam salvos na planilha.<br><button type="button" class="ghost" onclick="hcCarregarArquivo_()">Tentar de novo</button></div>'; return; }
   }
-  const d = x => x ? sbDataBr_(x) : '', n = x => formatarMoeda(Number(x)||0);
+  const d = x => x ? sbDataBr_(x) : '', n = x => formatarMoeda(Number(x)||0), vz = x => (x===''||x==null) ? '—' : n(x), lg = c.logins || {};
   const cx = c.caixas || [], sg = c.sangrias || [], totS = sg.reduce((s,x)=>s+(Number(x.valor)||0),0);
-  box.innerHTML = (cx.length ? '<div style="overflow-x:auto;"><table style="width:100%;font-size:12.5px;"><thead><tr><th>Abertura</th><th>Fechamento</th><th>Saldo</th><th>Dif.</th></tr></thead><tbody>' +
-    cx.map(h=>'<tr><td>'+escR(d(h.abertura))+'</td><td>'+escR(d(h.fechamento))+'</td><td>'+n(h.saldo_final)+'</td><td>'+(h.diferenca===''||h.diferenca==null?'—':n(h.diferenca))+'</td></tr>').join('') + '</tbody></table></div>'
+  const quem = id => lg[id] ? '<span class="obs-line">' + escR(lg[id]) + '</span>' : '';
+  const atras = h => (h.fechamento_atrasado === true || String(h.fechamento_atrasado).toLowerCase() === 'true') ? '<span class="badge ouro" title="' + escH(h.fechamento_motivo||'') + '">fechamento atrasado</span>' : '';
+  box.innerHTML = (cx.length ? '<div style="overflow-x:auto;"><table style="width:100%;font-size:12.5px;"><thead><tr><th>Abertura</th><th>Fechamento</th><th>Fundo</th><th>Vendas</th><th>Despesas</th><th>Saldo</th><th>Contado</th><th>Dif.</th></tr></thead><tbody>' +
+    cx.map(h=>'<tr><td>'+escR(d(h.abertura))+quem(h.usuario_abertura)+'</td><td>'+escR(d(h.fechamento))+quem(h.usuario_fechamento)+atras(h)+'</td><td>'+vz(h.fundo_caixa)+'</td><td>'+vz(h.total_vendas)+'</td><td>'+vz(h.total_despesas)+'</td><td>'+n(h.saldo_final)+'</td><td>'+vz(h.valor_contado)+'</td><td>'+(h.diferenca===''||h.diferenca==null?'—':n(h.diferenca))+'</td></tr>').join('') + '</tbody></table></div>'
     : '<div class="notif-empty">Nenhuma sessão arquivada neste mês.</div>') +
-    '<div class="info-line">• Sangrias arquivadas no mês: ' + sg.length + ' · total ' + n(totS) + '</div>';
+    '<div class="info-line">• Sangrias arquivadas no mês: ' + sg.length + ' · total ' + n(totS) + '</div>' +
+    (sg.length ? '<details class="mt-2"><summary>Ver as sangrias do mês</summary><div style="overflow-x:auto;"><table style="width:100%;font-size:12.5px;"><thead><tr><th>Data</th><th>Valor</th><th>Motivo</th><th>Quem</th></tr></thead><tbody>' +
+      sg.map(x=>'<tr><td>'+escR(d(x.data_hora))+'</td><td>'+n(x.valor)+'</td><td>'+escR(x.motivo||'')+'</td><td>'+escR(lg[x.usuario_id]||'')+'</td></tr>').join('') + '</tbody></table></div></details>' : '');
 }
 function renderHistoricoCaixa(){
   const tbody = document.getElementById('hcTable');

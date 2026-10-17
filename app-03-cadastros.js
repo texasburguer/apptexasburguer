@@ -237,21 +237,59 @@ function renderAdicionais(){
     </tr>`).join('') : '<tr class="empty-row"><td colspan="2">Nenhum adicional cadastrado.</td></tr>';
   }
 }
+function estadoAdVincCategoria_(catId){
+  const ativos = adicionais.filter(a=>a.ativo).map(a=>a.id);
+  const prods = produtos.filter(p=>p.categoria===catId);
+  if(!prods.length) return { estado:'vazia', total:0, ok:0 };
+  let ok = 0, algum = false;
+  prods.forEach(p=>{
+    const lig = produtoAdicionais.filter(x=>x.produtoId===p.id).map(x=>x.adicionalId);
+    if(lig.length) algum = true;
+    if(ativos.length && ativos.every(id=>lig.includes(id))) ok++;
+  });
+  const estado = (ativos.length && ok===prods.length) ? 'cheia' : (algum ? 'parcial' : 'nenhuma');
+  return { estado, total:prods.length, ok };
+}
 function renderAdVincCategorias(){
   const cont = document.getElementById('adVincCategorias'); if(!cont) return;
-  const marcadas = Array.from(cont.querySelectorAll('input:checked')).map(i=>i.value);
-  cont.innerHTML = categorias.length ? categorias.map(c=>`<label class="cd-adicional-linha" style="cursor:pointer;"><span><input type="checkbox" class="largura-auto" value="${c.id}" ${marcadas.includes(c.id)?'checked':''}> ${escH(c.nome)}</span></label>`).join('') : '<p class="sub">Cadastre as categorias primeiro.</p>';
+  const pend = {};
+  Array.from(cont.querySelectorAll('input[type=checkbox]')).forEach(i=>{ if(i.dataset.mexeu==='1') pend[i.value] = { checked:i.checked, indeterminate:i.indeterminate }; });
+  cont.innerHTML = categorias.length ? categorias.map(c=>{
+    const st = estadoAdVincCategoria_(c.id);
+    const txt = st.estado==='vazia' ? 'sem produtos' : st.estado==='cheia' ? 'liberado' : st.estado==='parcial' ? 'parcial ('+st.ok+' de '+st.total+' produtos)' : 'sem adicionais';
+    return `<label class="cd-adicional-linha" style="cursor:pointer;"><span><input type="checkbox" class="largura-auto" value="${c.id}" data-orig="${st.estado}" ${st.estado==='vazia'?'disabled':''}> ${escH(c.nome)}</span><span class="sub">${txt}</span></label>`;
+  }).join('') : '<p class="sub">Cadastre as categorias primeiro.</p>';
+  cont.querySelectorAll('input[type=checkbox]').forEach(i=>{
+    const o = i.dataset.orig, pd = pend[i.value];
+    if(pd){ i.checked = pd.checked; i.indeterminate = pd.indeterminate; i.dataset.mexeu = '1'; }
+    else { i.checked = (o==='cheia'); i.indeterminate = (o==='parcial'); }
+    i.addEventListener('change', ()=>{ i.dataset.mexeu = '1'; });
+  });
 }
 async function vincularAdicionaisCategorias(){
-  const cats = Array.from(document.querySelectorAll('#adVincCategorias input:checked')).map(i=>i.value);
+  const caixas = Array.from(document.querySelectorAll('#adVincCategorias input[type=checkbox]'));
+  const liberar = caixas.filter(i=>i.checked && !i.indeterminate && i.dataset.orig!=='cheia').map(i=>i.value);
+  const tirar = caixas.filter(i=>!i.checked && !i.indeterminate && (i.dataset.orig==='cheia' || i.dataset.orig==='parcial')).map(i=>i.value);
   const adIds = adicionais.filter(a=>a.ativo).map(a=>a.id);
-  if(!cats.length) return showMsg('adVincMsg','Marque ao menos uma categoria.','warn');
-  if(!adIds.length) return showMsg('adVincMsg','Não há adicionais ativos para liberar.','warn');
+  if(!liberar.length && !tirar.length) return showMsg('adVincMsg','Nada para alterar. Marque para liberar ou desmarque para tirar os adicionais.','warn');
+  if(liberar.length && !adIds.length) return showMsg('adVincMsg','Não há adicionais ativos para liberar.','warn');
+  if(tirar.length && !await confirmarTxt_('Tirar todos os adicionais dos produtos das categorias desmarcadas?')) return;
   try{
-    const r = await apiCall('vincularAdicionaisEmLote', { categorias: cats, adicionaisIds: adIds });
-    if(r.ok){ produtoAdicionais = r.produtoAdicionais || produtoAdicionais; salvarCache(); }
-    showMsg('adVincMsg', r.message, r.ok?'ok':'warn');
-  }catch(e){ showMsg('adVincMsg','Não foi possível liberar agora. Tente novamente.','warn'); }
+    const msgs = []; let ok = true;
+    if(liberar.length){
+      const r = await apiCall('vincularAdicionaisEmLote', { categorias: liberar, adicionaisIds: adIds });
+      if(r.ok){ produtoAdicionais = r.produtoAdicionais || produtoAdicionais; } else ok = false;
+      msgs.push(r.message);
+    }
+    if(tirar.length && ok){
+      const r = await apiCall('desvincularAdicionaisEmLote', { categorias: tirar });
+      if(r.ok){ produtoAdicionais = r.produtoAdicionais || produtoAdicionais; } else ok = false;
+      msgs.push(r.message);
+    }
+    salvarCache();
+    setTimeout(()=>{ document.querySelectorAll('#adVincCategorias input[type=checkbox]').forEach(i=>{ delete i.dataset.mexeu; }); renderAdVincCategorias(); }, 1200);
+    showMsg('adVincMsg', msgs.filter(Boolean).join(' '), ok?'ok':'warn');
+  }catch(e){ showMsg('adVincMsg','Não foi possível salvar agora. Tente novamente.','warn'); }
 }
 async function registrarAdicional(){
   const nome = document.getElementById('adNome').value.trim();
