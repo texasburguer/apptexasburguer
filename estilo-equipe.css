@@ -133,9 +133,9 @@ button.vs-op[aria-pressed="true"]{border:2px solid var(--gold);background:rgba(2
 .vs-form-botoes button{flex:1 1 0;min-height:48px;font-size:var(--fs-lg);}
 .vs-form-botoes button.vs-perigo{background:var(--red);}
 
-/* ===== (de estilo-14-computador.css) ===== */
+/* ===== COMPUTADOR (antes em estilo-14-computador.css; já faz parte deste arquivo) ===== */
 /* ===================== COMPUTADOR (tela de 900 px ou mais) =====================
-   Só aparência: no celular nada muda (tudo aqui está dentro de @media min-width:900px,
+   Só aparência: o celular não muda (tudo aqui está dentro de @media min-width:900px,
    menos os 2 acertos gerais marcados como "TODOS"). */
 
 /* TODOS: título de coluna alinhado com os números (o atributo align="right" perdia para o CSS) */
@@ -246,3 +246,151 @@ th[align="right"]{ text-align:right; }
 .caixa-faixa-btns{display:flex;flex-wrap:wrap;gap:var(--esp-2);margin-top:var(--esp-2);}
 .caixa-faixa:empty{display:none;}
 
+
+/* ===== COMPUTADOR — adaptação das telas do Administrador (16/10/2026) =====
+   Mesma tela e mesmas funções do celular; só deixa de esticar controles na largura toda. Dentro de min-width:900px. */
+@media (min-width:900px){
+  /* botão principal de cadastro (ex.: "+ Adicionar categoria"): tamanho de botão, não faixa de 1000 px */
+  body.adm-ativo section.tab .card > button.primary{ width:auto; min-width:280px; display:block; }
+  /* pop-ups abertos a partir das telas do Administrador: um pouco mais largos */
+  body.adm-ativo .modal-overlay .modal-box{ max-width:680px; }
+}
+
+/* ===== COMPUTADOR — Fase 1 do Plano PC: foco visível para quem usa o teclado (sem mudar o celular) ===== */
+@media (min-width:900px) and (hover:hover){
+  input:focus-visible, select:focus-visible, textarea:focus-visible,
+  .vs-linha:focus-visible, [data-cliente-nome]:focus-visible{ outline:2px solid var(--gold); outline-offset:1px; }
+  input:focus-visible, select:focus-visible, textarea:focus-visible{ border-color:var(--gold); }
+  .modal-box:focus{ outline:none; }
+}
+
+/* ===== COMPUTADOR — Fase 4 do Plano PC: texto um pouco maior e janelas mais largas (só tela, só ≥ 900 px; celular não muda) ===== */
+@media screen and (min-width:900px){
+  /* escala de letras do computador (todas as telas usam estas variáveis) */
+  :root{ --fs-xs:13px; --fs-sm:14px; --fs-md:15px; --fs-lg:17px; --fs-xl:19px; }
+
+  /* janelas: largura padrão maior, afastadas do topo e com margem lateral */
+  .modal-overlay{ padding:24px 24px calc(40px + env(safe-area-inset-bottom,0px)); }
+  .modal-box{ max-width:640px; margin-top:6vh; margin-bottom:24px; }
+  body.adm-ativo .modal-overlay .modal-box{ max-width:680px; }
+
+  /* formulários mais longos */
+  #produtoModal .modal-box, #produtoNovoModal .modal-box, #cupomNovoModal .modal-box{ max-width:720px; }
+  #eventoModal .modal-box{ max-width:720px !important; }
+  /* listas, relatórios e textos de ajuda */
+  #lancamentosModal .modal-box, #mesasModal .modal-box, #avisosModal .modal-box, #conexaoModal .modal-box{ max-width:880px; }
+  #ajudaModal .modal-box{ max-width:760px !important; }
+
+  /* cabeçalho da janela sempre à vista ao rolar; botão de fechar do tamanho do mouse */
+  .modal-box .modal-header{ position:sticky; top:0; z-index:2; background:var(--panel); padding-top:4px; }
+  .modal-box .close-btn{ width:var(--alvo-toque-pc); height:var(--alvo-toque-pc); }
+
+  /* menu lateral do Administrador: um pouco mais largo para as letras maiores */
+  body.adm-ativo #mainWrap.unlocked{ grid-template-columns:228px minmax(0,1fr); }
+}
+
+/* ===== COMPUTADOR — Fase 6 do Plano PC: tabelas (só tela, só >= 900 px; celular não muda) =====
+   No computador as tabelas já são normais (a rolagem lateral só existe abaixo de 641 px). Aqui: linhas mais confortáveis para o mouse,
+   linhas alternadas bem leves e cabeçalho que fica grudado logo abaixo das abas ao rolar a página. */
+@media screen and (min-width:900px){
+  .card table td{ padding:9px 8px; }
+  .card table th{ padding:7px 8px; }
+  .card table tbody tr:nth-child(even):not(:hover) > td{ background:rgba(255,243,214,.018); }
+  .card table thead th{ position:sticky; top:var(--tabs-h,58px); z-index:3; background:var(--panel); box-shadow:inset 0 -2px 0 var(--line); border-bottom:0; }
+  /* dentro de janelas (pop-ups) o cabeçalho da própria janela já fica fixo: a tabela rola normal */
+  .modal-overlay .card table thead th, .modal-overlay table thead th,
+  :is(#nfceLista,#nfceConf,#nfcePac,#fiscalEmpresa,#fiscalPerfis,#fiscalSem,#ifoodLoja,#ifoodNeg,#ifoodPedidos,#ifoodItens,#ifoodPrecos,#ifoodFin,#ifoodAval,#ifoodRel) table thead th{ position:static; box-shadow:none; border-bottom:2px solid var(--line); }
+}
+
+/* ===== COMPUTADOR — Fase 2 do Plano PC: lista de atalhos do teclado ===== */
+#atalhosDica{ display:none; }
+kbd{ display:inline-block; min-width:24px; padding:2px 7px; text-align:center; font:inherit; font-size:var(--fs-xs); font-weight:700; color:var(--cream);
+  background:var(--panel-2); border:1px solid var(--line-forte); border-bottom-width:2px; border-radius:6px; }
+.atalhos-tab{ width:100%; border-collapse:collapse; }
+.atalhos-tab td{ padding:8px 6px; border-bottom:1px solid var(--line); font-size:var(--fs-md); vertical-align:middle; }
+.atalhos-tab td.atalhos-k{ white-space:nowrap; width:1%; padding-right:18px; }
+@media screen and (min-width:900px) and (hover:hover){
+  header.brand .userbar #atalhosDica{ display:inline-block; }
+  #atalhosPcModal .modal-box{ max-width:560px; }
+}
+
+/* ===== COMPUTADOR — Fase 5 do Plano PC: aproveitar a tela larga (só tela, só >= 900 px; celular não muda) ===== */
+@media screen and (min-width:900px){
+  /* campos soltos dentro dos cartões (ex.: Período, Relatório, Mês) não esticam por toda a largura: ficam num tamanho de leitura */
+  section.tab .card > :is(input[type=text],input[type=number],input[type=tel],input[type=date],input[type=month],input[type=time],input[type=email],input[type=password],input:not([type]),select){ max-width:640px; }
+}
+/* monitor grande (Full HD e acima): área de trabalho mais larga; Pedidos e Caixa ganham espaço */
+@media screen and (min-width:1600px){
+  .wrap{ max-width:min(1500px, calc(100vw - 150px)); }
+}
+
+/* ===== COMPUTADOR — Fase 3 do Plano PC: Caixa numa tela só (só tela, só >= 1280 px; celular e telas menores não mudam) =====
+   Os 3 passos (Cliente, Itens, Pagamento) aparecem juntos. Ligado por body.cx-tudo (app-06-caixa.js, mudarPainelCaixa).
+   Mesa e Garçom: só 2 colunas (o passo de pagamento continua escondido pelas regras de modo-mesa / perfil-garcom). */
+@media screen and (min-width:1280px){
+  body.cx-tudo #cxCard{ display:grid; grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr) minmax(0,1fr); column-gap:22px; align-items:start; }
+  body.cx-tudo.modo-mesa #cxCard, body.cx-tudo.perfil-garcom #cxCard{ grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr); }
+  body.cx-tudo #cxCard > .card-header{ grid-column:1 / -1; }
+  /* os botões "1. Cliente / 2. Itens / 3. Pagamento" viram títulos de seção */
+  body.cx-tudo #cxCard > .btnrow{ display:none; }
+  body.cx-tudo #painelCliente{ grid-column:1; grid-row:2; min-width:0; }
+  body.cx-tudo #painelItens{ grid-column:2; grid-row:2; min-width:0; }
+  body.cx-tudo #painelFinalizar{ grid-column:3; grid-row:2; min-width:0;
+    position:sticky; top:calc(var(--tabs-h,58px) + 10px); max-height:calc(100vh - var(--tabs-h,58px) - 20px); overflow-y:auto; overscroll-behavior:contain; padding-right:2px; }
+  body.cx-tudo #painelCliente::before, body.cx-tudo #painelItens::before, body.cx-tudo #painelFinalizar::before{
+    display:block; margin:10px 0 4px; padding-bottom:6px; border-bottom:1px solid var(--line); color:var(--gold); font-size:var(--fs-lg); font-weight:700; }
+  body.cx-tudo #painelCliente::before{ content:"1 · Cliente e entrega"; }
+  body.cx-tudo #painelItens::before{ content:"2 · Itens"; }
+  body.cx-tudo #painelFinalizar::before{ content:"3 · Pagamento e finalizar"; }
+  /* dentro de cada passo, uma coluna só (a coluna do carrinho vem logo abaixo de "Adicionar item") */
+  body.cx-tudo #cxCard .cx-2col{ display:block; }
+  body.cx-tudo #cxCard .cx-lado{ position:static; }
+  body.cx-tudo #painelCliente .cx-col + .cx-col{ margin-top:6px; }
+  /* não precisa de "Próximo": está tudo na tela */
+  body.cx-tudo #painelCliente > button.small-gold, body.cx-tudo #btnProximoPagamento{ display:none !important; }
+  body.cx-tudo #carrinhoLista{ max-height:34vh !important; }
+}
+
+/* ===== COMPUTADOR — Fase 7 do Plano PC: cardápio do cliente (só tela; celular não muda) ===== */
+.cd-busca-pc{ display:none; }
+#cdItemFoto{ display:none; }
+@media screen and (min-width:900px){
+  /* busca no topo do cardápio */
+  .cd-busca-pc{ display:block; max-width:560px; margin:4px auto 6px; padding:0 4px; }
+  .cd-busca-pc input{ width:100%; box-sizing:border-box; margin:0; }
+  /* janela do produto: foto grande à esquerda, opções à direita */
+  #cdItemModal .modal-box{ max-width:900px; display:grid; grid-template-columns:minmax(0,.95fr) minmax(0,1.05fr); column-gap:26px; align-content:start; }
+  #cdItemModal .modal-box > *{ grid-column:2; min-width:0; }
+  #cdItemModal .modal-box > #cdItemFoto{ grid-column:1; grid-row:1 / span 12; display:block; width:100%; aspect-ratio:1 / 1; object-fit:cover; border-radius:12px; align-self:start; position:sticky; top:0; }
+  #cdItemModal .modal-box.sem-foto{ display:block; max-width:640px; }
+  #cdItemModal .modal-box.sem-foto > #cdItemFoto{ display:none; }
+}
+/* carrinho como painel fixo à direita (a página do cardápio encolhe para dar lugar; o botão de baixo some enquanto o painel está aberto) */
+@media screen and (min-width:1100px){
+  #cdCarrinhoModal.open{ display:block; inset:0 0 0 auto; width:min(440px,38vw); padding:0; z-index:45; background:var(--panel); border-left:1px solid var(--line-forte); box-shadow:-10px 0 30px rgba(0,0,0,.45); }
+  #cdCarrinhoModal.open .modal-box{ max-width:none; width:100%; margin:0; min-height:100%; box-sizing:border-box; border:0; border-radius:0; box-shadow:none; }
+  body:has(#cdCarrinhoModal.open){ padding-right:min(440px,38vw); }
+  body:has(#cdCarrinhoModal.open) .cd-fab-carrinho{ display:none !important; }
+  body:has(#cdCarrinhoModal.open) .balao-ia{ bottom:16px; right:calc(min(440px,38vw) + 14px); }
+}
+
+/* ===== COMPUTADOR — Fase 8 do Plano PC: acabamento (avisos, balão e impressão da tela) ===== */
+@media screen and (min-width:900px){
+  /* avisos (toast) no centro de baixo: não cobrem o balão do assistente (direita) nem o menu lateral (esquerda) */
+  .avisos-host{ align-items:center; bottom:24px; }
+  .avisos-host .aviso{ max-width:min(560px, calc(100vw - 48px)); }
+}
+@media screen and (min-width:1100px){
+  body:has(#cdCarrinhoModal.open) .avisos-host{ right:min(440px,38vw); }
+}
+/* Ctrl+P na própria tela: folha limpa, sem menu, abas, botões flutuantes nem janelas (comprovantes e relatórios têm impressão própria) */
+@media print{
+  header.brand, nav.tabs, #navInf, #adminLateral, .balao-ia, .avisos-host, .cd-fab-carrinho, .admin-busca,
+  .modal-overlay:not(.open){ display:none !important; }
+  html, body{ background:#fff !important; color:#000 !important; }
+  body.adm-ativo #mainWrap.unlocked{ display:block !important; }
+  .card, .modal-section{ background:#fff !important; color:#000 !important; border:1px solid #bbb !important; box-shadow:none !important; break-inside:avoid; }
+  .card h2, .card h3, .card td, .card th, .card label, .card p, .card span, .card b{ color:#000 !important; }
+  .card table thead th{ position:static !important; background:#eee !important; box-shadow:none !important; }
+  button, .btnrow{ display:none !important; }
+}

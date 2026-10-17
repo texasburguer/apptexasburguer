@@ -6,7 +6,7 @@
    - BACKEND: NADA de Apps Script (script.google.com) nem de Supabase (*.supabase.co) é guardado aqui.
      Dados, pedidos, login e RPCs nunca passam pelo cache do service worker — sempre vão direto para a rede.
    - O único cache de dados é o de fotos (FOTOS) e o da casca/ícones (SHELL/ASSETS). Não adicionar outros. */
-const SHELL = 'texas-shell-v62';
+const SHELL = 'texas-shell-v71';
 const ASSETS = 'texas-assets-v6';   // trocou ícone/logo/manifest/leaflet? suba para v5
 const FOTOS = 'texas-fotos-v1';
 /* Código do app dividido em arquivos (app-*.js e estilo-*.css). Cada arquivo tem ?v=<impressão digital> na página; o cache guarda
@@ -20,16 +20,16 @@ const LISTA = [/*LISTA-INICIO*/
   'app-03-cadastros.js?v=78549205',
   'app-04-pedidos-entrega.js?v=5c4ec7a5',
   'app-05-avisos-push.js?v=d76d4b0a',
-  'app-06-caixa.js?v=63feb38b',
+  'app-06-caixa.js?v=edcbde35',
   'app-07-impressao.js?v=c7e50925',
   'app-08-vendas-despesas.js?v=42c06d58',
-  'app-09-ajuda.js?v=cdad3af0',
+  'app-09-ajuda.js?v=eb168e91',
   'app-10-backup-financeiro.js?v=b27dc4a9',
-  'app-11-admin-integracoes.js?v=02f73c8a',
+  'app-11-admin-integracoes.js?v=49cbb3a8',
   'app-12-gestao-ia.js?v=59f30b6d',
   'app-13-conexao-sync.js?v=4169baef',
   'app-14-relatorios.js?v=0e32f822',
-  'app-15-cardapio-cliente.js?v=183362dd',
+  'app-15-cardapio-cliente.js?v=19a2d090',
   'app-16-sessao-final.js?v=ef1da8ab',
   'app-17-sessao-supabase.js?v=8b1b601b',
   'app-18-queda-supabase.js?v=02bb8c67',
@@ -37,7 +37,7 @@ const LISTA = [/*LISTA-INICIO*/
   'app-19-ia.js?v=37d36dbd',
   'app-20-balao-interno.js?v=5cdf185d',
   'app-21-localizacao.js?v=bb28de16',
-  'estilo-equipe.css?v=af109f46',
+  'estilo-equipe.css?v=67170170',
   'app-22-navegacao-inferior.js?v=9c0835e7',
   'app-23-janelas-popup.js?v=6f031891',
   'app-24-acessibilidade.js?v=1567f2c1',
@@ -47,6 +47,7 @@ const LISTA = [/*LISTA-INICIO*/
   'app-28-dialogos.js?v=58e2325f',
   'app-27-conta-cliente.js?v=c19be7f0',
   'app-29-usabilidade.js?v=8c6dd0c8',
+  'app-30-teclado-pc.js?v=6ada025e',
 /*LISTA-FIM*/];
 const FOTOS_MAX = 150;
 const PRE = ['manifest.webmanifest', 'icon-192.png', 'badge-96.png', 'apple-touch-icon.png', 'logo-texas-burger.webp', 'logo-impressao-cor.png'];

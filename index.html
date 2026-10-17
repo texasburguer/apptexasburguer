@@ -131,10 +131,12 @@
   </div>
   <div id="cdMesaPainel" class="cd-mesa-painel" style="display:none;"><div id="cdMesaTopo"></div><div class="msg" id="cdMesaMsg"></div></div>
 
+  <div class="cd-busca-pc"><input type="text" inputmode="search" id="cdBuscaProduto" placeholder="Buscar no cardápio…" autocomplete="off" aria-label="Buscar no cardápio"></div>
   <div class="cd-categorias" id="cdCategorias"></div>
 
   <div id="cdMaisPedidos"></div>
   <div id="cdDestaques"></div>
+  <div id="cdBuscaVazio" class="sub" style="display:none;text-align:center;margin:18px 0;">Nenhum item encontrado. Tente outra palavra.</div>
   <div id="cdListaProdutos">
     <div class="cd-skeleton-secao"></div>
     <div class="cd-grid">
@@ -225,6 +227,7 @@
 <!-- MODAL: item do cardápio (escolher adicionais/quantidade) -->
 <div class="modal-overlay" id="cdItemModal">
   <div class="modal-box">
+    <img id="cdItemFoto" alt="" decoding="async">
     <div class="modal-header"><h2 id="cdItemNome">Item</h2><button class="close-btn" onclick="fecharCdItemModal()">✕</button></div>
     <p class="sub" id="cdItemDesc"></p>
     <div id="cdItemAdicionais"></div>
@@ -547,7 +550,7 @@
     </div>
 
     <!-- INICIAR VENDA -->
-    <div class="card">
+    <div class="card" id="cxCard">
       <div class="card-header mb-2">
         <h2 class="sem-margem">Iniciar venda</h2>
         <button class="ghost" id="btnRepetirVenda" onclick="repetirUltimaVenda()">↺ Repetir última venda</button>
@@ -2428,16 +2431,16 @@
 <script src="app-03-cadastros.js?v=78549205" charset="utf-8" data-origem="__big2__"></script>
 <script src="app-04-pedidos-entrega.js?v=5c4ec7a5" charset="utf-8" data-origem="__big3__"></script>
 <script src="app-05-avisos-push.js?v=d76d4b0a" charset="utf-8" data-origem="__big4__"></script>
-<script src="app-06-caixa.js?v=63feb38b" charset="utf-8" data-origem="__big5__"></script>
+<script src="app-06-caixa.js?v=edcbde35" charset="utf-8" data-origem="__big5__"></script>
 <script src="app-07-impressao.js?v=c7e50925" charset="utf-8" data-origem="__big6__"></script>
 <script src="app-08-vendas-despesas.js?v=42c06d58" charset="utf-8" data-origem="__big7__"></script>
-<script src="app-09-ajuda.js?v=cdad3af0" charset="utf-8" data-origem="__big8__"></script>
+<script src="app-09-ajuda.js?v=eb168e91" charset="utf-8" data-origem="__big8__"></script>
 <script src="app-10-backup-financeiro.js?v=b27dc4a9" charset="utf-8" data-origem="__big9__"></script>
-<script src="app-11-admin-integracoes.js?v=02f73c8a" charset="utf-8" data-origem="__big10__"></script>
+<script src="app-11-admin-integracoes.js?v=49cbb3a8" charset="utf-8" data-origem="__big10__"></script>
 <script src="app-12-gestao-ia.js?v=59f30b6d" charset="utf-8" data-origem="__big11__"></script>
 <script src="app-13-conexao-sync.js?v=4169baef" charset="utf-8" data-origem="__big12__"></script>
 <script src="app-14-relatorios.js?v=0e32f822" charset="utf-8" data-origem="__big13__"></script>
-<script src="app-15-cardapio-cliente.js?v=183362dd" charset="utf-8" data-origem="__big14__"></script>
+<script src="app-15-cardapio-cliente.js?v=19a2d090" charset="utf-8" data-origem="__big14__"></script>
 <script src="app-16-sessao-final.js?v=ef1da8ab" charset="utf-8" data-origem="__big15__"></script>
 <!-- ═══════════ SINCRONIZAÇÃO, BACKUP, ESPAÇO E INTEGRIDADE ═══════════
      app-17 cria cartões (ids sb410*) nas telas Backup e espaço e Sincronização e contingência. -->
@@ -2474,7 +2477,7 @@
    ===================================================================== -->
 <script src="app-21-localizacao.js?v=bb28de16" charset="utf-8" data-origem="fase5Localizacao"></script>
 
-<link rel="stylesheet" href="estilo-equipe.css?v=af109f46">
+<link rel="stylesheet" href="estilo-equipe.css?v=67170170">
 <nav id="navInf" aria-label="Navegação principal"></nav>
 <div id="navInfMais" onclick="if(event.target===this)navInfFechar_()"><div class="nm-box" id="navInfMaisBox"></div></div>
 <script src="app-22-navegacao-inferior.js?v=9c0835e7" charset="utf-8" data-origem="navInfJs"></script>
@@ -2489,5 +2492,6 @@
 <script src="app-28-dialogos.js?v=58e2325f" charset="utf-8" data-origem=""></script>
 <script src="app-27-conta-cliente.js?v=c19be7f0" charset="utf-8" data-origem=""></script>
 <script src="app-29-usabilidade.js?v=8c6dd0c8" charset="utf-8" data-origem=""></script>
+<script src="app-30-teclado-pc.js?v=6ada025e" charset="utf-8" data-origem=""></script>
 </body>
 </html>

@@ -205,12 +205,12 @@ function verSenhaConta_(id){
 
 /* ---------- CHAVES DAS IAs (Integrações e contas): ficam em ai_segredos, onde os assistentes já leem. Ver e trocar pedem senha de administrador. ---------- */
 const CHAVES_IA_INFO_ = {
-  gemini: { nome:'Gemini (Google) — chat / último recurso', link:'https://aistudio.google.com/apikey' },
-  groq:   { nome:'Groq', link:'https://console.groq.com/keys' },
-  nvidia: { nome:'NVIDIA — 3º recurso', link:'https://build.nvidia.com/settings/api-keys', extra:true, dica:'IA de reserva: só entra quando o Gemini e a Groq falham. Precisa de conta gratuita no NVIDIA Developer Program.' },
-  cloudflare: { nome:'Cloudflare — 4º recurso', link:'https://dash.cloudflare.com/profile/api-tokens', extra:true, conta:true, dica:'IA de reserva: precisa de DOIS dados — o Account ID e um token com permissão "Workers AI".' },
-  gemini_2: { nome:'Gemini 2 (Google) — 6º recurso de texto', link:'https://aistudio.google.com/apikey', extra:true, dica:'Segunda chave do Gemini, agora usada exclusivamente para texto. Entra no circuito depois das outras cinco IAs.' },
-  groq_2: { nome:'Groq 2 — 2º recurso de texto', link:'https://console.groq.com/keys', extra:true, dica:'Segunda chave Groq para atendimento de texto.' }
+  gemini: { nome:'Gemini (Google) — 4º recurso', link:'https://aistudio.google.com/apikey', dica:'Entra só quando as três IAs anteriores falham.' },
+  groq:   { nome:'Groq — 1º recurso', link:'https://console.groq.com/keys', dica:'Primeira IA do circuito (a mais rápida).' },
+  nvidia: { nome:'NVIDIA — 5º recurso', link:'https://build.nvidia.com/settings/api-keys', extra:true, dica:'IA de reserva: é mais lenta, por isso entra depois do Gemini. Precisa de conta gratuita no NVIDIA Developer Program.' },
+  cloudflare: { nome:'Cloudflare — 3º recurso', link:'https://dash.cloudflare.com/profile/api-tokens', extra:true, conta:true, dica:'IA de reserva: precisa de DOIS dados — o Account ID e um token com permissão "Workers AI".' },
+  gemini_2: { nome:'Gemini 2 (Google) — 6º e último recurso', link:'https://aistudio.google.com/apikey', extra:true, dica:'Segunda chave do Gemini: o último recurso do circuito, depois das outras cinco IAs.' },
+  groq_2: { nome:'Groq 2 — 2º recurso', link:'https://console.groq.com/keys', extra:true, dica:'Segunda chave Groq: entra quando a primeira atinge o limite.' }
 };
 let chavesIaLista_ = [], iaExtrasPublico_ = false;
 async function carregarChavesIa_(){

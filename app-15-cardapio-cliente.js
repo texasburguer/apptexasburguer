@@ -746,6 +746,16 @@ function abrirCdItemModal(tipo, id){
   cont.innerHTML = adicionaisDoItem.length ? ('<div class="cd-secao-titulo mt-2">Adicionais</div>' +
     adicionaisDoItem.map(a=>`<label class="cd-adicional-linha"><span><input type="checkbox" data-adid="${a.id}" onchange="toggleCdAdicional('${a.id}')"> ${escH(a.nome)}</span><span>+ ${cdFormatarPreco(a.preco)}</span></label>`).join('')) : '';
   atualizarCdItemTotal();
+  /* computador: foto grande à esquerda (no celular a foto nem é carregada) */
+  try{
+    const im = document.getElementById('cdItemFoto'), bx = im && im.parentElement;
+    if(im && bx){
+      const ok = !!(item.fotoUrl && window.matchMedia && window.matchMedia('(min-width:900px)').matches);
+      if(ok){ im.onerror = function(){ this.removeAttribute('src'); bx.classList.add('sem-foto'); }; im.src = fotoSrc_(item.fotoUrl, 800); }
+      else im.removeAttribute('src');
+      bx.classList.toggle('sem-foto', !ok);
+    }
+  }catch(e){}
   document.getElementById('cdItemModal').classList.add('open');
 }
 function fecharCdItemModal(){ document.getElementById('cdItemModal').classList.remove('open'); cdItemAtual = null; }
@@ -840,16 +850,32 @@ function cdContinuarCarrinhoSalvo_(){
   if(perdidos) avisar(perdidos + (perdidos===1?' item não está':' itens não estão') + ' mais disponível' + (perdidos===1?'':'is') + ' e ficou de fora. Os preços foram atualizados.');
   if(novo.length && typeof abrirCarrinhoPublico === 'function') { try{ abrirCarrinhoPublico(); }catch(e){} }
 }
+/* Computador (>= 1100 px): o carrinho vira um painel fixo à direita. Abre sozinho no 1º item e se atualiza a cada item novo;
+   se o cliente fechar no X, só volta pelo botão de baixo (ou quando o carrinho esvaziar e encher de novo). */
+var _cdLateralFechado_ = false;
+function cdLateralPc_(){ return !!(window.matchMedia && window.matchMedia('(min-width:1100px)').matches); }
+function cdLateralAuto_(){
+  if(!cdLateralPc_()) return;
+  const m = document.getElementById('cdCarrinhoModal'); if(!m) return;
+  if(m.classList.contains('open')){ renderCdCarrinho(); return; }
+  if(_cdLateralFechado_ || (typeof mesaQr !== 'undefined' && mesaQr)) return;
+  abrirCarrinhoPublico();
+}
 function atualizarFabCarrinho(){
   cdSalvarCarrinho_();
   const fab = document.getElementById('cdFabCarrinho');
   const nBr = cdBrindes_().length;
-  if(!cdCarrinho.length && !nBr){ fab.classList.remove('show'); return; }
+  if(!cdCarrinho.length && !nBr){
+    fab.classList.remove('show'); _cdLateralFechado_ = false;
+    try{ const m = document.getElementById('cdCarrinhoModal'); if(m && m.classList.contains('open') && !cdPedidoConcluido && cdLateralPc_()) m.classList.remove('open'); }catch(e){}
+    return;
+  }
   const totalQtd = cdCarrinho.reduce((s,it)=>s+it.qtd,0) + nBr;
   const totalValor = cdCarrinho.reduce((s,it)=>s+cdPrecoItemCarrinho(it),0);
   document.getElementById('cdFabQtd').textContent = totalQtd + (totalQtd===1?' item':' itens');
   document.getElementById('cdFabTotal').textContent = cdFormatarPreco(totalValor);
   fab.classList.add('show');
+  try{ cdLateralAuto_(); }catch(e){}
 }
 
 /* ---------- CARRINHO / CHECKOUT ---------- */
@@ -871,6 +897,7 @@ function abrirCarrinhoPublico(){
   cdCupomAplicado=null; if(document.getElementById('cdCupom'))document.getElementById('cdCupom').value=''; if(document.getElementById('cdCupomMsg'))document.getElementById('cdCupomMsg').textContent=''; if(document.getElementById('cdCupomResumo'))document.getElementById('cdCupomResumo').textContent='';
   renderCdCarrinho();
   onMudarTipoCdEntrega();
+  _cdLateralFechado_ = false;
   document.getElementById('cdCarrinhoModal').classList.add('open');
   if(!mesaQr && window.contaPreencherCheckout_) window.contaPreencherCheckout_();   // conta do cliente: dados, endereços e cupons
 }
@@ -891,7 +918,7 @@ function cdLimparAposPedido_(){
 }
 function fecharCarrinhoPublico(){
   document.getElementById('cdCarrinhoModal').classList.remove('open');
-  if(cdPedidoConcluido) cdLimparAposPedido_();
+  if(cdPedidoConcluido) cdLimparAposPedido_(); else _cdLateralFechado_ = true;
 }
 function renderCdCarrinho(){
   const cont = document.getElementById('cdCarrinhoItens');
@@ -1265,3 +1292,34 @@ async function enviarFeedbackPublico(){
   } catch(e){ showMsg('cdFeedbackMsg','Não foi possível enviar agora.','warn'); }
 }
 
+/* ---------- Busca no cardápio (computador): filtra os produtos já mostrados, sem mexer nos dados ---------- */
+(function(){
+  function norm_(s){ return String(s == null ? '' : s).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim(); }
+  function aplicar_(){
+    const inp = document.getElementById('cdBuscaProduto'); if(!inp) return;
+    const q = norm_(inp.value), lista = document.getElementById('cdListaProdutos'), vazio = document.getElementById('cdBuscaVazio');
+    ['cdMaisPedidos','cdDestaques'].forEach(function(id){ const e = document.getElementById(id); if(e) e.style.display = q ? 'none' : ''; });
+    if(!lista) return;
+    let achou = 0;
+    lista.querySelectorAll('.cd-card').forEach(function(c){
+      const t = norm_((c.querySelector('.cd-nome') || {}).textContent) + ' ' + norm_((c.querySelector('.cd-desc') || {}).textContent);
+      const ok = !q || t.indexOf(q) !== -1;
+      c.style.display = ok ? '' : 'none'; if(ok) achou++;
+    });
+    lista.querySelectorAll('.cd-cat-bloco').forEach(function(b){
+      b.style.display = (!q || b.querySelector('.cd-card:not([style*="display: none"])')) ? '' : 'none';
+    });
+    if(vazio) vazio.style.display = (q && !achou) ? 'block' : 'none';
+  }
+  function ligar_(){
+    const inp = document.getElementById('cdBuscaProduto'), lista = document.getElementById('cdListaProdutos');
+    if(!inp || inp._ligado) return; inp._ligado = true;
+    inp.addEventListener('input', function(){
+      if(norm_(inp.value) && typeof cdCategoriaAtiva !== 'undefined' && cdCategoriaAtiva !== 'todas'){ try{ selecionarCdCategoria('todas'); }catch(e){} }
+      aplicar_();
+    });
+    inp.addEventListener('keydown', function(e){ if(e.key === 'Escape' && inp.value){ inp.value = ''; aplicar_(); e.stopPropagation(); } });
+    if(lista && window.MutationObserver) new MutationObserver(function(){ if(norm_(inp.value)) aplicar_(); }).observe(lista, { childList:true, subtree:true });
+  }
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', ligar_); else ligar_();
+})();

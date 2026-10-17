@@ -1,13 +1,32 @@
-/* ---------- PAINÉIS DO CAIXA (sem rolar a tela: Cliente → Itens → Pagamento) ---------- */
+/* ---------- PAINÉIS DO CAIXA (sem rolar a tela: Cliente → Itens → Pagamento) ----------
+   Celular e telas estreitas: um passo por vez (como sempre foi).
+   Computador largo (>= 1280 px, Fase 3 do Plano PC): os 3 passos aparecem juntos, lado a lado (body.cx-tudo).
+   Mesa e Garçom continuam sem o passo de pagamento (o CSS de modo-mesa/perfil-garcom já o esconde). */
 let painelCaixaAtual = 'cliente';
-function mudarPainelCaixa(painel){
+const _mqCaixaTudo = (window.matchMedia ? window.matchMedia('(min-width:1280px)') : null);
+function caixaTudoJunto_(){ return !!(_mqCaixaTudo && _mqCaixaTudo.matches); }
+function aplicarPainelCaixa_(painel){
   painelCaixaAtual = painel;
+  const tudo = caixaTudoJunto_();
+  document.body.classList.toggle('cx-tudo', tudo);
   ['cliente','forma','itens','finalizar'].forEach(p=>{
-    document.getElementById('painel'+p.charAt(0).toUpperCase()+p.slice(1)).style.display = (p===painel) ? 'block' : 'none';
-    document.getElementById('painel'+p.charAt(0).toUpperCase()+p.slice(1)+'Btn').classList.toggle('active', p===painel);
+    const id = 'painel'+p.charAt(0).toUpperCase()+p.slice(1);
+    const el = document.getElementById(id), btn = document.getElementById(id+'Btn');
+    if(el) el.style.display = (p===painel || (tudo && p!=='forma')) ? 'block' : 'none';
+    if(btn) btn.classList.toggle('active', p===painel);
   });
-  if(painel==='itens') atualizarGarcomMesaInfo();
+  if(painel==='itens' || tudo) atualizarGarcomMesaInfo();
 }
+function mudarPainelCaixa(painel){ aplicarPainelCaixa_(painel); }
+/* a janela mudou de tamanho (ou o monitor): reaplica o modo certo sem mexer no passo atual */
+(function(){
+  const r = function(){ try{ aplicarPainelCaixa_(painelCaixaAtual); }catch(e){} };
+  if(_mqCaixaTudo){
+    if(_mqCaixaTudo.addEventListener) _mqCaixaTudo.addEventListener('change', r);
+    else if(_mqCaixaTudo.addListener) _mqCaixaTudo.addListener(r);
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', r); else r();
+})();
 function atualizarContagemPainelItens(){
   const el = document.getElementById('painelItensContagem');
   if(el) el.textContent = carrinhoAtual.length ? '('+carrinhoAtual.length+')' : '';

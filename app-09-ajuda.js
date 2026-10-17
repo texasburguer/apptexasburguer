@@ -141,6 +141,13 @@ Admin:{ nome:'Administrador', secoes:[
     'Pedidos: os pedidos ficam lado a lado (2 ou 3 por linha). Caixa: a escolha dos itens fica à esquerda; carrinho, total e pagamento ficam à direita.',
     'O botão do Tex fica no canto da tela. Valores aparecem com ponto de milhar (R$ 1.475,90).' ] },
 
+  { t:'Atalhos do teclado (computador)', itens:[
+    'No computador, aperte ? (fora de um campo de digitação) ou use o botão \"Atalhos\" no topo para ver a lista completa.',
+    'Alt + 1, 2, 3… vai para as abas na ordem em que aparecem no topo (a lista mostra os nomes do seu perfil).',
+    'F2 abre o Caixa no passo Cliente; F4 vai direto para Pagamento e finalizar. Ctrl + Enter finaliza a venda, sempre perguntando antes.',
+    '/ ou Ctrl + K busca (no Administrador, o campo \"Ir para…\"). Esc fecha a janela aberta.',
+    'No Caixa, Enter na busca de cliente escolhe o primeiro resultado; no item, Enter avança de campo e, na quantidade, adiciona ao carrinho.' ] },
+
   { t:'Modo reserva e Saúde do sistema', itens:[
     'Se o Supabase cair, aparece uma faixa laranja "Modo reserva" no topo. Ela diz o que funciona, o que fica na fila e o que espera a volta.',
     'Funciona: venda do Caixa (retirada ou entrega, sem desconto e sem cupom) e pedido do cardápio, pela contingência; consulta dos pedidos em Pedidos.',
@@ -404,6 +411,13 @@ Operador:{ nome:'Caixa', secoes:[
     'Operação: as telas (Ocorrências e Feedbacks) aparecem no menu ao lado.',
     'Pedidos: os pedidos ficam lado a lado (2 ou 3 por linha). Caixa: a escolha dos itens fica à esquerda; carrinho, total e pagamento ficam à direita.',
     'O botão do Tex fica no canto da tela. Valores aparecem com ponto de milhar (R$ 1.475,90).' ] },
+
+  { t:'Atalhos do teclado (computador)', itens:[
+    'No computador, aperte ? (fora de um campo de digitação) ou use o botão \"Atalhos\" no topo para ver a lista completa.',
+    'Alt + 1, 2, 3… vai para as abas na ordem em que aparecem no topo (a lista mostra os nomes do seu perfil).',
+    'F2 abre o Caixa no passo Cliente; F4 vai direto para Pagamento e finalizar. Ctrl + Enter finaliza a venda, sempre perguntando antes.',
+    '/ ou Ctrl + K busca (no Administrador, o campo \"Ir para…\"). Esc fecha a janela aberta.',
+    'No Caixa, Enter na busca de cliente escolhe o primeiro resultado; no item, Enter avança de campo e, na quantidade, adiciona ao carrinho.' ] },
 
   { t:'Modo reserva (quando o sistema cai)', itens:[
     'Uma faixa laranja "Modo reserva" no topo avisa que o servidor principal está fora.',
