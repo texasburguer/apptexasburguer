@@ -1,4 +1,4 @@
-/* Texas Burger — service worker v38: avisos com o app fechado (push da equipe e do cliente) + notificações + abertura instantânea + casca/ícones/logo guardados.
+/* Texas Burger — service worker v39: avisos com o app fechado (push da equipe e do cliente) + notificações + abertura instantânea + casca/ícones/logo guardados.
    Precisa ficar na MESMA pasta do HTML, em endereço https.
    - Página: mostra a cópia guardada NA HORA e confere a rede em segundo plano. Se a página mudou, avisa o app ("Nova versão disponível").
    - Ícones, logo e manifest: guardados (cache primeiro).
@@ -6,7 +6,7 @@
    - BACKEND: NADA de Apps Script (script.google.com) nem de Supabase (*.supabase.co) é guardado aqui.
      Dados, pedidos, login e RPCs nunca passam pelo cache do service worker — sempre vão direto para a rede.
    - O único cache de dados é o de fotos (FOTOS) e o da casca/ícones (SHELL/ASSETS). Não adicionar outros. */
-const SHELL = 'texas-shell-v61';
+const SHELL = 'texas-shell-v62';
 const ASSETS = 'texas-assets-v6';   // trocou ícone/logo/manifest/leaflet? suba para v5
 const FOTOS = 'texas-fotos-v1';
 /* Código do app dividido em arquivos (app-*.js e estilo-*.css). Cada arquivo tem ?v=<impressão digital> na página; o cache guarda
@@ -18,10 +18,10 @@ const LISTA = [/*LISTA-INICIO*/
   'app-01-base-e-api.js?v=64d002dc',
   'app-02-abas.js?v=c8bb8058',
   'app-03-cadastros.js?v=78549205',
-  'app-04-pedidos-entrega.js?v=54cc2a94',
+  'app-04-pedidos-entrega.js?v=5c4ec7a5',
   'app-05-avisos-push.js?v=d76d4b0a',
   'app-06-caixa.js?v=63feb38b',
-  'app-07-impressao.js?v=b5f4f7cf',
+  'app-07-impressao.js?v=c7e50925',
   'app-08-vendas-despesas.js?v=42c06d58',
   'app-09-ajuda.js?v=5970503a',
   'app-10-backup-financeiro.js?v=b27dc4a9',

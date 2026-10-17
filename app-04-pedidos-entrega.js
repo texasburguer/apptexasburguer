@@ -483,6 +483,7 @@ function comandaHtml_(v){
               : `<div class="cob">COBRAR DO CLIENTE<br>${escR(formatarMoeda(v.valorTotal))}</div>`)
     : `<div class="pago">JÁ PAGO${ehEnt?'<br>NÃO COBRAR':''}</div>`;
   if(ehEnt && v.entregador) h += `<div class="forma">Entregador: <b>${sem(pdEntregadorNome_(v.entregador))}</b></div>`;
+  h += `<div class="vers">“Portanto, quando vocês comem, ou bebem, ou fazem qualquer outra coisa, façam tudo para a glória de Deus.”<br><b>1 Coríntios 10:31</b></div>`;
   h += `<div class="rod">Impressa às ${escR(agora)} · Texas Burger</div></div>`;
   return h;
 }
