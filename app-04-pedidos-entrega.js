@@ -428,38 +428,63 @@ function impConfirmarNao(){
 }
 setInterval(()=>{ if(_impPend_ && !document.hidden) impConfirmarRender_(); }, 10000);
 function comandaHtml_(v){
-  /* MODELO ÚNICO DE COMANDA: serve para cozinha, retirada, mesa e entrega (a cozinha imprime, grampeia no pedido e ela segue para o entregador). */
-  const itens = itensVenda.filter(it=>it.vendaId===v.id).map(it=>{
-    const ad = (it.adicionaisIds||[]).map(id=>{ const a = adicionais.find(x=>x.id===id); return a ? a.nome : ''; }).filter(Boolean);
-    return `<div style="font-size:1.38em;line-height:1.35;margin-top:7px;font-weight:700;"><b>${escR(it.quantidade)}x</b> ${escR(it.descricao).replace(' — Obs: ','<br>&nbsp;&nbsp;📝 ')}</div>` + (ad.length ? `<div style="font-size:1.12em;line-height:1.35;margin-top:3px;font-weight:600;">&nbsp;&nbsp;+ ${escR(ad.join(', '))}</div>` : '');
-  }).join('') || '<div>(itens não carregados — confira na tela)</div>';
+  /* MODELO ÚNICO DE COMANDA (v2: grande, nítida e completa): serve para cozinha, retirada, mesa e entrega
+     (a cozinha imprime, grampeia no pedido e ela segue para o entregador). Sem emojis: impressora térmica não imprime emoji. O estilo (.cmd) fica em cssImpressao (app-07). */
+  const sem = s => escR(String(s==null?'':s).replace(/[\u{1F000}-\u{1FFFF}\u2600-\u27BF\uFE0F]/gu,'').trim());
   const ehMesa = v.tipoEntrega==='Mesa', ehEnt = v.tipoEntrega==='Entrega';
+  const lista = itensVenda.filter(it=>it.vendaId===v.id);
+  const totalItens = lista.reduce((s,it)=>s+(Number(it.quantidade)||0),0);
+  const itens = lista.map(it=>{
+    const ad = (it.adicionaisIds||[]).map(id=>{ const a = adicionais.find(x=>x.id===id); return a ? a.nome : ''; }).filter(Boolean);
+    const partes = String(it.descricao||'').split(' — Obs: ');
+    const obs = partes.slice(1).join(' — ').trim();
+    return `<div class="it"><div class="qt">${escR(it.quantidade)}</div><div class="nm">${escR(partes[0])}`
+      + (ad.length ? `<div class="ad">+ ${escR(ad.join(', '))}</div>` : '')
+      + (obs ? `<div class="ob">OBS: ${escR(obs)}</div>` : '')
+      + `</div></div>`;
+  }).join('') || '<div class="box">(itens não carregados — confira na tela)</div>';
   const destino = ehMesa ? 'MESA '+nomeMesa(v.mesaId) : (ehEnt ? 'ENTREGA' : 'RETIRADA');
-  const hora = new Date(v.timestamp).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
-  let h = `<h4>COMANDA #${escR(rotuloPedido(v))}</h4><div class="sub-c" style="font-size:1.3em;"><b>${escR(destino)}</b></div><div class="sub-c">${escR(hora)} · ${escR(v.origem||'Balcão')}</div>${quemFezPedido_(v)?`<div class="sub-c">${escR(quemFezPedido_(v))}</div>`:''}`;
+  const d = new Date(v.timestamp);
+  const hora = d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  const dia = d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});
+  const agora = new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  const quem = sem(quemFezPedido_(v));
+  let h = `<div class="cmd">`;
+  h += `<div class="num">COMANDA #${escR(rotuloPedido(v))}</div>`;
+  h += `<div class="dest">${escR(destino)}</div>`;
+  h += `<div class="meta">Pedido às <b>${escR(hora)}</b> · ${escR(dia)} · ${sem(v.origem||'Balcão')}</div>`;
+  if(quem) h += `<div class="meta">${quem}</div>`;
+  /* ITENS (o mais importante para a cozinha) */
+  h += `<div class="sec">ITENS (${totalItens} no total)</div>${itens}`;
+  if(v.preferenciasCliente) h += `<div class="box">ATENÇÃO — PREFERÊNCIAS DO CLIENTE:<br><span class="big">${escR(v.preferenciasCliente)}</span></div>`;
+  if(v.observacoesEntrega) h += `<div class="box">OBSERVAÇÃO DO PEDIDO:<br><span class="big">${escR(v.observacoesEntrega)}</span></div>`;
+  /* CLIENTE / ENDEREÇO (o mais importante para o entregador) */
   if(!ehMesa){
-    h += `<hr><div><b>CLIENTE:</b> ${escR(v.clienteNome||'Sem cadastro')}</div>`;
-    if(v.clienteTelefone) h += `<div><b>TEL:</b> ${escR(v.clienteTelefone)}</div>`;
+    h += `<div class="sec">${ehEnt?'ENTREGAR PARA':'CLIENTE'}</div>`;
+    h += `<div class="cli">${escR(v.clienteNome||'Sem cadastro')}</div>`;
+    if(v.clienteTelefone) h += `<div class="tel">Tel: ${escR(v.clienteTelefone)}</div>`;
     if(ehEnt){
-      const end = [v.endereco, v.complemento].filter(Boolean).join(', ');
-      h += `<div class="mt-1"><b>ENDEREÇO:</b><br><span style="font-size:1.15em;">${escR(end||'(não informado)')}</span></div>`;
-      if(v.referencia) h += `<div><b>REFERÊNCIA:</b> ${escR(v.referencia)}</div>`;
+      h += `<div class="end">${escR(v.endereco||'(endereço não informado)')}</div>`;
+      if(v.complemento) h += `<div class="end2">Compl.: ${escR(v.complemento)}</div>`;
+      if(v.referencia) h += `<div class="end2">Referência: ${escR(v.referencia)}</div>`;
     }
   }
-  h += `<hr>${itens}`;
-  if(v.preferenciasCliente) h += `<hr><div style="font-size:1.2em;font-weight:700;">⚠ PREFERÊNCIAS: ${escR(v.preferenciasCliente)}</div>`;
-  if(v.observacoesEntrega) h += `<hr><div><b>OBS:</b> ${escR(v.observacoesEntrega)}</div>`;
-  h += '<hr>';
-  const taxa = Number(v.taxaEntrega)||0;
-  if(ehEnt && taxa>0) h += `<div class="linha"><span>Taxa de entrega</span><span>${escR(formatarMoeda(taxa))}</span></div>`;
-  h += `<div class="linha total"><span>TOTAL</span><span>${escR(formatarMoeda(v.valorTotal))}</span></div>`;
+  /* VALORES E PAGAMENTO */
+  h += `<div class="sec">PAGAMENTO</div>`;
+  const desc = Number(v.valorDesconto)||0, acr = Number(v.acrescimoForma)||0, taxa = Number(v.taxaEntrega)||0;
+  if(desc>0) h += `<div class="lin"><span>Desconto${v.descontoDetalhe?' ('+sem(v.descontoDetalhe)+')':''}</span><span>-${escR(formatarMoeda(desc))}</span></div>`;
+  if(acr>0) h += `<div class="lin"><span>Acréscimo da forma</span><span>+${escR(formatarMoeda(acr))}</span></div>`;
+  if(ehEnt && taxa>0) h += `<div class="lin"><span>Taxa de entrega</span><span>${escR(formatarMoeda(taxa))}</span></div>`;
+  h += `<div class="tot"><span>TOTAL</span><span>${escR(formatarMoeda(v.valorTotal))}</span></div>`;
+  if(v.formaPagamento) h += `<div class="forma">Forma: ${sem(v.formaPagamento)}</div>`;
   const receber = v.statusPagamento==='A Receber';
   h += receber
-    ? (ehMesa ? `<div style="margin-top:6px;font-size:1.1em;"><b>CONTA EM ABERTO — PAGAR NO CAIXA</b></div>`
-              : `<div style="margin-top:6px;font-size:1.2em;"><b>COBRAR DO CLIENTE: ${escR(formatarMoeda(v.valorTotal))}</b>${v.formaPagamento?'<br>('+escR(v.formaPagamento)+')':''}</div>`)
-    : `<div style="margin-top:6px;font-size:1.1em;"><b>JÁ PAGO${ehEnt?' — NÃO COBRAR':''}</b>${v.formaPagamento?'<br>('+escR(v.formaPagamento)+')':''}</div>`;
-  if(ehEnt && v.entregador) h += `<hr><div>Entregador: ${escR(pdEntregadorNome_(v.entregador))}</div>`;
-  return h + '<hr>';
+    ? (ehMesa ? `<div class="cob">CONTA EM ABERTO<br>PAGAR NO CAIXA</div>`
+              : `<div class="cob">COBRAR DO CLIENTE<br>${escR(formatarMoeda(v.valorTotal))}</div>`)
+    : `<div class="pago">JÁ PAGO${ehEnt?'<br>NÃO COBRAR':''}</div>`;
+  if(ehEnt && v.entregador) h += `<div class="forma">Entregador: <b>${sem(pdEntregadorNome_(v.entregador))}</b></div>`;
+  h += `<div class="rod">Impressa às ${escR(agora)} · Texas Burger</div></div>`;
+  return h;
 }
 function imprimirComandas_(lista){
   lista.forEach(v=>{ comandaFotoAtualizar_(v); _comandaAlteradaAvisada_.delete(v.id); }); // ITEM 2.4: a comanda impressa passa a ser a "foto" do pedido
