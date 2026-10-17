@@ -76,6 +76,8 @@ Admin:{ nome:'Administrador', secoes:[
   { t:'Onde fica cada coisa', itens:[
     'Ao tocar em Admin, nada abre sozinho: aparecem só os 6 grupos; toque num grupo para ver as telas dele e depois na tela que quer abrir.',
     'A aba Administrador tem uma barra dividida em 6 grupos: Hoje (Visão Geral, Ocorrências, Feedbacks); Dinheiro (Contas a pagar e despesas, Histórico, Reembolsos e ajustes, Previsto e metas, Relatórios e DRE); Produtos (Produtos, combos e adicionais, Estoque, Compras e fornecedores, Custos e precificação); Vendas e cardápio (Cardápio Digital, Formas de pagamento, Promoções e cupons, Eventos); Loja e equipe (Mesas e QR Codes, Entregadores e taxas, Usuários e permissões, Configurar avisos); Sistema (Integrações e contas, Backup e espaço, Sincronização e contingência, Auditoria).',
+    'O campo “Ir para…”, no topo do menu, acha uma tela pelo nome ou por uma palavra (ex.: cupom, estoque, iFood, reembolso). Toque na tela que aparecer.',
+    'Cada tela do menu traz embaixo do nome uma linha explicando o que ela faz.',
     'Caixa, Pedidos, Entregas e Clientes funcionam como nos outros perfis, e você pode tudo.' ]},
 
   { t:'Criar usuário e trocar senha', passos:[
@@ -133,10 +135,11 @@ Admin:{ nome:'Administrador', secoes:[
     comuns:['Administrador e Operador veem as visitas.'] },
 
   { t:'No computador', itens:[
-    'Notebook ou monitor (tela a partir de 900 px de largura): o topo fica numa linha só, com o logo à esquerda e o usuário e os botões à direita. As abas ficam sempre à vista no alto, mesmo rolando a página.',
-    'Administrador: as telas aparecem num menu ao lado, com todos os grupos abertos (Painel, Financeiro, Catálogo, Campanhas, Operação e Sistema). Um clique abre a tela. Se o menu não couber na tela, role dentro dele.',
-    'Pedidos: os pedidos ficam lado a lado (2 ou 3 por linha). Caixa: a escolha fica à esquerda; carrinho, total e pagamento ficam à direita.',
-    'No celular nada muda.' ] },
+    'Notebook ou monitor (tela a partir de 900 px de largura): o topo fica numa linha só, com o logo à esquerda e o usuário e os botões à direita. As abas ficam sempre à vista no alto, mesmo rolando a página (no celular elas ficam no menu de baixo).',
+    'Todas as funções do celular existem no computador: o que muda é só a organização da tela.',
+    'Administrador: as telas aparecem num menu ao lado, com os 6 grupos abertos (Hoje, Dinheiro, Produtos, Vendas e cardápio, Loja e equipe, Sistema). Um clique abre a tela. O campo “Ir para…” no topo do menu acha uma tela pelo nome. Se o menu não couber na tela, role dentro dele.',
+    'Pedidos: os pedidos ficam lado a lado (2 ou 3 por linha). Caixa: a escolha dos itens fica à esquerda; carrinho, total e pagamento ficam à direita.',
+    'O botão do Tex fica no canto da tela. Valores aparecem com ponto de milhar (R$ 1.475,90).' ] },
 
   { t:'Modo reserva e Saúde do sistema', itens:[
     'Se o Supabase cair, aparece uma faixa laranja "Modo reserva" no topo. Ela diz o que funciona, o que fica na fila e o que espera a volta.',
@@ -240,6 +243,33 @@ Admin:{ nome:'Administrador', secoes:[
     comuns:['"Abra o caixa antes de registrar uma venda".',
       '"A soma dos pagamentos precisa bater com o total".',
       'Desconto nunca pode zerar a venda; no Caixa pede a sua senha.'] },
+
+  { t:'Caixa vencido', itens:[
+    'O caixa vence no primeiro horário de corte (padrão 06:00, horário de Brasília) depois de ter pelo menos 6 horas aberto, e nunca passa de 24 horas.',
+    'Vencido, o Caixa bloqueia venda nova de balcão e de mesa, sangria e resgate de prêmio. Continuam livres: preparar, despachar, entregar e receber pedidos já aceitos. Pedidos do iFood e do cardápio continuam entrando e podem ser aceitos.',
+    'Fechar: Caixa → botão “Fechar caixa vencido” (Administrador e Operador). Informe o dinheiro contado e, se quiser, o motivo. A diferença fica registrada como “fechamento atrasado” em Dinheiro → Histórico → Sessões de caixa. O caixa só fecha sem mesas abertas e sem pedidos pendentes ou não recebidos.',
+    'Emergência (só Administrador): “Liberar por algumas horas” (padrão 4 h, máximo 12 h), com motivo obrigatório. Fica na Auditoria, avisa os Administradores e aparece na Visão Geral. Expira sozinho.',
+    'Aviso: a partir de 2 horas antes do corte aparece uma faixa no Início e no Caixa, com atalho para o Caixa.',
+    'Regra: o Administrador ajusta o corte, a vida mínima e o teto em Caixa → “Regra do caixa vencido” (embaixo do botão de fechar).' ],
+    comuns:['Garçom e Cozinha veem “caixa vencido, chame o responsável”.'] },
+
+  { t:'Entregadores: taxa e fechamento', passos:[
+    'Administrador → Loja e equipe → Entregadores e taxas.',
+    'Em “Taxa e ajuda diária”, defina a taxa de entrega padrão e a ajuda diária do entregador e salve. A taxa é do cliente e vai 100% para o entregador. Mudanças valem só para pedidos e fechamentos futuros.',
+    'Em “Fechamento de entregadores”, escolha o entregador e o dia e toque em Calcular. O total devido é as taxas das entregas concluídas do dia mais a ajuda diária (uma vez por dia).',
+    'Informe o valor pago e a forma: Dinheiro (sai da gaveta do caixa) ou Pix (não sai da gaveta). Se o valor pago for diferente do devido, a observação é obrigatória.',
+    'Toque em “Fechar período”. Os fechamentos aparecem em “Fechamentos anteriores” e não mudam mais.' ],
+    comuns:['A ajuda diária conta uma vez por dia e só se houve entrega.','O valor pago ao entregador entra nas despesas (Entregadores) no DRE.','Se a conexão cair ao fechar, confira “Fechamentos anteriores” antes de tentar de novo, para não fechar duas vezes.'] },
+
+  { t:'Mercado Pago (pagamento online)', itens:[
+    'Onde: Administrador → Sistema → Integrações e contas → 💳 Mercado Pago. O quadro “👉 Próximo passo” mostra o que falta fazer.',
+    'Configurar (quem faz é o dono): conta de vendedor verificada no Mercado Pago; aplicação com Checkout Transparente; chaves de TESTE (Public Key e Access Token); aviso (webhook) com o endereço do cartão e o evento “Order (Mercado Pago)”, mais a chave secreta; teste guiado com Pix e cartão; só então as chaves de PRODUÇÃO e “Ligar em PRODUÇÃO”.',
+    'Formas de pagamento pelo site: para cada forma há só duas opções, “Só na entrega” ou “Também online”. Online vale para Pix, crédito e débito, e crédito e débito podem ficar online ao mesmo tempo. A forma continua valendo também na entrega, com os mesmos preços, taxas e acréscimos.',
+    'Ajustes: validade do Pix (5 a 120 minutos; combinado 15), e-mails que veem o pagamento online em TESTE e e-mail do comprador de teste.',
+    'No cardápio, o cliente precisa entrar com a conta para pagar pelo site. O pedido só entra como Pago depois da confirmação do Mercado Pago.',
+    'Pagamentos que precisam de decisão: se o dinheiro foi aprovado mas o pedido não pôde entrar sozinho na cozinha, a lista aparece em Mercado Pago (“No dia a dia”) e numa faixa discreta no Caixa. “Liberar pedido” envia o pedido para a cozinha; “Reembolsar” registra a decisão e chama o Mercado Pago para devolver. Confira o resultado antes de repetir uma tentativa.',
+    'Relatórios → “Mercado Pago — resumo do mês” mostra recebimentos e taxas do mês.' ],
+    comuns:['O pedido de teste aprovado vira pedido de verdade na cozinha e no caixa: avise a equipe e cancele depois.','Desligada, a integração faz o cardápio voltar a funcionar só com pagamento na entrega. Ligar e desligar pedem a sua senha de administrador.'] },
 
   { t:'Modo emergência (servidor fora do ar)', itens:[
     'Só funciona no mesmo aparelho em que você já fez login normal ao menos uma vez nos últimos 30 dias. Cada login novo renova o prazo.',
@@ -369,10 +399,11 @@ Operador:{ nome:'Caixa', secoes:[
     comuns:['O botão do Assistente é o rosto do Tex no canto de baixo; ele fica acima do menu, e a página tem um espaço no fim para nada ficar escondido atrás dele.'] },
 
   { t:'No computador', itens:[
-    'Notebook ou monitor: o topo fica numa linha só e as abas ficam sempre à vista no alto, mesmo rolando a página.',
-    'Pedidos: os pedidos ficam lado a lado (2 ou 3 por linha). Caixa: a escolha fica à esquerda; carrinho, total e pagamento ficam à direita.',
-    'Na aba Operação, as telas (Ocorrências e Feedbacks) aparecem num menu ao lado.',
-    'No celular nada muda.' ] },
+    'Notebook ou monitor (tela a partir de 900 px de largura): o topo fica numa linha só, com o logo à esquerda e o usuário e os botões à direita. As abas ficam sempre à vista no alto, mesmo rolando a página (no celular elas ficam no menu de baixo).',
+    'Todas as funções do celular existem no computador: o que muda é só a organização da tela.',
+    'Operação: as telas (Ocorrências e Feedbacks) aparecem no menu ao lado.',
+    'Pedidos: os pedidos ficam lado a lado (2 ou 3 por linha). Caixa: a escolha dos itens fica à esquerda; carrinho, total e pagamento ficam à direita.',
+    'O botão do Tex fica no canto da tela. Valores aparecem com ponto de milhar (R$ 1.475,90).' ] },
 
   { t:'Modo reserva (quando o sistema cai)', itens:[
     'Uma faixa laranja "Modo reserva" no topo avisa que o servidor principal está fora.',
@@ -453,6 +484,11 @@ Operador:{ nome:'Caixa', secoes:[
     'Informe o dinheiro contado.',
     'Confira o total por forma, despesas, sangrias e a diferença.' ],
     comuns:['Ao tocar em "Sair" com o caixa aberto, o sistema pergunta se você quer mesmo sair.'] },
+
+  { t:'Caixa vencido', itens:[
+    'Quando o caixa passa do horário de corte (padrão 06:00) ou de 24 horas aberto, o Caixa bloqueia venda nova de balcão e de mesa, sangria e resgate de prêmio. Preparar, despachar, entregar e receber pedidos já aceitos continuam livres, e pedidos do iFood e do cardápio continuam entrando.',
+    'Para fechar: Caixa → “Fechar caixa vencido”. Informe o dinheiro contado e, se quiser, o motivo. A diferença fica registrada como fechamento atrasado. Só fecha sem mesas abertas e sem pedidos pendentes.',
+    'Quem libera o caixa por algumas horas, em emergência, é só o Administrador. Uma faixa no Início e no Caixa avisa 2 horas antes do corte.' ] },
 
   { t:'Modo emergência (servidor fora do ar)', itens:[
     'Só funciona no mesmo aparelho em que você já fez login normal nos últimos 30 dias.',
@@ -656,13 +692,19 @@ const MANUAL_AJUDA_CLIENTE_ = {
     { t:'💳 Formas de pagamento e troco', itens:[
       'Escolha a forma de pagamento no carrinho, antes de enviar.',
       'Se escolher Dinheiro, aparece a opção "Preciso de troco". Marque e informe para quanto (ex.: "troco para R$ 50").',
-      'Pagamento combinado na entrega ou na retirada — não cobramos pelo site.' ]},
+      'Dinheiro e cartão na máquina: o pagamento é combinado na entrega ou na retirada.',
+      'Se o restaurante ligou o pagamento pelo site, aparece “Pagar agora, pelo site” com Pix e/ou cartão. Para pagar pelo site é preciso entrar com a sua conta; na entrega não precisa.',
+      'Pix: aparece o QR Code (e o código para copiar) com um cronômetro. Cartão: preencha número, nome, validade, código e CPF do titular. Quando o pagamento é aprovado, aparece “Pagamento aprovado”.',
+      'Se o tempo do Pix terminar, o pedido é cancelado; se você chegou a pagar, o restaurante entra em contato. Escolha uma forma de pagamento e refaça o pedido.' ],
+      comuns:['O pedido pago pelo site só vai para a cozinha depois da confirmação do pagamento.'] },
 
     { t:'📦 Acompanhar seu pedido', passos:[
       'No rodapé do cardápio, toque em "📦 Acompanhe seu pedido".',
       'Se você tem só um pedido neste aparelho, o status abre direto. Se tem mais, aparece a lista para escolher.',
       'O status atualiza sozinho a cada 20 segundos: Recebido → Aceito/Em preparo → Pronto/Saiu pra entrega → Entregue/Retirado.',
-      'O status fica salvo no seu navegador. Se você limpar o histórico do navegador, perde a lista (o restaurante continua com o pedido).' ]},
+      'Logo depois de enviar, o cartão “Pedido enviado” tem o botão “📦 Acompanhar agora”, que abre o status na hora.',
+      'Com vários pedidos, depois de abrir um, toque em “← Todos os pedidos” para voltar à lista sem fechar a janela.',
+'O status fica salvo no seu navegador. Se você limpar o histórico do navegador, perde a lista (o restaurante continua com o pedido).' ]},
 
     { t:'✖ Cancelar um pedido', itens:[
       'Você pode cancelar nos PRIMEIROS 3 MINUTOS, e só enquanto o pedido está "aguardando aceite".',
@@ -705,6 +747,7 @@ const MANUAL_AJUDA_CLIENTE_ = {
       'No rodapé, toque em "📲 Instalar app".',
       'Android (Chrome): aparece "Instalar app". Se não aparecer, use o menu ⋮ → "Instalar app" ou "Adicionar à tela inicial".',
       'iPhone (Safari): Compartilhar (quadrado com seta) → "Adicionar à Tela de Início".',
+      'Também há o convite “📲 Instalar app” no cartão “Pedido enviado”, logo depois de pedir (some se o app já estiver instalado).',
       'Depois de instalado, o app abre em tela cheia, mais rápido e com ícone próprio.' ],
       comuns:['Se o convite apareceu e você tocou em "Agora não", ele volta depois de 7 dias.',
         'No iPhone, só funciona pelo Safari.'] },

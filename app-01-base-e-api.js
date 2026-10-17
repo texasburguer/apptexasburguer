@@ -6,7 +6,7 @@ const API_URL = "https://script.google.com/macros/s/AKfycbwCftUm-1pxhA8XLNqMB7dM
 const CONTINGENCIA_API_URL = "https://script.google.com/macros/s/AKfycby3WljBnr7gpJrHdkbTvBCh5uIXqS4KCS6wkBYB5idxf5gI04efoDumQj264kR_smoW/exec";
 
 /* ===================== VERSÃO DO APP ===================== */
-const APP_VERSAO = '1.5';
+const APP_VERSAO = '1.6';
 const APP_ATUALIZADO_EM = '16/10/2026';
 window.APP_VERSAO = APP_VERSAO;
 
@@ -18,6 +18,9 @@ window.APP_VERSAO = APP_VERSAO;
    A seção "🆕 O que mudou" do manual é gerada daqui. */
 const APP_NOVIDADES = {
   Admin: [
+    { v:'1.6', em:'16/10/2026', itens:[
+      'Ajuda atualizada: novas seções “Caixa vencido”, “Entregadores: taxa e fechamento” e “Mercado Pago (pagamento online)”, e “No computador” e “Onde fica cada coisa” reescritas com o menu atual (6 grupos e campo “Ir para…”).'
+    ]},
     { v:'1.5', em:'16/10/2026', itens:[
       'Novo em Clientes › perfil: \"Preferências fixas\" (ex.: sem cebola, alergias). Cada pedido novo do cliente guarda uma cópia, para a comanda mostrar. As preferências aparecem na tela da cozinha, na comanda impressa e nos detalhes do pedido. O cliente com conta também edita as suas em Minha conta › Meus dados e as vê no checkout antes de pedir. Quem está em Em risco ou VIP agora também recebe um aviso (push) junto com o cupom automático, se tiver o aviso ligado no aparelho.'
     ]},
@@ -103,6 +106,9 @@ const APP_NOVIDADES = {
     ]}
   ],
   Operador: [
+    { v:'1.6', em:'16/10/2026', itens:[
+      'Ajuda atualizada: nova seção “Caixa vencido” (como fechar o caixa vencido) e “No computador” com o menu atual.'
+    ]},
     { v:'1.3', em:'16/10/2026', itens:[
       'Novo em Clientes: Perfil 360 no topo do perfil (segmento Novo, Fiel, VIP ou Em risco, gasto total, ticket médio, itens favoritos) e selo do segmento na lista, com filtros Em risco, VIP, Fiéis e Novos.'
     ]},
@@ -157,6 +163,9 @@ const APP_NOVIDADES = {
     ]}
   ],
   Cliente: [
+    { v:'1.6', em:'16/10/2026', itens:[
+      'Ajuda atualizada: pagamento pelo site (Pix e cartão), botão “Acompanhar agora”, voltar para “Todos os pedidos” e convite para instalar o app no cartão “Pedido enviado”.'
+    ]},
     { v:'1.0', em:'09/10/2026', itens:[
       'Novo: em Minha conta › Pedidos, cada pedido tem o botão "⭐ Feedback". Quando o restaurante responder, a resposta aparece no próprio pedido. O botão de feedback do rodapé continua funcionando sem login.',
       'Novo: brindes! Com o cartão fidelidade completo ou um brinde de indicação, escolha seu prêmio na Minha conta ou no carrinho, junto com um pedido ou sozinho. Ele sai por R$ 0,00 e a entrega, se houver, é cobrada.',
