@@ -1,4 +1,4 @@
-/* Texas Burger — service worker v36: avisos com o app fechado (push da equipe e do cliente) + notificações + abertura instantânea + casca/ícones/logo guardados.
+/* Texas Burger — service worker v37: avisos com o app fechado (push da equipe e do cliente) + notificações + abertura instantânea + casca/ícones/logo guardados.
    Precisa ficar na MESMA pasta do HTML, em endereço https.
    - Página: mostra a cópia guardada NA HORA e confere a rede em segundo plano. Se a página mudou, avisa o app ("Nova versão disponível").
    - Ícones, logo e manifest: guardados (cache primeiro).
@@ -6,7 +6,7 @@
    - BACKEND: NADA de Apps Script (script.google.com) nem de Supabase (*.supabase.co) é guardado aqui.
      Dados, pedidos, login e RPCs nunca passam pelo cache do service worker — sempre vão direto para a rede.
    - O único cache de dados é o de fotos (FOTOS) e o da casca/ícones (SHELL/ASSETS). Não adicionar outros. */
-const SHELL = 'texas-shell-v59';
+const SHELL = 'texas-shell-v60';
 const ASSETS = 'texas-assets-v6';   // trocou ícone/logo/manifest/leaflet? suba para v5
 const FOTOS = 'texas-fotos-v1';
 /* Código do app dividido em arquivos (app-*.js e estilo-*.css). Cada arquivo tem ?v=<impressão digital> na página; o cache guarda
@@ -14,9 +14,9 @@ const FOTOS = 'texas-fotos-v1';
    A lista abaixo é gerada pelo script de selagem (selar.py) a cada entrega. */
 const CODIGO = 'texas-codigo-v2';
 const LISTA = [/*LISTA-INICIO*/
-  'estilo-base.css?v=576313f4',
+  'estilo-base.css?v=309b8857',
   'app-01-base-e-api.js?v=64d002dc',
-  'app-02-abas.js?v=854db4dd',
+  'app-02-abas.js?v=c8bb8058',
   'app-03-cadastros.js?v=78549205',
   'app-04-pedidos-entrega.js?v=2fd904dd',
   'app-05-avisos-push.js?v=d76d4b0a',
@@ -24,7 +24,7 @@ const LISTA = [/*LISTA-INICIO*/
   'app-07-impressao.js?v=5fce9035',
   'app-08-vendas-despesas.js?v=42c06d58',
   'app-09-ajuda.js?v=5970503a',
-  'app-10-backup-financeiro.js?v=76b19b51',
+  'app-10-backup-financeiro.js?v=b27dc4a9',
   'app-11-admin-integracoes.js?v=02f73c8a',
   'app-12-gestao-ia.js?v=59f30b6d',
   'app-13-conexao-sync.js?v=4169baef',
