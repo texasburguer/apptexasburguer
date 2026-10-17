@@ -235,16 +235,50 @@
   IN.log = IN.log || []; IN.logTs = IN.logTs || 0;
   function logIa_(cls, rot, cont, rico){ IN.log.push({ cls, rot, cont, rico:!!rico }); IN.log = IN.log.slice(-30); IN.logTs = Date.now(); }
   function novaConversaIa_(){ IN.log = []; IN.hist = []; IN.logTs = 0; const b = $('biMsgs'); if(b) b.innerHTML = ''; mostrarModoChat_(''); bolha_('ia', 'Assistente', 'Conversa nova. Fala, chefe, o que precisa?'); ctrl_(); }
+  /* mensagem de status enquanto a IA trabalha (plano de velocidade, item 11): diz o que está sendo buscado, pela própria pergunta; sem IA, sem custo */
+  const STATUS_IA_ = [[/venda|vendi|fatur|receita|ticket|lucro|pix|cart[aã]o|dinheiro|pagamento/i, 'buscando as vendas'], [/estoque|insumo|ingrediente|acabando|repor|compra/i, 'conferindo o estoque'], [/caixa|sangria|fechamento|abertura/i, 'olhando o caixa'], [/entrega|entregador|motoboy|mesa|preparo|andamento|fila|atras|pedido/i, 'vendo os pedidos e entregas'], [/despesa|gasto|conta|vencid|custo|financeiro/i, 'somando as despesas'], [/cliente|fidelidade|aniversar/i, 'consultando os clientes'], [/card[aá]pio|produto|lanche|combo|pre[cç]o|promo/i, 'abrindo o cardápio'], [/feedback|avalia|reclama|ocorr[eê]ncia/i, 'lendo feedbacks e ocorrências'], [/como (fa[cç]o|faz|eu|se|posso)|onde (fica|vejo)|passo a passo|ajuda|configur|imprim/i, 'procurando no manual']];
+  function statusIa_(t){ for(const [re, msg] of STATUS_IA_) if(re.test(t)) return '⏳ ' + msg.charAt(0).toUpperCase() + msg.slice(1) + '…'; return '⏳ Pensando…'; }
   async function perguntarIa_(t){
     if(IN.logTs && Date.now() - IN.logTs > 7200000){ IN.log = []; IN.hist = []; }
     IN.ocupado = true; bolha_('eu', 'Você', t); logIa_('eu', 'Você', t, false); ctrl_();
-    let esp = bolha_('ia', 'Assistente', '⏳ Pensando…');
+    let esp = bolha_('ia', 'Assistente', statusIa_(t));
+    let streamou = false;   /* streaming (plano de velocidade, item 10): depois que o texto começa a aparecer, os avisos de espera param */
+    const tmrIa = [setTimeout(() => { if(!streamou && esp && esp.lastChild) esp.lastChild.textContent = '⏳ Ainda consultando os dados…'; }, 6000), setTimeout(() => { if(!streamou && esp && esp.lastChild) esp.lastChild.textContent = '⏳ Está demorando mais que o normal… só mais um instante.'; }, 20000)];
     try{
       const tk = await tokenSb_();
       const resp = await sbJson_(SUPABASE_URL_ + '/functions/v1/ai-assistente', { method:'POST',
         headers:{ Authorization:'Bearer ' + tk, apikey:SUPABASE_CHAVE_, 'Content-Type':'application/json' },
-        body: JSON.stringify({ acao:'conversar', texto:t, historico:IN.hist.slice(-4) }) }, 70000);
-      const r = await resp.json().catch(() => ({ ok:false, codigo:'resposta_invalida' }));
+        body: JSON.stringify({ acao:'conversar', texto:t, historico:IN.hist.slice(-4), stream:true }) }, 70000);
+      let r;
+      if(/text\/event-stream/i.test(resp.headers.get('content-type') || '') && resp.body && resp.body.getReader){
+        /* SSE do ai-assistente V3.2: status (o que está buscando) · delta (texto até agora) · reset (recomeça) · final (a mesma resposta JSON de sempre) */
+        r = { ok:false, codigo:'rede_ou_timeout' };
+        const rd = resp.body.getReader(), dec = new TextDecoder(); let buf = '';
+        const tmrLeitura = setTimeout(() => { try{ rd.cancel(); }catch(e){} }, 80000);   /* trava de segurança: stream parado não deixa o chat preso */
+        const trata = (ev, d) => {
+          const span = esp && esp.lastChild;
+          if(ev === 'status' && !streamou && span && d && d.msg){ if(/^Buscando/i.test(d.msg)) span.textContent = '⏳ ' + d.msg; }   /* o "Consultando a IA…" genérico do servidor não troca o status específico do app */
+          else if(ev === 'delta' && span && d && typeof d.t === 'string'){ streamou = true; span.textContent = d.t; const bx = $('biMsgs'); if(bx) bx.scrollTop = bx.scrollHeight; }
+          else if(ev === 'reset' && span){ streamou = false; span.textContent = statusIa_(t); }
+          else if(ev === 'final' && d && d.body) r = d.body;
+        };
+        try{
+          while(true){
+            const { done, value } = await rd.read(); if(done) break;
+            buf += dec.decode(value, { stream:true });
+            let k; while((k = buf.indexOf('\n\n')) >= 0){
+              const bloco = buf.slice(0, k); buf = buf.slice(k + 2);
+              let ev = 'message', dado = '';
+              bloco.split('\n').forEach(l => { if(l.indexOf('event:') === 0) ev = l.slice(6).trim(); else if(l.indexOf('data:') === 0) dado += l.slice(5).trim(); });
+              let d = null; try{ d = JSON.parse(dado); }catch(e){}
+              trata(ev, d);
+            }
+          }
+        }catch(e){ /* conexão caiu no meio: vale o que já chegou em r */ }
+        finally{ clearTimeout(tmrLeitura); }
+      } else {
+        r = await resp.json().catch(() => ({ ok:false, codigo:'resposta_invalida' }));   /* função antiga ou sem streaming: JSON normal */
+      }
       rm_(esp); esp = null;
       if(!r || !r.ok){
         const m = { sem_permissao:'Seu perfil não tem acesso ao assistente.', sessao_invalida:'Sua sessão expirou. Entre de novo.', sem_login:'Sua sessão expirou. Entre de novo.', pergunta_vazia:'Escreva uma pergunta.', interno:'O assistente teve um problema agora. Tente de novo em instantes.', corpo_grande:'Pergunta grande demais. Escreva algo mais curto.' };
@@ -263,7 +297,7 @@
       if(r.texto && r.ia){ IN.hist.push({ quem:'eu', texto:t }, { quem:'ia', texto:r.texto }); IN.hist = IN.hist.slice(-6); }
       if(r.abrir_fila && equipe_()){ await carregarFila_(); mostrarFila_(); }
     }catch(e){ rm_(esp); bolha_('ia', 'Assistente', 'Não consegui concluir agora. O restante do sistema funciona normal.'); logIa_('ia', 'Assistente', 'Não consegui concluir agora. O restante do sistema funciona normal.', false); }
-    finally{ IN.ocupado = false; }
+    finally{ tmrIa.forEach(clearTimeout); IN.ocupado = false; }
   }
   function enviar_(){
     const el = $('biTexto'); const t = String((el && el.value) || '').trim().slice(0, IN.conv ? 600 : 300);
