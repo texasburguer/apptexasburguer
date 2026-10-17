@@ -6,7 +6,7 @@
    - BACKEND: NADA de Apps Script (script.google.com) nem de Supabase (*.supabase.co) é guardado aqui.
      Dados, pedidos, login e RPCs nunca passam pelo cache do service worker — sempre vão direto para a rede.
    - O único cache de dados é o de fotos (FOTOS) e o da casca/ícones (SHELL/ASSETS). Não adicionar outros. */
-const SHELL = 'texas-shell-v77';
+const SHELL = 'texas-shell-v81';
 const ASSETS = 'texas-assets-v6';   // trocou ícone/logo/manifest/leaflet? suba para v5
 const FOTOS = 'texas-fotos-v1';
 /* Código do app dividido em arquivos (app-*.js e estilo-*.css). Cada arquivo tem ?v=<impressão digital> na página; o cache guarda
@@ -16,8 +16,8 @@ const CODIGO = 'texas-codigo-v2';
 const LISTA = [/*LISTA-INICIO*/
   'estilo-base.css?v=309b8857',
   'app-01-base-e-api.js?v=20787e1d',
-  'app-02-abas.js?v=c8bb8058',
-  'app-03-cadastros.js?v=b2faed38',
+  'app-02-abas.js?v=8ebec1ed',
+  'app-03-cadastros.js?v=a212db62',
   'app-04-pedidos-entrega.js?v=5c4ec7a5',
   'app-05-avisos-push.js?v=d76d4b0a',
   'app-06-caixa.js?v=edcbde35',
@@ -37,11 +37,11 @@ const LISTA = [/*LISTA-INICIO*/
   'app-19-ia.js?v=37d36dbd',
   'app-20-balao-interno.js?v=1b861bf1',
   'app-21-localizacao.js?v=bb28de16',
-  'estilo-equipe.css?v=9f6fe23c',
+  'estilo-equipe.css?v=ba34a5db',
   'app-22-navegacao-inferior.js?v=9c0835e7',
   'app-23-janelas-popup.js?v=6f031891',
   'app-24-acessibilidade.js?v=1567f2c1',
-  'app-25-cadastro-facil.js?v=81c0fc9e',
+  'app-25-cadastro-facil.js?v=181ef7b0',
   'app-26-visual.js?v=3f2492e5',
   'estilo-conta-pagamento.css?v=c8bbf776',
   'app-28-dialogos.js?v=58e2325f',

@@ -182,6 +182,7 @@ function editarAdicionalUI(id){
     document.getElementById('aeQtd').value = (ing && typeof cfUsoDeEst_ === 'function') ? cfUsoDeEst_(ing.unidade, q) : q; }
   document.getElementById('aeAtivo').checked = !!a.ativo;
   document.getElementById('aeMsg').textContent = ''; document.getElementById('aeBtn').disabled = false;
+  if(typeof cfAdIngSincronizar_ === 'function') cfAdIngSincronizar_('ae');
   atualizarQtdAdEdit_();
   document.getElementById('adEditModal').classList.add('open');
 }
@@ -194,11 +195,13 @@ async function salvarAdEdit_(){
   if(!(preco>=0)){ showMsg('aeMsg','Informe um preço válido (pode ser 0).','warn'); return; }
   if(adicionais.some(a=>a.id!==_adEditId && String(a.nome).trim().toLowerCase()===nome.toLowerCase())){ showMsg('aeMsg','Já existe um adicional com esse nome.','warn'); return; }
   const ingredienteId = document.getElementById('aeIngrediente').value;
+  if(typeof cfAdIngPendente_ === 'function' && cfAdIngPendente_('ae')){ showMsg('aeMsg', CF_ADING_PENDENTE_MSG_, 'warn'); return; }
   let quantidadeDesconto = 1;
   if(ingredienteId){
     const lido = cfUsoLer_('ae');
     if(!lido.ok){ showMsg('aeMsg', lido.msg, 'warn'); return; }
     quantidadeDesconto = lido.qtd;
+    if(typeof cfConfirmarPrejuizoAd_ === 'function' && !await cfConfirmarPrejuizoAd_(nome, preco, ingredienteId, quantidadeDesconto)) return;
   }
   _adEditOcupado = true; document.getElementById('aeBtn').disabled = true;
   try{
@@ -211,7 +214,9 @@ async function salvarAdEdit_(){
 function popularSelectAdicionalIngrediente(){
   const sel = document.getElementById('adIngredienteSelect');
   if(!sel) return;
+  const atual = sel.value;
   sel.innerHTML = '<option value="">Sem vínculo com estoque</option>' + estoque.map(e=>`<option value="${e.id}" data-unidade="${e.unidade||'un'}">${escH(e.nome)} (${e.unidade||'un'})</option>`).join('');
+  if(atual) sel.value = atual;
   atualizarLabelQtdAdicional();
 }
 function atualizarLabelQtdAdicional(){
@@ -226,7 +231,7 @@ function renderAdicionais(){
   const tbodyCadastro = document.getElementById('adCadastroTable');
   if(tbodyCadastro){
     tbodyCadastro.innerHTML = adicionais.length ? adicionais.map(a=>`<tr>
-      <td>${escH(a.nome)}${a.ativo?'':' <span class="badge">não aparece no cardápio</span>'}<div class="sub cf-uso-linha">${a.ingredienteId && typeof cfUsoTexto_ === 'function' && cfUsoTexto_(a.ingredienteId, a.quantidadeDesconto) ? 'baixa ' + escH(cfUsoTexto_(a.ingredienteId, a.quantidadeDesconto)) : 'sem baixa no estoque'}</div></td>
+      <td>${escH(a.nome)}${a.ativo?'':' <span class="badge">não aparece no cardápio</span>'}<div class="sub cf-uso-linha">${a.ingredienteId && typeof cfUsoTexto_ === 'function' && cfUsoTexto_(a.ingredienteId, a.quantidadeDesconto) ? 'baixa ' + escH(cfUsoTexto_(a.ingredienteId, a.quantidadeDesconto)) : 'sem baixa no estoque'}</div>${typeof cfUsoPerdaAd_ === 'function' ? cfUsoPerdaAd_(a) : ''}</td>
       <td>${formatarMoeda(a.preco)}</td>
       <td><button class="ghost" onclick="editarAdicionalUI('${a.id}')">editar</button><button class="ghost" onclick="excluirAdicionalConfirm('${a.id}')">excluir</button></td>
     </tr>`).join('') : '<tr class="empty-row"><td colspan="3">Nenhum adicional cadastrado.</td></tr>';
@@ -298,17 +303,19 @@ async function registrarAdicional(){
   const preco = Number(document.getElementById('adPreco').value) || 0;
   const ingredienteId = document.getElementById('adIngredienteSelect').value;
   if(!nome){ showMsg('adMsg','Informe o nome do adicional.','warn'); return; }
+  if(typeof cfAdIngPendente_ === 'function' && cfAdIngPendente_('ad')){ showMsg('adMsg', CF_ADING_PENDENTE_MSG_, 'warn'); return; }
   let quantidadeDesconto = 1;
   if(ingredienteId){
     const lido = cfUsoLer_('ad');
     if(!lido.ok){ showMsg('adMsg', lido.msg, 'warn'); return; }
     quantidadeDesconto = lido.qtd;
+    if(typeof cfConfirmarPrejuizoAd_ === 'function' && !await cfConfirmarPrejuizoAd_(nome, preco, ingredienteId, quantidadeDesconto)) return;
   }
   try{
     const r = await apiCall('addAdicional', { nome, preco, ingredienteId, quantidadeDesconto });
     if(r.ok){
       adicionais = r.adicionais || adicionais; salvarCache();
-      document.getElementById('adNome').value=''; document.getElementById('adPreco').value=''; document.getElementById('adQtdDesconto').value=''; try{ atualizarLabelQtdAdicional(); }catch(e){}
+      document.getElementById('adNome').value=''; document.getElementById('adPreco').value=''; document.getElementById('adQtdDesconto').value=''; document.getElementById('adIngredienteSelect').value=''; try{ cfAdIngSincronizar_('ad'); atualizarLabelQtdAdicional(); }catch(e){}
       renderAdicionais(); renderAdicionaisChecklist('pAdicionaisLista', []); showMsg('adMsg', r.message, 'ok');
     } else showMsg('adMsg', r.message, 'warn');
   } catch(e){ showMsg('adMsg','Não foi possível cadastrar.','warn'); }
@@ -420,6 +427,7 @@ async function registrarProduto(){
   const custoBase = Number(document.getElementById('pCusto').value) || 0;
   const precos = montarPrecosComExcecoes('p', precoBase, custoBase);
   if(!nome){ showMsg('pMsg','Informe o nome do produto.','warn'); return; }
+  if(typeof cfConfirmarPrejuizo_ === 'function' && !await cfConfirmarPrejuizo_(nome, precos)) return;
   setBotoesOcupados(true);
   try{
     const r = await apiCall('addProduto', { nome, descricao, categoria, precoBase, custoBase, precos, ingredientes: (typeof cfIngredientesParaSalvar === 'function' ? cfIngredientesParaSalvar('p') : ingredientesProdutoNovo), destaque: document.getElementById('pDestaque').checked, adicionaisIds: coletarAdicionaisChecklist('pAdicionaisLista'), estoqueProprio: coletarEstoqueProprio('p') });
@@ -519,6 +527,7 @@ async function salvarEdicaoProduto(){
   const premioFid = document.getElementById('ppPremioFid').checked, premioInd = document.getElementById('ppPremioInd').checked;
   const pAntes = produtos.find(x=>x.id===produtoEditandoId) || {};
   const premioMudou = premioFid !== !!pAntes.premioFidelidade || premioInd !== !!pAntes.premioIndicacao;
+  if(typeof cfConfirmarPrejuizo_ === 'function' && !await cfConfirmarPrejuizo_(nome, montarPrecosComExcecoes('pp', precoBase, custoBase))) return;
   try{
     const r = await apiCall('editarProduto', {
       id: produtoEditandoId, nome, descricao: document.getElementById('ppDescricao').value.trim(),
@@ -555,7 +564,7 @@ function renderProdutos(){
     const ingredientesDoProduto = produtoIngredientes.filter(v=>v.produtoId===p.id);
     const ingredientesTxt = ingredientesDoProduto.filter(v=>v.ingredienteId!==p.estoqueProprioIngredienteId).map(v=>{ const e = estoque.find(x=>x.id===v.ingredienteId)||{}; const u = e.unidade||'un'; const f = (u==='kg'||u==='l')?1000:1; return (Math.round(Number(v.quantidadePorUnidade)*f*1000)/1000).toLocaleString('pt-BR')+' '+(u==='kg'?'g':(u==='l'?'ml':u))+' '+v.ingredienteNome; }).join(', ');
     const thumb = p.fotoUrl ? `<img src="${fotoSrc_(p.fotoUrl, 100)}" onerror="fotoFalhou_(this)" style="width:34px;height:34px;border-radius:6px;object-fit:cover;vertical-align:middle;margin-right:6px;">` : '';
-    return `<tr class="vs-linha" onclick="abrirEditarProduto('${p.id}')"><td>${thumb}${escH(p.nome)}<span class="obs-line">${nomeCategoria(p.categoria)}${ingredientesTxt?' · '+ingredientesTxt:''}</span></td><td>${formatarMoeda(preco)}</td><td>${custo>0 ? formatarMoeda(margem)+'<span class="obs-line">'+pct.toFixed(0)+'%</span>' : '<span class="cf-sem">custo não informado</span>'}</td>
+    return `<tr class="vs-linha" onclick="abrirEditarProduto('${p.id}')"><td>${thumb}${escH(p.nome)}<span class="obs-line">${nomeCategoria(p.categoria)}${ingredientesTxt?' · '+ingredientesTxt:''}</span></td><td>${formatarMoeda(preco)}</td><td>${custo>0 ? (margem<0 ? '<span class="cf-perda">PREJUÍZO '+formatarMoeda(-margem)+'</span>' : formatarMoeda(margem))+'<span class="obs-line">'+pct.toFixed(0)+'%</span>' : '<span class="cf-sem">custo não informado</span>'}</td>
       <td><button type="button" class="ghost vs-mais" aria-label="Ações de ${escH(p.nome)}" onclick="event.stopPropagation();vsAcoesProduto('${p.id}')">⋯</button></td></tr>`;
   }).join('');
 }
@@ -597,9 +606,9 @@ function atualizarMargemPreviewCombo(){
   const preco = Number(document.getElementById('koPreco').value) || 0;
   const custo = Number(document.getElementById('koCusto').value) || 0;
   const pctImp = (typeof impostoPctHoje_ === 'function') ? impostoPctHoje_() : 0;   // imposto sobre a venda sai da margem
-  const margem = preco - custo - preco * pctImp / 100;
-  const pct = preco>0 ? (margem/preco*100) : 0;
-  document.getElementById('koMargemPreview').textContent = formatarMoeda(margem) + ' (' + pct.toFixed(0) + '%)' + (pctImp > 0 ? ' · já tirado o imposto de ' + String(pctImp).replace('.',',') + '%' : '');
+  const el = document.getElementById('koMargemPreview');
+  if(typeof cfMargemHtml_ === 'function') el.innerHTML = cfMargemHtml_(preco, custo, pctImp);
+  else { const margem = preco - custo - preco * pctImp / 100; el.textContent = formatarMoeda(margem) + ' (' + (preco>0 ? (margem/preco*100) : 0).toFixed(0) + '%)'; }
 }
 async function registrarCombo(){
   const nome = document.getElementById('koNome').value.trim();
@@ -609,6 +618,7 @@ async function registrarCombo(){
   const precos = montarPrecosComExcecoes('ko', precoBase, custoBase);
   if(!nome){ showMsg('koMsg','Informe o nome do combo.','warn'); return; }
   if(itensComboNovo.length===0){ showMsg('koMsg','Adicione pelo menos um produto ao combo.','warn'); return; }
+  if(typeof cfConfirmarPrejuizo_ === 'function' && !await cfConfirmarPrejuizo_(nome, precos)) return;
   setBotoesOcupados(true);
   try{
     const r = await apiCall('addCombo', { nome, categoria, precoBase, custoBase, precos, itens: itensComboNovo, destaque: document.getElementById('koDestaque').checked });
@@ -687,6 +697,7 @@ async function salvarEdicaoCombo(){
   if(itensComboEdicao.length===0){ showMsg('kkMsg','Adicione pelo menos um produto ao combo.','warn'); return; }
   const precoBase = Number(document.getElementById('kkPreco').value) || 0;
   const custoBase = Number(document.getElementById('kkCusto').value) || 0;
+  if(typeof cfConfirmarPrejuizo_ === 'function' && !await cfConfirmarPrejuizo_(nome, montarPrecosComExcecoes('kk', precoBase, custoBase))) return;
   try{
     const r = await apiCall('editarCombo', {
       id: comboEditandoId, nome, categoria: document.getElementById('kkCategoria').value,
@@ -707,10 +718,11 @@ function renderCombos(){
   const tbody = document.getElementById('koTable');
   if(combos.length===0){ tbody.innerHTML = '<tr class="empty-row"><td colspan="3">Nenhum combo cadastrado ainda.</td></tr>'; return; }
   tbody.innerHTML = combos.map(c=>{
-    const { preco } = precoDisplayCombo(c.id);
+    const { preco, custo: custoC } = precoDisplayCombo(c.id);
     const itensTxt = descricaoItensCombo(c.id);
+    const perdaC = (Number(custoC) > 0 && Number(preco) < Number(custoC)) ? '<span class="obs-line cf-perda">PREJUÍZO de '+formatarMoeda(Number(custoC)-Number(preco))+' por venda: o preço está abaixo do custo</span>' : '';
     const thumb = c.fotoUrl ? `<img src="${fotoSrc_(c.fotoUrl, 100)}" onerror="fotoFalhou_(this)" style="width:34px;height:34px;border-radius:6px;object-fit:cover;vertical-align:middle;margin-right:6px;">` : '';
-    return `<tr class="vs-linha" onclick="abrirEditarCombo('${c.id}')"><td>${thumb}${escH(c.nome)}<span class="obs-line">${nomeCategoria(c.categoria)}${itensTxt?' · '+itensTxt:''}</span></td><td>${formatarMoeda(preco)}</td><td><button type="button" class="ghost vs-mais" aria-label="Ações de ${escH(c.nome)}" onclick="event.stopPropagation();vsAcoesCombo('${c.id}')">⋯</button></td></tr>`;
+    return `<tr class="vs-linha" onclick="abrirEditarCombo('${c.id}')"><td>${thumb}${escH(c.nome)}<span class="obs-line">${nomeCategoria(c.categoria)}${itensTxt?' · '+itensTxt:''}</span>${perdaC}</td><td>${formatarMoeda(preco)}</td><td><button type="button" class="ghost vs-mais" aria-label="Ações de ${escH(c.nome)}" onclick="event.stopPropagation();vsAcoesCombo('${c.id}')">⋯</button></td></tr>`;
   }).join('');
 }
 function renderComboCuradoria(){

@@ -69,9 +69,101 @@ function cfUsoResumo_(e, q, preco){
   else t += ' · baixa do estoque na mesma medida';
   if(custo > 0){
     const c = qEst * custo; t += ' · custo <b>' + formatarMoeda(c) + '</b>';
-    if(preco > 0) t += ' · você cobra ' + formatarMoeda(preco) + ' (sobra ' + formatarMoeda(preco - c) + ')';
+    if(preco > 0){
+      const dif = Math.round((preco - c) * 100) / 100;
+      if(dif < 0) t += ' · você cobra ' + formatarMoeda(preco) + ' → <span class="cf-perda">VOCÊ PERDE ' + formatarMoeda(-dif) + ' a cada adicional vendido. Aumente o preço ou diminua a quantidade.</span>';
+      else if(dif === 0) t += ' · você cobra ' + formatarMoeda(preco) + ' → <span class="cf-sem">não sobra nada (lucro zero)</span>';
+      else t += ' · você cobra ' + formatarMoeda(preco) + ' → lucro de <b>' + formatarMoeda(dif) + '</b> por adicional';
+    }
   } else t += ' · <span class="cf-sem">ingrediente sem preço</span>';
   return t;
+}
+/* ---------- INGREDIENTE DO ADICIONAL: digitar e escolher (em vez de abrir a lista enorme) ----------
+   O <select> original continua na página, escondido, como fonte da verdade (valor e unidade); o campo de busca só o preenche.
+   Campo vazio = sem vínculo com o estoque. Digitou e não escolheu = o salvar avisa. */
+var CF_ADING_ = {
+  ad: { sel:'adIngredienteSelect', busca:'adIngBusca', sug:'adIngSug', qtd:'adQtdDesconto', msg:'adMsg', mudou:function(){ atualizarLabelQtdAdicional(); } },
+  ae: { sel:'aeIngrediente',       busca:'aeIngBusca', sug:'aeIngSug', qtd:'aeQtd',          msg:'aeMsg', mudou:function(){ atualizarQtdAdEdit_(); } }
+};
+function cfAdIngSincronizar_(k){
+  const c = CF_ADING_[k], sel = document.getElementById(c.sel), b = document.getElementById(c.busca), box = document.getElementById(c.sug);
+  if(!sel || !b) return;
+  const e = sel.value ? cfIngr_(sel.value) : null;
+  b.value = e ? e.nome : ''; if(box) box.innerHTML = '';
+}
+function cfAdIngBuscar_(k){
+  const c = CF_ADING_[k], sel = document.getElementById(c.sel), b = document.getElementById(c.busca), box = document.getElementById(c.sug);
+  if(!sel || !b || !box) return;
+  if(sel.value){ sel.value = ''; c.mudou(); }   // começou a digitar: desfaz a escolha até escolher outra da lista
+  const q = cfNorm_(b.value);
+  if(!q){ box.innerHTML = ''; return; }
+  const ach = (estoque || []).filter(e => e.ativo !== false && cfNorm_(e.nome).indexOf(q) !== -1)
+    .sort((a, z) => ((cfNorm_(a.nome).indexOf(q) === 0 ? 0 : 1) - (cfNorm_(z.nome).indexOf(q) === 0 ? 0 : 1)) || a.nome.localeCompare(z.nome)).slice(0, 8);
+  box.innerHTML = ach.length
+    ? ach.map(e => `<button type="button" class="cf-sug-item" onclick="cfAdIngEscolher_('${k}','${e.id}')">${escH(e.nome)} <span>${escH(e.unidade || 'un')}</span></button>`).join('')
+    : '<div class="sub">Nenhum ingrediente com esse nome. Cadastre em Estoque.</div>';
+}
+function cfAdIngEscolher_(k, id){
+  const c = CF_ADING_[k], sel = document.getElementById(c.sel), e = cfIngr_(id);
+  if(!sel || !e) return;
+  sel.value = id;
+  if(sel.value !== id){ const m = document.getElementById(c.msg); if(m) showMsg(c.msg, 'Não foi possível escolher esse ingrediente. Feche e abra de novo.', 'warn'); return; }
+  cfAdIngSincronizar_(k); c.mudou();
+  const q = document.getElementById(c.qtd); if(q){ q.value = ''; try{ q.focus(); }catch(err){} cfUsoAtualizar_(k); }
+}
+function cfAdIngTecla_(ev, k){
+  if(ev.key !== 'Enter') return;
+  ev.preventDefault();
+  const box = document.getElementById(CF_ADING_[k].sug), primeiro = box && box.querySelector('button');
+  if(primeiro) primeiro.click();
+}
+/* digitou um nome mas não escolheu nenhum da lista */
+function cfAdIngPendente_(k){
+  const c = CF_ADING_[k], sel = document.getElementById(c.sel), b = document.getElementById(c.busca);
+  return !!(sel && b && sel.value === '' && b.value.trim() !== '');
+}
+const CF_ADING_PENDENTE_MSG_ = 'Escolha o ingrediente na lista que aparece ao digitar (ou apague o campo para salvar sem vínculo com o estoque).';
+/* ---------- CONFIRMAÇÃO ANTES DE SALVAR COM PREJUÍZO ---------- */
+/* linhas: [{ forma, preco, custo }]; devolve true se pode salvar (sem prejuízo, ou o usuário confirmou) */
+async function cfConfirmarPrejuizoLinhas_(nome, linhas, pctImp){
+  pctImp = cfNum_(pctImp);
+  const grupos = {};
+  (linhas || []).forEach(l => {
+    const pr = cfNum_(l.preco), cu = cfNum_(l.custo);
+    if(!(cu > 0)) return;
+    const m = Math.round((pr - cu - pr * pctImp / 100) * 100) / 100;
+    if(m >= 0) return;
+    const k = pr + '|' + cu;
+    if(!grupos[k]) grupos[k] = { pr, cu, perda:-m, formas:[] };
+    if(l.forma) grupos[k].formas.push(l.forma);
+  });
+  const lista = Object.keys(grupos).map(k => grupos[k]);
+  if(!lista.length) return true;
+  const txt = lista.map(g => '• Preço ' + formatarMoeda(g.pr) + ' · custo ' + formatarMoeda(g.cu) + ' → você perde ' + formatarMoeda(g.perda) + ' a cada venda'
+    + (g.formas.length && g.formas.length <= 3 ? ' (' + g.formas.join(', ') + ')' : (g.formas.length > 3 ? ' (' + g.formas.length + ' formas de pagamento)' : ''))).join('\n');
+  const imp = pctImp > 0 ? '\n\n(Já considerando o imposto de ' + String(pctImp).replace('.', ',') + '% sobre a venda.)' : '';
+  return await confirmarTxt_('"' + nome + '" vai dar prejuízo com esse preço e esse custo:\n\n' + txt + imp + '\n\nSalvar mesmo assim?', 'Salvar mesmo assim', true, 'Você vai perder dinheiro', 'Voltar e corrigir');
+}
+/* produto ou combo: precos = resultado de montarPrecosComExcecoes (preço e custo por forma de pagamento) */
+function cfConfirmarPrejuizo_(nome, precos){
+  const pctImp = (typeof impostoPctHoje_ === 'function') ? impostoPctHoje_() : 0;
+  const linhas = (precos || []).map(p => { const f = (typeof formasPagamento !== 'undefined' ? formasPagamento : []).find(x => x.id === p.formaPagamentoId); return { forma: f ? f.nome : '', preco:p.preco, custo:p.custo }; });
+  /* se todas as formas têm o mesmo preço, não precisa listar uma por uma */
+  const iguais = linhas.length > 1 && linhas.every(l => l.preco === linhas[0].preco && l.custo === linhas[0].custo);
+  return cfConfirmarPrejuizoLinhas_(nome, iguais ? [{ preco:linhas[0].preco, custo:linhas[0].custo }] : linhas, pctImp);
+}
+/* adicional: custo = quantidade (na unidade do estoque) x custo do ingrediente */
+function cfConfirmarPrejuizoAd_(nome, preco, ingredienteId, qtdEstoque){
+  const e = ingredienteId ? cfIngr_(ingredienteId) : null;
+  if(!e) return Promise.resolve(true);
+  return cfConfirmarPrejuizoLinhas_(nome, [{ preco:preco, custo:cfNum_(qtdEstoque) * cfNum_(e.custo) }], 0);
+}
+/* aviso na lista de adicionais quando o custo do ingrediente passa do preço */
+function cfUsoPerdaAd_(a){
+  const e = a && a.ingredienteId ? cfIngr_(a.ingredienteId) : null; if(!e || !(cfNum_(e.custo) > 0)) return '';
+  const c = cfNum_(a.quantidadeDesconto) * cfNum_(e.custo), p = cfNum_(a.preco);
+  if(Math.round((p - c) * 100) >= 0) return '';
+  return '<div class="cf-perda cf-uso-linha">PREJUÍZO de ' + formatarMoeda(c - p) + ' a cada venda (custo ' + formatarMoeda(c) + ', preço ' + formatarMoeda(p) + ')</div>';
 }
 function cfUsoAtualizar_(k){
   const c = CF_USO_[k]; if(!c) return;
@@ -211,14 +303,22 @@ function cfAtualizarCusto(pre){
   }
   cfAtualizarMargem(pre);
 }
+/* ---------- LUCRO OU PREJUÍZO EM TEXTO CLARO (produto, combo, adicional, lista) ---------- */
+function cfMargemHtml_(preco, custo, pctImp){
+  preco = cfNum_(preco); custo = cfNum_(custo); pctImp = cfNum_(pctImp);
+  if(!(custo > 0)) return 'custo não informado';
+  const m = Math.round((preco - custo - preco * pctImp / 100) * 100) / 100, pct = preco > 0 ? (m / preco * 100) : 0;
+  const imp = pctImp > 0 ? ' · já tirado o imposto de ' + String(pctImp).replace('.', ',') + '%' : '';
+  if(m < 0) return '<span class="cf-perda">PREJUÍZO de ' + formatarMoeda(-m) + ' a cada venda (' + pct.toFixed(0) + '%). Com esse preço você perde dinheiro: aumente o preço ou reduza o custo.</span>' + imp;
+  if(m === 0) return '<span class="cf-sem">sem lucro (R$ 0,00): você só cobre o custo</span>' + imp;
+  return 'lucro de <b>' + formatarMoeda(m) + '</b> (' + pct.toFixed(0) + '%)' + imp;
+}
 function cfAtualizarMargem(pre){
   const el = document.getElementById(pre + 'MargemPreview'); if(!el) return;
   const preco = cfNum_(cfVal_(pre + 'Preco')), custo = cfNum_(cfVal_(pre + 'Custo'));
-  if(!(custo > 0)){ el.textContent = 'custo não informado'; return; }
   /* imposto sobre a venda (alíquota do mês) sai da margem; o custo do produto continua só ingredientes/compra */
-  const pctImp = (typeof impostoPctHoje_ === 'function') ? impostoPctHoje_() : 0, imp = preco * pctImp / 100;
-  const m = preco - custo - imp;
-  el.textContent = formatarMoeda(m) + ' (' + (preco > 0 ? (m / preco * 100) : 0).toFixed(0) + '%)' + (pctImp > 0 ? ' · já tirado o imposto de ' + String(pctImp).replace('.',',') + '%' : '');
+  const pctImp = (typeof impostoPctHoje_ === 'function') ? impostoPctHoje_() : 0;
+  el.innerHTML = cfMargemHtml_(preco, custo, pctImp);
 }
 /* custo enviado junto com o estoque próprio ("Comprado pronto") */
 function cfCustoEstoqueProprio(pre){ return cfCustoPronto_(pre); }
