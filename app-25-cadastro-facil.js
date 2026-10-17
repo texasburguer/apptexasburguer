@@ -34,6 +34,83 @@ function cfFator_(de, para){
   const m = { 'kg>g':1000, 'g>kg':0.001, 'l>ml':1000, 'ml>l':0.001 };
   return m[de + '>' + para] || null;
 }
+/* ---------- QUANTIDADE EM GRAMAS / ML (mesmo jeito em adicional e em receita de produto) ----------
+   Quem digita sempre pensa em g/ml/un. O banco continua guardando na unidade do estoque (kg, l, un):
+   a conversão (30 g = 0,03 kg) é feita aqui, na entrada e na saída, e mostrada ao vivo embaixo do campo. */
+var CF_USO_ = {
+  ae: { input:'aeQtd',        un:'aeQtdUn',  chips:'aeQtdChips', resumo:'aeQtdResumo', label:'aeQtdLbl', alvo:'adicional', ing:'aeIngrediente',       preco:'aePreco' },
+  ad: { input:'adQtdDesconto', un:'adQtdUn',  chips:'adQtdChips', resumo:'adQtdResumo', label:'adQtdLbl', alvo:'adicional', ing:'adIngredienteSelect', preco:'adPreco' },
+  p:  { input:'pRwQtd',       un:'pRwQtdUn', chips:'pRwQtdChips', resumo:'pRwQtdResumo', label:'pRwQtdLbl', alvo:'produto' },
+  pp: { input:'ppRwQtd',      un:'ppRwQtdUn', chips:'ppRwQtdChips', resumo:'ppRwQtdResumo', label:'ppRwQtdLbl', alvo:'produto' }
+};
+function cfUsoParaEst_(un, q){ return Math.round(cfNum_(q) / cfFatorUso_(un) * 1000) / 1000; }
+function cfUsoDeEst_(un, qEst){ return Math.round(cfNum_(qEst) * cfFatorUso_(un) * 1000) / 1000; }
+function cfUsoChips_(un){ const u = cfUnUso_(un); return u === 'g' ? [10, 20, 30, 50, 100] : (u === 'ml' ? [10, 30, 50, 100, 200] : [0.5, 1, 2]); }
+function cfUsoIngId_(k){
+  if(k === 'p' || k === 'pp') return _cfEsc_[k] || '';
+  const sel = document.getElementById(CF_USO_[k].ing); return sel ? sel.value : '';
+}
+/* texto curto para listas: "30 g de Cheddar cremoso" */
+function cfUsoTexto_(ingredienteId, qEst){
+  const e = cfIngr_(ingredienteId); if(!e) return '';
+  return cfQtdTxt_(cfUsoDeEst_(e.unidade, qEst)) + ' ' + cfUnUso_(e.unidade) + ' de ' + e.nome;
+}
+function cfUsoResumo_(e, q, preco){
+  const un = e.unidade || 'un', u = cfUnUso_(un), custo = cfNum_(e.custo);
+  if(un === 'un'){
+    return (q > 0 ? '<b>' + escH(cfQtdTxt_(q)) + ' un</b> de ' + escH(e.nome) + '. ' : '')
+      + 'Este ingrediente é controlado por <b>unidade</b>. Para digitar em gramas, troque a unidade dele em Estoque para g ou kg e depois confira as quantidades nas receitas e nos adicionais (a troca de unidade para peso não converte sozinha).';
+  }
+  if(!(q > 0)) return 'Digite quanto de <b>' + escH(e.nome) + '</b> vai em cada ' + 'um — em <b>' + escH(u) + '</b>.';
+  const qEst = cfUsoParaEst_(un, q);
+  if(!(qEst > 0)) return '<span class="cf-sem">Quantidade muito pequena. O mínimo é 1 ' + escH(u) + '.</span>';
+  let t = '<b>' + escH(cfQtdTxt_(q)) + ' ' + escH(u) + '</b> de ' + escH(e.nome);
+  if(un !== u) t += ' · baixa <b>' + escH(cfQtdTxt_(qEst)) + ' ' + escH(un) + '</b> do estoque';
+  else t += ' · baixa do estoque na mesma medida';
+  if(custo > 0){
+    const c = qEst * custo; t += ' · custo <b>' + formatarMoeda(c) + '</b>';
+    if(preco > 0) t += ' · você cobra ' + formatarMoeda(preco) + ' (sobra ' + formatarMoeda(preco - c) + ')';
+  } else t += ' · <span class="cf-sem">ingrediente sem preço</span>';
+  return t;
+}
+function cfUsoAtualizar_(k){
+  const c = CF_USO_[k]; if(!c) return;
+  const $ = id => document.getElementById(id);
+  const un = $(c.un), ch = $(c.chips), rs = $(c.resumo), inp = $(c.input), lb = $(c.label);
+  const id = cfUsoIngId_(k), e = id ? cfIngr_(id) : null;
+  if(!e){
+    if(un) un.textContent = ''; if(ch){ ch.innerHTML = ''; delete ch.dataset.un; }
+    if(rs) rs.innerHTML = '';
+    if(lb) lb.textContent = c.alvo === 'adicional' ? 'Quanto vai em cada adicional' : 'Quantidade por unidade vendida';
+    return;
+  }
+  const u = cfUnUso_(e.unidade);
+  if(un) un.textContent = u;
+  if(lb) lb.textContent = 'Quanto de ' + e.nome + ' vai em cada ' + c.alvo + ' (' + u + ')';
+  if(inp) inp.placeholder = u === 'un' ? 'Ex: 1' : (u === 'ml' ? 'Ex: 50' : 'Ex: 30');
+  if(ch && ch.dataset.un !== e.unidade + '|' + k){
+    ch.dataset.un = e.unidade + '|' + k;
+    ch.innerHTML = cfUsoChips_(e.unidade).map(v => `<button type="button" class="cf-chip" onclick="cfUsoChip_('${k}',${v})">${escH(cfQtdTxt_(v))} ${escH(u)}</button>`).join('');
+  }
+  const q = inp ? cfNum_(inp.value) : 0, pr = c.preco && $(c.preco) ? cfNum_($(c.preco).value) : 0;
+  if(rs) rs.innerHTML = cfUsoResumo_(e, q, pr);
+  if(ch) Array.from(ch.children).forEach((b, i) => b.classList.toggle('on', q > 0 && cfUsoChips_(e.unidade)[i] === q));
+}
+function cfUsoChip_(k, v){
+  const c = CF_USO_[k], inp = c && document.getElementById(c.input); if(!inp) return;
+  inp.value = String(v); cfUsoAtualizar_(k);
+  try{ inp.focus(); }catch(err){}
+}
+/* valida e converte o campo para a unidade do estoque; devolve { ok, qtd } ou { ok:false, msg } */
+function cfUsoLer_(k){
+  const c = CF_USO_[k], id = cfUsoIngId_(k), e = id ? cfIngr_(id) : null;
+  if(!e) return { ok:false, msg:'Escolha o ingrediente.' };
+  const q = cfNum_(cfVal_(c.input));
+  if(!(q > 0)) return { ok:false, msg:'Informe quanto de ' + e.nome + ' vai em cada ' + c.alvo + ' (em ' + cfUnUso_(e.unidade) + ').' };
+  const qEst = cfUsoParaEst_(e.unidade, q);
+  if(!(qEst > 0)) return { ok:false, msg:'Quantidade muito pequena para ' + e.nome + '. O mínimo é 1 ' + cfUnUso_(e.unidade) + '.' };
+  return { ok:true, qtd:qEst };
+}
 function cfLista_(pre){ return pre === 'p' ? ingredientesProdutoNovo : ingredientesProdutoEdicao; }
 function cfSetLista_(pre, v){ if(pre === 'p') ingredientesProdutoNovo = v; else ingredientesProdutoEdicao = v; }
 function cfUsos_(estoqueId){
@@ -170,6 +247,7 @@ function cfRwMostrarEscolhido_(pre){
   const e = _cfEsc_[pre] ? cfIngr_(_cfEsc_[pre]) : null, lbl = document.getElementById(pre + 'RwQtdLbl'), q = document.getElementById(pre + 'RwQtd');
   if(lbl) lbl.textContent = e ? ('Quanto de ' + e.nome + ' vai em cada um (' + cfUnUso_(e.unidade) + ')') : 'Quantidade por unidade vendida';
   if(q) q.placeholder = e ? (cfUnUso_(e.unidade) === 'un' ? 'Ex: 1' : 'Ex: 150') : 'Qtd';
+  try{ cfUsoAtualizar_(pre); }catch(err){}
 }
 function cfRwNovo(pre){
   const nome = cfVal_(pre + 'RwBusca').trim(), box = document.getElementById(pre + 'RwSug');
@@ -207,10 +285,9 @@ async function cfRwCriar(pre){
 function cfRwAdicionar(pre){
   const id = _cfEsc_[pre], e = id ? cfIngr_(id) : null;
   if(!e){ showMsg(pre + 'Msg', 'Escolha um ingrediente da lista (ou toque em "+ criar").', 'warn'); return; }
-  const q = cfNum_(cfVal_(pre + 'RwQtd'));
-  if(!(q > 0)){ showMsg(pre + 'Msg', 'Informe quanto de ' + e.nome + ' vai em cada um.', 'warn'); return; }
-  const qtdEst = Math.round(q / cfFatorUso_(e.unidade) * 1000) / 1000;
-  if(!(qtdEst > 0)){ showMsg(pre + 'Msg', 'Quantidade muito pequena para ' + e.unidade + '. Cadastre esse ingrediente em gramas (g) ou ml.', 'warn'); return; }
+  const lido = cfUsoLer_(pre);
+  if(!lido.ok){ showMsg(pre + 'Msg', lido.msg, 'warn'); return; }
+  const qtdEst = lido.qtd;
   const lista = cfLista_(pre).slice(), ja = lista.find(x => x.ingredienteId === id);
   if(ja){ ja.quantidadePorUnidade = qtdEst; showMsg(pre + 'Msg', e.nome + ' já estava na receita: quantidade trocada.', 'ok'); }
   else lista.push({ ingredienteId:id, ingredienteNome:e.nome, quantidadePorUnidade:qtdEst, unidade:e.unidade || 'un' });

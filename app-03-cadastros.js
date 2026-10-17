@@ -164,11 +164,10 @@ async function salvarCatEdit_(){
   _catEditOcupado = false; document.getElementById('ceBtn').disabled = false;
 }
 function atualizarQtdAdEdit_(){
-  const sel = document.getElementById('aeIngrediente'), box = document.getElementById('aeQtdBox'), label = document.getElementById('aeQtdLabel');
+  const sel = document.getElementById('aeIngrediente'), box = document.getElementById('aeQtdBox');
   if(!sel || !box) return;
-  const opt = sel.selectedOptions[0], tem = sel.value !== '';
-  box.style.display = tem ? 'block' : 'none';
-  if(tem && opt) label.textContent = 'Em ' + (opt.dataset.unidade||'un') + ' — ex: 0.03 se o ingrediente é em kg e o adicional gasta 30g.';
+  box.style.display = sel.value !== '' ? 'block' : 'none';
+  if(typeof cfUsoAtualizar_ === 'function') cfUsoAtualizar_('ae');
 }
 function editarAdicionalUI(id){
   const a = adicionais.find(x=>x.id===id); if(!a) return;
@@ -179,7 +178,8 @@ function editarAdicionalUI(id){
   if(sel.value !== (a.ingredienteId||'')) sel.value = '';
   document.getElementById('aeNome').value = a.nome;
   document.getElementById('aePreco').value = Number(a.preco)||0;
-  document.getElementById('aeQtd').value = Number(a.quantidadeDesconto)||1;
+  { const ing = a.ingredienteId ? (estoque||[]).find(e=>e.id===a.ingredienteId) : null, q = Number(a.quantidadeDesconto)||1;
+    document.getElementById('aeQtd').value = (ing && typeof cfUsoDeEst_ === 'function') ? cfUsoDeEst_(ing.unidade, q) : q; }
   document.getElementById('aeAtivo').checked = !!a.ativo;
   document.getElementById('aeMsg').textContent = ''; document.getElementById('aeBtn').disabled = false;
   atualizarQtdAdEdit_();
@@ -194,7 +194,12 @@ async function salvarAdEdit_(){
   if(!(preco>=0)){ showMsg('aeMsg','Informe um preço válido (pode ser 0).','warn'); return; }
   if(adicionais.some(a=>a.id!==_adEditId && String(a.nome).trim().toLowerCase()===nome.toLowerCase())){ showMsg('aeMsg','Já existe um adicional com esse nome.','warn'); return; }
   const ingredienteId = document.getElementById('aeIngrediente').value;
-  const quantidadeDesconto = ingredienteId ? (Number(document.getElementById('aeQtd').value) || 1) : 1;
+  let quantidadeDesconto = 1;
+  if(ingredienteId){
+    const lido = cfUsoLer_('ae');
+    if(!lido.ok){ showMsg('aeMsg', lido.msg, 'warn'); return; }
+    quantidadeDesconto = lido.qtd;
+  }
   _adEditOcupado = true; document.getElementById('aeBtn').disabled = true;
   try{
     const r = await apiCall('editarAdicional', { id: _adEditId, nome, preco, ativo: document.getElementById('aeAtivo').checked, ingredienteId, quantidadeDesconto });
@@ -212,19 +217,16 @@ function popularSelectAdicionalIngrediente(){
 function atualizarLabelQtdAdicional(){
   const sel = document.getElementById('adIngredienteSelect');
   const box = document.getElementById('adQtdBox');
-  const label = document.getElementById('adQtdUnidadeLabel');
   if(!sel || !box) return;
-  const opt = sel.selectedOptions[0];
-  const temVinculo = sel.value !== '';
-  box.style.display = temVinculo ? 'block' : 'none';
-  if(temVinculo && opt) label.textContent = 'Em ' + (opt.dataset.unidade||'un') + ' — ex: 0.03 se o ingrediente é em kg e o adicional gasta 30g.';
+  box.style.display = sel.value !== '' ? 'block' : 'none';
+  if(typeof cfUsoAtualizar_ === 'function') cfUsoAtualizar_('ad');
 }
 function renderAdicionais(){
   renderAdVincCategorias();
   const tbodyCadastro = document.getElementById('adCadastroTable');
   if(tbodyCadastro){
     tbodyCadastro.innerHTML = adicionais.length ? adicionais.map(a=>`<tr>
-      <td>${escH(a.nome)}${a.ativo?'':' <span class="badge">não aparece no cardápio</span>'}</td>
+      <td>${escH(a.nome)}${a.ativo?'':' <span class="badge">não aparece no cardápio</span>'}<div class="sub cf-uso-linha">${a.ingredienteId && typeof cfUsoTexto_ === 'function' && cfUsoTexto_(a.ingredienteId, a.quantidadeDesconto) ? 'baixa ' + escH(cfUsoTexto_(a.ingredienteId, a.quantidadeDesconto)) : 'sem baixa no estoque'}</div></td>
       <td>${formatarMoeda(a.preco)}</td>
       <td><button class="ghost" onclick="editarAdicionalUI('${a.id}')">editar</button><button class="ghost" onclick="excluirAdicionalConfirm('${a.id}')">excluir</button></td>
     </tr>`).join('') : '<tr class="empty-row"><td colspan="3">Nenhum adicional cadastrado.</td></tr>';
@@ -295,13 +297,18 @@ async function registrarAdicional(){
   const nome = document.getElementById('adNome').value.trim();
   const preco = Number(document.getElementById('adPreco').value) || 0;
   const ingredienteId = document.getElementById('adIngredienteSelect').value;
-  const quantidadeDesconto = ingredienteId ? (Number(document.getElementById('adQtdDesconto').value) || 1) : 1;
   if(!nome){ showMsg('adMsg','Informe o nome do adicional.','warn'); return; }
+  let quantidadeDesconto = 1;
+  if(ingredienteId){
+    const lido = cfUsoLer_('ad');
+    if(!lido.ok){ showMsg('adMsg', lido.msg, 'warn'); return; }
+    quantidadeDesconto = lido.qtd;
+  }
   try{
     const r = await apiCall('addAdicional', { nome, preco, ingredienteId, quantidadeDesconto });
     if(r.ok){
       adicionais = r.adicionais || adicionais; salvarCache();
-      document.getElementById('adNome').value=''; document.getElementById('adPreco').value=''; document.getElementById('adQtdDesconto').value='1';
+      document.getElementById('adNome').value=''; document.getElementById('adPreco').value=''; document.getElementById('adQtdDesconto').value=''; try{ atualizarLabelQtdAdicional(); }catch(e){}
       renderAdicionais(); renderAdicionaisChecklist('pAdicionaisLista', []); showMsg('adMsg', r.message, 'ok');
     } else showMsg('adMsg', r.message, 'warn');
   } catch(e){ showMsg('adMsg','Não foi possível cadastrar.','warn'); }

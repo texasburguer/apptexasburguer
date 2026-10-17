@@ -394,3 +394,16 @@ kbd{ display:inline-block; min-width:24px; padding:2px 7px; text-align:center; f
   .card table thead th{ position:static !important; background:#eee !important; box-shadow:none !important; }
   button, .btnrow{ display:none !important; }
 }
+/* quantidade em g/ml: unidade dentro do campo, atalhos e resumo ao vivo (adicionais e receitas) */
+.cf-uso-campo{position:relative;display:flex;align-items:center;}
+.cf-uso-campo input{padding-right:54px;}
+.cf-uso-un{position:absolute;right:14px;color:var(--gold);font-weight:800;pointer-events:none;}
+.cf-uso-un:empty{display:none;}
+.cf-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;}
+.cf-chips:empty{display:none;}
+button.cf-chip{background:var(--panel-2);border:1px solid var(--line);color:var(--cream);border-radius:var(--raio-pilula);padding:6px 12px;font-size:var(--fs-sm);font-weight:700;cursor:pointer;min-height:38px;}
+button.cf-chip:hover,button.cf-chip:focus-visible,button.cf-chip.on{border-color:var(--gold);color:var(--gold);}
+.cf-uso-resumo{margin-top:6px;font-size:var(--fs-sm);line-height:1.45;}
+.cf-uso-resumo:empty{display:none;}
+.cf-uso-resumo b{color:var(--cream);}
+.cf-uso-linha{margin-top:2px;font-size:var(--fs-xs);}

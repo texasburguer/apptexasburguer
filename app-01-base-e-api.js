@@ -6,8 +6,8 @@ const API_URL = "https://script.google.com/macros/s/AKfycbwCftUm-1pxhA8XLNqMB7dM
 const CONTINGENCIA_API_URL = "https://script.google.com/macros/s/AKfycby3WljBnr7gpJrHdkbTvBCh5uIXqS4KCS6wkBYB5idxf5gI04efoDumQj264kR_smoW/exec";
 
 /* ===================== VERSÃO DO APP ===================== */
-const APP_VERSAO = '1.6';
-const APP_ATUALIZADO_EM = '16/10/2026';
+const APP_VERSAO = '1.7';
+const APP_ATUALIZADO_EM = '17/10/2026';
 window.APP_VERSAO = APP_VERSAO;
 
 /* ===================== NOVIDADES POR PERFIL =====================
@@ -18,6 +18,9 @@ window.APP_VERSAO = APP_VERSAO;
    A seção "🆕 O que mudou" do manual é gerada daqui. */
 const APP_NOVIDADES = {
   Admin: [
+    { v:'1.7', em:'17/10/2026', itens:[
+      'Adicionais e receitas de produto agora pedem a quantidade em gramas (ou ml) do jeito que você pensa: o campo mostra a unidade (g), tem atalhos (10, 20, 30, 50, 100 g) e, embaixo, um resumo ao vivo com quanto baixa do estoque (ex.: 30 g = 0,03 kg) e o custo. A lista de adicionais mostra o que cada um baixa do estoque. Quantidade zerada ou pequena demais agora avisa em vez de gravar 1.'
+    ]},
     { v:'1.6', em:'16/10/2026', itens:[
       'Ajuda atualizada: novas seções “Caixa vencido”, “Entregadores: taxa e fechamento” e “Mercado Pago (pagamento online)”, e “No computador” e “Onde fica cada coisa” reescritas com o menu atual (6 grupos e campo “Ir para…”).'
     ]},
