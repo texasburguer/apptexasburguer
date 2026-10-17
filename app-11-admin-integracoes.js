@@ -212,13 +212,15 @@ const CHAVES_IA_INFO_ = {
   gemini_2: { nome:'Gemini 2 (Google) — 6º e último recurso', link:'https://aistudio.google.com/apikey', extra:true, dica:'Segunda chave do Gemini: o último recurso do circuito, depois das outras cinco IAs.' },
   groq_2: { nome:'Groq 2 — 2º recurso', link:'https://console.groq.com/keys', extra:true, dica:'Segunda chave Groq: entra quando a primeira atinge o limite.' }
 };
+/* ordem do circuito de texto (igual ao ai-assistente): a tela segue os números dos recursos, não a ordem que vem do banco */
+const ORDEM_CHAVES_IA_ = ['groq','groq_2','cloudflare','gemini','nvidia','gemini_2'];
 let chavesIaLista_ = [], iaExtrasPublico_ = false;
 async function carregarChavesIa_(){
   const box = document.getElementById('chavesIaLista'); if(!box) return;
   try{
     const r = await apiCall('listarChavesIa', {});
     if(!r || !r.ok){ box.innerHTML = '<div class="notif-empty">' + escH((r && r.message) || 'Não foi possível carregar agora.') + '</div>'; return; }
-    chavesIaLista_ = r.chaves || []; iaExtrasPublico_ = !!r.extrasPublico; renderChavesIa_();
+    chavesIaLista_ = (r.chaves || []).slice().sort((x,y)=>{ const o = ORDEM_CHAVES_IA_; const ix = o.indexOf(x.provedor), iy = o.indexOf(y.provedor); return (ix<0?99:ix) - (iy<0?99:iy); }); iaExtrasPublico_ = !!r.extrasPublico; renderChavesIa_();
   }catch(e){ box.innerHTML = '<div class="notif-empty">Sem conexão para carregar as chaves.</div>'; }
 }
 function renderChavesIa_(){
