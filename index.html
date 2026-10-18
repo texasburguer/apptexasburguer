@@ -442,6 +442,7 @@
 
     <div class="card" data-painel="produtos">
       <div class="card-head" style="flex-wrap:wrap;"><h2>Produtos cadastrados</h2><span style="display:flex;gap:6px;width:100%;"><button type="button" class="ghost small" style="flex:1 1 0;min-width:0;padding:8px 4px;font-size:12px;white-space:normal;line-height:1.2;" onclick="cfVisLoteAbrir()">👁 Mostrar / esconder</button> <button type="button" class="ghost small" style="flex:1 1 0;min-width:0;padding:8px 4px;font-size:12px;white-space:normal;line-height:1.2;" onclick="cfAjustarPrecosAbrir()">% Ajustar preços</button><button type="button" class="small-gold" style="flex:1 1 0;min-width:0;padding:8px 4px;font-size:12px;white-space:normal;line-height:1.2;" onclick="abrirFormModal('produtoNovoModal');cfIniciarProduto('p',null)">+ Novo produto</button></span></div>
+      <div style="display:flex;gap:6px;margin-bottom:8px;"><button type="button" class="ghost small" id="gMargemBtn" style="flex:1 1 0;min-width:0;padding:8px 4px;font-size:12px;" onclick="gMargemAbrir()">📉 Margem baixa</button><button type="button" class="ghost small" style="flex:1 1 0;min-width:0;padding:8px 4px;font-size:12px;" onclick="gHistPrecoAbrir()">🕘 Histórico de preços</button></div>
       <div id="cfAvisoProdutos"></div>
       <div class="msg" id="pMsgLista"></div>
       <input type="text" class="search" id="pSearch" placeholder="Buscar produto..." oninput="renderProdutos()">
@@ -524,6 +525,7 @@
       <p class="sub mt-0" id="cfgBloquearEstoqueMsg">Desligado: a venda passa e o estoque pode ficar negativo (fica registrado). Ligue só depois de cadastrar as quantidades.</p>
       <div class="btnrow" id="estNovoIngBox">
         <button type="button" class="primary" onclick="cfAbrirNovoIngrediente()">+ Novo ingrediente</button>
+        <button type="button" class="ghost" onclick="gCompraAbrir()">🛒 Compra sugerida</button>
         <button type="button" class="ghost" onclick="cfAbrirLote()"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v18M16 7h-6a3 3 0 0 0 0 6h4a3 3 0 0 1 0 6H8"/></svg>Preços em lote</button>
       </div>
       <p class="sub" id="estBebAjuda" style="display:none;">Bebidas e itens prontos são cadastrados como produto: Produtos → Produtos, combos e adicionais → + Novo produto → "🥤 Comprado pronto". Aqui você vê e ajusta o estoque deles.</p>
@@ -1151,6 +1153,7 @@
     <div class="card">
       <h2><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.6 5.6 6.1.7-4.5 4.2 1.2 6L12 16.5 6.6 19.5l1.2-6L3.3 9.3l6.1-.7L12 3z"/></svg>Central de Eventos</h2><p class="sub">Toque num evento para ver dados, custos e recebimentos.</p>
       <button type="button" class="primary" onclick="evNovo()">+ Novo evento</button>
+      <button type="button" class="ghost" style="margin-top:8px;" onclick="gRendimentoAbrir()">⏱ Rendimento por hora dos eventos</button>
     </div>
     <div class="card"><h2>Eventos</h2><div id="evLista"></div></div>
   </section>
@@ -1514,6 +1517,7 @@
       <h2>DRE e relatório mensal</h2>
       <label for="rMes">Mês</label>
       <input type="month" id="rMes" onchange="gerarRelatorio()">
+      <button type="button" class="ghost" style="margin-top:8px;" onclick="gFechamentoMes()">Fechamento do mês (PDF)</button>
       <div id="rDRE" class="mt-3"></div>
       <div class="fs-xs txt-muted mt-2" id="rContagem"></div>
       <div class="modal-section" id="rAliqBox" style="display:none;"><h3>Imposto sobre vendas deste mês</h3>
@@ -2289,7 +2293,7 @@
       <label>Valor contratado (R$)</label><input type="number" id="evValor" min="0" step="0.01">
       <label>Observações</label><textarea id="evObs" rows="3"></textarea>
       <button class="primary" onclick="salvarEventoUI()">Salvar</button><div class="msg" id="evMsg"></div>
-      <div class="btn-row" style="margin-top:10px;"><button type="button" class="ghost" onclick="evWhatsapp()">WhatsApp do contratante</button><button type="button" class="ghost" onclick="evOrcamento()">Orçamento (PDF)</button><button type="button" class="ghost" onclick="evImprimir()">Imprimir resumo</button><button type="button" class="ghost" onclick="evDuplicar()">Duplicar evento</button><button type="button" class="ghost" onclick="cancelarEventoUI()">Cancelar evento</button></div>
+      <div class="btn-row" style="margin-top:10px;"><button type="button" class="ghost" onclick="evWhatsapp()">WhatsApp do contratante</button><button type="button" class="ghost" onclick="evOrcamento()">Orçamento (PDF)</button><button type="button" class="ghost" onclick="evContrato()">Contrato (PDF)</button><button type="button" class="ghost" onclick="evImprimir()">Imprimir resumo</button><button type="button" class="ghost" onclick="evDuplicar()">Duplicar evento</button><button type="button" class="ghost" onclick="cancelarEventoUI()">Cancelar evento</button></div>
     </div>
     <div id="evPane_custos" style="display:none;"></div>
     <div id="evPane_receb" style="display:none;"></div>
@@ -2527,7 +2531,7 @@
   </div>
 </div>
 
-<script src="app-01-base-e-api.js?v=4b1ea30c" charset="utf-8" data-origem="__big0__"></script>
+<script src="app-01-base-e-api.js?v=68f84973" charset="utf-8" data-origem="__big0__"></script>
 <script src="app-02-abas.js?v=d1dbd674" charset="utf-8" data-origem="__big1__"></script>
 <script src="app-03-cadastros.js?v=59f57650" charset="utf-8" data-origem="__big2__"></script>
 <script src="app-04-pedidos-entrega.js?v=5c2967f1" charset="utf-8" data-origem="__big3__"></script>
@@ -2535,7 +2539,7 @@
 <script src="app-06-caixa.js?v=edcbde35" charset="utf-8" data-origem="__big5__"></script>
 <script src="app-07-impressao.js?v=5c9f0484" charset="utf-8" data-origem="__big6__"></script>
 <script src="app-08-vendas-despesas.js?v=86517a81" charset="utf-8" data-origem="__big7__"></script>
-<script src="app-09-ajuda.js?v=6ffcc58c" charset="utf-8" data-origem="__big8__"></script>
+<script src="app-09-ajuda.js?v=7b0b8598" charset="utf-8" data-origem="__big8__"></script>
 <script src="app-10-backup-financeiro.js?v=3b7d8cd1" charset="utf-8" data-origem="__big9__"></script>
 <script src="app-11-admin-integracoes.js?v=e53763b1" charset="utf-8" data-origem="__big10__"></script>
 <script src="app-12-gestao-ia.js?v=f1cc6dcc" charset="utf-8" data-origem="__big11__"></script>
@@ -2599,5 +2603,6 @@
 <script src="app-33-escala.js?v=e7afa85e" charset="utf-8" data-origem=""></script>
 <script src="app-34-eventos.js?v=e0698031" charset="utf-8" data-origem=""></script>
 <script src="app-35-equipe-extras.js?v=1874bb81" charset="utf-8" data-origem=""></script>
+<script src="app-36-gestao.js?v=357950b8" charset="utf-8" data-origem=""></script>
 </body>
 </html>
