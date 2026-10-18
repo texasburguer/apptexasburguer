@@ -17,22 +17,31 @@ function gMoeda_(n){ return formatarMoeda(Number(n) || 0); }
 function gFmtNum_(n){ return String(Math.round((Number(n) || 0) * 100) / 100).replace('.', ','); }
 
 /* ---------- margem baixa ---------- */
+let gMargemCats_ = [];
 async function gMargemAbrir(){
   const c = gModal_('margemModal', 'Margem baixa', '<p class="hint">Carregando…</p>');
   try{
     const r = await apiCall('margemAlerta', {});
     if(!r || !r.ok){ c.innerHTML = '<p class="hint">' + escH((r && r.message) || 'Não foi possível carregar.') + '</p>'; return; }
-    const it = r.itens || [];
-    c.innerHTML = '<p class="hint">Mostra os produtos cuja margem (preço menos custo, sobre o preço) ficou abaixo do mínimo que você define. O preço sugerido é o que leva o produto de volta ao mínimo. O sistema também avisa no celular, no máximo uma vez por semana.</p>' +
-      '<label for="gMargemMin">Margem mínima (%)</label><div class="btn-row"><input type="number" id="gMargemMin" step="1" min="1" max="95" value="' + escH(String(r.margemMin)) + '" style="max-width:120px;"><button type="button" class="small-gold" onclick="gMargemSalvar()">Salvar</button></div><div class="msg" id="gMargemMsg"></div>' +
-      (it.length ? '<div class="obs-line" style="margin:8px 0;">' + it.length + ' produto(s) abaixo de ' + gFmtNum_(r.margemMin) + '%:</div>' + it.map(x => '<div class="notif-card"><div style="display:flex;justify-content:space-between;gap:8px;"><b>' + escH(x.nome) + '</b><b style="color:var(--red-hi);">' + gFmtNum_(x.margem) + '%</b></div><div class="obs-line">' + (x.forma ? escH(x.forma) + ' · ' : '') + 'preço ' + gMoeda_(x.preco) + ' · custo ' + gMoeda_(x.custo) + '</div><div class="obs-line">Para chegar a ' + gFmtNum_(r.margemMin) + '%: <b>' + gMoeda_(x.sugerido) + '</b></div></div>').join('') +
-        '<p class="hint">Para mudar o preço, edite o produto ou use "% Ajustar preços".</p>' : '<div class="notif-empty">Nenhum produto abaixo da margem mínima. 👍</div>');
+    const it = r.itens || [], ig = r.ignorados || []; gMargemCats_ = r.categorias || [];
+    c.innerHTML = '<p class="hint">Mostra os produtos cuja margem (preço menos custo, sobre o preço) ficou abaixo do mínimo. O celular do dono só recebe aviso quando entra um produto NOVO abaixo do mínimo, sem repetir.</p>' +
+      '<label for="gMargemMin">Margem mínima geral (%)</label><input type="number" id="gMargemMin" step="1" min="1" max="95" value="' + escH(String(r.margemMin)) + '" style="max-width:120px;">' +
+      '<details style="margin:10px 0;"><summary style="cursor:pointer;color:var(--gold);">Mínimo por categoria (opcional)</summary><p class="hint">Categorias que naturalmente têm margem menor, como bebidas, podem ter um mínimo próprio. Em branco usa o geral.</p>' +
+      gMargemCats_.map(x => '<div style="display:flex;align-items:center;gap:8px;margin:6px 0;"><span style="flex:1;">' + escH(x.nome) + '</span><input type="number" step="1" min="1" max="95" data-cat="' + escH(x.id) + '" value="' + (x.minimo == null ? '' : escH(String(x.minimo))) + '" placeholder="geral" style="max-width:90px;"><span>%</span></div>').join('') + '</details>' +
+      '<div class="btn-row"><button type="button" class="small-gold" onclick="gMargemSalvar()">Salvar</button></div><div class="msg" id="gMargemMsg"></div>' +
+      (it.length ? '<div class="obs-line" style="margin:8px 0;">' + it.length + ' produto(s) abaixo do mínimo:</div>' + it.map(x => '<div class="notif-card"><div style="display:flex;justify-content:space-between;gap:8px;"><b>' + escH(x.nome) + '</b><b style="color:var(--red-hi);">' + gFmtNum_(x.margem) + '%</b></div><div class="obs-line">' + (x.categoria ? escH(x.categoria) + ' · ' : '') + (x.forma ? escH(x.forma) + ' · ' : '') + 'preço ' + gMoeda_(x.preco) + ' · custo ' + gMoeda_(x.custo) + '</div><div class="obs-line">Para chegar a ' + gFmtNum_(x.minimo) + '%: <b>' + gMoeda_(x.sugerido) + '</b></div><div class="btn-row"><button type="button" class="ghost" onclick="gMargemIgnorar(\'' + x.produtoId + '\', true)">Ignorar este produto</button></div></div>').join('') +
+        '<p class="hint">Para mudar o preço, edite o produto ou use "% Ajustar preços". "Ignorar" tira o produto da lista e dos avisos (você pode desfazer abaixo).</p>' : '<div class="notif-empty">Nenhum produto abaixo da margem mínima. 👍</div>') +
+      (ig.length ? '<h3 style="margin:14px 0 4px;">Ignorados</h3>' + ig.map(x => '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin:4px 0;"><span>' + escH(x.nome) + '</span><button type="button" class="ghost" onclick="gMargemIgnorar(\'' + x.produtoId + '\', false)">Voltar a vigiar</button></div>').join('') : '');
   }catch(e){ c.innerHTML = '<p class="hint">Não foi possível carregar agora.</p>'; }
 }
 async function gMargemSalvar(){
-  const v = Number(document.getElementById('gMargemMin').value);
-  try{ const r = await apiCall('margemConfigSalvar', { margemMin: v }); if(r && r.ok){ avisar(r.message); gMargemAbrir(); gMargemBadge_(); } else showMsg('gMargemMsg', (r && r.message) || 'Não foi possível salvar.', 'warn'); }
+  const cats = {}; document.querySelectorAll('#margemModal input[data-cat]').forEach(i => { cats[i.getAttribute('data-cat')] = i.value === '' ? null : Number(i.value); });
+  try{ const r = await apiCall('margemConfigSalvar', { margemMin: document.getElementById('gMargemMin').value, categorias: cats }); if(r && r.ok){ avisar(r.message); gMargemAbrir(); gMargemBadge_(); } else showMsg('gMargemMsg', (r && r.message) || 'Não foi possível salvar.', 'warn'); }
   catch(e){ showMsg('gMargemMsg', 'Não foi possível salvar agora.', 'warn'); }
+}
+async function gMargemIgnorar(id, ignorar){
+  try{ const r = await apiCall('margemIgnorar', { produtoId: id, ignorar }); avisar((r && r.message) || 'Feito.'); if(r && r.ok){ gMargemAbrir(); gMargemBadge_(); } }
+  catch(e){ avisar('Não foi possível agora. Tente de novo.'); }
 }
 let gMargemTimer_ = null;
 function gMargemBadge_(){
