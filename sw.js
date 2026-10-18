@@ -15,7 +15,7 @@ const FOTOS = 'texas-fotos-v1';
 const CODIGO = 'texas-codigo-v2';
 const LISTA = [/*LISTA-INICIO*/
   'estilo-base.css?v=ab2f346e',
-  'app-01-base-e-api.js?v=0d428ff1',
+  'app-01-base-e-api.js?v=cfe521d4',
   'app-02-abas.js?v=d1dbd674',
   'app-03-cadastros.js?v=59f57650',
   'app-04-pedidos-entrega.js?v=5c2967f1',
@@ -52,7 +52,7 @@ const LISTA = [/*LISTA-INICIO*/
   'app-33-escala.js?v=e7afa85e',
   'app-34-eventos.js?v=e0698031',
   'app-35-equipe-extras.js?v=1874bb81',
-  'app-36-gestao.js?v=872afbed',
+  'app-36-gestao.js?v=bb125f4f',
   'app-32-equipe.js?v=94d12e93',
 /*LISTA-FIM*/];
 const FOTOS_MAX = 150;
