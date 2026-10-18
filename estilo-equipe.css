@@ -415,3 +415,13 @@ button.cf-chip:hover,button.cf-chip:focus-visible,button.cf-chip.on{border-color
 .ajuda-print img{display:block;width:100%;max-width:520px;height:auto;border:1px solid var(--line);border-radius:10px;background:#000;}
 .ajuda-print figcaption{font-size:var(--fs-sm);color:var(--muted);margin-top:4px;line-height:1.4;}
 @media (min-width:900px){.ajuda-print img{max-width:760px;}}
+
+/* ===== Auditoria 18/10 (Fase 8.1): só layout, nenhuma função muda ===== */
+/* Campo de busca da Ajuda: largura total e cores do tema (antes ficava estreito, com fundo branco) */
+#ajudaBusca{width:100%;box-sizing:border-box;background:var(--panel-2);color:var(--cream);border:1px solid var(--line-forte);border-radius:var(--raio-controle);padding:10px 12px;font-size:var(--fs-md);font-family:inherit;}
+#ajudaBusca::placeholder{color:var(--muted);}
+@media (max-width:899px){
+  /* Botões do topo: o visual continua IGUAL; só a área que responde ao toque cresce (invisível), para o dedo acertar mais fácil */
+  header.brand .userbar button{position:relative;}
+  header.brand .userbar button::before{content:'';position:absolute;left:-3px;right:-3px;top:-9px;bottom:-9px;}
+}

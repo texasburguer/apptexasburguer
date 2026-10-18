@@ -91,12 +91,13 @@ Admin:{ nome:'Administrador', secoes:[
       'Funcionário esqueceu a senha: só você troca — não existe "esqueci minha senha".',
       'Você esqueceu a sua: rode redefinirSenhaAdminEmergencia no editor do Apps Script.'] },
 
-  { t:'Cadastrar produtos e estoque', passos:[
+  { t:'Cadastrar produtos e estoque', prints:[{id:'produtos-cadastro',alt:'Administrador, Produtos: botão Novo produto e o menu de três pontos de cada produto (Editar, Duplicar, Excluir)',leg:'1: + Novo produto. 2: o menu ⋯ de cada produto tem Editar, Duplicar (abre um novo produto já preenchido, sem salvar) e Excluir.'}], passos:[
     'Administrador → Produtos → Produtos, combos e adicionais → "+ Novo produto". Preencha nome, categoria, preço de venda e, se quiser, foto e descrição.',
     'Em "Como é feito?" escolha: 🍳 Preparado aqui (lanches, porções), 🥤 Comprado pronto (bebidas, sobremesa embalada) ou ✍️ Sem controle.',
     'Preparado aqui: digite o ingrediente (ex.: "quei"), toque nele e diga quanto vai em cada um. Ingrediente comprado por kg ou litro pede gramas ou ml. Não existe? Toque em "+ criar" ali mesmo. Para ir mais rápido, use "📋 Copiar receita de outro produto" e só ajuste. O custo aparece sozinho.',
     'Comprado pronto: informe "Paguei R$ __ por __ unidades" (ex.: 30 por 12 = R$ 2,50 por lata), quanto tem agora e o mínimo para avisar. Cada venda baixa 1 do estoque.',
     'Sem controle: digite o custo se souber.',
+    'Embaixo do custo o sistema avisa se falta algo para o produto ficar completo (nome, preço, custo) e, quando o lucro está baixo, sugere um preço para uns 50% de lucro, com o botão "Usar". É só sugestão: você decide o preço. Para fazer um produto parecido com outro, toque no ⋯ do produto → "📄 Duplicar": abre o "Novo produto" já preenchido (com a receita) e só salva quando você tocar em Cadastrar.',
     'Em "⚙️ Mais opções" ficam o preço próprio do iFood (em branco = preço de venda), os adicionais, o destaque no cardápio e o prêmio (fidelidade/indicação).',
     'Produto novo já vem com os adicionais marcados que os outros produtos da mesma categoria têm ("Comprado pronto", como bebida, vem sem nenhum). Desmarque o que não vale para ele.',
     'Ingredientes: Produtos → Estoque → "+ Novo ingrediente": nome, como você compra (un, kg, litro) e "Paguei R$ __ por __". Para dar preço a vários de uma vez, use "💲 Preços em lote".' ],
@@ -129,7 +130,7 @@ Admin:{ nome:'Administrador', secoes:[
     comuns:['O botão do Assistente é o rosto do Tex no canto de baixo; ele fica acima do menu, e a página tem um espaço no fim para nada ficar escondido atrás dele.'] },
 
   { t:'Tela Início e visitas ao cardápio', itens:[
-    'Ordem do resumo: alerta numa faixa fina no topo (só aparece quando há algo; toque para ver), pedidos em andamento, caixa e vendas de hoje, visitas ao cardápio e mesas (com o valor a receber das mesas).',
+    'Ordem do resumo: alerta numa faixa fina no topo (só aparece quando há algo; toque para ver), pedidos em andamento, caixa e vendas do turno, visitas ao cardápio e mesas (com o valor a receber das mesas).',
     '"Cardápio hoje" conta os clientes que abriram o cardápio eletrônico hoje: cada celular ou computador conta 1 vez por dia, mesmo abrindo várias vezes. Zera à meia-noite.',
     'Aparelhos da equipe não contam: depois que alguém entra no sistema interno naquele aparelho, ele nunca mais conta, mesmo depois de sair.',
     'É uma estimativa: a mesma pessoa em dois aparelhos conta duas vezes; aba anônima ou navegador limpo contam de novo.' ],
@@ -468,7 +469,7 @@ Operador:{ nome:'Caixa', secoes:[
     'Toque na lupa 🔍 no topo, digite pelo menos 2 letras ou números e veja clientes (nome ou telefone, sem precisar de acento), pedidos (número, nome ou telefone do cliente) e produtos/combos.',
     'No cliente, toque em "abrir" para ver o perfil. No pedido, toque em "ver pedido completo": aparece também a 🕒 Linha do tempo (feito, aceito, pronto, saiu, entregue e quanto tempo levou cada etapa).' ]},
 
-  { t:'Abrir o caixa', passos:['Aba Caixa → "Abrir caixa".','Informe o fundo de troco e confirme.'],
+  { t:'Abrir o caixa', prints:[{id:'caixa-abrir',alt:'Janela Abrir caixa com o campo do fundo de troco e o botão Abrir caixa',leg:'1: informe o fundo de caixa (dinheiro para troco). 2: toque em Abrir caixa.'}], passos:['Aba Caixa → "Abrir caixa".','Informe o fundo de troco e confirme.'],
     comuns:['Sem caixa aberto não há venda, despesa nem sangria, e o Cardápio Digital não recebe pedidos.',
       '"Já existe um caixa aberto": feche o anterior antes.'] },
 
@@ -526,7 +527,7 @@ Operador:{ nome:'Caixa', secoes:[
   { t:'Despesa e sangria', passos:['Caixa → "+ Despesa" ou "− Sangria".','Informe valor e motivo e confirme.'],
     comuns:['Sangria é retirada de dinheiro do caixa e não conta como despesa.'] },
 
-  { t:'Fechar o caixa', passos:[
+  { t:'Fechar o caixa', prints:[{id:'caixa-fechar',alt:'Janela do Caixa aberto com os totais por forma de pagamento e o botão Fechar caixa',leg:'Caixa aberto: totais por forma de pagamento e saldo esperado. 1: Fechar caixa (pede o dinheiro contado e a senha).'}], passos:[
     'Caixa → fechar caixa.',
     'Informe o dinheiro contado.',
     'Confira o total por forma, despesas, sangrias e a diferença.' ],
@@ -565,7 +566,7 @@ Operador:{ nome:'Caixa', secoes:[
     'Atalho mais rápido no dia a dia: no Assistente, a aba "🔔 Avisos" mostra as ocorrências abertas, com botão "Tratar" direto.',
     'Você NÃO tem acesso às outras telas do Administrador (financeiro, usuários, backup, catálogo etc.).' ]},
 
-  { t:'Clientes e fidelidade', passos:['Clientes → "+ Novo cliente": só nome e telefone são obrigatórios.','Toque no cliente para ver histórico, total gasto, indicação e cartão fidelidade.','Com as 10 marcas, ou com uma indicação pendente, escolha o prêmio e toque em "🎁 Resgatar". Precisa do caixa aberto; o estoque baixa e o cliente não paga.','No histórico do cliente, use os filtros de período, entrega/retirada e pago/a receber.','No alto do perfil está o Perfil 360: segmento (Novo, Fiel, VIP ou Em risco), gasto total, ticket médio, frequência, itens favoritos e se tem conta Google. Já soma os pedidos antigos arquivados.','Na lista de clientes, os botões Em risco, VIP, Fiéis e Novos mostram só aquele grupo. Em risco = sem pedir há mais de 45 dias.'],
+  { t:'Clientes e fidelidade', prints:[{id:'clientes',alt:'Aba Clientes com o botão Novo cliente, filtros e a lista de clientes',leg:'1: + Novo cliente. Abaixo, os filtros (Inativos, Em risco, VIP, Fiel, Novos) e a busca por nome ou telefone. Os telefones desta imagem são fictícios.'}], passos:['Clientes → "+ Novo cliente": só nome e telefone são obrigatórios.','Toque no cliente para ver histórico, total gasto, indicação e cartão fidelidade.','Com as 10 marcas, ou com uma indicação pendente, escolha o prêmio e toque em "🎁 Resgatar". Precisa do caixa aberto; o estoque baixa e o cliente não paga.','No histórico do cliente, use os filtros de período, entrega/retirada e pago/a receber.','No alto do perfil está o Perfil 360: segmento (Novo, Fiel, VIP ou Em risco), gasto total, ticket médio, frequência, itens favoritos e se tem conta Google. Já soma os pedidos antigos arquivados.','Na lista de clientes, os botões Em risco, VIP, Fiéis e Novos mostram só aquele grupo. Em risco = sem pedir há mais de 45 dias.'],
     comuns:['"Nenhum prêmio cadastrado": peça ao Administrador para marcar um produto como prêmio.'] },
 
   _aj.ocorr('Ela aparece na aba "🔔 Avisos" do Assistente e você pode tratar direto pelo botão "Tratar".')
@@ -590,7 +591,7 @@ Operador:{ nome:'Caixa', secoes:[
   { t:'Buscar (🔍 no topo)', itens:[
     'Toque na lupa 🔍 no topo e digite o nome do cliente, o número do pedido ou o nome de um produto. Você não vê valores nem telefone dos pedidos.' ]},
 
-  { t:'Lançar pedido de uma mesa', passos:[
+  { t:'Lançar pedido de uma mesa', prints:[{id:'gar-mesas',alt:'Tela Início do Garçom com o atalho Mesas',leg:'1: o atalho Mesas no Início mostra as mesas que você está atendendo.'}], passos:[
     'Aba Caixa → etapa "1. Cliente" → escolha a mesa. Se estiver Livre, toque em "Abrir mesa".',
     'Vá em "2. Itens", toque nos itens e escolha os adicionais.',
     'Toque em "Lançar na mesa (enviar à cozinha)". Repita quantas vezes o cliente pedir mais.' ],
@@ -625,7 +626,7 @@ Operador:{ nome:'Caixa', secoes:[
     'Quando um pedido das SUAS mesas ficar "Pronta", o aparelho toca, vibra e o título da aba mostra "Pedido pronto".',
     'A checagem roda mesmo com o app em segundo plano.' ]},
 
-  { t:'Clientes', passos:['Aba Clientes → "+ Novo cliente".','Só nome e telefone são obrigatórios.'] },
+  { t:'Clientes', prints:[{id:'clientes',alt:'Aba Clientes com o botão Novo cliente, filtros e a lista de clientes',leg:'1: + Novo cliente. Os telefones desta imagem são fictícios.'}], passos:['Aba Clientes → "+ Novo cliente".','Só nome e telefone são obrigatórios.'] },
 
   _aj.ocorr('O Administrador e o Operador são avisados e resolvem.')
  ],
@@ -731,7 +732,8 @@ const MANUAL_AJUDA_CLIENTE_ = {
       'Quando terminar, toque na barra dourada que aparece embaixo ("X itens — R$ …") para abrir o carrinho.',
       'Nome e telefone ficam guardados neste aparelho e já vêm preenchidos nos próximos pedidos; é só conferir. O endereço não é guardado: vem sempre pela localização.',
       'No carrinho, informe nome, telefone e escolha Retirar no balcão ou Entrega. Se for entrega, digite o CEP (opcional) para preencher rua e bairro, ou o app pode pedir a sua localização para preencher rua e bairro: confira e digite o número da casa (ou "s/n").',
-      'Confira o total e toque em "Enviar pedido". O restaurante vai confirmar antes de preparar.' ]},
+      'Confira o total e toque em "Enviar pedido". O restaurante vai confirmar antes de preparar.' ],
+      prints:[{id:'cliente-cardapio',alt:'Cardápio do cliente com as categorias no topo e o botão Entrar',leg:'1: as categorias (Todas, Combos, Lanches…). 2: "Entrar", para usar cupons e juntar carimbos (opcional).'},{id:'cliente-item',alt:'Janela do item com adicionais, observação e botão Adicionar ao carrinho',leg:'1: escreva uma observação (ex.: sem cebola). 2: "Adicionar ao carrinho".'},{id:'cliente-carrinho',alt:'Carrinho com o campo de cupom, nome, telefone e forma de retirada',leg:'1: o campo do cupom. Abaixo, nome, telefone, retirada ou entrega e o botão "Enviar pedido".'}]},
 
     { t:'🛒 Carrinho guardado', itens:[
       'Se você sair do cardápio no meio do pedido, o carrinho fica guardado neste aparelho por 24 horas. Ao voltar, toque em "Continuar pedido" (ou "Descartar"). Os preços são atualizados e itens esgotados ficam de fora.' ]},
@@ -850,6 +852,7 @@ function ajudaClienteHtml_(){
     if(s.passos) h += '<ol>'+li(s.passos)+'</ol>';
     if(s.itens)  h += '<ul>'+li(s.itens)+'</ul>';
     if(s.comuns) h += '<div class="ajuda-comuns"><b>Detalhes</b>'+s.comuns.map(x=>'<div>• '+escH(x)+'</div>').join('')+'</div>';
+    if(s.prints) h += ajudaPrintsHtml_(s.prints);
     h += '</details>';
   });
   h += '<h3 class="ajuda-erro-tit">🆘 E se der errado?</h3>';

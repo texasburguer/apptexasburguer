@@ -1614,7 +1614,7 @@
 <div class="modal-overlay" id="produtoModal">
   <div class="modal-box">
     <div class="modal-header"><h2>Editar produto</h2><button class="close-btn" onclick="fecharModalProduto()" aria-label="Fechar">✕</button></div>
-      <label for="ppNome">Nome</label><input type="text" id="ppNome">
+      <label for="ppNome">Nome</label><input type="text" id="ppNome" oninput="cfCompleto_('pp')">
       <div class="row2">
         <div><label for="ppCategoria">Categoria</label><select id="ppCategoria"></select></div>
         <div><label for="ppPreco">Preço de venda (R$)</label><input type="number" id="ppPreco" step="0.01" min="0" inputmode="decimal" oninput="cfAtualizarMargem('pp')"></div>
@@ -1668,6 +1668,7 @@
         <div><label>Margem</label><div class="cf-margem"><b id="ppMargemPreview">—</b></div></div>
       </div>
       <p class="sub mt-1" id="ppCustoNota"></p>
+      <p class="sub mt-1" id="ppCompleto"></p>
       <button type="button" class="ghost" style="width:100%;margin-top:14px;" onclick="toggleAvancado('pp')"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M5 19l2-2M17 7l2-2"/></svg>Mais opções (iFood, adicionais, destaque, prêmio) <span id="ppAvancadoSeta">▸</span></button>
       <div id="ppAvancadoBox" style="display:none;margin-top:10px;">
         <p class="sub">Preço próprio de uma forma de pagamento (ex.: iFood). Em branco = o preço de venda acima.</p>
@@ -1972,7 +1973,7 @@
   <div class="modal-box">
     <div class="modal-header"><h2>Novo produto</h2><button class="close-btn" onclick="fecharFormModal('produtoNovoModal')" aria-label="Fechar">✕</button></div>
       <label for="pNome">Nome</label>
-      <input type="text" id="pNome" placeholder="Ex: X-Bacon">
+      <input type="text" id="pNome" placeholder="Ex: X-Bacon" oninput="cfCompleto_('p')">
       <div class="row2">
         <div><label for="pCategoria">Categoria</label><select id="pCategoria"></select></div>
         <div><label for="pPreco">Preço de venda (R$)</label><input type="number" id="pPreco" placeholder="0,00" step="0.01" min="0" inputmode="decimal" oninput="atualizarMargemPreview()"></div>
@@ -2023,6 +2024,7 @@
         <div><label>Margem</label><div class="cf-margem"><b id="pMargemPreview">—</b></div></div>
       </div>
       <p class="sub mt-1" id="pCustoNota"></p>
+      <p class="sub mt-1" id="pCompleto"></p>
       <button type="button" class="ghost" style="width:100%;margin-top:14px;" onclick="toggleAvancado('p')"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M5 19l2-2M17 7l2-2"/></svg>Mais opções (iFood, adicionais, destaque) <span id="pAvancadoSeta">▸</span></button>
       <div id="pAvancadoBox" style="display:none;margin-top:10px;">
         <p class="sub">Preço próprio de uma forma de pagamento (ex.: iFood). Em branco = o preço de venda acima.</p>
@@ -2456,20 +2458,20 @@
   </div>
 </div>
 
-<script src="app-01-base-e-api.js?v=ccea4a4a" charset="utf-8" data-origem="__big0__"></script>
+<script src="app-01-base-e-api.js?v=2aca8ad4" charset="utf-8" data-origem="__big0__"></script>
 <script src="app-02-abas.js?v=bd55fd66" charset="utf-8" data-origem="__big1__"></script>
-<script src="app-03-cadastros.js?v=0bae27c6" charset="utf-8" data-origem="__big2__"></script>
+<script src="app-03-cadastros.js?v=2c43900c" charset="utf-8" data-origem="__big2__"></script>
 <script src="app-04-pedidos-entrega.js?v=5c2967f1" charset="utf-8" data-origem="__big3__"></script>
-<script src="app-05-avisos-push.js?v=157e9c83" charset="utf-8" data-origem="__big4__"></script>
+<script src="app-05-avisos-push.js?v=3f40fbe8" charset="utf-8" data-origem="__big4__"></script>
 <script src="app-06-caixa.js?v=edcbde35" charset="utf-8" data-origem="__big5__"></script>
-<script src="app-07-impressao.js?v=c7e50925" charset="utf-8" data-origem="__big6__"></script>
+<script src="app-07-impressao.js?v=58f946eb" charset="utf-8" data-origem="__big6__"></script>
 <script src="app-08-vendas-despesas.js?v=42c06d58" charset="utf-8" data-origem="__big7__"></script>
-<script src="app-09-ajuda.js?v=075ee6b2" charset="utf-8" data-origem="__big8__"></script>
+<script src="app-09-ajuda.js?v=75cabcfd" charset="utf-8" data-origem="__big8__"></script>
 <script src="app-10-backup-financeiro.js?v=3b7d8cd1" charset="utf-8" data-origem="__big9__"></script>
 <script src="app-11-admin-integracoes.js?v=e53763b1" charset="utf-8" data-origem="__big10__"></script>
 <script src="app-12-gestao-ia.js?v=f1cc6dcc" charset="utf-8" data-origem="__big11__"></script>
 <script src="app-13-conexao-sync.js?v=4169baef" charset="utf-8" data-origem="__big12__"></script>
-<script src="app-14-relatorios.js?v=d954b0f3" charset="utf-8" data-origem="__big13__"></script>
+<script src="app-14-relatorios.js?v=1e3c69a3" charset="utf-8" data-origem="__big13__"></script>
 <script src="app-15-cardapio-cliente.js?v=f9ed1bf0" charset="utf-8" data-origem="__big14__"></script>
 <script src="app-16-sessao-final.js?v=ef1da8ab" charset="utf-8" data-origem="__big15__"></script>
 <!-- ═══════════ SINCRONIZAÇÃO, BACKUP, ESPAÇO E INTEGRIDADE ═══════════
@@ -2507,7 +2509,7 @@
    ===================================================================== -->
 <script src="app-21-localizacao.js?v=bb28de16" charset="utf-8" data-origem="fase5Localizacao"></script>
 
-<link rel="stylesheet" href="estilo-equipe.css?v=fe45d841">
+<link rel="stylesheet" href="estilo-equipe.css?v=132f53ef">
 <nav id="navInf" aria-label="Navegação principal"></nav>
 <div id="navInfMais" onclick="if(event.target===this)navInfFechar_()"><div class="nm-box" id="navInfMaisBox"></div></div>
 <script src="app-22-navegacao-inferior.js?v=9c0835e7" charset="utf-8" data-origem="navInfJs"></script>
@@ -2516,8 +2518,8 @@
   </div>
 <script src="app-23-janelas-popup.js?v=6f031891" charset="utf-8" data-origem=""></script>
 <script src="app-24-acessibilidade.js?v=1567f2c1" charset="utf-8" data-origem=""></script>
-<script src="app-25-cadastro-facil.js?v=181ef7b0" charset="utf-8" data-origem=""></script>
-<script src="app-26-visual.js?v=3f2492e5" charset="utf-8" data-origem=""></script>
+<script src="app-25-cadastro-facil.js?v=7b31410b" charset="utf-8" data-origem=""></script>
+<script src="app-26-visual.js?v=3c963d27" charset="utf-8" data-origem=""></script>
 <link rel="stylesheet" href="estilo-conta-pagamento.css?v=c8bbf776">
 <script src="app-28-dialogos.js?v=58e2325f" charset="utf-8" data-origem=""></script>
 <script src="app-27-conta-cliente.js?v=6018b2b7" charset="utf-8" data-origem=""></script>

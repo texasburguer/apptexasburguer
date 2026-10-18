@@ -200,7 +200,7 @@ function renderVendas(){
   const dataFiltro = document.getElementById('vHistData').value;
   const tbody = document.getElementById('vTable');
   if(!tbody) return;
-  const lista = vendas.filter(v => dataLocalISO(new Date(v.timestamp)) === dataFiltro).sort((a,b)=>b.timestamp-a.timestamp);
+  const lista = vendas.filter(v => diaDoTurno_(v.timestamp) === dataFiltro).sort((a,b)=>b.timestamp-a.timestamp);
   const total = lista.filter(v=>v.status==='Confirmada').reduce((s,v)=>s+Number(v.valorTotal),0);
   document.getElementById('vTotalDia').textContent = formatarMoeda(total);
   if(lista.length===0){ tbody.innerHTML = '<tr class="empty-row"><td colspan="4">Nenhuma venda nesse dia.</td></tr>'; return; }

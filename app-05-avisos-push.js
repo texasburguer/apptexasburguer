@@ -242,7 +242,7 @@ async function autoAtribuirEntregador_(){
   if(!sem.length) return;
   _autoEntBusy_ = true;
   try{
-    for(const v of sem){ const r = await apiCall('atribuirEntregador', { vendaId:v.id, entregador:e.login }); if(r && r.ok){ vendas = r.vendas || vendas; } else break; }
+    for(const v of sem){ const r = await apiCall('atribuirEntregador', { vendaId:v.id, entregador:e.login, entregadorVisto:'' }); if(r && r.ok){ vendas = r.vendas || vendas; } else break; }
     salvarCache(); renderEntregas();
   }catch(err){} finally{ _autoEntBusy_ = false; }
 }
@@ -327,9 +327,9 @@ function alertasDeEntregas(){
   if(paradas.length) out.push(`<b>${paradas.length}</b> entrega(s) pronta(s) há mais de 10 min sem sair: ` + paradas.map(v=>'#'+rotuloPedido(v)).join(', '));
   if(currentUser.nivel==='Admin'){
     const abertas = vendas.filter(v=>v.status==='Confirmada' && v.tipoEntrega==='Entrega' && v.statusPedido==='Entregue' && v.entregador && !v.fechamentoEntregaId && v.timestampConcluida);
-    const hoje = dataLocalISO(new Date());
+    const hoje = diaTurnoAtual_();
     const dias = {};
-    abertas.forEach(v=>{ const d = dataLocalISO(new Date(v.timestampConcluida)); if(d<hoje) dias[v.entregador+'|'+d] = 1; });
+    abertas.forEach(v=>{ const d = diaDoTurno_(v.timestampConcluida); if(d<hoje) dias[v.entregador+'|'+d] = 1; });
     const n = Object.keys(dias).length;
     if(n) out.push(`<b>${n}</b> fechamento(s) de entregador de dias anteriores pendente(s) (Administrador → Loja e equipe → Entregadores e taxas).`);
   }
@@ -339,17 +339,17 @@ function renderMeusGanhos(){
   const hojeBox = document.getElementById('ganhosHoje'), lista = document.getElementById('ganhosLista'), resumo = document.getElementById('ganhosResumo');
   if(!hojeBox || !lista) return;
   const eu = String(loginVisao_()).toLowerCase();
-  const hoje = dataLocalISO(new Date());
+  const hoje = diaTurnoAtual_();
   const minhasVendas = vendas.filter(v=>v.status==='Confirmada' && v.tipoEntrega==='Entrega' && v.statusPedido==='Entregue' && v.timestampConcluida && String(v.entregador||'').toLowerCase()===eu);
   const porDia = {};
-  minhasVendas.forEach(v=>{ const d = dataLocalISO(new Date(v.timestampConcluida)); const x = porDia[d] || (porDia[d] = { qtd:0, taxas:0 }); x.qtd++; x.taxas = arred2(x.taxas + (Number(v.taxaEntrega)||0)); });
+  minhasVendas.forEach(v=>{ const d = diaDoTurno_(v.timestampConcluida); const x = porDia[d] || (porDia[d] = { qtd:0, taxas:0 }); x.qtd++; x.taxas = arred2(x.taxas + (Number(v.taxaEntrega)||0)); });
   const fech = {};
   fechamentosEntrega.filter(f=>String(f.entregador||'').toLowerCase()===eu).forEach(f=>{ fech[f.dataRef] = f; });
   const fmtData = d=>d.split('-').reverse().join('/');
   // hoje
   const h = porDia[hoje] || { qtd:0, taxas:0 }, fh = fech[hoje];
   const ajudaHoje = fh ? fh.ajudaDiaria : (h.qtd ? (Number(configEntrega.ajudaDiaria)||0) : 0);
-  hojeBox.innerHTML = `<div class="obs-line">Hoje: <b>${h.qtd}</b> entrega(s) concluída(s) · Taxas: <b>${formatarMoeda(h.taxas)}</b>${ajudaHoje?` · Ajuda diária: <b>${formatarMoeda(ajudaHoje)}</b>`:''}</div>`
+  hojeBox.innerHTML = `<div class="obs-line">No turno: <b>${h.qtd}</b> entrega(s) concluída(s) · Taxas: <b>${formatarMoeda(h.taxas)}</b>${ajudaHoje?` · Ajuda diária: <b>${formatarMoeda(ajudaHoje)}</b>`:''}</div>`
     + `<div style="font-size:20px;font-weight:800;margin:6px 0;color:var(--gold);">${formatarMoeda(arred2(h.taxas + ajudaHoje))}</div>`
     + `<div class="obs-line">${fh ? '✅ Dia já acertado com o administrador.' : 'Valor previsto. O acerto oficial é feito pelo administrador no fechamento.'}</div>`;
   // dias anteriores
@@ -389,7 +389,7 @@ function renderEntregasFinanceiro(){
       sel.innerHTML = usuarios.filter(u=>u.nivel==='Entregador').map(u=>`<option value="${escH(u.login)}">${escH(u.nome||u.login)}${u.ativo?'':' (inativo)'}</option>`).join('') || '<option value="">Nenhum entregador cadastrado</option>';
       sel.dataset.n = String(usuarios.length); if(atual) sel.value = atual;
     }
-    const dt = document.getElementById('entFechData'); if(dt && !dt.value) dt.value = dataLocalISO(new Date());
+    const dt = document.getElementById('entFechData'); if(dt && !dt.value) dt.value = diaTurnoAtual_();
     const h = document.getElementById('entFechHistorico');
     if(h){
       const lista = fechamentosEntrega.slice().reverse().slice(0,15);
@@ -398,7 +398,7 @@ function renderEntregasFinanceiro(){
   }
   if(nivel==='Entregador'){
     const box = document.getElementById('entregasMeuDia');
-    const hoje = dataLocalISO(new Date());
+    const hoje = diaTurnoAtual_();
     const minhas = vendas.filter(v=>v.status==='Confirmada' && v.tipoEntrega==='Entrega' && v.statusPedido==='Entregue' && v.timestampConcluida && noTurnoCaixa_(v.timestampConcluida));
     const taxas = arred2(minhas.reduce((s,v)=>s+(Number(v.taxaEntrega)||0),0));
     const jaFechouHoje = fechamentosEntrega.some(f=>f.dataRef===hoje);
@@ -669,7 +669,7 @@ function acertosAutoEntregadores_(){
   const abertura = sessaoCaixa.aberturaTimestamp;
   const grupos = {};
   vendas.filter(v=>v.status==='Confirmada' && v.tipoEntrega==='Entrega' && v.statusPedido==='Entregue' && !v.fechamentoEntregaId && v.entregador && v.timestampConcluida && v.timestampConcluida>=abertura).forEach(v=>{
-    const dia = dataLocalISO(new Date(v.timestampConcluida)), k = String(v.entregador).toLowerCase()+'|'+dia;
+    const dia = diaDoTurno_(v.timestampConcluida), k = String(v.entregador).toLowerCase()+'|'+dia;
     const g = grupos[k] || (grupos[k] = { entregador:v.entregador, dia, taxas:0, qtd:0 });
     g.qtd++; g.taxas = arred2(g.taxas + (Number(v.taxaEntrega)||0));
   });

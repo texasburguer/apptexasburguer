@@ -34,6 +34,7 @@ function vsAcoesProduto(id){
   const p = (produtos || []).find(x => x.id === id); if(!p) return;
   vsAcoes(p.nome, [
     { t:'✏️ Editar', fn:() => abrirEditarProduto(id) },
+    { t:'📄 Duplicar', fn:() => duplicarProduto_(id) },
     { t:'🗑️ Excluir', fn:() => excluirProdutoConfirm(id), perigo:true }
   ]);
 }

@@ -86,7 +86,7 @@ function relGarcons_(r){
     total: rows.length>1 ? linha('Total', vs) : undefined, nota: nota.join(' ') };
 }
 const REL = {
-  vendasDia:{ g:'Vendas e pedidos', t:'Vendas por dia', f:(p,r)=>{ const g = grp(r.vs, v=>dataLocalISO(new Date(v.timestamp)));
+  vendasDia:{ g:'Vendas e pedidos', t:'Vendas por dia (turno do caixa)', f:(p,r)=>{ const g = grp(r.vs, v=>diaDoTurno_(v.timestamp));
     const rows = Object.keys(g).sort().map(k=>[fmtDiaISO(k), g[k].length, formatarMoeda(somaR(g[k],v=>v.valorTotal)), formatarMoeda(somaR(g[k],v=>v.valorTotal)/g[k].length)]);
     return { cols:['Dia','Pedidos','Faturamento','Ticket médio'], rows, total:['Total', r.vs.length, formatarMoeda(r.faturamentoTotal||r.liq), formatarMoeda(r.ticket)] }; } },
   pedidos:{ g:'Vendas e pedidos', t:'Pedidos por origem (Balcão, Cardápio, Garçom)', f:(p,r)=>{ const g = grp(r.vs, v=>v.origem||'Balcão');
@@ -409,7 +409,7 @@ function renderVisaoGeralBase_(){
   const rua = andamento.filter(v=>v.statusPedido==='Saiu para entrega').length; if(rua) alertas.push(`🛵 ${rua} entrega(s) na rua agora`);
   const cont = grp(andamento, v=>v.statusPedido);
   const rank = tabelaItens(linhasItens(r, i=>true), 'q', 5).rows;
-  const dias = {}; r.vs.forEach(v=>{ const k = dataLocalISO(new Date(v.timestamp)); dias[k] = (dias[k]||0) + (Number(v.valorTotal)||0); });
+  const dias = {}; r.vs.forEach(v=>{ const k = diaDoTurno_(v.timestamp); dias[k] = (dias[k]||0) + (Number(v.valorTotal)||0); });
   const serie = []; if(p.dias>1 && p.dias<=31) for(let t=p.ini; t<p.fim; t+=86400000){ const k = dataLocalISO(new Date(t)); serie.push([k, dias[k]||0]); }
   const maxD = Math.max(1, ...serie.map(x=>x[1]));
   const metaMes = metas.mensal>0 ? (()=>{ const m = new Date(); const fat = calcularDRE(m.getFullYear(), m.getMonth()+1).receitaLiquida; return `<div class="info-line">• Meta do mês: ${formatarMoeda(fat)} de ${formatarMoeda(metas.mensal)} (${fmtPct(pctDe(fat, metas.mensal))})</div>`; })() : '';

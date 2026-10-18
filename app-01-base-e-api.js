@@ -6,7 +6,7 @@ const API_URL = "https://script.google.com/macros/s/AKfycbwCftUm-1pxhA8XLNqMB7dM
 const CONTINGENCIA_API_URL = "https://script.google.com/macros/s/AKfycby3WljBnr7gpJrHdkbTvBCh5uIXqS4KCS6wkBYB5idxf5gI04efoDumQj264kR_smoW/exec";
 
 /* ===================== VERSÃO DO APP ===================== */
-const APP_VERSAO = '1.10';
+const APP_VERSAO = '1.11';
 const APP_ATUALIZADO_EM = '18/10/2026';
 window.APP_VERSAO = APP_VERSAO;
 
@@ -18,6 +18,12 @@ window.APP_VERSAO = APP_VERSAO;
    A seção "🆕 O que mudou" do manual é gerada daqui. */
 const APP_NOVIDADES = {
   Admin: [
+    { v:'1.11', em:'18/10/2026', itens:[
+      'Tudo segue o turno do caixa: os relatórios "Vendas por dia", o gráfico diário e o acerto do entregador agora agrupam pelo dia em que o caixa abriu, mesmo quando o turno passa da meia-noite.',
+      'Cadastro de produto: aviso "falta algo para ficar completo", sugestão de preço quando o lucro está baixo e o novo "📄 Duplicar" no menu ⋯ do produto.',
+      'Os botões do topo ficaram mais fáceis de acertar com o dedo (a aparência continua a mesma). O campo de busca da Ajuda ficou na largura certa.',
+      'A Ajuda ganhou prints de Abrir e Fechar caixa, Clientes, Cadastro de produto e Mesas do Garçom.'
+    ]},
     { v:'1.10', em:'18/10/2026', itens:[
       'Novo: aviso de pedido parado. Aparece a faixa "⏰ Pedidos parados" (com som) quando um pedido do seu perfil fica sem avançar. Toque em Ver pedido, Adiar 10 min ou Silenciar este pedido. Os tempos e as regras ficam em Sistema → Sincronização e contingência → ⏰ Alertas automáticos.',
       'O "hoje" dos pedidos agora segue o turno do caixa (do abrir ao fechar, mesmo passando da meia-noite). Em Relatórios há o período novo "Uso real (desde 17/10/2026)".',
@@ -116,6 +122,9 @@ const APP_NOVIDADES = {
     ]}
   ],
   Operador: [
+    { v:'1.11', em:'18/10/2026', itens:[
+      'Os botões do topo ficaram mais fáceis de acertar com o dedo (a aparência continua a mesma). A Ajuda ganhou prints de Abrir e Fechar caixa e de Clientes.'
+    ]},
     { v:'1.10', em:'18/10/2026', itens:[
       'Novo: aviso de pedido parado. Aparece a faixa "⏰ Pedidos parados" (com som) quando um pedido do seu perfil fica sem avançar. Toque em Ver pedido, Adiar 10 min ou Silenciar este pedido.',
       'O "hoje" dos pedidos agora segue o turno do caixa (do abrir ao fechar, mesmo passando da meia-noite).',
@@ -337,6 +346,12 @@ function turnoCaixa_(){
   return { ini, fim: ini + 864e5 - 1, aberto: false, calendario: true };
 }
 function noTurnoCaixa_(ts){ const t = turnoCaixa_(); ts = Number(ts) || 0; return ts >= t.ini && ts <= t.fim; }
+/* Dia (AAAA-MM-DD) do TURNO a que um horário pertence = dia em que aquele caixa abriu. Sem caixa que o contenha, vale o dia do calendário.
+   Usado no acerto do entregador e em "Vendas por dia" (o turno atravessa a meia-noite e continua sendo o mesmo dia). Mesma regra do banco (_calc_fechamento_entrega). */
+function diaDoTurno_(ts){ ts = Number(ts) || 0; try{ const lista = (historicoCaixa||[]).slice(); if(typeof sessaoCaixa!=='undefined' && sessaoCaixa && sessaoCaixa.aberturaTimestamp) lista.push({aberturaTimestamp:sessaoCaixa.aberturaTimestamp, fechamentoTimestamp:0});
+  let ach = null; lista.forEach(c=>{ if(!c || !c.aberturaTimestamp) return; const fim = c.fechamentoTimestamp || Infinity; if(ts >= c.aberturaTimestamp && ts <= fim && (!ach || c.aberturaTimestamp > ach.aberturaTimestamp)) ach = c; });
+  if(ach) return dataLocalISO(new Date(ach.aberturaTimestamp)); }catch(e){} return dataLocalISO(new Date(ts)); }
+function diaTurnoAtual_(){ const t = turnoCaixa_(); return dataLocalISO(new Date(t.calendario ? Date.now() : t.ini)); }
 function dataLocalISO(date){ const y=date.getFullYear(), m=String(date.getMonth()+1).padStart(2,'0'), d=String(date.getDate()).padStart(2,'0'); return `${y}-${m}-${d}`; }
 function parseDataBR(str){
   if(!str) return null;

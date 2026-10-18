@@ -1025,7 +1025,7 @@ async function rejeitarPedidoUI(vendaId){
 }
 async function salvarEntregador(vendaId, valor){
   try{
-    const r = await apiCall('atribuirEntregador', { vendaId, entregador: valor });
+    const r = await apiCall('atribuirEntregador', { vendaId, entregador: valor, entregadorVisto: ((vendas.find(x=>x.id===vendaId)||{}).entregador||'') });
     if(r.ok){ vendas = r.vendas || vendas; salvarCache(); renderEntregas(); }
     else { avisar(r.message || 'Não foi possível atribuir o entregador.'); renderEntregas(); }
   } catch(e){ avisar('Sem conexão — o entregador não foi atribuído.'); renderEntregas(); }

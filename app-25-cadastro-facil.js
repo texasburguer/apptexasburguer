@@ -275,7 +275,7 @@ function cfIniciarProduto(pre, p){
   if(!p){ try{ showMsg(pre + 'Msg', '', ''); }catch(err){} }
   if(pre === 'p' && !p) _cfAdTocado_ = false;
   const sug = document.getElementById(pre + 'RwSug'); if(sug) sug.innerHTML = '';
-  cfRwMostrarEscolhido_(pre); cfRwPopularCopiar(pre); cfRwRender(pre); cfSetTipo(pre, t);
+  cfRwMostrarEscolhido_(pre); cfRwPopularCopiar(pre); cfRwRender(pre); cfSetTipo(pre, t); cfCompleto_(pre);
 }
 /* custo da receita e do item pronto */
 function cfCustoReceita_(pre){
@@ -304,21 +304,46 @@ function cfAtualizarCusto(pre){
   cfAtualizarMargem(pre);
 }
 /* ---------- LUCRO OU PREJUÍZO EM TEXTO CLARO (produto, combo, adicional, lista) ---------- */
-function cfMargemHtml_(preco, custo, pctImp){
+/* Fase 8.2: preço sugerido para ~50% de lucro (já descontado o imposto); só sugere, quem decide é o dono */
+function cfPrecoSugerido_(custo, pctImp){
+  custo = cfNum_(custo); pctImp = cfNum_(pctImp);
+  const f = 1 - 0.5 - pctImp / 100; if(!(custo > 0) || !(f > 0.1)) return 0;
+  return Math.ceil(custo / f * 2) / 2; /* arredonda para cima de 50 em 50 centavos */
+}
+function cfUsarPrecoSug_(pre, v){ cfSet_(pre + 'Preco', Number(v).toFixed(2)); cfAtualizarMargem(pre); }
+function cfSugestaoHtml_(preco, custo, pctImp, pre){
+  const sug = cfPrecoSugerido_(custo, pctImp); if(!sug || !pre) return '';
+  const m = cfNum_(preco) - cfNum_(custo) - cfNum_(preco) * cfNum_(pctImp) / 100, pct = cfNum_(preco) > 0 ? m / cfNum_(preco) * 100 : -1;
+  if(pct >= 40) return '';
+  return ' <span class="sub">Sugestão: ' + formatarMoeda(sug) + ' para uns 50% de lucro.</span> <button type="button" class="ghost" style="min-height:32px;padding:2px 10px;" onclick="cfUsarPrecoSug_(\'' + pre + '\',' + sug + ')">Usar</button>';
+}
+function cfMargemHtml_(preco, custo, pctImp, pre){
   preco = cfNum_(preco); custo = cfNum_(custo); pctImp = cfNum_(pctImp);
   if(!(custo > 0)) return 'custo não informado';
   const m = Math.round((preco - custo - preco * pctImp / 100) * 100) / 100, pct = preco > 0 ? (m / preco * 100) : 0;
   const imp = pctImp > 0 ? ' · já tirado o imposto de ' + String(pctImp).replace('.', ',') + '%' : '';
-  if(m < 0) return '<span class="cf-perda">PREJUÍZO de ' + formatarMoeda(-m) + ' a cada venda (' + pct.toFixed(0) + '%). Com esse preço você perde dinheiro: aumente o preço ou reduza o custo.</span>' + imp;
-  if(m === 0) return '<span class="cf-sem">sem lucro (R$ 0,00): você só cobre o custo</span>' + imp;
-  return 'lucro de <b>' + formatarMoeda(m) + '</b> (' + pct.toFixed(0) + '%)' + imp;
+  const sg = cfSugestaoHtml_(preco, custo, pctImp, pre);
+  if(m < 0) return '<span class="cf-perda">PREJUÍZO de ' + formatarMoeda(-m) + ' a cada venda (' + pct.toFixed(0) + '%). Com esse preço você perde dinheiro: aumente o preço ou reduza o custo.</span>' + imp + sg;
+  if(m === 0) return '<span class="cf-sem">sem lucro (R$ 0,00): você só cobre o custo</span>' + imp + sg;
+  return 'lucro de <b>' + formatarMoeda(m) + '</b> (' + pct.toFixed(0) + '%)' + imp + sg;
 }
 function cfAtualizarMargem(pre){
   const el = document.getElementById(pre + 'MargemPreview'); if(!el) return;
   const preco = cfNum_(cfVal_(pre + 'Preco')), custo = cfNum_(cfVal_(pre + 'Custo'));
   /* imposto sobre a venda (alíquota do mês) sai da margem; o custo do produto continua só ingredientes/compra */
   const pctImp = (typeof impostoPctHoje_ === 'function') ? impostoPctHoje_() : 0;
-  el.innerHTML = cfMargemHtml_(preco, custo, pctImp);
+  el.innerHTML = cfMargemHtml_(preco, custo, pctImp, pre);
+  cfCompleto_(pre);
+}
+/* Fase 8.2: aviso "produto completo?" (só informa; nunca trava o salvar) */
+function cfCompleto_(pre){
+  const el = document.getElementById(pre + 'Completo'); if(!el) return;
+  const falta = [];
+  if(!cfVal_(pre + 'Nome').trim()) falta.push('nome');
+  if(!(cfNum_(cfVal_(pre + 'Preco')) > 0)) falta.push('preço de venda');
+  if(!(cfNum_(cfVal_(pre + 'Custo')) > 0)) falta.push('custo (a margem só aparece com ele)');
+  const sf = document.getElementById(pre + 'Foto'); const temFoto = (sf && sf.files && sf.files[0]) || (pre === 'pp' && (produtos || []).some(x => x.id === produtoEditandoId && x.fotoUrl));
+  el.innerHTML = falta.length ? '⚠️ Para ficar completo falta: ' + falta.join(', ') + '.' + (temFoto ? '' : ' Foto é opcional.') : '✅ Produto completo' + (temFoto ? '.' : ' (a foto é opcional).');
 }
 /* custo enviado junto com o estoque próprio ("Comprado pronto") */
 function cfCustoEstoqueProprio(pre){ return cfCustoPronto_(pre); }
@@ -636,3 +661,17 @@ async function cfAtualizarCustosItens(lista){
   function iniciar(){ try{ cfIniciarProduto('p', null); }catch(err){} try{ cfIngAtualizar('e'); }catch(err){} }
   if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', iniciar); else iniciar();
 })();
+
+/* Fase 8.2: duplicar produto = abre o "Novo produto" já preenchido (nada é salvo até tocar em Cadastrar; foto e preços próprios não vão) */
+async function duplicarProduto_(id){
+  const p = (produtos || []).find(x => x.id === id); if(!p) return;
+  abrirFormModal('produtoNovoModal'); cfIniciarProduto('p', null);
+  cfSet_('pNome', p.nome + ' (cópia)'); cfSet_('pDescricao', p.descricao || ''); cfSet_('pCategoria', p.categoria || '');
+  const d = precoDisplayProduto(p.id); cfSet_('pPreco', cfNum_(d.preco) > 0 ? cfNum_(d.preco) : '');
+  const tinhaReceita = (produtoIngredientes || []).some(v => v.produtoId === p.id && v.ingredienteId !== p.estoqueProprioIngredienteId);
+  if(tinhaReceita){ cfSetTipo('p', 'receita'); await cfRwCopiar('p', id); }
+  else if(p.estoqueProprioIngredienteId){ cfSetTipo('p', 'pronto'); }
+  else { cfSetTipo('p', 'manual'); cfSet_('pCusto', cfNum_(d.custo) > 0 ? cfNum_(d.custo) : ''); }
+  cfAtualizarMargem('p');
+  showMsg('pMsg', 'Cópia de "' + p.nome + '" aberta. Troque o nome e ajuste o que for diferente; só salva quando você tocar em Cadastrar.', 'ok');
+}
