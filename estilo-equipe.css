@@ -408,3 +408,10 @@ button.cf-chip:hover,button.cf-chip:focus-visible,button.cf-chip.on{border-color
 .cf-uso-resumo b{color:var(--cream);}
 .cf-uso-linha{margin-top:2px;font-size:var(--fs-xs);}
 .cf-uso-perda,.cf-perda{color:var(--erro-texto);font-weight:800;}
+
+/* Ajuda: prints reais de "onde clicar" (Fase 11) */
+.ajuda-prints{display:grid;gap:12px;margin:10px 0 6px;}
+.ajuda-print{margin:0;}
+.ajuda-print img{display:block;width:100%;max-width:520px;height:auto;border:1px solid var(--line);border-radius:10px;background:#000;}
+.ajuda-print figcaption{font-size:var(--fs-sm);color:var(--muted);margin-top:4px;line-height:1.4;}
+@media (min-width:900px){.ajuda-print img{max-width:760px;}}

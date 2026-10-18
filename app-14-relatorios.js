@@ -10,9 +10,10 @@ function relIntervalo(cod){
   else if(cod==='mesAnt'){ ini = new Date(h.getFullYear(), h.getMonth()-1, 1); fim = new Date(h.getFullYear(), h.getMonth(), 1); rot = 'Mês anterior'; }
   else if(cod==='90'){ ini.setDate(ini.getDate()-89); rot = 'Últimos 90 dias'; }
   else if(cod==='365'){ ini.setDate(ini.getDate()-364); rot = 'Últimos 12 meses'; }
+  else if(cod==='real'){ ini = new Date(2026, 9, 17); rot = 'Uso real (desde 17/10/2026)'; } /* Fase 10: vendas até 16/10/2026 são de teste; o uso real começa em 17/10/2026 */
   return { ini: ini.getTime(), fim: fim.getTime(), rot, dias: Math.max(1, Math.round((fim-ini)/86400000)) };
 }
-const PERIODOS_REL = '<option value="hoje">Hoje</option><option value="7">Últimos 7 dias</option><option value="30">Últimos 30 dias</option><option value="mes">Mês atual</option><option value="mesAnt">Mês anterior</option><option value="90">Últimos 90 dias</option><option value="365">Últimos 12 meses</option>';
+const PERIODOS_REL = '<option value="hoje">Hoje</option><option value="7">Últimos 7 dias</option><option value="30">Últimos 30 dias</option><option value="mes">Mês atual</option><option value="mesAnt">Mês anterior</option><option value="90">Últimos 90 dias</option><option value="365">Últimos 12 meses</option><option value="real">Uso real (desde 17/10/2026)</option>';
 const escR = s => escH(s);
 const somaR = (a, f) => arred2c(a.reduce((s,x)=>s+(Number(f(x))||0),0));
 function grp(arr, fn){ const m = {}; arr.forEach(x=>{ const k = fn(x); (m[k] = m[k] || []).push(x); }); return m; }

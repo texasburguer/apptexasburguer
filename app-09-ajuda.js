@@ -78,7 +78,8 @@ Admin:{ nome:'Administrador', secoes:[
     'A aba Administrador tem uma barra dividida em 6 grupos: Hoje (Visão Geral, Ocorrências, Feedbacks); Dinheiro (Contas a pagar e despesas, Histórico, Reembolsos e ajustes, Previsto e metas, Relatórios e DRE); Produtos (Produtos, combos e adicionais, Estoque, Compras e fornecedores, Custos e precificação); Vendas e cardápio (Cardápio Digital, Formas de pagamento, Promoções e cupons, Eventos); Loja e equipe (Mesas e QR Codes, Entregadores e taxas, Usuários e permissões, Configurar avisos); Sistema (Integrações e contas, Backup e espaço, Sincronização e contingência, Auditoria).',
     'O campo “Ir para…”, no topo do menu, acha uma tela pelo nome ou por uma palavra (ex.: cupom, estoque, iFood, reembolso). Toque na tela que aparecer.',
     'Cada tela do menu traz embaixo do nome uma linha explicando o que ela faz.',
-    'Caixa, Pedidos, Entregas e Clientes funcionam como nos outros perfis, e você pode tudo.' ]},
+    'Caixa, Pedidos, Entregas e Clientes funcionam como nos outros perfis, e você pode tudo.' ],
+    prints:[{id:'admin-menu',alt:'Menu do Administrador com o campo Ir para',leg:'Administrador: o campo "Ir para…" (1) acha qualquer tela pelo nome.'}]},
 
   { t:'Criar usuário e trocar senha', passos:[
     'Administrador → Loja e equipe → Usuários e permissões.',
@@ -132,7 +133,8 @@ Admin:{ nome:'Administrador', secoes:[
     '"Cardápio hoje" conta os clientes que abriram o cardápio eletrônico hoje: cada celular ou computador conta 1 vez por dia, mesmo abrindo várias vezes. Zera à meia-noite.',
     'Aparelhos da equipe não contam: depois que alguém entra no sistema interno naquele aparelho, ele nunca mais conta, mesmo depois de sair.',
     'É uma estimativa: a mesma pessoa em dois aparelhos conta duas vezes; aba anônima ou navegador limpo contam de novo.' ],
-    comuns:['Administrador e Operador veem as visitas.'] },
+    comuns:['Administrador e Operador veem as visitas.'],
+    prints:[{id:'inicio',alt:'Tela Início com o resumo e os atalhos',leg:'Início: pedidos em andamento (1) e atalhos para Caixa, Retiradas, Entregas e Mesas (2).'}] },
 
   { t:'No computador', itens:[
     'Notebook ou monitor (tela a partir de 900 px de largura): o topo fica numa linha só, com o logo à esquerda e o usuário e os botões à direita. As abas ficam sempre à vista no alto, mesmo rolando a página (no celular elas ficam no menu de baixo).',
@@ -157,6 +159,20 @@ Admin:{ nome:'Administrador', secoes:[
     'Desenvolvedor: o botão "🧪 Simular queda (treino)" em "Conexão e servidores" finge a queda só neste aparelho, para treinar a equipe. "Encerrar simulação" volta ao normal.' ],
     comuns:['O Guia de operação tem o passo a passo de queda, volta e restauração.'] },
 
+  { t:'⏰ Pedidos parados (alertas)', itens:[
+    'O sistema confere de minuto em minuto se algum pedido ficou parado: novo sem aceite, em preparo há muito tempo, pronto esperando retirada, saída para entrega, entrega ou serviço da mesa, entregue sem confirmação e "A receber" já concluído.',
+    'Com o app aberto aparece a faixa "⏰ Pedidos parados" na parte de baixo da tela, com som, e uma bolinha vermelha na aba Pedidos. Com o app fechado chega a notificação no celular (se os avisos estiverem ligados em 🔔).',
+    'Em cada pedido da faixa: "Ver pedido" abre o pedido; "Adiar 10 min" some por 10 minutos; "Silenciar este pedido" pede o motivo, some e fica registrado na Auditoria. O X esconde a faixa até aparecer um aviso novo.',
+    'O aviso só mostra o que é do seu perfil e só com o caixa aberto. Quando o pedido avança, é pago, cancelado ou o caixa fecha, o aviso some sozinho. Depois de 3 avisos sem resposta o Administrador também é avisado.',
+    'O alerta só avisa: nunca muda o status, o pagamento nem o pedido.',
+    'Administrador: ajuste os tempos, ligue ou desligue cada regra e teste o aviso em Sistema → Sincronização e contingência → cartão "⏰ Alertas automáticos". Ali também se cadastra a data de vencimento do certificado, do plano da nota fiscal e de outros (aviso 30, 15, 7 e 1 dia antes).',
+    'Além dos pedidos parados, o sistema avisa o Administrador (push e e-mail) quando algo do sistema pára: cópia para a planilha atrasada, tarefa automática falhando, Mercado Pago ou iFood sem resposta, caixa vencido ainda aberto, banco quase cheio, backup parado ou conferência diária com diferença.' ],
+    prints:[{id:'alertas',alt:'Faixa Pedidos parados com os botões Ver pedido, Adiar 10 min e Silenciar este pedido',leg:'1: a faixa de pedidos parados, com Ver pedido, Adiar 10 min e Silenciar este pedido em cada pedido.'},{id:'alertas-config',alt:'Cartão Alertas automáticos com os tempos de cada regra',leg:'Administrador: cada regra tem liga/desliga e o tempo em minutos (1).'}] },
+  { t:'Turno do caixa (o "hoje" dos pedidos)', itens:[
+    'Os pedidos "concluídos", o histórico das mesas, "Vendas do turno" no Início e o resumo do Financeiro contam do momento em que o caixa abriu até o fechamento, mesmo passando da meia-noite. Não é a data do calendário.',
+    'Sem caixa aberto, mostram o último turno. Só se nunca houve caixa é que valem o dia do calendário.',
+    'Para ver as vendas só do uso real (sem os testes de antes de 17/10/2026), use em Relatórios o período "Uso real (desde 17/10/2026)".' ],
+    prints:[{id:'relatorios-uso-real',alt:'Relatórios com o período Uso real desde 17/10/2026',leg:'Relatórios: escolha o período "Uso real (desde 17/10/2026)" (1) para ver só o que é real.'}] },
   { t:'Avisos com o app fechado (🔔)', itens:[
     'Toque no 🔔 do topo e em "Ligar avisos com o app fechado". Permita as notificações quando o navegador pedir.',
     'Depois disso o celular avisa "Novo pedido" (do cardápio) e "Cliente no atendimento" mesmo com o app fechado ou a tela bloqueada. O aviso não mostra nome nem telefone do cliente.',
@@ -207,7 +223,8 @@ Admin:{ nome:'Administrador', secoes:[
     'Assistente (balão ✨): diga, por exemplo, "comprei 30kg de picanha do fornecedor X por R$ 900". A IA só monta um cartão; nada é gravado até você tocar em "Confirmar e gravar". Use "Revisar na tela" para ajustar antes. Fornecedor ou item que a IA não achar bloqueia o botão: cadastre antes.',
     'O Assistente também registra: despesa nova, pagar despesa, cancelar despesa, entrada/perda/contagem de estoque, cadastrar ou editar ingrediente, cliente, ocorrência, sangria, ajuste pós-venda, brinde e receber ou cancelar pedido de compra. Sempre com cartão e "Confirmar e gravar". Se faltar algo ou o nome for ambíguo, o cartão avisa em laranja e o botão fica travado. Cancelar despesa e ajuste pós-venda pedem a sua senha de administrador no cartão. Ele NUNCA exclui nada, nem mexe em venda, caixa, usuários, contas, preços, cardápio ou configurações: isso é pelas telas.',
     'Relatórios → "Análise avançada": margem líquida por forma de pagamento, vendas por dia da semana e comparação com o mesmo período do ano passado. Também há os períodos "Últimos 90 dias" e "Últimos 12 meses".' ],
-    comuns:['Compras e a gravação pela IA são só do Administrador e do Desenvolvedor.'] },
+    comuns:['Compras e a gravação pela IA são só do Administrador e do Desenvolvedor.'],
+    prints:[{id:'compras',alt:'Tela de Compras e fornecedores com Pagamento e Registrar nota',leg:'Compras: em Pagamento (1) diga de onde saiu o dinheiro; depois toque em Registrar nota (2).'}] },
 
   { t:'Imposto sobre vendas (estimado)', itens:[
     'Administrador → Dinheiro → Relatórios e DRE → cartão "DRE e relatório mensal": escolha o mês e, em "Imposto sobre vendas deste mês", digite a alíquota que o contador informar (ex.: 6 ou 6,5) e toque em Salvar.',
@@ -250,7 +267,8 @@ Admin:{ nome:'Administrador', secoes:[
     'Imprimir o pedido: em Pedidos, nos cartões de Retirada e de Mesa, o botão "🖨️ Imprimir pedido da retirada" (ou "da mesa") imprime o cliente, os itens, o total e se já está pago ou se é para cobrar. Todas usam o mesmo modelo de comanda (a da cozinha também); nas entregas ela traz o endereço, a referência e o valor a cobrar. O botão só aparece depois que o pedido foi aceito. O tamanho do papel dessas três impressões se escolhe em Pedidos → Entregas ("Papel da impressão").' ],
     comuns:['"Abra o caixa antes de registrar uma venda".',
       '"A soma dos pagamentos precisa bater com o total".',
-      'Desconto nunca pode zerar a venda; no Caixa pede a sua senha.'] },
+      'Desconto nunca pode zerar a venda; no Caixa pede a sua senha.'],
+    prints:[{id:'caixa-1-cliente',alt:'Caixa, passo 1: escolher o cliente e retirada, entrega ou mesa',leg:'Passo 1: escolha o cliente (ou venda sem cadastro) e toque em Retirada, Entrega ou Mesa.'},{id:'caixa-2-itens',alt:'Caixa, passo 2: escolher os itens',leg:'Passo 2: toque no produto (atalhos) para entrar no carrinho; confira o carrinho.'},{id:'caixa-3-pagamento',alt:'Caixa, passo 3: pagamento e finalizar',leg:'Passo 3: confira a forma de pagamento e toque em Finalizar venda.'}] },
 
   { t:'Caixa vencido', itens:[
     'O caixa vence no primeiro horário de corte (padrão 06:00, horário de Brasília) depois de ter pelo menos 6 horas aberto, e nunca passa de 24 horas.',
@@ -427,6 +445,17 @@ Operador:{ nome:'Caixa', secoes:[
     'Cadastro de cliente, fidelidade, feedback e ocorrência vão para uma fila e seguem sozinhos na volta. Não repita a ação.' ],
     comuns:['Quando a faixa sumir, confira se os pedidos feitos na queda aparecem em Pedidos.'] },
 
+  { t:'⏰ Pedidos parados (alertas)', itens:[
+    'O sistema confere de minuto em minuto se algum pedido ficou parado: novo sem aceite, em preparo há muito tempo, pronto esperando retirada, saída para entrega, entrega ou serviço da mesa, entregue sem confirmação e "A receber" já concluído.',
+    'Com o app aberto aparece a faixa "⏰ Pedidos parados" na parte de baixo da tela, com som, e uma bolinha vermelha na aba Pedidos. Com o app fechado chega a notificação no celular (se os avisos estiverem ligados em 🔔).',
+    'Em cada pedido da faixa: "Ver pedido" abre o pedido; "Adiar 10 min" some por 10 minutos; "Silenciar este pedido" pede o motivo, some e fica registrado na Auditoria. O X esconde a faixa até aparecer um aviso novo.',
+    'O aviso só mostra o que é do seu perfil e só com o caixa aberto. Quando o pedido avança, é pago, cancelado ou o caixa fecha, o aviso some sozinho. Depois de 3 avisos sem resposta o Administrador também é avisado.',
+    'O alerta só avisa: nunca muda o status, o pagamento nem o pedido.' ],
+    prints:[{id:'alertas',alt:'Faixa Pedidos parados com os botões Ver pedido, Adiar 10 min e Silenciar este pedido',leg:'1: a faixa de pedidos parados, com Ver pedido, Adiar 10 min e Silenciar este pedido em cada pedido.'}] },
+  { t:'Turno do caixa (o "hoje" dos pedidos)', itens:[
+    'Os pedidos "concluídos", o histórico das mesas, "Vendas do turno" no Início e o resumo do Financeiro contam do momento em que o caixa abriu até o fechamento, mesmo passando da meia-noite. Não é a data do calendário.',
+    'Sem caixa aberto, mostram o último turno. Só se nunca houve caixa é que valem o dia do calendário.',
+    'Para ver as vendas só do uso real (sem os testes de antes de 17/10/2026), use em Relatórios o período "Uso real (desde 17/10/2026)".' ] },
   { t:'Avisos com o app fechado (🔔)', itens:[
     'Toque no 🔔 do topo e em "Ligar avisos com o app fechado". Permita as notificações quando o navegador pedir.',
     'Depois disso o celular avisa "Novo pedido" (do cardápio) e "Cliente no atendimento" mesmo com o app fechado ou a tela bloqueada. O aviso não mostra nome nem telefone do cliente.',
@@ -451,7 +480,8 @@ Operador:{ nome:'Caixa', secoes:[
     '"↺ Repetir última venda" recarrega o carrinho anterior.' ],
     comuns:['"Abra o caixa antes de registrar uma venda."',
       '"A soma dos pagamentos precisa bater com o total".',
-      'Desconto (% ou R$) pede a senha do administrador.'] },
+      'Desconto (% ou R$) pede a senha do administrador.'],
+    prints:[{id:'caixa-1-cliente',alt:'Caixa, passo 1: escolher o cliente e retirada, entrega ou mesa',leg:'Passo 1: escolha o cliente (ou venda sem cadastro) e toque em Retirada, Entrega ou Mesa.'},{id:'caixa-2-itens',alt:'Caixa, passo 2: escolher os itens',leg:'Passo 2: toque no produto (atalhos) para entrar no carrinho; confira o carrinho.'},{id:'caixa-3-pagamento',alt:'Caixa, passo 3: pagamento e finalizar',leg:'Passo 3: confira a forma de pagamento e toque em Finalizar venda.'}] },
 
   { t:'Cliente cancelou o pedido (Cardápio)', itens:[
     'Nos primeiros 3 minutos, e só enquanto o pedido está "aguardando aceite", o cliente cancela sozinho. O estoque volta.',
@@ -463,11 +493,12 @@ Operador:{ nome:'Caixa', secoes:[
     'Avance com "Marcar como…": Em preparo → Pronta → Retirada (Servida, se for mesa).',
     'Em Entregas, o entregador já vem preenchido quando só existe um cadastrado. Com mais de um, escolha no campo "Entregador".',
     'Para imprimir (o modelo da comanda é o mesmo em todas): nas Entregas toque em "🖨️ Imprimir para o entregador"; nas Retiradas e nas Mesas, em "🖨️ Imprimir pedido da retirada" (ou "da mesa"). O botão aparece depois que o pedido é aceito. Papel (58mm, 80mm ou A4) em Pedidos → Entregas.',
-    'Venda "A Receber": quando o cliente pagar, toque em "marcar como recebido".',
+    'Venda "A Receber": quando o cliente pagar, toque em "marcar como recebido" e escolha em que forma ele pagou (Dinheiro, Pix, cartão…; dá para dividir em duas). O padrão é a forma do pedido.',
     '"⏸ Suspender" pausa o pedido (toque num motivo pronto, como "Cliente não atende", ou escreva) e "▶️ Retomar" volta. Recusar pedido também tem motivos prontos.' ],
     comuns:['Só dá para editar os itens com o pedido "Em preparo".',
       'O entregador esqueceu de marcar: marque você pelo botão do pedido.',
-      'Sem aviso de pedido novo: no Início, toque em "🔔 Ativar avisos" e "🔊 Testar som".'] },
+      'Sem aviso de pedido novo: no Início, toque em "🔔 Ativar avisos" e "🔊 Testar som".'],
+    prints:[{id:'pedidos-retiradas',alt:'Pedidos, aba Retiradas, com o botão Aceitar',leg:'Retiradas: toque em Aceitar para o pedido ir para a cozinha.'},{id:'pedidos-entregas',alt:'Pedidos, aba Entregas, com o botão Marcar como Saiu para entrega',leg:'Entregas: avance o pedido a cada etapa (Pronta, Saiu, Entregue).'}] },
 
   { t:'Cliente pedindo pela mesa (QR Code)', passos:[
     'O cliente aponta a câmera para o QR da mesa, escolhe os itens e envia.',
@@ -484,7 +515,8 @@ Operador:{ nome:'Caixa', secoes:[
     'Para dividir, marque "Dividir em duas formas" e informe o valor da primeira.',
     'Se a forma escolhida tem acréscimo, ele é somado no fechamento e aparece no total a cobrar.' ],
     comuns:['"Abra o caixa antes de fechar a conta da mesa".',
-      '"A soma dos pagamentos não bate com a conta".'] },
+      '"A soma dos pagamentos não bate com a conta".'],
+    prints:[{id:'pedidos-mesas',alt:'Pedidos, aba Mesas, com o botão Liberar mesa e o histórico do turno',leg:'Mesas: mesas ocupadas em cima; o histórico do turno do caixa embaixo.'}] },
 
   { t:'Editar ou cancelar uma venda', passos:[
     'Caixa → "Lançamentos desde a abertura".',
@@ -548,6 +580,13 @@ Operador:{ nome:'Caixa', secoes:[
 
 'Garçom':{ nome:'Garçom', secoes:[
   _aj.entrar('Início, Atendimento, Pedidos (com Retiradas, Entregas e Mesas) e Clientes'),
+  { t:'⏰ Pedidos parados (alertas)', itens:[
+    'O sistema confere de minuto em minuto se algum pedido ficou parado: novo sem aceite, em preparo há muito tempo, pronto esperando retirada, saída para entrega, entrega ou serviço da mesa, entregue sem confirmação e "A receber" já concluído.',
+    'Com o app aberto aparece a faixa "⏰ Pedidos parados" na parte de baixo da tela, com som, e uma bolinha vermelha na aba Pedidos. Com o app fechado chega a notificação no celular (se os avisos estiverem ligados em 🔔).',
+    'Em cada pedido da faixa: "Ver pedido" abre o pedido; "Adiar 10 min" some por 10 minutos; "Silenciar este pedido" pede o motivo, some e fica registrado na Auditoria. O X esconde a faixa até aparecer um aviso novo.',
+    'O aviso só mostra o que é do seu perfil e só com o caixa aberto. Quando o pedido avança, é pago, cancelado ou o caixa fecha, o aviso some sozinho. Depois de 3 avisos sem resposta o Administrador também é avisado.',
+    'O alerta só avisa: nunca muda o status, o pagamento nem o pedido.' ],
+    prints:[{id:'alertas',alt:'Faixa Pedidos parados com os botões Ver pedido, Adiar 10 min e Silenciar este pedido',leg:'1: a faixa de pedidos parados, com Ver pedido, Adiar 10 min e Silenciar este pedido em cada pedido.'}] },
   { t:'Buscar (🔍 no topo)', itens:[
     'Toque na lupa 🔍 no topo e digite o nome do cliente, o número do pedido ou o nome de um produto. Você não vê valores nem telefone dos pedidos.' ]},
 
@@ -598,6 +637,13 @@ Operador:{ nome:'Caixa', secoes:[
 
 Cozinha:{ nome:'Cozinha', secoes:[
   _aj.entrar('Início, Cozinha (os pedidos) e Notificações'),
+  { t:'⏰ Pedidos parados (alertas)', itens:[
+    'O sistema confere de minuto em minuto se algum pedido ficou parado: novo sem aceite, em preparo há muito tempo, pronto esperando retirada, saída para entrega, entrega ou serviço da mesa, entregue sem confirmação e "A receber" já concluído.',
+    'Com o app aberto aparece a faixa "⏰ Pedidos parados" na parte de baixo da tela, com som, e uma bolinha vermelha na aba Pedidos. Com o app fechado chega a notificação no celular (se os avisos estiverem ligados em 🔔).',
+    'Em cada pedido da faixa: "Ver pedido" abre o pedido; "Adiar 10 min" some por 10 minutos; "Silenciar este pedido" pede o motivo, some e fica registrado na Auditoria. O X esconde a faixa até aparecer um aviso novo.',
+    'O aviso só mostra o que é do seu perfil e só com o caixa aberto. Quando o pedido avança, é pago, cancelado ou o caixa fecha, o aviso some sozinho. Depois de 3 avisos sem resposta o Administrador também é avisado.',
+    'O alerta só avisa: nunca muda o status, o pagamento nem o pedido.' ],
+    prints:[{id:'alertas',alt:'Faixa Pedidos parados com os botões Ver pedido, Adiar 10 min e Silenciar este pedido',leg:'1: a faixa de pedidos parados, com Ver pedido, Adiar 10 min e Silenciar este pedido em cada pedido.'}] },
   { t:'Buscar (🔍 no topo)', itens:[
     'Toque na lupa 🔍 no topo e digite o número do pedido, o nome do cliente ou o nome de um produto para achar um pedido rápido.' ]},
 
@@ -612,7 +658,8 @@ Cozinha:{ nome:'Cozinha', secoes:[
     'A comanda impressa é única: nas entregas traz o endereço, a referência, o telefone e o valor a cobrar. Grampeie no pedido e ele já segue para o entregador.',
     'No fim da tela, "📜 Concluídos neste turno" mostra o que já saiu (retirado, entregue ou servido), com o horário. A lista zera quando o caixa fecha.' ],
     comuns:['Sem beep: toque em "🔊 Testar som" no Início, aumente o volume de mídia e tire o modo silencioso.',
-      'O sistema mantém a tela ligada enquanto o app está aberto. Se aparecer "⚠️ A tela NÃO está sendo mantida ligada", toque em "📱 Manter a tela ligada".'] },
+      'O sistema mantém a tela ligada enquanto o app está aberto. Se aparecer "⚠️ A tela NÃO está sendo mantida ligada", toque em "📱 Manter a tela ligada".'],
+    prints:[{id:'cozinha',alt:'Tela da Cozinha com o botão Aceitar e iniciar preparo',leg:'Cozinha: toque em Aceitar e iniciar preparo (1); Ocorrência (2) avisa um problema.'}] },
 
   { t:'Confirmar impressão da comanda', itens:[
     'Depois de mandar imprimir, fica um botão discreto "🔁 Não saiu? Reimprimir" (some sozinho em 10 min). Ninguém precisa confirmar quando saiu certo.',
@@ -645,7 +692,8 @@ Entregador:{ nome:'Entregador', secoes:[
     'Ao entregar, toque em "✅ Já entreguei". O envio de localização para sozinho.',
     'Se o cartão diz "A receber", cobre o valor do cliente; quem registra o recebimento é o Caixa.' ],
     comuns:['Não aparece nada: ainda não atribuíram entrega a você. Avise o Caixa.',
-      'Pedido "aguardando aceite": o botão só aparece depois que o Caixa aceitar.'] },
+      'Pedido "aguardando aceite": o botão só aparece depois que o Caixa aceitar.'],
+    prints:[{id:'entregador',alt:'Tela de entregas do entregador',leg:'Entregador: avance a entrega com o botão do cartão (1).'}] },
 
   { t:'Aviso de entrega nova', itens:[
     'Na primeira vez, toque em "🔔 Ativar avisos e som" (canto da tela).',
@@ -659,7 +707,7 @@ Entregador:{ nome:'Entregador', secoes:[
     'Ao marcar "Já entreguei", o envio para automaticamente.' ]},
 
   { t:'Meu dia', itens:[
-    'Em Minhas entregas, "💰 Meu dia" mostra suas entregas de hoje, as taxas e a ajuda diária.',
+    'Em Minhas entregas, "💰 Meu dia" mostra suas entregas do turno do caixa (do abrir ao fechar, mesmo passando da meia-noite), as taxas e a ajuda diária.',
     'O total previsto é taxas + ajuda diária (uma vez por dia). O acerto oficial é feito pelo Administrador.' ]},
 
   _aj.ocorr('O Administrador e o Operador são avisados. Use para cliente ausente, endereço errado ou problema na entrega.')
@@ -830,6 +878,30 @@ function fecharAjudaCliente(){
   if(m) m.classList.remove('open');
 }
 
+/* Prints reais de "onde clicar": imagem do celular e do PC (WebP leve), carregadas só quando a seção é aberta (loading=lazy).
+   Cada print traz legenda e texto alternativo; os números nas imagens são os do passo a passo. Roteiro para refazer: ajuda-prints/ROTEIRO_DE_CAPTURA.md (no pacote de auditoria). */
+function ajudaPrintsHtml_(lista){
+  return '<div class="ajuda-prints">' + lista.map(p =>
+    '<figure class="ajuda-print"><picture>' +
+    '<source media="(min-width:900px)" srcset="ajuda-prints/' + escH(p.id) + '-pc.webp">' +
+    '<img src="ajuda-prints/' + escH(p.id) + '-cel.webp" alt="' + escH(p.alt) + '" loading="lazy" decoding="async">' +
+    '</picture><figcaption>' + escH(p.leg) + '</figcaption></figure>').join('') + '</div>';
+}
+
+/* Busca dentro da Ajuda: mostra só as seções (e erros) que têm o texto digitado, sem acento e sem diferenciar maiúscula; abre a primeira que casar. */
+function ajudaFiltrar_(q){
+  const norm = t => String(t||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+  const t = norm(q).trim(), box = document.getElementById('ajudaConteudo'); if(!box) return;
+  let primeira = true;
+  box.querySelectorAll('details.ajuda-det, details.ajuda-erro').forEach(d=>{
+    const ok = !t || norm(d.textContent).includes(t);
+    d.style.display = ok ? '' : 'none';
+    if(t && ok && primeira && d.classList.contains('ajuda-det')){ d.open = true; primeira = false; }
+  });
+  const tit = box.querySelector('.ajuda-erro-tit'); if(tit) tit.style.display = (!t || [...box.querySelectorAll('details.ajuda-erro')].some(d=>d.style.display!=='none')) ? '' : 'none';
+}
+window.ajudaFiltrar_ = ajudaFiltrar_;
+
 function ajudaHtml_(p){
   const m = MANUAL_AJUDA_[p] || MANUAL_AJUDA_.Operador;
   const li = a => a.map(x=>'<li>'+escH(x)+'</li>').join('');
@@ -840,12 +912,14 @@ function ajudaHtml_(p){
   let h = '<p class="sub">Manual do perfil <b>' + escH(m.nome) + '</b>.' +
     (ehDev ? ' <span style="opacity:.75;">(comandos de Desenvolvedor inclusos)</span>' : '') +
     ' Toque num título para abrir.</p>';
+  h += '<input type="search" id="ajudaBusca" placeholder="Buscar na Ajuda (ex.: caixa, entrega, nota)" autocomplete="off" aria-label="Buscar na Ajuda" oninput="ajudaFiltrar_(this.value)" style="margin:6px 0 4px;">';
   h += novidadesHtml_(p);
   secoes.forEach((s,i)=>{
     h += '<details class="ajuda-det"><summary>'+escH(s.t)+'</summary>';
     if(s.passos) h += '<ol>'+li(s.passos)+'</ol>';
     if(s.itens)  h += '<ul>'+li(s.itens)+'</ul>';
     if(s.comuns) h += '<div class="ajuda-comuns"><b>Erros comuns</b>'+s.comuns.map(x=>'<div>• '+escH(x)+'</div>').join('')+'</div>';
+    if(s.prints) h += ajudaPrintsHtml_(s.prints);
     h += '</details>';
   });
   h += '<h3 class="ajuda-erro-tit">🆘 E se der errado?</h3>';

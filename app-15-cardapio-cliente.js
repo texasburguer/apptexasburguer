@@ -344,7 +344,6 @@ function cdMpMostrarModal_(html, aoFechar){
   m.innerHTML = '<div class="modal-box mp-box"><button type="button" class="mp-fechar" aria-label="Fechar" onclick="' + (aoFechar || 'cdMpFecharPagamento_(true)') + '">✕</button><section class="mp-tela" id="cdMpPagamentoConteudo">' + html + '</section></div>';
   m.classList.add('open');
 }
-function cdMpMostrarConteudo_(html, aoFechar){ cdMpMostrarModal_(html, aoFechar); }
 function cdMpFecharPagamento_(cancelar){
   const m = document.getElementById('cdMpPagamentoModal'); if(m) m.classList.remove('open');
   cdMpParar_();

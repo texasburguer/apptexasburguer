@@ -22,7 +22,7 @@ function alFaixa_(){
   let d = document.getElementById('alFaixa');
   if(!d){
     d = document.createElement('div'); d.id = 'alFaixa'; d.setAttribute('role', 'status'); d.setAttribute('aria-live', 'polite');
-    d.style.cssText = 'display:none;position:fixed;left:8px;right:8px;bottom:calc(76px + env(safe-area-inset-bottom,0px));z-index:9997;max-width:560px;margin:0 auto;background:#3a1d08;border:2px solid var(--orange,#fd9f00);border-radius:12px;padding:8px 10px;box-shadow:0 6px 24px rgba(0,0,0,.5);color:var(--cream,#fff);font-size:14px;max-height:45vh;overflow:auto;';
+    d.style.cssText = 'display:none;position:fixed;left:8px;right:8px;bottom:calc(76px + env(safe-area-inset-bottom,0px));z-index:9997;max-width:560px;max-height:40vh;overflow-y:auto;margin:0 auto;background:#3a1d08;border:2px solid var(--orange,#fd9f00);border-radius:12px;padding:8px 10px;box-shadow:0 6px 24px rgba(0,0,0,.5);color:var(--cream,#fff);font-size:14px;max-height:45vh;overflow:auto;';
     document.body.appendChild(d);
   }
   return d;

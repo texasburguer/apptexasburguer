@@ -6,7 +6,7 @@ const API_URL = "https://script.google.com/macros/s/AKfycbwCftUm-1pxhA8XLNqMB7dM
 const CONTINGENCIA_API_URL = "https://script.google.com/macros/s/AKfycby3WljBnr7gpJrHdkbTvBCh5uIXqS4KCS6wkBYB5idxf5gI04efoDumQj264kR_smoW/exec";
 
 /* ===================== VERSÃO DO APP ===================== */
-const APP_VERSAO = '1.9';
+const APP_VERSAO = '1.10';
 const APP_ATUALIZADO_EM = '18/10/2026';
 window.APP_VERSAO = APP_VERSAO;
 
@@ -18,6 +18,13 @@ window.APP_VERSAO = APP_VERSAO;
    A seção "🆕 O que mudou" do manual é gerada daqui. */
 const APP_NOVIDADES = {
   Admin: [
+    { v:'1.10', em:'18/10/2026', itens:[
+      'Novo: aviso de pedido parado. Aparece a faixa "⏰ Pedidos parados" (com som) quando um pedido do seu perfil fica sem avançar. Toque em Ver pedido, Adiar 10 min ou Silenciar este pedido. Os tempos e as regras ficam em Sistema → Sincronização e contingência → ⏰ Alertas automáticos.',
+      'O "hoje" dos pedidos agora segue o turno do caixa (do abrir ao fechar, mesmo passando da meia-noite). Em Relatórios há o período novo "Uso real (desde 17/10/2026)".',
+      '"Marcar como recebido" agora pergunta em que forma o cliente pagou.',
+      'O comprovante da nota de compra é guardado no Google Drive (você escolhe qual dos dois), não mais no Supabase.',
+      'A Ajuda ganhou campo de busca e prints reais com a marcação de onde clicar, em versão para celular e para computador.'
+    ]},
     { v:'1.7', em:'17/10/2026', itens:[
       'Adicionais e receitas de produto agora pedem a quantidade em gramas (ou ml) do jeito que você pensa: o campo mostra a unidade (g), tem atalhos (10, 20, 30, 50, 100 g) e, embaixo, um resumo ao vivo com quanto baixa do estoque (ex.: 30 g = 0,03 kg) e o custo. A lista de adicionais mostra o que cada um baixa do estoque. Quantidade zerada ou pequena demais agora avisa em vez de gravar 1.'
     ]},
@@ -109,6 +116,12 @@ const APP_NOVIDADES = {
     ]}
   ],
   Operador: [
+    { v:'1.10', em:'18/10/2026', itens:[
+      'Novo: aviso de pedido parado. Aparece a faixa "⏰ Pedidos parados" (com som) quando um pedido do seu perfil fica sem avançar. Toque em Ver pedido, Adiar 10 min ou Silenciar este pedido.',
+      'O "hoje" dos pedidos agora segue o turno do caixa (do abrir ao fechar, mesmo passando da meia-noite).',
+      '"Marcar como recebido" agora pergunta em que forma o cliente pagou.',
+      'A Ajuda ganhou campo de busca e prints reais com a marcação de onde clicar, em versão para celular e para computador.'
+    ]},
     { v:'1.6', em:'16/10/2026', itens:[
       'Ajuda atualizada: nova seção “Caixa vencido” (como fechar o caixa vencido) e “No computador” com o menu atual.'
     ]},
@@ -141,6 +154,11 @@ const APP_NOVIDADES = {
     ]}
   ],
   'Garçom': [
+    { v:'1.10', em:'18/10/2026', itens:[
+      'Novo: aviso de pedido parado. Aparece a faixa "⏰ Pedidos parados" (com som) quando um pedido do seu perfil fica sem avançar. Toque em Ver pedido, Adiar 10 min ou Silenciar este pedido. Você recebe os avisos de mesa pronta esperando ser servida, e pode ligar os avisos com o app fechado.',
+      'O "hoje" dos pedidos agora segue o turno do caixa (do abrir ao fechar, mesmo passando da meia-noite).',
+      'A Ajuda ganhou campo de busca e prints reais com a marcação de onde clicar, em versão para celular e para computador.'
+    ]},
     { v:'1.0', em:'09/10/2026', itens:[
       'A Ajuda vem com os tópicos fechados: toque no título para abrir.',
       'Primeira versão estável do sistema.',
@@ -149,6 +167,11 @@ const APP_NOVIDADES = {
     ]}
   ],
   Cozinha: [
+    { v:'1.10', em:'18/10/2026', itens:[
+      'Novo: aviso de pedido parado. Aparece a faixa "⏰ Pedidos parados" (com som) quando um pedido do seu perfil fica sem avançar. Toque em Ver pedido, Adiar 10 min ou Silenciar este pedido. Você recebe os avisos de pedido novo sem aceite e de preparo demorado, e pode ligar os avisos com o app fechado.',
+      'O "hoje" dos pedidos agora segue o turno do caixa (do abrir ao fechar, mesmo passando da meia-noite).',
+      'A Ajuda ganhou campo de busca e prints reais com a marcação de onde clicar, em versão para celular e para computador.'
+    ]},
     { v:'1.0', em:'09/10/2026', itens:[
       'A Ajuda vem com os tópicos fechados: toque no título para abrir.',
       'Primeira versão estável do sistema.',
@@ -158,6 +181,10 @@ const APP_NOVIDADES = {
     ]}
   ],
   Entregador: [
+    { v:'1.10', em:'18/10/2026', itens:[
+      '"Meu dia" e as entregas concluídas agora contam pelo turno do caixa (do abrir ao fechar), sem zerar na meia-noite.',
+      'A Ajuda ganhou campo de busca e prints reais com a marcação de onde clicar, em versão para celular e para computador.'
+    ]},
     { v:'1.0', em:'09/10/2026', itens:[
       'A Ajuda vem com os tópicos fechados: toque no título para abrir.',
       'Primeira versão estável do sistema.',
