@@ -741,3 +741,7 @@ button:has(> .ic:only-child), .close-btn .ic{margin-right:0;}
 .admin-subnav button .adm-t,#adminLateral button .adm-t{display:block;}
 .admin-subnav button .adm-d,#adminLateral button .adm-d{display:block;margin-top:2px;font-size:var(--fs-2xs);font-weight:500;line-height:1.2;opacity:.7;}
 #adminLateral button .adm-d{font-size:var(--fs-2xs);}
+
+/* Linha de botões (modais e cartões): lado a lado, com quebra em telas estreitas */
+.btn-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px;}
+.btn-row button{width:auto;margin:0;}

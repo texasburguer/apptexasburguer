@@ -736,11 +736,12 @@ function cfAjustarPrecosAbrir(){
       '<label>Percentual (%)</label><input type="number" id="apPct" step="0.1" placeholder="Ex.: 8">' +
       '<label>Categoria</label><select id="apCat"></select>' +
       '<div class="msg" id="apMsg"></div>' +
-      '<div class="btn-row"><button type="button" class="gold" id="apBtn" onclick="cfAjustarPrecosAplicar()">Aplicar</button><button type="button" class="ghost" onclick="fecharFormModal(\'ajustePrecosModal\')">Cancelar</button></div></div>';
+      '<div class="btn-row"><button type="button" class="small-gold" id="apBtn" onclick="cfAjustarPrecosAplicar()">Aplicar</button><button type="button" class="ghost" onclick="fecharFormModal(\'ajustePrecosModal\')">Cancelar</button></div></div>';
     document.body.appendChild(m);
   }
-  const cats = Array.from(new Set((produtos || []).filter(x => x.ativo !== false && x.categoria).map(x => x.categoria)));
-  document.getElementById('apCat').innerHTML = '<option value="">Todas as categorias</option>' + cats.map(c => '<option>' + String(c).replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</option>').join('');
+  const esc = t => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+  const cats = Array.from(new Set((produtos || []).filter(x => x.ativo !== false && x.categoria).map(x => (typeof nomeCategoria === 'function' ? nomeCategoria(x.categoria) : x.categoria) || '').filter(Boolean))).sort((a, b) => a.localeCompare(b));
+  document.getElementById('apCat').innerHTML = '<option value="">Todas as categorias</option>' + cats.map(c => '<option value="' + esc(c) + '">' + esc(c) + '</option>').join('');
   document.getElementById('apPct').value = ''; document.getElementById('apMsg').textContent = '';
   abrirFormModal('ajustePrecosModal');
 }
@@ -771,7 +772,7 @@ function cfVisLoteAbrir(){
       '<label>Categoria</label><select id="vlCat" onchange="cfVisLoteRender()"></select>' +
       '<div class="btn-row"><button type="button" class="ghost small" onclick="cfVisLoteMarcar(true)">Marcar todos</button><button type="button" class="ghost small" onclick="cfVisLoteMarcar(false)">Desmarcar</button></div>' +
       '<div id="vlLista" style="max-height:45vh;overflow:auto;margin:8px 0;"></div><div class="msg" id="vlMsg"></div>' +
-      '<div class="btn-row"><button type="button" class="gold" onclick="cfVisLoteAplicar(true)">Mostrar marcados</button><button type="button" class="ghost" onclick="cfVisLoteAplicar(false)">Esconder marcados</button></div></div>';
+      '<div class="btn-row"><button type="button" class="small-gold" onclick="cfVisLoteAplicar(true)">Mostrar marcados</button><button type="button" class="ghost" onclick="cfVisLoteAplicar(false)">Esconder marcados</button></div></div>';
     document.body.appendChild(m);
   }
   const esc = t => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;');

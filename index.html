@@ -87,7 +87,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alfa+Slab+One&display=swap">
 <title>Texas Burger — Sistema Completo</title>
-<link rel="stylesheet" href="estilo-base.css?v=309b8857">
+<link rel="stylesheet" href="estilo-base.css?v=ab2f346e">
 </head>
 <body>
 
@@ -399,6 +399,7 @@
       <h2 style="margin-bottom:2px;">Minha escala</h2>
       <p class="sub mt-0">Seus próximos 7 dias.</p>
       <div id="minhaEscalaLista"></div>
+      <div id="minhaEscalaExtra"></div>
       <button type="button" class="ghost small mt-3" onclick="escEquipeAbrir()">Ver escala da equipe</button>
     </div>
   </section>
@@ -440,7 +441,7 @@
     </div>
 
     <div class="card" data-painel="produtos">
-      <div class="card-head"><h2>Produtos cadastrados</h2><span><button type="button" class="ghost small" onclick="cfVisLoteAbrir()">👁 Mostrar/esconder</button> <button type="button" class="ghost small" onclick="cfAjustarPrecosAbrir()">% Ajustar preços</button> <button type="button" class="small-gold" onclick="abrirFormModal('produtoNovoModal');cfIniciarProduto('p',null)">+ Novo produto</button></span></div>
+      <div class="card-head" style="flex-wrap:wrap;"><h2>Produtos cadastrados</h2><span style="display:flex;gap:6px;width:100%;"><button type="button" class="ghost small" style="flex:1 1 0;min-width:0;padding:8px 4px;font-size:12px;white-space:normal;line-height:1.2;" onclick="cfVisLoteAbrir()">👁 Mostrar / esconder</button> <button type="button" class="ghost small" style="flex:1 1 0;min-width:0;padding:8px 4px;font-size:12px;white-space:normal;line-height:1.2;" onclick="cfAjustarPrecosAbrir()">% Ajustar preços</button><button type="button" class="small-gold" style="flex:1 1 0;min-width:0;padding:8px 4px;font-size:12px;white-space:normal;line-height:1.2;" onclick="abrirFormModal('produtoNovoModal');cfIniciarProduto('p',null)">+ Novo produto</button></span></div>
       <div id="cfAvisoProdutos"></div>
       <div class="msg" id="pMsgLista"></div>
       <input type="text" class="search" id="pSearch" placeholder="Buscar produto..." oninput="renderProdutos()">
@@ -919,6 +920,12 @@
       </div>
       <button class="primary" onclick="abrirModalContaPagar()">+ Conta a pagar</button>
       <table class="mt-3"><tbody id="contasPagarLista"></tbody></table>
+    </div>
+
+    <div class="card" id="evAReceberCard" style="display:none;">
+      <h2>Eventos a receber</h2>
+      <p class="sub">Dinheiro que ainda vai entrar de eventos já contratados. Toque para abrir o evento.</p>
+      <div id="evAReceberLista"></div>
     </div>
 
     <div class="card">
@@ -1418,6 +1425,7 @@
       <p class="sub">Toque em Recibo para imprimir ou salvar em PDF. Cancelar pede a senha do Administrador.</p>
       <table><tbody id="eqPagamentos"></tbody></table>
     </div>
+    <div id="eqExtras"></div>
   </section>
 
   <section class="tab" id="tab-escala">
@@ -1431,9 +1439,22 @@
         <button type="button" class="ghost small" onclick="escCopiarAnterior()">Copiar semana anterior</button>
         <button type="button" class="ghost small" onclick="escImprimir()">Imprimir</button>
         <button type="button" class="ghost small" onclick="escWhatsapp()">WhatsApp</button>
+        <button type="button" class="ghost small" onclick="escAvisar()">Avisar a equipe (celular)</button>
       </div>
       <div class="msg" id="escMsg"></div>
       <div id="escCorpo"></div>
+    </div>
+    <div id="escTrocas"></div>
+  </section>
+
+  <section class="tab" id="tab-ponto">
+    <div class="admin-subnav" data-admin-nav="1"></div>
+    <div class="card">
+      <h2>Ponto da equipe</h2>
+      <p class="sub">Cada pessoa bate entrada e saída pelo celular, na tela Início. Aqui você vê as horas feitas contra as escaladas, as horas extras (acima de 44 h na semana) e corrige ou lança o que foi esquecido.</p>
+      <div id="pontoNav"></div>
+      <div class="msg" id="pontoMsg"></div>
+      <div id="pontoCorpo" style="margin-top:8px;"></div>
     </div>
   </section>
 
@@ -2268,7 +2289,7 @@
       <label>Valor contratado (R$)</label><input type="number" id="evValor" min="0" step="0.01">
       <label>Observações</label><textarea id="evObs" rows="3"></textarea>
       <button class="primary" onclick="salvarEventoUI()">Salvar</button><div class="msg" id="evMsg"></div>
-      <div class="btn-row" style="margin-top:10px;"><button type="button" class="ghost" onclick="evWhatsapp()">WhatsApp do contratante</button><button type="button" class="ghost" onclick="evImprimir()">Imprimir resumo</button><button type="button" class="ghost" onclick="evDuplicar()">Duplicar evento</button><button type="button" class="ghost" onclick="cancelarEventoUI()">Cancelar evento</button></div>
+      <div class="btn-row" style="margin-top:10px;"><button type="button" class="ghost" onclick="evWhatsapp()">WhatsApp do contratante</button><button type="button" class="ghost" onclick="evOrcamento()">Orçamento (PDF)</button><button type="button" class="ghost" onclick="evImprimir()">Imprimir resumo</button><button type="button" class="ghost" onclick="evDuplicar()">Duplicar evento</button><button type="button" class="ghost" onclick="cancelarEventoUI()">Cancelar evento</button></div>
     </div>
     <div id="evPane_custos" style="display:none;"></div>
     <div id="evPane_receb" style="display:none;"></div>
@@ -2506,15 +2527,15 @@
   </div>
 </div>
 
-<script src="app-01-base-e-api.js?v=86b4d736" charset="utf-8" data-origem="__big0__"></script>
-<script src="app-02-abas.js?v=f9b3bc5b" charset="utf-8" data-origem="__big1__"></script>
+<script src="app-01-base-e-api.js?v=4b1ea30c" charset="utf-8" data-origem="__big0__"></script>
+<script src="app-02-abas.js?v=d1dbd674" charset="utf-8" data-origem="__big1__"></script>
 <script src="app-03-cadastros.js?v=59f57650" charset="utf-8" data-origem="__big2__"></script>
 <script src="app-04-pedidos-entrega.js?v=5c2967f1" charset="utf-8" data-origem="__big3__"></script>
 <script src="app-05-avisos-push.js?v=3f40fbe8" charset="utf-8" data-origem="__big4__"></script>
 <script src="app-06-caixa.js?v=edcbde35" charset="utf-8" data-origem="__big5__"></script>
 <script src="app-07-impressao.js?v=5c9f0484" charset="utf-8" data-origem="__big6__"></script>
 <script src="app-08-vendas-despesas.js?v=86517a81" charset="utf-8" data-origem="__big7__"></script>
-<script src="app-09-ajuda.js?v=c2a24312" charset="utf-8" data-origem="__big8__"></script>
+<script src="app-09-ajuda.js?v=6ffcc58c" charset="utf-8" data-origem="__big8__"></script>
 <script src="app-10-backup-financeiro.js?v=3b7d8cd1" charset="utf-8" data-origem="__big9__"></script>
 <script src="app-11-admin-integracoes.js?v=e53763b1" charset="utf-8" data-origem="__big10__"></script>
 <script src="app-12-gestao-ia.js?v=f1cc6dcc" charset="utf-8" data-origem="__big11__"></script>
@@ -2525,7 +2546,7 @@
 <!-- ═══════════ SINCRONIZAÇÃO, BACKUP, ESPAÇO E INTEGRIDADE ═══════════
      app-17 cria cartões (ids sb410*) nas telas Backup e espaço e Sincronização e contingência. -->
 
-<script src="app-17-sessao-supabase.js?v=433dc91a" charset="utf-8" data-origem=""></script>
+<script src="app-17-sessao-supabase.js?v=3fdfeb13" charset="utf-8" data-origem=""></script>
 
 <!-- ═══════════ MODO RESERVA (queda do Supabase) ═══════════
      Detecta a queda do Supabase, avisa com faixa laranja e reenvia a fila do aparelho sozinha na volta.
@@ -2566,7 +2587,7 @@
   </div>
 <script src="app-23-janelas-popup.js?v=6f031891" charset="utf-8" data-origem=""></script>
 <script src="app-24-acessibilidade.js?v=1567f2c1" charset="utf-8" data-origem=""></script>
-<script src="app-25-cadastro-facil.js?v=77e77ea1" charset="utf-8" data-origem=""></script>
+<script src="app-25-cadastro-facil.js?v=1b11178b" charset="utf-8" data-origem=""></script>
 <script src="app-26-visual.js?v=3c963d27" charset="utf-8" data-origem=""></script>
 <link rel="stylesheet" href="estilo-conta-pagamento.css?v=c8bbf776">
 <script src="app-28-dialogos.js?v=58e2325f" charset="utf-8" data-origem=""></script>
@@ -2576,6 +2597,7 @@
 <script src="app-31-alertas.js?v=cc24a649" charset="utf-8" data-origem=""></script>
 <script src="app-32-equipe.js?v=94d12e93" charset="utf-8" data-origem=""></script>
 <script src="app-33-escala.js?v=e7afa85e" charset="utf-8" data-origem=""></script>
-<script src="app-34-eventos.js?v=408aa3f8" charset="utf-8" data-origem=""></script>
+<script src="app-34-eventos.js?v=e0698031" charset="utf-8" data-origem=""></script>
+<script src="app-35-equipe-extras.js?v=1874bb81" charset="utf-8" data-origem=""></script>
 </body>
 </html>

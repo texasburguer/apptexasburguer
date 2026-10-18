@@ -26,6 +26,23 @@ function evCartao_(e){
     '<div style="display:flex;gap:10px;margin-top:8px;">' + num('A receber', e.valorAReceber, atras ? 'var(--red-hi)' : '') + num('Recebido', e.valorRecebido, '') + num('Resultado', res, res < 0 ? 'var(--red-hi)' : 'var(--ok)') + '</div></div>';
 }
 
+var evView_ = 'lista', evMesCal_ = '';
+function evVista(v){ evView_ = v; renderEventosUI(); }
+function evMesIr(n){ const [y, m] = (evMesCal_ || evHojeISO_().slice(0, 7)).split('-').map(Number); const d = new Date(y, m - 1 + n, 1); evMesCal_ = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); renderEventosUI(); }
+function evCalendarioHtml_(todos){
+  if(!evMesCal_) evMesCal_ = evHojeISO_().slice(0, 7);
+  const [y, m] = evMesCal_.split('-').map(Number), primeiro = new Date(y, m - 1, 1), diasMes = new Date(y, m, 0).getDate(), desl = (primeiro.getDay() + 6) % 7, hoje = evHojeISO_();
+  const nomes = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+  let h = '<div class="btn-row" style="align-items:center;"><button type="button" class="ghost small" onclick="evMesIr(-1)" aria-label="Mês anterior">‹</button><b style="flex:1;text-align:center;">' + nomes[m - 1] + ' de ' + y + '</b><button type="button" class="ghost small" onclick="evMesIr(1)" aria-label="Próximo mês">›</button></div>' +
+    '<div style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px;margin-top:8px;font-size:11px;">' + ['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'].map(d => '<div style="text-align:center;color:var(--muted);">' + d + '</div>').join('');
+  for(let i = 0; i < desl; i++) h += '<div></div>';
+  for(let d = 1; d <= diasMes; d++){
+    const iso = evMesCal_ + '-' + String(d).padStart(2, '0'), evs = todos.filter(e => evData_(e.data) === iso && e.status !== 'Cancelado');
+    h += '<div style="min-height:58px;border:1px solid ' + (iso === hoje ? 'var(--gold)' : 'var(--line)') + ';border-radius:6px;padding:2px;overflow:hidden;"><div style="color:var(--muted);">' + d + '</div>' +
+      evs.map(e => '<div onclick="evAbrir(\'' + e.id + '\')" style="cursor:pointer;margin-top:2px;padding:1px 3px;border-radius:4px;font-size:10px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border:1px solid ' + evCorStatus_(e.status) + ';color:' + evCorStatus_(e.status) + ';" title="' + escH(e.nome) + '">' + escH(e.nome) + '</div>').join('') + '</div>';
+  }
+  return h + '</div>';
+}
 function renderEventosUI(){
   evPreencherFormas_();
   const box = document.getElementById('evLista'); if(!box) return;
@@ -39,8 +56,44 @@ function renderEventosUI(){
   if(!todos.length){ box.innerHTML = '<div class="notif-empty">Nenhum evento ainda. Toque em “+ Novo evento”.</div>'; return; }
   const aberto = todos.filter(e => e.status !== 'Cancelado');
   const aRec = aberto.reduce((s, e) => s + (Number(e.valorAReceber) || 0), 0), atras = todos.filter(evAtrasado_).length;
-  box.innerHTML = '<div class="obs-line" style="margin-bottom:8px;">A receber de todos os eventos: <b>' + formatarMoeda(aRec) + '</b>' + (atras ? ' · <span style="color:var(--red-hi);font-weight:700;">' + atras + ' atrasado(s)</span>' : '') + '</div>' +
-    grupos.filter(g => g[1].length).map(g => '<h3 style="margin:14px 0 6px;">' + g[0] + ' (' + g[1].length + ')</h3>' + g[1].map(evCartao_).join('')).join('');
+  const bt = (v, t) => '<button type="button" class="ghost small" style="' + (evView_ === v ? 'border-color:var(--gold);color:var(--gold);' : '') + '" onclick="evVista(\'' + v + '\')">' + t + '</button>';
+  box.innerHTML = '<div class="btn-row" style="margin-bottom:8px;">' + bt('lista', 'Lista') + bt('calendario', 'Calendário') + '</div>' +
+    '<div class="obs-line" style="margin-bottom:8px;">A receber de todos os eventos: <b>' + formatarMoeda(aRec) + '</b>' + (atras ? ' · <span style="color:var(--red-hi);font-weight:700;">' + atras + ' atrasado(s)</span>' : '') + '</div>' +
+    (evView_ === 'calendario' ? evCalendarioHtml_(todos) : grupos.filter(g => g[1].length).map(g => '<h3 style="margin:14px 0 6px;">' + g[0] + ' (' + g[1].length + ')</h3>' + g[1].map(evCartao_).join('')).join(''));
+}
+/* Contas a pagar: cartão "Eventos a receber" (só leitura; o dinheiro só entra quando o recebimento é lançado no evento) */
+function evAReceberRender_(){
+  const card = document.getElementById('evAReceberCard'), box = document.getElementById('evAReceberLista'); if(!card || !box) return;
+  const lista = (eventos || []).filter(e => ['Confirmado','Em andamento','Concluído'].includes(e.status) && (Number(e.valorAReceber) || 0) > 0.004).sort((a, b) => (evData_(a.data) || '9').localeCompare(evData_(b.data) || '9'));
+  if(!lista.length){ card.style.display = 'none'; return; }
+  card.style.display = '';
+  box.innerHTML = '<div class="stat-row"><div class="stat-box"><b>' + formatarMoeda(lista.reduce((s, e) => s + (Number(e.valorAReceber) || 0), 0)) + '</b><span>A RECEBER</span></div></div>' +
+    lista.map(e => '<div class="notif-card" style="cursor:pointer;" onclick="abrirAdministrador(\'eventos\');setTimeout(function(){evAbrir(\'' + e.id + '\')},400)"><div style="display:flex;justify-content:space-between;gap:8px;"><b>' + escH(e.nome) + '</b><b style="color:' + (evAtrasado_(e) ? 'var(--red-hi)' : 'inherit') + ';">' + formatarMoeda(e.valorAReceber) + '</b></div><div class="obs-line">' + escH(fmtDataBR(evData_(e.data))) + ' · ' + escH(e.contratante || '') + (evAtrasado_(e) ? ' · <span style="color:var(--red-hi);">já passou</span>' : '') + '</div></div>').join('');
+}
+(function(){
+  if(typeof renderContasPagar === 'function'){ const orig = renderContasPagar; renderContasPagar = function(){ const r = orig.apply(this, arguments); try{ evAReceberRender_(); }catch(e){} return r; }; }
+})();
+/* Orçamento para o contratante (imprimir ou salvar em PDF) */
+async function evOrcamento(){
+  const e = evAtual_(); if(!e) return avisar('Salve o evento antes de gerar o orçamento.');
+  const f = await vsForm({ titulo:'Orçamento do evento', texto:'Escreva o que está incluso (uma linha por item) e as condições. Isso sai no papel; não fica guardado.', ok:'Gerar orçamento', campos:[
+    { id:'incluso', rotulo:'O que está incluso (um item por linha)', tipo:'longo', valor: e.observacoes || '' },
+    { id:'cond', rotulo:'Forma de pagamento', tipo:'texto', valor:'Sinal de 30% para reservar a data e o saldo até o dia do evento.' },
+    { id:'validade', rotulo:'Validade do orçamento (dias)', tipo:'numero', valor:7, minimo:1 } ] });
+  if(!f) return;
+  const val = new Date(); val.setDate(val.getDate() + (Number(f.validade) || 7));
+  const itens = String(f.incluso || '').split('\n').map(x => x.trim()).filter(Boolean);
+  const h = '<div style="font-family:Arial,sans-serif;font-size:14px;padding:20px;max-width:720px;"><h1 style="margin:0;">TEXAS BURGER</h1><div style="color:#555;margin-bottom:14px;">Orçamento para evento</div>' +
+    '<h2 style="margin:0 0 4px;">' + escH(e.nome) + '</h2>' +
+    '<table style="border-collapse:collapse;width:100%;margin:8px 0 14px;"><tr><td style="padding:3px 0;width:150px;"><b>Contratante</b></td><td>' + escH(e.contratante || '—') + (e.telefone ? ' · ' + escH(e.telefone) : '') + '</td></tr>' +
+    '<tr><td style="padding:3px 0;"><b>Data</b></td><td>' + escH(fmtDataBR(evData_(e.data))) + (evHora_(e) ? ' · ' + escH(evHora_(e)) : '') + '</td></tr>' +
+    (e.local ? '<tr><td style="padding:3px 0;"><b>Local</b></td><td>' + escH(e.local) + '</td></tr>' : '') +
+    (e.tipo ? '<tr><td style="padding:3px 0;"><b>Tipo</b></td><td>' + escH(e.tipo) + '</td></tr>' : '') + '</table>' +
+    (itens.length ? '<h3 style="margin:0 0 4px;">O que está incluso</h3><ul style="margin:0 0 14px;padding-left:20px;">' + itens.map(x => '<li>' + escH(x) + '</li>').join('') + '</ul>' : '') +
+    '<div style="border:2px solid #000;padding:10px;margin-bottom:14px;"><div style="font-size:12px;color:#555;">VALOR TOTAL</div><div style="font-size:24px;font-weight:bold;">' + formatarMoeda(e.valorContratado) + '</div></div>' +
+    '<div><b>Forma de pagamento:</b> ' + escH(f.cond || '') + '</div><div style="margin-top:4px;"><b>Validade:</b> até ' + escH(fmtDataBR(dataLocalISO(val))) + '.</div>' +
+    '<div style="margin-top:46px;display:flex;gap:40px;"><div style="flex:1;border-top:1px solid #000;padding-top:4px;text-align:center;">Texas Burger</div><div style="flex:1;border-top:1px solid #000;padding-top:4px;text-align:center;">' + escH(e.contratante || 'Contratante') + '</div></div></div>';
+  imprimirDocumento(h, 'Orçamento — ' + e.nome, 'A4');
 }
 
 function limparEventoUI(){
