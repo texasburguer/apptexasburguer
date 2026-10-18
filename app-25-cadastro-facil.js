@@ -686,7 +686,10 @@ function cfRascunhoSalvar_(){
   try{
     const c = {}; CF_RASC_CAMPOS_.forEach(id => { const el = document.getElementById(id); if(el) c[id] = el.value; });
     if(!String(c.pNome || '').trim()){ cfRascunhoLimpar_(); return; }
-    localStorage.setItem(CF_RASC_CHAVE_, JSON.stringify({ c, tipo: CF_TIPO_.p, em: Date.now() }));
+    const adic = Array.from(document.querySelectorAll('#pAdicionaisLista input[type=checkbox]:checked')).map(x => x.value);
+    const prec = {}; document.querySelectorAll('#pPrecosProprios input[data-forma]').forEach(i => { if(i.value !== '') prec[i.dataset.forma] = i.value; });
+    const dest = document.getElementById('pDestaque');
+    localStorage.setItem(CF_RASC_CHAVE_, JSON.stringify({ c, tipo: CF_TIPO_.p, ing: ingredientesProdutoNovo || [], adic, prec, dest: !!(dest && dest.checked), em: Date.now() }));
   }catch(e){}
 }
 (function(){
@@ -700,9 +703,23 @@ function cfRascunhoSalvar_(){
       if(!ok){ cfRascunhoLimpar_(); return; }
       CF_RASC_CAMPOS_.forEach(id => cfSet_(id, r.c[id]));
       if(r.tipo) cfSetTipo('p', r.tipo);
+      try{
+        ingredientesProdutoNovo = Array.isArray(r.ing) ? r.ing : []; cfRwRender('p');
+        renderAdicionaisChecklist('pAdicionaisLista', r.adic || []);
+        renderPrecosExcecoes('p', r.prec || {});
+        const d = document.getElementById('pDestaque'); if(d) d.checked = !!r.dest;
+        cfAtualizarCusto('p');
+      }catch(e){}
       try{ cfAtualizarMargem('p'); }catch(e){}
     });
   };
+  const ra = cfRwAdicionar, rr = cfRwRemover;
+  cfRwAdicionar = function(pre){ ra.apply(this, arguments); if(pre === 'p') cfRascunhoSalvar_(); };
+  cfRwRemover = function(pre){ rr.apply(this, arguments); if(pre === 'p') cfRascunhoSalvar_(); };
+  document.addEventListener('change', function(e){
+    const m = document.getElementById('produtoNovoModal');
+    if(m && m.classList.contains('open') && m.contains(e.target)) cfRascunhoSalvar_();
+  });
   document.addEventListener('input', function(e){
     const m = document.getElementById('produtoNovoModal');
     if(m && m.classList.contains('open') && m.contains(e.target)) cfRascunhoSalvar_();
@@ -741,4 +758,40 @@ async function cfAjustarPrecosAplicar(){
     } else showMsg('apMsg', (r && r.message) || 'Não foi possível ajustar.', 'warn');
   }catch(e){ showMsg('apMsg', 'Não foi possível ajustar agora. Tente de novo.', 'warn'); }
   finally { b.disabled = false; }
+}
+
+
+/* Mostrar/esconder vários produtos do cardápio de uma vez */
+function cfVisLoteAbrir(){
+  let m = document.getElementById('visLoteModal');
+  if(!m){
+    m = document.createElement('div'); m.className = 'modal-overlay'; m.id = 'visLoteModal';
+    m.innerHTML = '<div class="modal-box"><div class="modal-header"><h2>Mostrar ou esconder produtos</h2><button class="close-btn" onclick="fecharFormModal(\'visLoteModal\')" aria-label="Fechar">✕</button></div>' +
+      '<p class="hint">Marque os produtos e escolha mostrar ou esconder no cardápio. Nada é apagado: os produtos escondidos continuam cadastrados.</p>' +
+      '<label>Categoria</label><select id="vlCat" onchange="cfVisLoteRender()"></select>' +
+      '<div class="btn-row"><button type="button" class="ghost small" onclick="cfVisLoteMarcar(true)">Marcar todos</button><button type="button" class="ghost small" onclick="cfVisLoteMarcar(false)">Desmarcar</button></div>' +
+      '<div id="vlLista" style="max-height:45vh;overflow:auto;margin:8px 0;"></div><div class="msg" id="vlMsg"></div>' +
+      '<div class="btn-row"><button type="button" class="gold" onclick="cfVisLoteAplicar(true)">Mostrar marcados</button><button type="button" class="ghost" onclick="cfVisLoteAplicar(false)">Esconder marcados</button></div></div>';
+    document.body.appendChild(m);
+  }
+  const esc = t => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+  const cats = Array.from(new Set((produtos || []).map(x => x.categoria).filter(Boolean)));
+  document.getElementById('vlCat').innerHTML = '<option value="">Todas as categorias</option>' + cats.map(c => '<option value="' + esc(c) + '">' + esc(typeof nomeCategoria === 'function' ? nomeCategoria(c) : c) + '</option>').join('');
+  document.getElementById('vlMsg').textContent = ''; cfVisLoteRender(); abrirFormModal('visLoteModal');
+}
+function cfVisLoteRender(){
+  const cat = document.getElementById('vlCat').value, esc = t => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+  const l = (produtos || []).filter(x => !cat || x.categoria === cat).sort((a, b) => String(a.nome).localeCompare(String(b.nome)));
+  document.getElementById('vlLista').innerHTML = l.map(x => '<label class="d-flex ai-centro gap-2 fs-sm"><input type="checkbox" class="largura-auto" value="' + x.id + '"> ' + esc(x.nome) + ' <span class="txt-muted fs-xs">' + (x.ativo === false ? '· escondido' : '· visível') + '</span></label>').join('') || '<span class="txt-muted fs-xs">Nenhum produto.</span>';
+}
+function cfVisLoteMarcar(v){ document.querySelectorAll('#vlLista input[type=checkbox]').forEach(i => { i.checked = v; }); }
+async function cfVisLoteAplicar(ativo){
+  const ids = Array.from(document.querySelectorAll('#vlLista input[type=checkbox]:checked')).map(i => i.value);
+  if(!ids.length){ showMsg('vlMsg', 'Marque pelo menos um produto.', 'warn'); return; }
+  if(!await confirmarTxt_((ativo ? 'Mostrar ' : 'Esconder ') + ids.length + ' produto(s) no cardápio?', ativo ? 'Mostrar' : 'Esconder', !ativo)) return;
+  try{
+    const r = await apiCall('visibilidadeLoteProdutos', { ids, ativo });
+    if(r && r.ok){ if(r.produtos) produtos = r.produtos; salvarCache(); fecharFormModal('visLoteModal'); try{ renderProdutos(); renderProdutoCuradoria(); }catch(e){} showMsg('pMsgLista', r.message, 'ok'); }
+    else showMsg('vlMsg', (r && r.message) || 'Não foi possível alterar.', 'warn');
+  }catch(e){ showMsg('vlMsg', 'Não foi possível alterar agora. Tente de novo.', 'warn'); }
 }

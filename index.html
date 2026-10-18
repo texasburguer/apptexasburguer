@@ -395,6 +395,12 @@
         <button class="atalho-btn" onclick="document.querySelector('[data-tab=clientes]').click()"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21a8 8 0 0 1 16 0"/></svg>Clientes</button>
       </div>
     </div>
+    <div class="card" id="minhaEscalaCard" style="display:none;">
+      <h2 style="margin-bottom:2px;">Minha escala</h2>
+      <p class="sub mt-0">Seus próximos 7 dias.</p>
+      <div id="minhaEscalaLista"></div>
+      <button type="button" class="ghost small mt-3" onclick="escEquipeAbrir()">Ver escala da equipe</button>
+    </div>
   </section>
 
   <section class="tab" id="tab-clientes">
@@ -434,7 +440,7 @@
     </div>
 
     <div class="card" data-painel="produtos">
-      <div class="card-head"><h2>Produtos cadastrados</h2><span><button type="button" class="ghost small" onclick="cfAjustarPrecosAbrir()">% Ajustar preços</button> <button type="button" class="small-gold" onclick="abrirFormModal('produtoNovoModal');cfIniciarProduto('p',null)">+ Novo produto</button></span></div>
+      <div class="card-head"><h2>Produtos cadastrados</h2><span><button type="button" class="ghost small" onclick="cfVisLoteAbrir()">👁 Mostrar/esconder</button> <button type="button" class="ghost small" onclick="cfAjustarPrecosAbrir()">% Ajustar preços</button> <button type="button" class="small-gold" onclick="abrirFormModal('produtoNovoModal');cfIniciarProduto('p',null)">+ Novo produto</button></span></div>
       <div id="cfAvisoProdutos"></div>
       <div class="msg" id="pMsgLista"></div>
       <input type="text" class="search" id="pSearch" placeholder="Buscar produto..." oninput="renderProdutos()">
@@ -1387,6 +1393,47 @@
         <thead><tr><th>Mesa</th><th>Status</th><th></th></tr></thead>
         <tbody id="mesaTable"></tbody>
       </table>
+    </div>
+  </section>
+
+  <section class="tab" id="tab-equipe">
+    <div class="admin-subnav" data-admin-nav="1"></div>
+    <div class="card">
+      <div class="card-head"><h2>Equipe e pagamentos</h2><button type="button" class="small-gold" onclick="eqEditar(null)">+ Novo funcionário</button></div>
+      <p class="sub">Cadastre quem trabalha com você e registre cada pagamento. O valor entra em Despesas (categoria Salários) e no lucro do mês.</p>
+      <label for="eqMes">Mês</label>
+      <input type="month" id="eqMes" onchange="carregarEquipe_()">
+      <div class="stat-row">
+        <div class="stat-box"><b id="eqPrevisto">R$ 0,00</b><span>SALÁRIOS DO MÊS</span></div>
+        <div class="stat-box"><b id="eqPago">R$ 0,00</b><span>JÁ PAGO</span></div>
+        <div class="stat-box saida"><b id="eqFalta">R$ 0,00</b><span>FALTA PAGAR</span></div>
+      </div>
+      <p class="sub">Custo mensal estimado da equipe (com encargos e 13º/férias, onde marcado): <b id="eqCusto">R$ 0,00</b>. É uma estimativa: confirme os percentuais com seu contador.</p>
+      <div class="msg" id="eqMsg"></div>
+      <table class="mt-3"><tbody id="eqLista"></tbody></table>
+      <div id="eqInativos"></div>
+    </div>
+    <div class="card">
+      <h2>Pagamentos do mês</h2>
+      <p class="sub">Toque em Recibo para imprimir ou salvar em PDF. Cancelar pede a senha do Administrador.</p>
+      <table><tbody id="eqPagamentos"></tbody></table>
+    </div>
+  </section>
+
+  <section class="tab" id="tab-escala">
+    <div class="admin-subnav" data-admin-nav="1"></div>
+    <div class="card">
+      <div class="card-head"><h2>Escala da equipe</h2><button type="button" class="small-gold" onclick="escImportar()">Importar acessos</button></div>
+      <p class="sub">Defina quem trabalha em cada dia e horário. Cada pessoa vê a própria escala na tela Início. Toque em "+" para escalar, ou em um horário para mudar ou remover.</p>
+      <div id="escNav"></div>
+      <div class="btn-row" style="margin:8px 0;flex-wrap:wrap;">
+        <button type="button" class="ghost small" onclick="escAplicarPadrao()">Aplicar padrão semanal</button>
+        <button type="button" class="ghost small" onclick="escCopiarAnterior()">Copiar semana anterior</button>
+        <button type="button" class="ghost small" onclick="escImprimir()">Imprimir</button>
+        <button type="button" class="ghost small" onclick="escWhatsapp()">WhatsApp</button>
+      </div>
+      <div class="msg" id="escMsg"></div>
+      <div id="escCorpo"></div>
     </div>
   </section>
 
@@ -2459,15 +2506,15 @@
   </div>
 </div>
 
-<script src="app-01-base-e-api.js?v=decab0e9" charset="utf-8" data-origem="__big0__"></script>
-<script src="app-02-abas.js?v=6af397bf" charset="utf-8" data-origem="__big1__"></script>
+<script src="app-01-base-e-api.js?v=645c4db0" charset="utf-8" data-origem="__big0__"></script>
+<script src="app-02-abas.js?v=d121d2da" charset="utf-8" data-origem="__big1__"></script>
 <script src="app-03-cadastros.js?v=59f57650" charset="utf-8" data-origem="__big2__"></script>
 <script src="app-04-pedidos-entrega.js?v=5c2967f1" charset="utf-8" data-origem="__big3__"></script>
 <script src="app-05-avisos-push.js?v=3f40fbe8" charset="utf-8" data-origem="__big4__"></script>
 <script src="app-06-caixa.js?v=edcbde35" charset="utf-8" data-origem="__big5__"></script>
 <script src="app-07-impressao.js?v=5c9f0484" charset="utf-8" data-origem="__big6__"></script>
 <script src="app-08-vendas-despesas.js?v=86517a81" charset="utf-8" data-origem="__big7__"></script>
-<script src="app-09-ajuda.js?v=26681b60" charset="utf-8" data-origem="__big8__"></script>
+<script src="app-09-ajuda.js?v=e7d447c8" charset="utf-8" data-origem="__big8__"></script>
 <script src="app-10-backup-financeiro.js?v=3b7d8cd1" charset="utf-8" data-origem="__big9__"></script>
 <script src="app-11-admin-integracoes.js?v=e53763b1" charset="utf-8" data-origem="__big10__"></script>
 <script src="app-12-gestao-ia.js?v=f1cc6dcc" charset="utf-8" data-origem="__big11__"></script>
@@ -2519,7 +2566,7 @@
   </div>
 <script src="app-23-janelas-popup.js?v=6f031891" charset="utf-8" data-origem=""></script>
 <script src="app-24-acessibilidade.js?v=1567f2c1" charset="utf-8" data-origem=""></script>
-<script src="app-25-cadastro-facil.js?v=49fdc489" charset="utf-8" data-origem=""></script>
+<script src="app-25-cadastro-facil.js?v=77e77ea1" charset="utf-8" data-origem=""></script>
 <script src="app-26-visual.js?v=3c963d27" charset="utf-8" data-origem=""></script>
 <link rel="stylesheet" href="estilo-conta-pagamento.css?v=c8bbf776">
 <script src="app-28-dialogos.js?v=58e2325f" charset="utf-8" data-origem=""></script>
@@ -2527,5 +2574,7 @@
 <script src="app-29-usabilidade.js?v=8c6dd0c8" charset="utf-8" data-origem=""></script>
 <script src="app-30-teclado-pc.js?v=6ada025e" charset="utf-8" data-origem=""></script>
 <script src="app-31-alertas.js?v=cc24a649" charset="utf-8" data-origem=""></script>
+<script src="app-32-equipe.js?v=94d12e93" charset="utf-8" data-origem=""></script>
+<script src="app-33-escala.js?v=e7afa85e" charset="utf-8" data-origem=""></script>
 </body>
 </html>
