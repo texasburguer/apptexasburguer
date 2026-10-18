@@ -446,3 +446,6 @@ input[type=file]::file-selector-button{
 }
 input[type=file]::file-selector-button:hover{ border-color:var(--gold); color:var(--gold); }
 input[type=date], input[type=month], input[type=time], input[type=datetime-local]{ color-scheme:dark; }
+
+/* botão Escala e ponto: bolinha verde quando a pessoa está em turno */
+header.brand .userbar button.pr-on::after{content:'';display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--ok,#6fbf4a);margin-left:5px;vertical-align:middle;}
