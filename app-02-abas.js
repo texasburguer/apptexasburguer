@@ -62,8 +62,8 @@ const ADMIN_SUBABAS_DESCRICOES = {
   visaogeral:'Resumo do dia e saúde do sistema', ocorrencias:'Problemas registrados e como tratar', feedbacks:'O que os clientes escreveram; responder',
   financeiro:'Boletos, aluguel e despesas fixas', historico:'Vendas, despesas e caixas já feitos', ajustes:'Devolver dinheiro, dar crédito ou cortesia', analise:'Quanto entra e sai nos próximos 30 dias, e metas', relatorios:'DRE, imposto, mais vendidos e Excel',
   produtos:'Cadastro de produtos, combos e adicionais', estoque:'Ingredientes, bebidas e movimentações', compras:'Registrar compras e fornecedores', custosprecificacao:'Simular custo e preço de venda',
-  cardapiodigital:'O que o cliente vê no cardápio: dados, visual, ordem e destaques', pagamentos:'Taxas, prazos, troco e o que aparece no cardápio', promocoes:'Cupons, cupons automáticos e privacidade', eventos:'Custos e recebimentos por evento',
-  restaurante:'Mesas do salão e QR Codes', taxasentregas:'Taxa, ajuda diária e fechamento dos entregadores', usuarios:'Quem acessa o sistema e o que pode fazer', notifadmin:'Quais avisos ligam e para quem',
+  cardapiodigital:'O que o cliente vê no cardápio: dados, visual, ordem e destaques', pagamentos:'Taxas, prazos, troco e o que aparece no cardápio', promocoes:'Cupons e cupons automáticos', eventos:'Custos e recebimentos por evento',
+  restaurante:'Mesas do salão e QR Codes', taxasentregas:'Taxa, ajuda diária e fechamento dos entregadores', usuarios:'Quem acessa o sistema, o que pode fazer e a privacidade (LGPD) das contas', notifadmin:'Quais avisos ligam e para quem',
   contas:'iFood, Nota fiscal, Mercado Pago, chaves das IAs e contas do sistema', armazenamento:'Backups, fotos e espaço do Google Drive', integridade:'Planilha de contingência e sincronização', auditoria:'Ações sensíveis registradas'
 };
 function adminBtnTxt_(id){
@@ -76,9 +76,9 @@ const ADMIN_BUSCA_PALAVRAS_ = {
   financeiro:'despesa conta pagar boleto aluguel mensal gasto', historico:'vendas passadas caixa sessoes arquivo', ajustes:'reembolso estorno devolucao credito cortesia desconto pos venda',
   analise:'meta previsto fluxo categoria', relatorios:'dre imposto lucro excel mercado pago resumo mensal produtos mais vendidos',
   produtos:'combo categoria adicional receita foto preco cardapio item lanche', estoque:'ingrediente bebida inventario entrada perda minimo', compras:'fornecedor nota compra comprei',
-  custosprecificacao:'calculadora margem custo preco simulador', cardapiodigital:'cardapio online cliente qr logo banner horario fechamento dados do restaurante', pagamentos:'pix cartao credito debito dinheiro taxa troco prazo online ifood',
-  promocoes:'cupom desconto lgpd privacidade indicacao fidelidade brinde', eventos:'evento festa',
-  restaurante:'mesa qr code salao', taxasentregas:'entregador motoboy frete taxa ajuda diaria fechamento', usuarios:'usuario login senha acesso perfil garcom cozinha operador permissao', notifadmin:'aviso notificacao alerta push',
+  custosprecificacao:'calculadora margem custo preco simulador', cardapiodigital:'cardapio online cliente qr logo banner horario fechamento dados do restaurante razao social cnpj', pagamentos:'pix cartao credito debito dinheiro taxa troco prazo online ifood',
+  promocoes:'cupom desconto indicacao fidelidade brinde', eventos:'evento festa',
+  restaurante:'mesa qr code salao', taxasentregas:'entregador motoboy frete taxa ajuda diaria fechamento', usuarios:'usuario login senha acesso perfil garcom cozinha operador permissao lgpd privacidade anonimizar aviso', notifadmin:'aviso notificacao alerta push',
   contas:'ifood nota fiscal nfce mercado pago ia chave gemini groq senha conta email supabase github integracao', armazenamento:'backup drive foto espaco restaurar', integridade:'sincronizar sincronizacao contingencia planilha espelho saude',
   auditoria:'log registro historico acao'
 };
@@ -172,7 +172,8 @@ function abrirAdministrador(sub){
   if(_abaInterna_['tab-'+alvo]) abaInterna_('tab-'+alvo, _abaInterna_['tab-'+alvo]);
   if((alvo==='visaogeral' || alvo==='relatorios') && apiConfigurada()) sincronizarEmSegundoPlano(); // ITEM 92: atualiza ao entrar, sem refresh periódico
   if(alvo==='taxasentregas'){ renderEntregasFinanceiro(); if(apiConfigurada()) atualizarAoEntrar_(); }
-  if(alvo==='promocoes'){ renderCuponsUI(); lgpdCarregarUI_(); }
+  if(alvo==='promocoes'){ renderCuponsUI(); }
+  if(alvo==='usuarios' || alvo==='cardapiodigital'){ lgpdCarregarUI_(); }
   if(alvo==='eventos'){ renderEventosUI(); }
   if(alvo==='custosprecificacao'){ prepararCalculadoraUI(); }
   if(alvo==='compras') carregarCompras_();
@@ -355,19 +356,20 @@ async function salvarCupomUI(){
 }
 /* ---- Privacidade (LGPD) das contas — só Administrador ---- */
 let _lgpdT=0;
+let _lgpdOk_=false;
 function lgpdPintar_(r){
-  document.getElementById('lgpdCard').style.display='';
+  _lgpdOk_=true;
+  const cartao=document.getElementById('lgpdCard'); if(cartao) cartao.style.display='';
   document.getElementById('lgpdResumo').textContent='Contas de clientes: '+r.contas+' · aceitaram promoções: '+r.contasPromo+' · cadastros anonimizados: '+r.anonimizados+' · versão do Aviso: '+r.versao;
   document.getElementById('lgpdAnos').value=r.anos; document.getElementById('lgpdRazao').value=r.razaoSocial||''; document.getElementById('lgpdCnpj').value=r.cnpj||'';
   document.getElementById('lgpdLink').textContent='Endereço do Aviso para colocar no Google: '+location.origin+location.pathname+'?privacidade=1';
 }
 async function lgpdCarregarUI_(){
   if(!currentUser||currentUser.nivel!=='Admin'||!apiConfigurada()||Date.now()-_lgpdT<30000) return; _lgpdT=Date.now();
-  try{ const r=await apiCall('lgpdConfig',{}); if(r&&r.ok) lgpdPintar_(r); }catch(e){}
+  try{ const r=await apiCall('lgpdConfig',{}); if(r&&r.ok) lgpdPintar_(r); else _lgpdT=0; }catch(e){ _lgpdT=0; }
 }
 async function lgpdEnviar_(p){ try{ const r=await apiCall('lgpdConfig',p); showMsg('lgpdMsg',r.message||'Pronto.',r.ok?'ok':'warn'); if(r.ok) lgpdPintar_(r); }catch(e){ showMsg('lgpdMsg','Não foi possível salvar agora.','warn'); } }
 function lgpdSalvarAnos_(){ lgpdEnviar_({anos:document.getElementById('lgpdAnos').value}); }
-function lgpdSalvarResp_(){ lgpdEnviar_({razaoSocial:document.getElementById('lgpdRazao').value,cnpj:document.getElementById('lgpdCnpj').value}); }
 async function lgpdNovaVersao_(){ if(!await confirmarTxt_('Todos os clientes com conta vão precisar aceitar o Aviso de novo. Publicar nova versão?', 'Publicar nova versão', false, 'Nova versão do Aviso')) return; lgpdEnviar_({novaVersaoAviso:true}); }
 async function alternarCupomUI(id,ativo){try{const r=await apiCall('alternarCupom',{id,ativo});if(r.ok){cupons=r.cupons||[];renderCuponsUI();}else avisar(r.message);}catch(e){avisar('Não foi possível alterar o cupom.');}}
 function limparEventoUI(){['evId','evNome','evTipo','evData','evHoraInicio','evHoraFim','evLocal','evContratante','evTelefone','evValor','evObs'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});document.getElementById('evStatus').value='Orçamento';document.getElementById('evMovId').value='';}

@@ -1088,6 +1088,17 @@
       <div class="msg" id="sessMsg"></div>
       <div id="sessLista"><div class="notif-empty">Carregando…</div></div>
     </div>
+
+    <div class="card" id="lgpdCard" style="display:none;">
+      <h2><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 11h12v10H6zM8 11V8a4 4 0 0 1 8 0v3"/></svg>Privacidade (LGPD) das contas</h2>
+      <p class="sub">O Aviso de Privacidade é montado com os dados do restaurante. Razão social e CNPJ ficam em Cardápio Digital › Dados do restaurante; enquanto estiverem em branco, não aparecem no aviso.</p>
+      <div id="lgpdResumo" class="obs-line"></div>
+      <label class="mt-3">Anonimizar clientes sem pedidos depois de (anos)</label>
+      <div class="row2"><div><input type="number" id="lgpdAnos" min="1" max="10" step="1" value="3"></div><div><button type="button" class="small-gold" onclick="lgpdSalvarAnos_()">Salvar prazo</button></div></div>
+      <button type="button" class="ghost mt-3" onclick="lgpdNovaVersao_()">Publicar nova versão do Aviso (todos aceitam de novo)</button>
+      <div class="obs-line" id="lgpdLink"></div>
+      <div class="msg" id="lgpdMsg"></div>
+    </div>
   </section>
 
 
@@ -1102,18 +1113,6 @@
     </div>
     <div class="card"><h2><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3zM19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8L19 16z"/></svg>Cupons automáticos</h2><p class="sub">Entregues sozinhos para quem tem conta. Todos começam <b>desligados</b>: ajuste o benefício e ative.</p><div id="cupAutoLista"></div></div>
     <div class="card"><h2>Cupons cadastrados</h2><div id="cupLista"></div></div>
-    <div class="card" id="lgpdCard" style="display:none;">
-      <h2><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 11h12v10H6zM8 11V8a4 4 0 0 1 8 0v3"/></svg>Privacidade (LGPD) das contas</h2>
-      <p class="sub">O Aviso de Privacidade é montado com os dados do restaurante. Enquanto razão social e CNPJ ficarem em branco, eles não aparecem no aviso.</p>
-      <div id="lgpdResumo" class="obs-line"></div>
-      <div class="row2"><div><label>Razão social</label><input id="lgpdRazao" maxlength="120" placeholder="(opcional por enquanto)"></div><div><label>CNPJ</label><input id="lgpdCnpj" maxlength="20" placeholder="(opcional por enquanto)"></div></div>
-      <button type="button" class="small-gold" onclick="lgpdSalvarResp_()">Salvar dados do responsável</button>
-      <label class="mt-3">Anonimizar clientes sem pedidos depois de (anos)</label>
-      <div class="row2"><div><input type="number" id="lgpdAnos" min="1" max="10" step="1" value="3"></div><div><button type="button" class="small-gold" onclick="lgpdSalvarAnos_()">Salvar prazo</button></div></div>
-      <button type="button" class="ghost mt-3" onclick="lgpdNovaVersao_()">Publicar nova versão do Aviso (todos aceitam de novo)</button>
-      <div class="obs-line" id="lgpdLink"></div>
-      <div class="msg" id="lgpdMsg"></div>
-    </div>
   </section>
 
   <!-- =========================== EVENTOS =========================== -->
@@ -1171,6 +1170,11 @@
       <textarea id="drHorario" rows="3" placeholder="Ex: Ter a dom, das 18h às 23h30. Segunda fechado." maxlength="300"></textarea>
       <label>Redes sociais</label>
       <textarea id="drRedes" rows="2" placeholder="Ex: Instagram @texasburger · facebook.com/texasburger" maxlength="300"></textarea>
+      <label>Razão social</label>
+      <input type="text" id="lgpdRazao" placeholder="(opcional por enquanto)" maxlength="120">
+      <label>CNPJ</label>
+      <input type="text" id="lgpdCnpj" placeholder="(opcional por enquanto)" maxlength="20">
+      <p class="sub" style="font-size:12px;margin:2px 0 6px;">Razão social e CNPJ aparecem só no Aviso de Privacidade das contas (quando preenchidos).</p>
       <button class="primary" onclick="salvarDadosRestauranteUI()">Salvar</button>
       <div class="msg" id="drMsg"></div>
     </div>
@@ -2436,17 +2440,17 @@
 </div>
 
 <script src="app-01-base-e-api.js?v=20787e1d" charset="utf-8" data-origem="__big0__"></script>
-<script src="app-02-abas.js?v=8ebec1ed" charset="utf-8" data-origem="__big1__"></script>
+<script src="app-02-abas.js?v=bd55fd66" charset="utf-8" data-origem="__big1__"></script>
 <script src="app-03-cadastros.js?v=a212db62" charset="utf-8" data-origem="__big2__"></script>
 <script src="app-04-pedidos-entrega.js?v=5c4ec7a5" charset="utf-8" data-origem="__big3__"></script>
 <script src="app-05-avisos-push.js?v=d76d4b0a" charset="utf-8" data-origem="__big4__"></script>
 <script src="app-06-caixa.js?v=edcbde35" charset="utf-8" data-origem="__big5__"></script>
 <script src="app-07-impressao.js?v=c7e50925" charset="utf-8" data-origem="__big6__"></script>
 <script src="app-08-vendas-despesas.js?v=42c06d58" charset="utf-8" data-origem="__big7__"></script>
-<script src="app-09-ajuda.js?v=eb168e91" charset="utf-8" data-origem="__big8__"></script>
+<script src="app-09-ajuda.js?v=eebd9bed" charset="utf-8" data-origem="__big8__"></script>
 <script src="app-10-backup-financeiro.js?v=cd9fa05f" charset="utf-8" data-origem="__big9__"></script>
 <script src="app-11-admin-integracoes.js?v=e53763b1" charset="utf-8" data-origem="__big10__"></script>
-<script src="app-12-gestao-ia.js?v=59f30b6d" charset="utf-8" data-origem="__big11__"></script>
+<script src="app-12-gestao-ia.js?v=52ed5ee4" charset="utf-8" data-origem="__big11__"></script>
 <script src="app-13-conexao-sync.js?v=4169baef" charset="utf-8" data-origem="__big12__"></script>
 <script src="app-14-relatorios.js?v=1ff528da" charset="utf-8" data-origem="__big13__"></script>
 <script src="app-15-cardapio-cliente.js?v=19a2d090" charset="utf-8" data-origem="__big14__"></script>
@@ -2499,7 +2503,7 @@
 <script src="app-26-visual.js?v=3f2492e5" charset="utf-8" data-origem=""></script>
 <link rel="stylesheet" href="estilo-conta-pagamento.css?v=c8bbf776">
 <script src="app-28-dialogos.js?v=58e2325f" charset="utf-8" data-origem=""></script>
-<script src="app-27-conta-cliente.js?v=c19be7f0" charset="utf-8" data-origem=""></script>
+<script src="app-27-conta-cliente.js?v=6018b2b7" charset="utf-8" data-origem=""></script>
 <script src="app-29-usabilidade.js?v=8c6dd0c8" charset="utf-8" data-origem=""></script>
 <script src="app-30-teclado-pc.js?v=6ada025e" charset="utf-8" data-origem=""></script>
 </body>

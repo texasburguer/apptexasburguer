@@ -226,7 +226,7 @@ Admin:{ nome:'Administrador', secoes:[
     'Cupons: em Promoções, toque em "Editar" em qualquer cupom para mudar valor, prazo, limite ou texto. Cupom pode ser "só para quem tem conta", "só para um cliente" (escolha o cliente na lista) e pode aparecer em "Minha conta" do cliente para ele ver. O "texto para o cliente" aparece junto do cupom.',
     'Cupons automáticos (cartão "🤖 Cupons automáticos" em Promoções): boas-vindas (quem cria a conta), aniversário (no dia, conta com data de nascimento criada há mais de 30 dias), indique e ganhe — quem indicou e quem foi indicado (quando o indicado conclui o primeiro pedido com a conta; quem indicou pode ganhar também um produto-prêmio, veja abaixo). Todos já existem DESLIGADOS: toque em Editar, ajuste o benefício e a validade em dias, e ligue. Cada cliente usa boas-vindas e indicado só 1 vez. Pedido cancelado devolve o cupom ao cliente.',
     'Conta do cliente: o cliente pode entrar com o Google (opcional; sem conta ele pede como sempre). Com conta ele vê pedidos e repete com um toque, endereços, cupons, cartão fidelidade e link do indique e ganhe. O botão fica numa faixa logo abaixo do banner. Prêmios: marque os produtos em Editar produto › Mais opções (Prêmio de fidelidade / Prêmio de indicação). O cliente resgata o brinde na conta ou no carrinho, junto com um pedido ou sozinho; o brinde vai a R$ 0,00 (entra nos relatórios, com custo, e baixa o estoque) e a entrega é cobrada. Pedido cancelado devolve o brinde. O histórico e o cartão só se juntam à conta depois do primeiro pedido concluído (entregue ou retirado) feito logado.',
-    'Privacidade (LGPD): no fim de Promoções, o cartão "🔒 Privacidade" mostra quantas contas existem, deixa preencher razão social e CNPJ (aparecem no Aviso de Privacidade quando preenchidos), mudar o prazo para anonimizar clientes sem pedidos (padrão 3 anos) e publicar nova versão do Aviso (todos aceitam de novo). O cliente pode baixar os próprios dados e apagar a conta em Minha conta.',
+    'Privacidade (LGPD): em Usuários e permissões, o cartão "🔒 Privacidade" mostra quantas contas existem, deixa mudar o prazo para anonimizar clientes sem pedidos (padrão 3 anos) e publicar nova versão do Aviso (todos aceitam de novo). Razão social e CNPJ ficam em Cardápio Digital › Dados do restaurante (aparecem no Aviso de Privacidade quando preenchidos). Quem quiser apagar a conta ou pedir os dados fala com o restaurante.',
     'Mercado Pago: Pix e cartão pelo site só ficam disponíveis quando a integração está ligada e a forma foi marcada para pagamento online. O pedido só entra como Pago após confirmação do Mercado Pago. Se aparecer em Pagamentos online que precisam de decisão, confira o motivo; liberar envia o pedido para a cozinha. Reembolsar registra a decisão e solicita a devolução. Confira o resultado antes de repetir uma tentativa.',
     'Dados do restaurante: nome, endereço, telefone, horário e redes sociais (texto livre) aparecem no rodapé do cardápio do cliente e nas mensagens de WhatsApp e relatórios.',
     'O cliente pode escrever uma observação em cada item; ela aparece na comanda da cozinha e no pedido.',
@@ -701,7 +701,7 @@ const MANUAL_AJUDA_CLIENTE_ = {
       'O cartão fidelidade e o histórico de antes aparecem na conta depois do seu primeiro pedido concluído com ela.',
       'Indique e ganhe: em "🎁 Indique" você copia o seu link e manda para um amigo. Quando ele fizer o primeiro pedido e o pedido for concluído, ele ganha um cupom e você ganha o que o restaurante tiver ligado: um cupom, 1 brinde (produto-prêmio) à sua escolha, ou os dois.',
       'Brindes: com o cartão fidelidade completo ou com um brinde de indicação, escolha o prêmio na própria conta ("Cartão fidelidade" ou "Indique") ou no carrinho. O brinde pode ir junto com outros itens ou sozinho: ele sai por R$ 0,00 e a entrega, se for entrega, é cobrada. Se o pedido for cancelado, o brinde volta para você.',
-      'Em "🔒 Meus dados" você pode baixar uma cópia dos seus dados, ler o Aviso de Privacidade, sair ou apagar a conta.' ]},
+      'Em "🔒 Meus dados" você pode ler o Aviso de Privacidade e sair da conta.' ]},
 
     { t:'💳 Formas de pagamento e troco', itens:[
       'Escolha a forma de pagamento no carrinho, antes de enviar.',
@@ -776,7 +776,7 @@ const MANUAL_AJUDA_CLIENTE_ = {
       'Só enviamos novidades e promoções se você marcar essa opção ao criar a conta (e pode desmarcar quando quiser). Não vendemos seus dados.',
       'Sem conta, seus pedidos ficam salvos no SEU navegador (para você poder acompanhar). Com conta, ficam também na sua conta.',
       'O Aviso de Privacidade completo está no rodapé do cardápio (🔒 Privacidade).',
-      'Para apagar seus dados: com conta, use "Apagar minha conta" em Minha conta → Meus dados. Sem conta, fale com o restaurante pelo balão de atendimento.' ]}
+      'Para apagar seus dados, fale com o restaurante pelo balão de atendimento.' ]}
   ],
   erros:[
     { q:'Meu pedido não aparece no acompanhamento', a:'O acompanhamento funciona no MESMO navegador em que você fez o pedido. Se você limpou o histórico, mudou de aparelho ou navegador, o link se perde — mas o restaurante continua com seu pedido. Ligue para eles.' },

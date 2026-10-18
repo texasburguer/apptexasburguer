@@ -603,7 +603,19 @@ async function salvarDadosRestauranteUI(){
   const o = {}; ['Nome','Endereco','Telefone','Horario','Redes'].forEach(k=>{ o[k.toLowerCase()] = document.getElementById('dr'+k).value.trim(); });
   try{
     const r = await apiCall('salvarDadosRestaurante', o);
-    if(r.ok){ configCardapio = r.config || configCardapio; salvarCache(); renderDadosRestaurante_(); showMsg('drMsg', r.message, 'ok'); }
+    if(r.ok){
+      configCardapio = r.config || configCardapio; salvarCache(); renderDadosRestaurante_();
+      /* Razão social e CNPJ (Aviso de Privacidade): salvos junto, só pelo Administrador e só depois de carregados (para nunca apagar sem querer). */
+      let aviso = '';
+      const rz = document.getElementById('lgpdRazao'), cj = document.getElementById('lgpdCnpj');
+      if(rz && cj && currentUser && currentUser.nivel === 'Admin'){
+        if(typeof _lgpdOk_ !== 'undefined' && _lgpdOk_){
+          try{ const l = await apiCall('lgpdConfig', { razaoSocial: rz.value.trim(), cnpj: cj.value.trim() }); if(l && l.ok){ if(typeof lgpdPintar_ === 'function') lgpdPintar_(l); } else aviso = ' Razão social e CNPJ não foram salvos: ' + ((l && l.message) || 'tente de novo.'); }
+          catch(e){ aviso = ' Razão social e CNPJ não foram salvos agora. Tente de novo.'; }
+        } else aviso = ' Razão social e CNPJ ainda não carregaram; abra a tela de novo e tente salvar.';
+      }
+      showMsg('drMsg', r.message + aviso, aviso ? 'warn' : 'ok');
+    }
     else showMsg('drMsg', r.message, 'warn');
   } catch(e){ showMsg('drMsg','Não foi possível salvar agora.','warn'); }
 }
