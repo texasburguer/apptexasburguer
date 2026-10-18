@@ -1142,8 +1142,8 @@
   <section class="tab" id="tab-eventos">
     <div class="admin-subnav" data-admin-nav="1"></div>
     <div class="card">
-      <h2><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.6 5.6 6.1.7-4.5 4.2 1.2 6L12 16.5 6.6 19.5l1.2-6L3.3 9.3l6.1-.7L12 3z"/></svg>Central de Eventos</h2><p class="sub">Contratação, recebimentos, custos e resultado do evento.</p>
-      <button type="button" class="primary" onclick="limparEventoUI();abrirFormModal('eventoModal')">+ Novo evento</button>
+      <h2><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.6 5.6 6.1.7-4.5 4.2 1.2 6L12 16.5 6.6 19.5l1.2-6L3.3 9.3l6.1-.7L12 3z"/></svg>Central de Eventos</h2><p class="sub">Toque num evento para ver dados, custos e recebimentos.</p>
+      <button type="button" class="primary" onclick="evNovo()">+ Novo evento</button>
     </div>
     <div class="card"><h2>Eventos</h2><div id="evLista"></div></div>
   </section>
@@ -2256,22 +2256,22 @@
 <!-- POP-UP: Evento -->
 <div class="modal-overlay" id="eventoModal">
   <div class="modal-box" style="max-width:640px;">
-    <div class="modal-header"><h2>Evento</h2><button class="close-btn" onclick="fecharFormModal('eventoModal')" aria-label="Fechar">✕</button></div>
-      <input type="hidden" id="evId">
+    <div class="modal-header"><h2 id="evTitulo">Evento</h2><button class="close-btn" onclick="fecharFormModal('eventoModal')" aria-label="Fechar">✕</button></div>
+    <div class="btn-row" style="margin-bottom:10px;"><button type="button" class="ghost" id="evTab_dados" onclick="evAbaIr('dados')">Dados</button><button type="button" class="ghost" id="evTab_custos" onclick="evAbaIr('custos')">Custos</button><button type="button" class="ghost" id="evTab_receb" onclick="evAbaIr('receb')">Recebimentos</button></div>
+    <input type="hidden" id="evId"><input type="hidden" id="evMovId">
+    <div id="evPane_dados">
       <div class="row2"><div><label>Nome do evento</label><input id="evNome" placeholder="Festa de aniversário"></div><div><label>Tipo</label><input id="evTipo" placeholder="Aniversário, casamento..." ></div></div>
-      <div class="row2"><div><label>Data</label><input type="date" id="evData"></div><div><label>Status</label><select id="evStatus"><option>Orçamento</option><option>Confirmado</option><option>Em andamento</option><option>Concluído</option><option>Cancelado</option></select></div></div>
+      <div class="row2"><div><label>Data</label><input type="date" id="evData"></div><div><label>Situação</label><select id="evStatus"><option>Orçamento</option><option>Confirmado</option><option>Em andamento</option><option>Concluído</option><option>Cancelado</option></select></div></div>
       <div class="row2"><div><label>Hora início</label><input type="time" id="evHoraInicio"></div><div><label>Hora fim</label><input type="time" id="evHoraFim"></div></div>
       <label>Local</label><input id="evLocal" placeholder="Endereço/local do evento">
-      <div class="row2"><div><label>Contratante</label><input id="evContratante"></div><div><label>Telefone</label><input id="evTelefone"></div></div>
+      <div class="row2"><div><label>Contratante</label><input id="evContratante"></div><div><label>Telefone (WhatsApp)</label><input id="evTelefone" inputmode="tel"></div></div>
       <label>Valor contratado (R$)</label><input type="number" id="evValor" min="0" step="0.01">
       <label>Observações</label><textarea id="evObs" rows="3"></textarea>
-      <button class="primary" onclick="salvarEventoUI()">Salvar evento</button><button class="ghost" onclick="limparEventoUI()">Novo/limpar</button><div class="msg" id="evMsg"></div>
-      <div class="modal-section">
-        <h3>Movimentações do evento</h3>
-        <p class="sub">Salve o evento (ou toque em Gerenciar numa lista) para lançar custo ou recebimento.</p>
-      <input type="hidden" id="evMovId"><div class="row2"><div><label>Descrição do custo</label><input id="evCustoDesc"></div><div><label>Categoria</label><input id="evCustoCat" placeholder="Equipe, transporte..."></div></div><div class="row2"><div><label>Valor do custo</label><input type="number" id="evCustoValor" min="0" step="0.01"></div><div><label>Data</label><input type="date" id="evCustoData"></div></div><button class="small-gold" onclick="lancarCustoEventoUI()">Lançar custo</button>
-      <hr><div class="row2"><div><label>Recebimento</label><input type="number" id="evRecValor" min="0" step="0.01"></div><div><label>Forma</label><select id="evRecForma"></select></div></div><button class="small-gold" onclick="lancarRecebimentoEventoUI()">Lançar recebimento</button><div class="msg" id="evMovMsg"></div>
-      </div>
+      <button class="primary" onclick="salvarEventoUI()">Salvar</button><div class="msg" id="evMsg"></div>
+      <div class="btn-row" style="margin-top:10px;"><button type="button" class="ghost" onclick="evWhatsapp()">WhatsApp do contratante</button><button type="button" class="ghost" onclick="evImprimir()">Imprimir resumo</button><button type="button" class="ghost" onclick="evDuplicar()">Duplicar evento</button><button type="button" class="ghost" onclick="cancelarEventoUI()">Cancelar evento</button></div>
+    </div>
+    <div id="evPane_custos" style="display:none;"></div>
+    <div id="evPane_receb" style="display:none;"></div>
   </div>
 </div>
 
@@ -2506,15 +2506,15 @@
   </div>
 </div>
 
-<script src="app-01-base-e-api.js?v=645c4db0" charset="utf-8" data-origem="__big0__"></script>
-<script src="app-02-abas.js?v=d121d2da" charset="utf-8" data-origem="__big1__"></script>
+<script src="app-01-base-e-api.js?v=86b4d736" charset="utf-8" data-origem="__big0__"></script>
+<script src="app-02-abas.js?v=f9b3bc5b" charset="utf-8" data-origem="__big1__"></script>
 <script src="app-03-cadastros.js?v=59f57650" charset="utf-8" data-origem="__big2__"></script>
 <script src="app-04-pedidos-entrega.js?v=5c2967f1" charset="utf-8" data-origem="__big3__"></script>
 <script src="app-05-avisos-push.js?v=3f40fbe8" charset="utf-8" data-origem="__big4__"></script>
 <script src="app-06-caixa.js?v=edcbde35" charset="utf-8" data-origem="__big5__"></script>
 <script src="app-07-impressao.js?v=5c9f0484" charset="utf-8" data-origem="__big6__"></script>
 <script src="app-08-vendas-despesas.js?v=86517a81" charset="utf-8" data-origem="__big7__"></script>
-<script src="app-09-ajuda.js?v=e7d447c8" charset="utf-8" data-origem="__big8__"></script>
+<script src="app-09-ajuda.js?v=c2a24312" charset="utf-8" data-origem="__big8__"></script>
 <script src="app-10-backup-financeiro.js?v=3b7d8cd1" charset="utf-8" data-origem="__big9__"></script>
 <script src="app-11-admin-integracoes.js?v=e53763b1" charset="utf-8" data-origem="__big10__"></script>
 <script src="app-12-gestao-ia.js?v=f1cc6dcc" charset="utf-8" data-origem="__big11__"></script>
@@ -2525,7 +2525,7 @@
 <!-- ═══════════ SINCRONIZAÇÃO, BACKUP, ESPAÇO E INTEGRIDADE ═══════════
      app-17 cria cartões (ids sb410*) nas telas Backup e espaço e Sincronização e contingência. -->
 
-<script src="app-17-sessao-supabase.js?v=f37dccba" charset="utf-8" data-origem=""></script>
+<script src="app-17-sessao-supabase.js?v=433dc91a" charset="utf-8" data-origem=""></script>
 
 <!-- ═══════════ MODO RESERVA (queda do Supabase) ═══════════
      Detecta a queda do Supabase, avisa com faixa laranja e reenvia a fila do aparelho sozinha na volta.
@@ -2576,5 +2576,6 @@
 <script src="app-31-alertas.js?v=cc24a649" charset="utf-8" data-origem=""></script>
 <script src="app-32-equipe.js?v=94d12e93" charset="utf-8" data-origem=""></script>
 <script src="app-33-escala.js?v=e7afa85e" charset="utf-8" data-origem=""></script>
+<script src="app-34-eventos.js?v=408aa3f8" charset="utf-8" data-origem=""></script>
 </body>
 </html>

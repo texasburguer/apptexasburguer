@@ -100,6 +100,14 @@ Admin:{ nome:'Administrador', secoes:[
     'Toque em "Imprimir" para a escala em folha (ou salvar em PDF) ou em "WhatsApp" para mandar a semana em texto para o grupo da equipe.',
     'Cada pessoa vê em Início o card "Minha escala" (próximos 7 dias) e o botão "Ver escala da equipe". Falta e atestado só você vê; os demais veem "Ausente".'],
     comuns:['A pessoa não vê a própria escala: o funcionário dela precisa estar ligado ao acesso (use Importar acessos ou escolha o acesso na ficha).','Quem foi desligado some da grade das semanas novas, mas os turnos antigos ficam guardados.']},
+  { t:'Central de Eventos (festas e contratos)', prints:[{id:'adm-eventos',alt:'Administrador, Vendas e cardápio, Eventos',leg:'O botão + Novo evento (1) cria o evento; cada cartão mostra A receber, Recebido e Resultado.'},{id:'adm-eventos-custos',alt:'Evento aberto, aba Custos',leg:'Na aba Custos, o + Custo (1) lança o gasto; na aba Recebimentos, o + Recebimento.'}], passos:[
+    'Administrador → Vendas e cardápio → Eventos.',
+    'A lista separa Próximos (orçamento e confirmado), Em andamento e Concluídos e cancelados. No topo aparece o total a receber; evento que já passou e ainda tem saldo fica com aviso vermelho.',
+    'Toque em "+ Novo evento", preencha nome, data, horário, local, contratante, telefone e valor contratado e toque em Salvar. Depois de salvo, as abas Custos e Recebimentos liberam.',
+    'Aba Custos: "+ Custo" (o que foi, categoria, valor e data). Aba Recebimentos: "+ Recebimento" (valor, forma, data; já vem com o saldo que falta). O resultado do evento é valor contratado menos custos.',
+    'Lançou errado? Toque em "Cancelar" ao lado do lançamento, informe o motivo (pede sua senha de administrador, se for o caso). Nada é apagado: o lançamento sai dos totais e fica na auditoria.',
+    'Na aba Dados há atalhos: "WhatsApp do contratante" (abre a conversa com o resumo do que falta pagar), "Imprimir resumo" (contratado, recebimentos, custos e resultado), "Duplicar evento" (cria outro como Orçamento, sem custos nem recebimentos) e "Cancelar evento".'],
+    comuns:['O recebimento não pode passar do valor que falta receber; se o valor contratado mudou, ajuste na aba Dados.','Evento cancelado continua na lista (Concluídos e cancelados), mas não entra nos totais a receber.']},
   { t:'Criar usuário e trocar senha', prints:[{id:'adm-usuarios',alt:'Administrador, Loja e equipe, Usuários e permissões',leg:'O botão + Novo acesso (1) cria o usuário; na lista você troca perfil, senha e desativa.'}], passos:[
     'Administrador → Loja e equipe → Usuários e permissões.',
     'Em "Criar acesso", preencha Login e Senha e escolha o perfil (Operador, Garçom, Cozinha, Entregador, Admin ou Desenvolvedor).',
@@ -366,8 +374,9 @@ Admin:{ nome:'Administrador', secoes:[
 
   { t:'Arquivamento e uso do banco', itens:[
     'Administrador → Sistema → Backup e espaço → bloco "Uso do Supabase".',
-    'Por padrão, vendas e caixas fechados com mais de 90 dias saem do Supabase e vão para a planilha (abas Arquivo_*), de madrugada. Você pode mudar a regra (90/60/30 dias) e forçar "Mandar para a planilha agora".',
-    '"Proteção de espaço": se o uso chegar a 90%, 95% ou 98% do limite (você escolhe), o sistema manda para a planilha as vendas e caixas já encerrados, mesmo com menos de 30 dias. O que tem menos de 1 dia, os pedidos em andamento e o caixa aberto nunca saem; só apaga o que a planilha confirmou. Verifica de hora em hora.',
+    'Em "Tamanho do banco do seu plano", informe o plano do Supabase: Grátis (500 MB), Pro (8 GB) ou outro tamanho (confira no painel do Supabase). A porcentagem de uso e a proteção abaixo usam esse número. Se você pagar o Supabase, atualize aqui.',
+    'Em "Arquivamento por idade" escolha: Automático (todo dia de madrugada, vendas e caixas fechados com mais de X dias vão para a planilha, abas Arquivo_*) ou Só manual (o sistema não arquiva sozinho; você manda quando quiser em "Mandar para a planilha agora"). O prazo é livre: digite quantos dias quer manter no Supabase (mínimo 30). "Simular" mostra o que sairia sem mover nada.',
+    '"Proteção de espaço" (sempre ligada, não dá para desligar nem mudar): quando o banco chegar a 95% do tamanho do plano, o sistema manda para a planilha, aos poucos (até 1.000 vendas por hora), as vendas e caixas já encerrados, do mais antigo para o mais novo, e minutos depois devolve o espaço ao Supabase. O que tem menos de 1 dia, os pedidos em andamento e o caixa aberto nunca saem; só apaga o que a planilha confirmou. Aos 70% e aos 85% você recebe aviso.',
     'Relatórios e Visão Geral buscam esse arquivo automaticamente quando o período pedido é antigo.',
     'Fotos: ficam no Google Drive principal, com uma cópia no Drive da contingência. Isso é automático: não há o que escolher.' ]},
 

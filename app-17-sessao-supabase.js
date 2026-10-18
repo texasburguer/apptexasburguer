@@ -194,49 +194,72 @@ async function sb410Espaco(){
     if(!j || !j.ok){ box.textContent = '—'; return; }
     const cor = j.percentual > 90 ? '#e0443a' : j.percentual > 70 ? '#f5902e' : '#4cc35f';
     box.innerHTML = `<div style="height:12px;background:#3a2c1c;border-radius:6px;overflow:hidden;"><div style="width:${Math.min(100,j.percentual)}%;height:100%;background:${cor};"></div></div>
-      <div class="stat-row mt-3"><div class="stat-box"><b>${j.db_mb} MB</b>Usado</div><div class="stat-box"><b>${j.percentual}%</b>De 500 MB</div>
+      <div class="stat-row mt-3"><div class="stat-box"><b>${j.db_mb} MB</b>Usado</div><div class="stat-box"><b>${j.percentual}%</b>De ${Math.round(j.limite_mb)} MB</div>
       <div class="stat-box"><b>${j.vendas_total}</b>Vendas ativas</div><div class="stat-box"><b>${j.vendas_arquivadas}</b>Arquivadas</div></div>
       <span class="obs-line" id="sb410ArqTexto">Vendas com mais de 90 dias vão para a planilha (abas Arquivo_*) e saem do Supabase, todo dia de madrugada. Eles continuam acessíveis no sistema (histórico do cliente, relatórios e Histórico de vendas). Pedidos com chat, ocorrência ou nota fiscal ficam no sistema.</span>
       <div style="margin-top:10px;border-top:1px solid #3a2c1c;padding-top:10px;">
-        <label for="sb410ArqDias">Regra de arquivamento (vale para o envio automático e para o botão abaixo): mandar para a planilha o que tem mais de</label>
-        <select id="sb410ArqDias" onchange="sb410ArqSalvarRegra(this.value)" style="width:100%;margin:6px 0;"><option value="90">90 dias</option><option value="60">60 dias</option><option value="30">30 dias (mínimo permitido)</option></select>
+        <label for="sb410Plano">Tamanho do banco do seu plano do Supabase (o sistema calcula a porcentagem e a proteção em cima disso)</label>
+        <select id="sb410Plano" onchange="sb410PlanoMudou()" style="width:100%;margin:6px 0;"><option value="500">Grátis (500 MB)</option><option value="8192">Pro (8 GB)</option><option value="outro">Outro tamanho…</option></select>
+        <div id="sb410PlanoOutro" style="display:none;"><input type="number" id="sb410PlanoMb" min="100" step="1" placeholder="Tamanho em MB (ex.: 16384 para 16 GB)" style="width:100%;margin-bottom:6px;"></div>
+        <button class="ghost" style="width:100%;padding:10px;margin-bottom:4px;" onclick="sb410PlanoSalvar()">Salvar tamanho do plano</button>
+        <span class="obs-line">Se você pagar o Supabase ou aumentar o disco, atualize aqui (confira o número no painel do Supabase, em Settings → Compute and Disk). Se esquecer, o sistema só fica mais cauteloso: avisa e arquiva mais cedo do que precisava.</span>
+        <div class="msg" id="sb410PlanoMsg"></div>
+      </div>
+      <div style="margin-top:10px;border-top:1px solid #3a2c1c;padding-top:10px;">
+        <label for="sb410ArqModo">Arquivamento por idade</label>
+        <select id="sb410ArqModo" onchange="sb410ArqModoSalvar(this.value)" style="width:100%;margin:6px 0;"><option value="auto">Automático: todo dia de madrugada</option><option value="manual">Só manual: o sistema não arquiva sozinho (eu mando pela planilha quando quiser)</option></select>
+        <label for="sb410ArqDias">Mandar para a planilha o que tem mais de (dias; mínimo 30)</label>
+        <input type="number" id="sb410ArqDias" min="30" step="1" value="90" onchange="sb410ArqSalvarRegra(this.value)" style="width:100%;margin:6px 0;">
         <button class="ghost" style="width:100%;padding:10px;margin-bottom:6px;" onclick="sb410SimularArquivo()">Simular (só mostra quantos sairiam, não move nada)</button>
         <button class="small-gold" style="width:100%;padding:10px;" onclick="sb410ArquivarAgora()">Mandar para a planilha agora</button>
         <div class="msg" id="sb410ArqMsg"></div>
       </div>
       <div style="margin-top:10px;border-top:1px solid #3a2c1c;padding-top:10px;">
-        <label class="d-flex ai-centro gap-2 sem-margem"><input type="checkbox" id="sb410EmergAtivo" onchange="sb410EmergSalvar()" class="largura-auto sem-margem"> Proteção de espaço: se o uso chegar a</label>
-        <select id="sb410EmergPct" onchange="sb410EmergSalvar()" style="width:100%;margin:6px 0;"><option value="90">90% do limite</option><option value="95">95% do limite</option><option value="98">98% do limite</option></select>
-        <span class="obs-line">Aí o sistema manda para a planilha as vendas e caixas já encerrados, do mais antigo para o mais novo (mesmo com menos de 30 dias; o que tem menos de 1 dia fica), e só apaga do Supabase o que a planilha confirmou. Pedido em andamento e caixa aberto nunca saem. Verifica de hora em hora.</span>
-        <div class="msg" id="sb410EmergMsg"></div>
+        <b>Proteção de espaço (sempre ligada)</b>
+        <span class="obs-line">Mesmo com o arquivamento por idade em "Só manual", quando o banco chegar a 95% do tamanho do plano o sistema manda para a planilha, aos poucos (até 1.000 vendas por hora), as vendas e caixas já encerrados, do mais antigo para o mais novo, e devolve o espaço ao Supabase minutos depois. Só apaga do Supabase o que a planilha confirmou. Pedido em andamento e caixa aberto nunca saem. Isso não pode ser desligado: é o que impede o sistema de parar por falta de espaço. Aos 70% e aos 85% você recebe aviso.</span>
       </div>`;
-    sb410ArqCarregarRegra_(); sb410EmergCarregar_();
+    sb410ArqCarregarRegra_(); sb410PlanoCarregar_(j.limite_mb);
   }catch(e){ box.textContent = '—'; }
 }
-function sb410ArqTexto_(d){ const t = document.getElementById('sb410ArqTexto'); if(t) t.textContent = 'Vendas com mais de ' + d + ' dias vão para a planilha (abas Arquivo_*) e saem do Supabase, todo dia de madrugada. Os relatórios buscam o que foi arquivado.'; }
+function sb410ArqTexto_(d, auto){ const t = document.getElementById('sb410ArqTexto'); if(t) t.textContent = 'Vendas com mais de ' + d + ' dias ' + (auto === false ? 'só vão para a planilha quando você mandar (modo manual)' : 'vão para a planilha (abas Arquivo_*) e saem do Supabase, todo dia de madrugada') + '. Elas continuam acessíveis no sistema (histórico do cliente, relatórios e Histórico de vendas). Pedidos com chat, ocorrência ou nota fiscal ficam no sistema.'; }
 async function sb410ArqCarregarRegra_(){
-  try{ const c = await sbSelecionar_('backup_config','id=eq.true',true); const d = c && c[0] && Number(c[0].arquivar_dias);
-    const sel = document.getElementById('sb410ArqDias'); if(d && sel){ if(![30,60,90].includes(d)){ const o = document.createElement('option'); o.value = d; o.textContent = d + ' dias'; sel.appendChild(o); } sel.value = String(d); sb410ArqTexto_(d); } }catch(e){}
-}
-async function sb410EmergCarregar_(){
   try{ const c = await sbSelecionar_('backup_config','id=eq.true',true); const r = c && c[0]; if(!r) return;
-    const a = document.getElementById('sb410EmergAtivo'), p = document.getElementById('sb410EmergPct');
-    if(a) a.checked = r.arquivar_emerg_ativo !== false; if(p && r.arquivar_emerg_pct) p.value = String(r.arquivar_emerg_pct); }catch(e){}
+    const d = Number(r.arquivar_dias), inp = document.getElementById('sb410ArqDias'), md = document.getElementById('sb410ArqModo');
+    if(inp && d) inp.value = String(d); if(md) md.value = r.arquivar_ativo === false ? 'manual' : 'auto';
+    sb410ArqTexto_(d || 90, r.arquivar_ativo !== false); }catch(e){}
 }
-async function sb410EmergSalvar(){
-  const a = document.getElementById('sb410EmergAtivo'), p = document.getElementById('sb410EmergPct'), m = document.getElementById('sb410EmergMsg');
+async function sb410ArqModoSalvar(v){
+  const m = document.getElementById('sb410ArqMsg'), auto = v !== 'manual';
   try{ const t = await sb410Token_();
-    const r = await sbJson_(SUPABASE_URL_+'/rest/v1/backup_config?id=eq.true', { method:'PATCH', headers:{ apikey:SUPABASE_CHAVE_, Authorization:'Bearer '+t, 'Content-Type':'application/json', Prefer:'return=minimal' }, body: JSON.stringify({ arquivar_emerg_ativo: !!(a&&a.checked), arquivar_emerg_pct: Number(p&&p.value)||95, atualizado_em:new Date().toISOString() }) }, 15000);
+    const r = await sbJson_(SUPABASE_URL_+'/rest/v1/backup_config?id=eq.true', { method:'PATCH', headers:{ apikey:SUPABASE_CHAVE_, Authorization:'Bearer '+t, 'Content-Type':'application/json', Prefer:'return=minimal' }, body: JSON.stringify({ arquivar_ativo: auto, atualizado_em:new Date().toISOString() }) }, 15000);
     if(!r.ok) throw new Error('falha');
-    if(m) m.textContent = a && a.checked ? 'Salvo: proteção ligada aos ' + (p.value) + '%.' : 'Salvo: proteção desligada.';
+    sb410ArqTexto_(Number((document.getElementById('sb410ArqDias')||{}).value) || 90, auto);
+    if(m) m.textContent = auto ? 'Salvo: arquivamento automático todo dia de madrugada.' : 'Salvo: o sistema não arquiva mais sozinho por idade. A proteção dos 95% continua ligada.';
+  }catch(e){ if(m) m.textContent = 'Não foi possível salvar agora.'; }
+}
+function sb410PlanoCarregar_(mb){
+  const sel = document.getElementById('sb410Plano'), inp = document.getElementById('sb410PlanoMb'); if(!sel) return;
+  mb = Math.round(Number(mb) || 500);
+  if(mb === 500 || mb === 8192) sel.value = String(mb); else { sel.value = 'outro'; if(inp) inp.value = String(mb); }
+  sb410PlanoMudou();
+}
+function sb410PlanoMudou(){ const sel = document.getElementById('sb410Plano'), o = document.getElementById('sb410PlanoOutro'); if(o && sel) o.style.display = sel.value === 'outro' ? '' : 'none'; }
+async function sb410PlanoSalvar(){
+  const sel = document.getElementById('sb410Plano'), m = document.getElementById('sb410PlanoMsg');
+  const mb = sel.value === 'outro' ? Number((document.getElementById('sb410PlanoMb')||{}).value) : Number(sel.value);
+  if(!(mb >= 100)){ if(m) m.textContent = 'Informe o tamanho em MB (mínimo 100).'; return; }
+  if(mb > 500 && !await confirmarTxt_('Você confirmou no painel do Supabase que o seu banco tem mesmo ' + mb + ' MB? Se informar mais do que o plano realmente tem, a proteção só age quando já for tarde.', 'Sim, confirmei', false, 'Tamanho do banco')) return;
+  try{ const j = await rpcArq_('api_espaco_plano_salvar', { p: { limiteMb: mb } });
+    if(m) m.textContent = (j && j.message) || 'Não foi possível salvar.'; if(j && j.ok) sb410Espaco();
   }catch(e){ if(m) m.textContent = 'Não foi possível salvar agora.'; }
 }
 async function sb410ArqSalvarRegra(v){
   const dias = Math.max(30, Number(v) || 90), m = document.getElementById('sb410ArqMsg');
+  const _in = document.getElementById('sb410ArqDias'); if(_in) _in.value = String(dias);
   try{ const t = await sb410Token_();
     const r = await sbJson_(SUPABASE_URL_+'/rest/v1/backup_config?id=eq.true', { method:'PATCH', headers:{ apikey:SUPABASE_CHAVE_, Authorization:'Bearer '+t, 'Content-Type':'application/json', Prefer:'return=minimal' }, body: JSON.stringify({ arquivar_dias:dias, atualizado_em:new Date().toISOString() }) }, 15000);
     if(!r.ok) throw new Error('falha');
-    sb410ArqTexto_(dias); if(m) m.textContent = 'Regra salva: arquivar o que tem mais de ' + dias + ' dias (a partir da próxima madrugada).';
+    sb410ArqTexto_(dias, (document.getElementById('sb410ArqModo')||{}).value !== 'manual'); if(m) m.textContent = 'Regra salva: arquivar o que tem mais de ' + dias + ' dias' + ((document.getElementById('sb410ArqModo')||{}).value === 'manual' ? ' (quando você mandar).' : ' (a partir da próxima madrugada).');
   }catch(e){ if(m) m.textContent = 'Não foi possível salvar a regra agora.'; }
 }
 
