@@ -81,7 +81,7 @@ Admin:{ nome:'Administrador', secoes:[
     'Caixa, Pedidos, Entregas e Clientes funcionam como nos outros perfis, e você pode tudo.' ],
     prints:[{id:'admin-menu',alt:'Menu do Administrador com o campo Ir para',leg:'Administrador: o campo "Ir para…" (1) acha qualquer tela pelo nome.'}]},
 
-  { t:'Criar usuário e trocar senha', passos:[
+  { t:'Criar usuário e trocar senha', prints:[{id:'adm-usuarios',alt:'Administrador, Loja e equipe, Usuários e permissões',leg:'O botão + Novo acesso (1) cria o usuário; na lista você troca perfil, senha e desativa.'}], passos:[
     'Administrador → Loja e equipe → Usuários e permissões.',
     'Em "Criar acesso", preencha Login e Senha e escolha o perfil (Operador, Garçom, Cozinha, Entregador, Admin ou Desenvolvedor).',
     'Digite "Sua senha de administrador" e toque em "Criar acesso".',
@@ -97,6 +97,7 @@ Admin:{ nome:'Administrador', secoes:[
     'Preparado aqui: digite o ingrediente (ex.: "quei"), toque nele e diga quanto vai em cada um. Ingrediente comprado por kg ou litro pede gramas ou ml. Não existe? Toque em "+ criar" ali mesmo. Para ir mais rápido, use "📋 Copiar receita de outro produto" e só ajuste. O custo aparece sozinho.',
     'Comprado pronto: informe "Paguei R$ __ por __ unidades" (ex.: 30 por 12 = R$ 2,50 por lata), quanto tem agora e o mínimo para avisar. Cada venda baixa 1 do estoque.',
     'Sem controle: digite o custo se souber.',
+    'Se você fechar o "Novo produto" no meio, o rascunho fica guardado neste aparelho: ao abrir de novo o sistema pergunta se quer continuar de onde parou. Para mudar o preço de vários produtos de uma vez, toque em "% Ajustar preços" (em Produtos), informe o percentual (ex.: 8 ou -5) e a categoria; o custo não muda e fica na auditoria. A foto pode ser tirada na hora pela câmera do celular.',
     'Embaixo do custo o sistema avisa se falta algo para o produto ficar completo (nome, preço, custo) e, quando o lucro está baixo, sugere um preço para uns 50% de lucro, com o botão "Usar". É só sugestão: você decide o preço. Para fazer um produto parecido com outro, toque no ⋯ do produto → "📄 Duplicar": abre o "Novo produto" já preenchido (com a receita) e só salva quando você tocar em Cadastrar.',
     'Em "⚙️ Mais opções" ficam o preço próprio do iFood (em branco = preço de venda), os adicionais, o destaque no cardápio e o prêmio (fidelidade/indicação).',
     'Produto novo já vem com os adicionais marcados que os outros produtos da mesma categoria têm ("Comprado pronto", como bebida, vem sem nenhum). Desmarque o que não vale para ele.',
@@ -116,7 +117,7 @@ Admin:{ nome:'Administrador', secoes:[
     'Confirme. O cartão zera (ou a indicação é marcada), o estoque do produto baixa e o custo entra no financeiro. O cliente não paga nada.' ],
     comuns:['O caixa precisa estar aberto: o prêmio fica registrado no turno.','"Nenhum prêmio cadastrado": nenhum produto ativo está marcado como prêmio daquele tipo.','As indicações pendentes também aparecem em 🔔 Avisos (no Assistente).'] },
 
-  { t:'QR Code das mesas', passos:[
+  { t:'QR Code das mesas', prints:[{id:'adm-mesas-qr',alt:'Administrador, Mesas e QR Codes',leg:'Cadastre as mesas aqui (1) e use o botão QR Codes das mesas para imprimir.'}], passos:[
     'Administrador → Loja e equipe → Mesas e QR Codes → "📲 QR Codes das mesas".',
     'Escolha a mesa e toque em "🖨️ Imprimir esta mesa" (ou "Imprimir todas"). Também dá para "⬇️ Baixar PNG".',
     'Plastifique e deixe na mesa. O cliente pede pelo celular e você aceita o pedido em Pedidos.',
@@ -151,7 +152,7 @@ Admin:{ nome:'Administrador', secoes:[
     '/ ou Ctrl + K busca (no Administrador, o campo \"Ir para…\"). Esc fecha a janela aberta.',
     'No Caixa, Enter na busca de cliente escolhe o primeiro resultado; no item, Enter avança de campo e, na quantidade, adiciona ao carrinho.' ] },
 
-  { t:'Modo reserva e Saúde do sistema', itens:[
+  { t:'Modo reserva e Saúde do sistema', prints:[{id:'adm-visao-geral',alt:'Administrador, Visão Geral',leg:'A Visão Geral (1) mostra a bolinha de saúde do sistema e o resumo do dia.'}], itens:[
     'Se o Supabase cair, aparece uma faixa laranja "Modo reserva" no topo. Ela diz o que funciona, o que fica na fila e o que espera a volta.',
     'Funciona: venda do Caixa (retirada ou entrega, sem desconto e sem cupom) e pedido do cardápio, pela contingência; consulta dos pedidos em Pedidos.',
     'Na fila (seguem sozinhos na volta): cadastro de cliente, fidelidade, feedback e ocorrência.',
@@ -166,9 +167,9 @@ Admin:{ nome:'Administrador', secoes:[
     'Em cada pedido da faixa: "Ver pedido" abre o pedido; "Adiar 10 min" some por 10 minutos; "Silenciar este pedido" pede o motivo, some e fica registrado na Auditoria. O X esconde a faixa até aparecer um aviso novo.',
     'O aviso só mostra o que é do seu perfil e só com o caixa aberto. Quando o pedido avança, é pago, cancelado ou o caixa fecha, o aviso some sozinho. Depois de 3 avisos sem resposta o Administrador também é avisado.',
     'O alerta só avisa: nunca muda o status, o pagamento nem o pedido.',
-    'Administrador: ajuste os tempos, ligue ou desligue cada regra e teste o aviso em Sistema → Sincronização e contingência → cartão "⏰ Alertas automáticos". Ali também se cadastra a data de vencimento do certificado, do plano da nota fiscal e de outros (aviso 30, 15, 7 e 1 dia antes).',
+    'Administrador: ajuste os tempos, ligue ou desligue cada regra e teste o aviso em Loja e equipe → Configurar avisos → cartão "⏰ Alertas automáticos". Os avisos de falha do sistema se repetem (padrão a cada 30 min, você muda ali) até o problema ser resolvido; o e-mail vai no máximo a cada 6 horas. Ali também se cadastra a data de vencimento do certificado, do plano da nota fiscal e de outros (aviso 30, 15, 7 e 1 dia antes).',
     'Além dos pedidos parados, o sistema avisa o Administrador (push e e-mail) quando algo do sistema pára: cópia para a planilha atrasada, tarefa automática falhando, Mercado Pago ou iFood sem resposta, caixa vencido ainda aberto, banco quase cheio, backup parado ou conferência diária com diferença.' ],
-    prints:[{id:'alertas',alt:'Faixa Pedidos parados com os botões Ver pedido, Adiar 10 min e Silenciar este pedido',leg:'1: a faixa de pedidos parados, com Ver pedido, Adiar 10 min e Silenciar este pedido em cada pedido.'},{id:'alertas-config',alt:'Cartão Alertas automáticos com os tempos de cada regra',leg:'Administrador: cada regra tem liga/desliga e o tempo em minutos (1).'}] },
+    prints:[{id:'alertas',alt:'Faixa Pedidos parados com os botões Ver pedido, Adiar 10 min e Silenciar este pedido',leg:'1: a faixa de pedidos parados, com Ver pedido, Adiar 10 min e Silenciar este pedido em cada pedido.'},{id:'alertas-config',alt:'Cartão Alertas automáticos com os tempos de cada regra',leg:'Administrador → Configurar avisos: cada regra tem liga/desliga e o tempo em minutos (1). Em 2 você escolhe de quanto em quanto tempo os avisos de falha do sistema se repetem.'}] },
   { t:'Turno do caixa (o "hoje" dos pedidos)', itens:[
     'Os pedidos "concluídos", o histórico das mesas, "Vendas do turno" no Início e o resumo do Financeiro contam do momento em que o caixa abriu até o fechamento, mesmo passando da meia-noite. Não é a data do calendário.',
     'Sem caixa aberto, mostram o último turno. Só se nunca houve caixa é que valem o dia do calendário.',
@@ -181,7 +182,7 @@ Admin:{ nome:'Administrador', secoes:[
     'Para desligar, toque no mesmo botão. Ao sair do sistema, este aparelho deixa de receber os avisos de quem saiu.' ],
     comuns:['O som e a vibração do app aberto continuam como antes.'] },
 
-  { t:'Avisos do pedido para o cliente e feedbacks', itens:[
+  { t:'Avisos do pedido para o cliente e feedbacks', prints:[{id:'adm-feedbacks',alt:'Administrador, Hoje, Feedbacks',leg:'Opiniões dos clientes (1), com o botão de responder.'}], itens:[
     'O cliente que aceita os avisos (convite no topo do cardápio ou no cartão "Pedido enviado") recebe no celular: confirmado (quando o pedido vai para "Em preparo"), pronto (só retirada), saiu para entrega, entregue/retirado e cancelado.',
     'O aviso sai sozinho quando a equipe muda o status do pedido. O texto mostra só o número do pedido, nunca nome, telefone ou endereço.',
     '30 minutos depois de entregue (até 3 horas), quem aceitou recebe "⭐ Como foi seu pedido?". Se o cliente já deu feedback daquele pedido, não pergunta.',
@@ -190,7 +191,7 @@ Admin:{ nome:'Administrador', secoes:[
     'Feedback anônimo ou de quem não fez login continua chegando normalmente pelo botão do rodapé do cardápio.',
     'Pedidos de mesa (QR Code) não recebem avisos. No iPhone, o cliente precisa instalar o app para receber.' ]},
 
-  { t:'Integrações e contas', itens:[
+  { t:'Integrações e contas', prints:[{id:'adm-contas',alt:'Administrador, Sistema, Integrações e contas',leg:'Contas e senhas dos serviços (1); as abas IAs, iFood, Nota fiscal e Mercado Pago ficam logo acima.'}], itens:[
     'Administrador → Sistema → Integrações e contas: lista das contas que fazem o sistema funcionar (Supabase, GitHub, planilhas, etc.), com e-mail, link e observação.',
     '"+ Nova conta" cadastra; "Editar" muda os dados ou a senha; "Excluir" apaga a conta e a senha guardada.',
     'A senha fica no cofre criptografado do Supabase. Para ver, toque em "Ver senha" e digite a SUA senha de administrador; ela aparece por 30 segundos. Cada visualização fica na Auditoria.',
@@ -208,7 +209,7 @@ Admin:{ nome:'Administrador', secoes:[
     'Nota fiscal — fechamento: se você cancela uma venda que já tem nota, a nota é cancelada sozinha dentro de 30 minutos; depois disso fica "cancelamento para o contador orientar". "Conferência" mostra vendas sem nota (com botão Emitir), notas com problema e números pulados (botão Inutilizar, pede a sua senha). "Pacote do contador" baixa a planilha do mês e lista os XML. A tela de notas mostra quantas notas já saíram no mês (plano de 500) e a Saúde do sistema avisa a 80%.',
     'Só Administrador e Desenvolvedor veem esta tela. Nunca mande senhas por mensagem: digite direto aqui.' ]},
 
-  { t:'Auditoria e acessos (IP)', itens:[
+  { t:'Auditoria e acessos (IP)', prints:[{id:'adm-auditoria',alt:'Administrador, Sistema, Auditoria',leg:'Ações sensíveis registradas (1): quem fez, quando e de onde.'}], itens:[
     'Administrador → Sistema → Auditoria: lista as ações sensíveis (descontos, cancelamentos, preços, estoque, usuários, compras), as entradas no sistema ("Login") e as tentativas com senha errada ("Falha de login").',
     'Cada linha mostra quem fez, o perfil, o aparelho e o IP de origem. Use o período e a busca (nome, ação ou IP) para achar algo; mostra até 300 linhas.',
     'Vários "Falha de login" seguidos do mesmo IP podem ser alguém tentando adivinhar a senha: troque a senha do usuário e encerre as sessões dele.',
@@ -236,7 +237,7 @@ Admin:{ nome:'Administrador', secoes:[
     'O DRE também mostra a linha "Taxa de entrega e acréscimos cobrados": a taxa de entrega cobrada do cliente entra na receita; o que você paga ao entregador entra nas despesas (Entregadores) quando o fechamento das entregas é pago.' ],
     comuns:['Só o Administrador vê e altera a alíquota.', 'É uma estimativa para acompanhar o lucro; o valor oficial é o do DAS que o contador calcula.'] },
 
-  { t:'Cardápio Digital, promoções e eventos', itens:[
+  { t:'Cardápio Digital, promoções e eventos', prints:[{id:'adm-cardapio-digital',alt:'Administrador, Vendas e cardápio, Cardápio Digital',leg:'O que o cliente vê no cardápio (1).'},{id:'adm-promocoes',alt:'Administrador, Promoções e cupons',leg:'Cupons e promoções (1).'},{id:'adm-pagamentos',alt:'Administrador, Formas de pagamento',leg:'Formas de pagamento, taxas e o que aparece no cardápio (1).'}], itens:[
     'Cardápio Digital: escolha o que aparece para o cliente, destaques, ordem e frase de abertura. "Mais Pedidos" é automático.',
     'Se o cliente pedir mais de 1 lanche com adicionais, os adicionais valem para todos — o cardápio avisa.',
     'Endereço de entrega: o cliente preenche Rua e bairro, NÚMERO e CIDADE (a localização do celular e o CEP já preenchem rua, bairro e cidade). Sem o número o pedido não é enviado. No pedido, o endereço chega como "Rua, Bairro, nº 123 — Cidade".',
@@ -280,7 +281,7 @@ Admin:{ nome:'Administrador', secoes:[
     'Regra: o Administrador ajusta o corte, a vida mínima e o teto em Caixa → “Regra do caixa vencido” (embaixo do botão de fechar).' ],
     comuns:['Garçom e Cozinha veem “caixa vencido, chame o responsável”.'] },
 
-  { t:'Entregadores: taxa e fechamento', passos:[
+  { t:'Entregadores: taxa e fechamento', prints:[{id:'adm-entregadores',alt:'Administrador, Entregadores e taxas',leg:'Taxa de entrega e ajuda diária (1); mais abaixo o fechamento de cada entregador.'}], passos:[
     'Administrador → Loja e equipe → Entregadores e taxas.',
     'Em “Taxa e ajuda diária”, defina a taxa de entrega padrão e a ajuda diária do entregador e salve. A taxa é do cliente e vai 100% para o entregador. Mudanças valem só para pedidos e fechamentos futuros.',
     'Em “Fechamento de entregadores”, escolha o entregador e o dia e toque em Calcular. O total devido é as taxas das entregas concluídas do dia mais a ajuda diária (uma vez por dia).',
@@ -306,7 +307,7 @@ Admin:{ nome:'Administrador', secoes:[
     'Um aviso laranja fixo no topo mostra "MODO EMERGÊNCIA". Um vigia testa o servidor a cada 30 s. Assim que ele responde, o app pede login de novo.',
     'Errar a senha 5 vezes no modo emergência bloqueia por 5 minutos.' ]},
 
-  { t:'Contingência e modo reserva', itens:[
+  { t:'Contingência e modo reserva', prints:[{id:'adm-sync',alt:'Administrador, Sistema, Sincronização e contingência',leg:'Planilha de contingência e o botão Sincronizar espelho agora (1).'}], itens:[
     'O Supabase é o servidor principal; a planilha principal é a reserva e a planilha de contingência é o último recurso. Se o Supabase cai, o modo reserva segura o app e a contingência segura o cardápio e as vendas.',
     'No modo reserva: faixa laranja no topo e cartão "Pedidos na reserva (somente consulta)" em Pedidos. Mostra o que estava em andamento no último espelho e o que entrou na fila da contingência.',
     'Ao voltar, o Admin recebe sozinho as vendas da contingência. Falhas ficam na tela de Contingência.',
@@ -360,7 +361,7 @@ Admin:{ nome:'Administrador', secoes:[
     '"O que precisa comprar?" — sugestão de compras pelo consumo.',
     '"Como cancelo uma venda?" / "Como fecho o caixa?" — passo a passo do manual.' ]},
 
-  { t:'Backup e armazenamento', passos:[
+  { t:'Backup e armazenamento', prints:[{id:'adm-backup',alt:'Administrador, Sistema, Backup e espaço',leg:'Backup do Supabase (1), uso do banco e arquivamento mais abaixo.'}], passos:[
     'Administrador → Sistema → Backup e espaço → "Fazer backup agora" (começa na hora, sem pergunta).',
     'Ative o backup automático e escolha o horário e a retenção (por quantos dias guardar).',
     'Para restaurar, escolha o backup no histórico e confirme com sua senha de administrador.',
@@ -370,11 +371,11 @@ Admin:{ nome:'Administrador', secoes:[
     comuns:['Drive cheio: backups e fotos podem falhar.',
       'A conferência de integridade compara, todo dia às 6h10, as vendas do dia anterior no Supabase e na planilha e avisa se o número não bate.'] },
 
-  { t:'Ocorrências', itens:[
+  { t:'Ocorrências', prints:[{id:'adm-ocorrencias',alt:'Administrador, Ocorrências',leg:'+ Registrar (1) abre a ocorrência; Abertas e Todas filtram a lista.'}], itens:[
     'Você trata direto pelo Assistente: aba "🔔 Avisos" → "⚠️ Ocorrências abertas" → botão "Tratar".',
     'A tela completa (com filtro Abertas/Todas) continua em Administrador → Hoje → Ocorrências.' ]},
 
-  { t:'Ajustes pós-venda (reembolso, crédito, cortesia)', passos:[
+  { t:'Ajustes pós-venda (reembolso, crédito, cortesia)', prints:[{id:'adm-ajustes',alt:'Administrador, Dinheiro, Reembolsos e ajustes',leg:'Reembolsos e ajustes de vendas (1).'}], passos:[
     'Administrador → Dinheiro → Reembolsos e ajustes.',
     'Busque a venda (nº do pedido, nome ou telefone) — só aparecem pedidos já entregues.',
     'Escolha o tipo (Reembolso em dinheiro, Crédito para próxima compra, Cortesia ou Desconto retroativo), o valor e o motivo.',
@@ -519,7 +520,7 @@ Operador:{ nome:'Caixa', secoes:[
       '"A soma dos pagamentos não bate com a conta".'],
     prints:[{id:'pedidos-mesas',alt:'Pedidos, aba Mesas, com o botão Liberar mesa e o histórico do turno',leg:'Mesas: mesas ocupadas em cima; o histórico do turno do caixa embaixo.'}] },
 
-  { t:'Editar ou cancelar uma venda', passos:[
+  { t:'Editar ou cancelar uma venda', prints:[{id:'caixa-editar-venda',alt:'Janela Editar venda com os itens e o novo total',leg:'Mude os itens, veja o novo total (1) e informe o motivo da edição. Se o valor subir, escolha em que forma cobrar a diferença.'}], passos:[
     'Caixa → "Lançamentos desde a abertura".',
     'Toque em "editar" ou "excluir".',
     'Cancelar pede motivo e a senha do administrador. Se o pedido já estava pronto, diga se a mercadoria foi perdida ou volta ao estoque.' ]},
@@ -738,7 +739,7 @@ const MANUAL_AJUDA_CLIENTE_ = {
     { t:'🛒 Carrinho guardado', itens:[
       'Se você sair do cardápio no meio do pedido, o carrinho fica guardado neste aparelho por 24 horas. Ao voltar, toque em "Continuar pedido" (ou "Descartar"). Os preços são atualizados e itens esgotados ficam de fora.' ]},
 
-    { t:'🎟️ Cupom de desconto', itens:[
+    { t:'🎟️ Cupom de desconto', prints:[{id:'cliente-carrinho',alt:'Carrinho do cliente com o campo de cupom e o botão Enviar pedido',leg:'O campo do cupom (1) fica no carrinho, antes de enviar o pedido.'}], itens:[
       'No carrinho, antes de enviar, tem um campo "🎟️ Cupom".',
       'Digite o código (ex.: PROMO10) e toque em "Aplicar cupom".',
       'O desconto aparece embaixo e o total é recalculado na hora.',
@@ -754,7 +755,7 @@ const MANUAL_AJUDA_CLIENTE_ = {
       'Brindes: com o cartão fidelidade completo ou com um brinde de indicação, escolha o prêmio na própria conta ("Cartão fidelidade" ou "Indique") ou no carrinho. O brinde pode ir junto com outros itens ou sozinho: ele sai por R$ 0,00 e a entrega, se for entrega, é cobrada. Se o pedido for cancelado, o brinde volta para você.',
       'Em "🔒 Meus dados" você pode ler o Aviso de Privacidade e sair da conta.' ]},
 
-    { t:'💳 Formas de pagamento e troco', itens:[
+    { t:'💳 Formas de pagamento e troco', prints:[{id:'cliente-carrinho',alt:'Carrinho do cliente com o campo de cupom e o botão Enviar pedido',leg:'Na tela do carrinho você escolhe a forma de pagamento; o botão Enviar pedido (2) conclui.'}], itens:[
       'Escolha a forma de pagamento no carrinho, antes de enviar.',
       'Se escolher Dinheiro, aparece a opção "Preciso de troco". Marque e informe para quanto (ex.: "troco para R$ 50").',
       'Dinheiro e cartão na máquina: o pagamento é combinado na entrega ou na retirada.',

@@ -196,7 +196,7 @@ async function sb410Espaco(){
     box.innerHTML = `<div style="height:12px;background:#3a2c1c;border-radius:6px;overflow:hidden;"><div style="width:${Math.min(100,j.percentual)}%;height:100%;background:${cor};"></div></div>
       <div class="stat-row mt-3"><div class="stat-box"><b>${j.db_mb} MB</b>Usado</div><div class="stat-box"><b>${j.percentual}%</b>De 500 MB</div>
       <div class="stat-box"><b>${j.vendas_total}</b>Vendas ativas</div><div class="stat-box"><b>${j.vendas_arquivadas}</b>Arquivadas</div></div>
-      <span class="obs-line" id="sb410ArqTexto">Vendas com mais de 90 dias vão para a planilha (abas Arquivo_*) e saem do Supabase, todo dia de madrugada.</span>
+      <span class="obs-line" id="sb410ArqTexto">Vendas com mais de 90 dias vão para a planilha (abas Arquivo_*) e saem do Supabase, todo dia de madrugada. Eles continuam acessíveis no sistema (histórico do cliente, relatórios e Histórico de vendas). Pedidos com chat, ocorrência ou nota fiscal ficam no sistema.</span>
       <div style="margin-top:10px;border-top:1px solid #3a2c1c;padding-top:10px;">
         <label for="sb410ArqDias">Regra de arquivamento (vale para o envio automático e para o botão abaixo): mandar para a planilha o que tem mais de</label>
         <select id="sb410ArqDias" onchange="sb410ArqSalvarRegra(this.value)" style="width:100%;margin:6px 0;"><option value="90">90 dias</option><option value="60">60 dias</option><option value="30">30 dias (mínimo permitido)</option></select>

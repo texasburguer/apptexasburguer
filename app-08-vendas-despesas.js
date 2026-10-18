@@ -1,9 +1,10 @@
 /* ---------- EDITAR VENDA ---------- */
-let versaoEdicaoVenda_ = '';
+let versaoEdicaoVenda_ = '', totalOrigEdicao_ = 0;
 function abrirModalEditarVenda(vendaId){
   vendaEditandoId = vendaId;
   { const vv = vendas.find(x=>x.id===vendaId); versaoEdicaoVenda_ = (vv && vv._v) || ''; }  // ITEM 2.3: versão que o operador está vendo
   itensEdicaoVenda = itensVenda.filter(it=>it.vendaId===vendaId).map(it=>({produtoId:it.produtoId||null, comboId:it.comboId||null, descricao:it.descricao, quantidade:it.quantidade, valorUnitario:it.valorUnitario, custoUnitario:it.custoUnitario||0}));
+  totalOrigEdicao_ = itensEdicaoVenda.reduce((t,it)=>t+it.quantidade*it.valorUnitario,0);
   document.getElementById('evMotivo').value = '';
   document.getElementById('evSenhaAdmin').value = '';
   document.getElementById('evSenhaAdminBox').style.display = precisaConfirmarAdmin() ? 'block' : 'none';
@@ -36,6 +37,18 @@ function renderItensEdicaoVenda(){
     </div>`;
   }).join('') || '<div class="notif-empty">Nenhum item.</div>';
   document.getElementById('evNovoTotal').textContent = formatarMoeda(total);
+  evAtualizarFormaDif_(total);
+}
+/* Aumento no pedido: pergunta em que forma a diferença será paga (só aparece quando o valor sobe e o pedido tem um único pagamento). */
+function evAtualizarFormaDif_(total){
+  const box = document.getElementById('evDifBox'), sel = document.getElementById('evFormaDif'); if(!box || !sel) return;
+  const pags = pagamentosVenda.filter(x=>x.vendaId===vendaEditandoId);
+  const mostrar = pags.length === 1 && total > totalOrigEdicao_ + 0.009;
+  box.style.display = mostrar ? 'block' : 'none';
+  if(!mostrar){ sel.innerHTML = ''; return; }
+  const atual = sel.value;
+  sel.innerHTML = '<option value="">Mesma forma do pedido (' + escH(pags[0].forma||'') + ')</option>' + formasPagamento.filter(f=>f.ativa).map(f=>'<option value="' + escH(f.nome) + '">' + escH(f.nome) + '</option>').join('');
+  if(atual) sel.value = atual;
 }
 async function salvarEdicaoVenda(){
   const motivo = document.getElementById('evMotivo').value.trim();
@@ -43,7 +56,8 @@ async function salvarEdicaoVenda(){
   if(!motivo){ showMsg('evMsg','Informe o motivo da edição.','warn'); return; }
   if(itensEdicaoVenda.length===0){ showMsg('evMsg','A venda precisa ter ao menos um item.','warn'); return; }
   try{
-    const payloadEd_ = { id: vendaEditandoId, itens: itensEdicaoVenda, motivo, senhaAdminConfirmacao, versaoEsperada: versaoEdicaoVenda_ || undefined };
+    const formaDif_ = (document.getElementById('evDifBox').style.display !== 'none' && document.getElementById('evFormaDif').value) || undefined;
+    const payloadEd_ = { id: vendaEditandoId, itens: itensEdicaoVenda, motivo, senhaAdminConfirmacao, versaoEsperada: versaoEdicaoVenda_ || undefined, formaDiferenca: formaDif_ };
     let r = await apiCall('editarVenda', payloadEd_);
     if(r && !r.ok && typeof cfCustoMudou === 'function' && cfCustoMudou(r) && await cfAtualizarCustosItens(itensEdicaoVenda)) r = await apiCall('editarVenda', payloadEd_);
     if(r.ok){

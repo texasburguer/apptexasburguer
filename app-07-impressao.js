@@ -196,6 +196,15 @@ function copiarComprovante(){ copiarTextoComFallback(montarReciboTexto(), 'compr
 function enviarComprovanteWhatsapp(){ window.open('https://wa.me/?text=' + encodeURIComponent(montarReciboTexto()), '_blank'); }
 function imprimirComprovante(){ imprimirDocumento(montarReciboHtml(), 'Comprovante', comprovanteLargura); }
 
+/* Histórico de vendas por dia. Dias com mais de 30 dias podem ter pedidos que já foram para a planilha (arquivo): eles são buscados lá, só para ver e reimprimir. */
+let _vArqSeq_ = 0;
+function vDiaAntigo_(dataFiltro){ return !!dataFiltro && new Date(dataFiltro + 'T23:59:59').getTime() < Date.now() - 30*86400000; }
+function vLinhaHtml_(v, arq){
+  return `<tr class="${v.status==='Cancelada'?'cancelada':''}">
+      <td>${v.clienteNome?escH(v.clienteNome):'<em>sem cadastro</em>'}${quemFezPedido_(v)?'<br><small style="color:var(--muted);">'+escH(quemFezPedido_(v))+'</small>':''}${arq?'<br><small style="color:var(--muted);">arquivada na planilha · pedido #'+escH(v.numero||'')+'</small>':''}</td><td>${formatarMoeda(v.valorTotal)}</td><td>${escH(v.formaPagamento)}</td>
+      <td>${arq?`<button class="ghost" title="Reimprimir comprovante" onclick="reimprimirVendaArq_('${escH(v.id)}')">🖨️</button>`:(v.status==='Confirmada'?`<button class="ghost" title="Reimprimir comprovante" onclick="reimprimirVenda('${v.id}')">🖨️</button><button class="ghost" onclick="abrirModalEditarVenda('${v.id}')">editar</button><button class="ghost" onclick="abrirModalCancelar('venda','${v.id}')">cancelar</button>`:`<span class="obs-line">${escH(v.motivoCancelamento)}</span>`)}</td>
+    </tr>`;
+}
 function renderVendas(){
   const dataFiltro = document.getElementById('vHistData').value;
   const tbody = document.getElementById('vTable');
@@ -203,12 +212,38 @@ function renderVendas(){
   const lista = vendas.filter(v => diaDoTurno_(v.timestamp) === dataFiltro).sort((a,b)=>b.timestamp-a.timestamp);
   const total = lista.filter(v=>v.status==='Confirmada').reduce((s,v)=>s+Number(v.valorTotal),0);
   document.getElementById('vTotalDia').textContent = formatarMoeda(total);
-  if(lista.length===0){ tbody.innerHTML = '<tr class="empty-row"><td colspan="4">Nenhuma venda nesse dia.</td></tr>'; return; }
-  tbody.innerHTML = lista.map(v=>`
-    <tr class="${v.status==='Cancelada'?'cancelada':''}">
-      <td>${v.clienteNome?escH(v.clienteNome):'<em>sem cadastro</em>'}${quemFezPedido_(v)?'<br><small style="color:var(--muted);">'+escH(quemFezPedido_(v))+'</small>':''}</td><td>${formatarMoeda(v.valorTotal)}</td><td>${escH(v.formaPagamento)}</td>
-      <td>${v.status==='Confirmada'?`<button class="ghost" title="Reimprimir comprovante" onclick="reimprimirVenda('${v.id}')">🖨️</button><button class="ghost" onclick="abrirModalEditarVenda('${v.id}')">editar</button><button class="ghost" onclick="abrirModalCancelar('venda','${v.id}')">cancelar</button>`:`<span class="obs-line">${escH(v.motivoCancelamento)}</span>`}</td>
-    </tr>`).join('');
+  const buscarArq = vDiaAntigo_(dataFiltro) && typeof arqPodeLer_ === 'function' && arqPodeLer_();
+  const seq = ++_vArqSeq_;
+  tbody.innerHTML = (lista.length ? lista.map(v=>vLinhaHtml_(v, false)).join('') : (buscarArq ? '' : '<tr class="empty-row"><td colspan="4">Nenhuma venda nesse dia.</td></tr>'))
+    + (buscarArq ? '<tr class="empty-row" id="vArqLinha"><td colspan="4">Buscando pedidos arquivados na planilha…</td></tr>' : '');
+  if(buscarArq) vCarregarArquivoDia_(dataFiltro, seq, lista, total);
+}
+async function vCarregarArquivoDia_(dataFiltro, seq, lista, totalMem){
+  let c;
+  try{ c = await relBuscarMes_(dataFiltro.slice(0,7)); }
+  catch(e){
+    if(seq !== _vArqSeq_) return;
+    const l = document.getElementById('vArqLinha'); if(l) l.innerHTML = '<td colspan="4">Não foi possível buscar os pedidos arquivados agora. Eles continuam salvos na planilha. <button type="button" class="ghost" onclick="renderVendas()">Tentar de novo</button></td>';
+    return;
+  }
+  if(seq !== _vArqSeq_) return;
+  const ja = new Set(lista.map(v=>v.id));
+  const arq = (c.vendas || []).filter(v => !ja.has(v.id) && diaDoTurno_(v.timestamp) === dataFiltro).sort((a,b)=>b.timestamp-a.timestamp);
+  const l = document.getElementById('vArqLinha'); if(!l) return;
+  if(!arq.length){ l.outerHTML = lista.length ? '' : '<tr class="empty-row"><td colspan="4">Nenhuma venda nesse dia.</td></tr>'; return; }
+  l.outerHTML = arq.map(v=>vLinhaHtml_(v, true)).join('');
+  const extra = arq.filter(v=>v.status==='Confirmada').reduce((s,v)=>s+Number(v.valorTotal),0);
+  document.getElementById('vTotalDia').textContent = formatarMoeda(totalMem + extra);
+}
+/* Reimprime pedido arquivado a partir do mês buscado na planilha. */
+function reimprimirVendaArq_(id){
+  let v = null, c = null;
+  Object.keys(_relArqCache_ || {}).some(k => { const x = _relArqCache_[k]; const f = (x.vendas||[]).find(y=>y.id===id); if(f){ v = f; c = x; return true; } return false; });
+  if(!v) return;
+  const itens = (c.itens||[]).filter(it=>it.vendaId===id).map(it=>({ quantidade:Number(it.quantidade)||1, descricao:it.descricao, valorUnitario:Number(it.valorUnitario)||0 }));
+  let pags = (c.pagamentos||[]).filter(x=>x.vendaId===id).map(x=>({ forma:x.forma, valor:Number(x.valor)||0 }));
+  if(!pags.length) pags = [{ forma:v.formaPagamento||'—', valor:Number(v.valorTotal)||0 }];
+  mostrarComprovante(itens, Number(v.valorTotal)||0, pags, v.clienteNome, v.clienteTelefone, Number(v.valorOriginal)||Number(v.valorTotal)||0, Number(v.valorDesconto)||0, id, Number(v.acrescimoForma)||0);
 }
 
 /* Reimpressão (ITEM 88): monta o comprovante a partir da venda já gravada. */
@@ -217,6 +252,8 @@ function reimprimirVenda(id){
   const itens = itensVenda.filter(it=>it.vendaId===id).map(it=>({ quantidade:Number(it.quantidade)||1, descricao:it.descricao, valorUnitario:Number(it.valorUnitario)||0 }));
   let pags = pagamentosVenda.filter(x=>x.vendaId===id).map(x=>({ forma:x.forma, valor:Number(x.valor)||0 }));
   if(!pags.length) pags = [{ forma:v.formaPagamento||'—', valor:Number(v.valorTotal)||0 }];
-  mostrarComprovante(itens, Number(v.valorTotal)||0, pags, v.clienteNome, v.clienteTelefone, Number(v.valorOriginal)||Number(v.valorTotal)||0, Number(v.valorDesconto)||0, id, Number(v.acrescimoForma)||0);
+  const bk = vendas;
+  try{ vendas = vendas.concat([v]); mostrarComprovante(itens, Number(v.valorTotal)||0, pags, v.clienteNome, v.clienteTelefone, Number(v.valorOriginal)||Number(v.valorTotal)||0, Number(v.valorDesconto)||0, id, Number(v.acrescimoForma)||0); }
+  finally{ vendas = bk; }   // só durante o desenho: o pedido arquivado dá data, tipo e endereço ao comprovante e não entra na lista do sistema
 }
 

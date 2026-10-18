@@ -6,7 +6,7 @@
    - BACKEND: NADA de Apps Script (script.google.com) nem de Supabase (*.supabase.co) é guardado aqui.
      Dados, pedidos, login e RPCs nunca passam pelo cache do service worker — sempre vão direto para a rede.
    - O único cache de dados é o de fotos (FOTOS) e o da casca/ícones (SHELL/ASSETS). Não adicionar outros. */
-const SHELL = 'texas-shell-v88';
+const SHELL = 'texas-shell-v89';
 const ASSETS = 'texas-assets-v7';   // trocou ícone/logo/manifest/leaflet? suba para v5
 const FOTOS = 'texas-fotos-v1';
 /* Código do app dividido em arquivos (app-*.js e estilo-*.css). Cada arquivo tem ?v=<impressão digital> na página; o cache guarda
@@ -15,15 +15,15 @@ const FOTOS = 'texas-fotos-v1';
 const CODIGO = 'texas-codigo-v2';
 const LISTA = [/*LISTA-INICIO*/
   'estilo-base.css?v=309b8857',
-  'app-01-base-e-api.js?v=2aca8ad4',
-  'app-02-abas.js?v=bd55fd66',
-  'app-03-cadastros.js?v=2c43900c',
+  'app-01-base-e-api.js?v=decab0e9',
+  'app-02-abas.js?v=6af397bf',
+  'app-03-cadastros.js?v=59f57650',
   'app-04-pedidos-entrega.js?v=5c2967f1',
   'app-05-avisos-push.js?v=3f40fbe8',
   'app-06-caixa.js?v=edcbde35',
-  'app-07-impressao.js?v=58f946eb',
-  'app-08-vendas-despesas.js?v=42c06d58',
-  'app-09-ajuda.js?v=75cabcfd',
+  'app-07-impressao.js?v=5c9f0484',
+  'app-08-vendas-despesas.js?v=86517a81',
+  'app-09-ajuda.js?v=26681b60',
   'app-10-backup-financeiro.js?v=3b7d8cd1',
   'app-11-admin-integracoes.js?v=e53763b1',
   'app-12-gestao-ia.js?v=f1cc6dcc',
@@ -31,7 +31,7 @@ const LISTA = [/*LISTA-INICIO*/
   'app-14-relatorios.js?v=1e3c69a3',
   'app-15-cardapio-cliente.js?v=f9ed1bf0',
   'app-16-sessao-final.js?v=ef1da8ab',
-  'app-17-sessao-supabase.js?v=8b1b601b',
+  'app-17-sessao-supabase.js?v=f37dccba',
   'app-18-queda-supabase.js?v=02bb8c67',
   'estilo-ia-cardapio.css?v=22645202',
   'app-19-ia.js?v=37d36dbd',
@@ -41,14 +41,14 @@ const LISTA = [/*LISTA-INICIO*/
   'app-22-navegacao-inferior.js?v=9c0835e7',
   'app-23-janelas-popup.js?v=6f031891',
   'app-24-acessibilidade.js?v=1567f2c1',
-  'app-25-cadastro-facil.js?v=7b31410b',
+  'app-25-cadastro-facil.js?v=49fdc489',
   'app-26-visual.js?v=3c963d27',
   'estilo-conta-pagamento.css?v=c8bbf776',
   'app-28-dialogos.js?v=58e2325f',
   'app-27-conta-cliente.js?v=6018b2b7',
   'app-29-usabilidade.js?v=8c6dd0c8',
   'app-30-teclado-pc.js?v=6ada025e',
-  'app-31-alertas.js?v=a8f40b62',
+  'app-31-alertas.js?v=cc24a649',
 /*LISTA-FIM*/];
 const FOTOS_MAX = 150;
 const PRE = ['manifest.webmanifest', 'icon-192.png', 'badge-96.png', 'apple-touch-icon.png', 'logo-texas-burger.webp', 'logo-impressao-cor.png'];

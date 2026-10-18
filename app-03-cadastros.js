@@ -433,7 +433,7 @@ async function registrarProduto(){
     const r = await apiCall('addProduto', { nome, descricao, categoria, precoBase, custoBase, precos, ingredientes: (typeof cfIngredientesParaSalvar === 'function' ? cfIngredientesParaSalvar('p') : ingredientesProdutoNovo), destaque: document.getElementById('pDestaque').checked, adicionaisIds: coletarAdicionaisChecklist('pAdicionaisLista'), estoqueProprio: coletarEstoqueProprio('p') });
     produtos = r.produtos || produtos; produtoPrecos = r.produtoPrecos || produtoPrecos; produtoIngredientes = r.produtoIngredientes || produtoIngredientes; produtoAdicionais = r.produtoAdicionais || produtoAdicionais; estoque = r.estoque || estoque; if(r.comboPrecos) comboPrecos = r.comboPrecos; salvarCache();
     if(r.ok){
-      showMsg('pMsg', r.message, 'ok');
+      showMsg('pMsg', r.message, 'ok'); try{ cfRascunhoLimpar_(); }catch(e){}
       const arquivoFoto = document.getElementById('pFoto').files[0];
       if(arquivoFoto){
         try{
@@ -895,7 +895,15 @@ function totaisPorFormaNaSessao(idsVendas){
 function ultimos5(id){ return id ? id.slice(-5).toUpperCase() : ''; }
 /* número amigável do pedido (venda antiga sem número cai nos 5 últimos caracteres do ID) */
 function rotuloPedido(v){ return (v && v.numero) ? String(v.numero) : ultimos5(v && v.id); }
-function rotuloPedidoId(id){ const v = (vendas||[]).find(x=>x.id===id); return v ? rotuloPedido(v) : ultimos5(id); }
+function rotuloPedidoId(id){
+  const v = (vendas||[]).find(x=>x.id===id); if(v) return rotuloPedido(v);
+  /* pedido já arquivado na planilha: usa o número guardado no resumo ou no mês que já foi buscado */
+  try{
+    for(const t in (typeof _arqCli_ !== 'undefined' ? _arqCli_ : {})){ const p = (_arqCli_[t].pedidos||[]).find(x=>x.id===id); if(p && p.numero) return String(p.numero); }
+    for(const m in (typeof _relArqCache_ !== 'undefined' ? _relArqCache_ : {})){ const p = (_relArqCache_[m].vendas||[]).find(x=>x.id===id); if(p && p.numero) return String(p.numero); }
+  }catch(e){}
+  return ultimos5(id);
+}
 function itensDoPedido(vendaId){
   return itensVenda.filter(it=>it.vendaId===vendaId).map(it=>`${it.quantidade}x ${escH(it.descricao)}`).join(', ');
 }

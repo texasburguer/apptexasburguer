@@ -63,7 +63,7 @@ const ADMIN_SUBABAS_DESCRICOES = {
   financeiro:'Boletos, aluguel e despesas fixas', historico:'Vendas, despesas e caixas já feitos', ajustes:'Devolver dinheiro, dar crédito ou cortesia', analise:'Quanto entra e sai nos próximos 30 dias, e metas', relatorios:'DRE, imposto, mais vendidos e Excel',
   produtos:'Cadastro de produtos, combos e adicionais', estoque:'Ingredientes, bebidas e movimentações', compras:'Registrar compras e fornecedores', custosprecificacao:'Simular custo e preço de venda',
   cardapiodigital:'O que o cliente vê no cardápio: dados, visual, ordem e destaques', pagamentos:'Taxas, prazos, troco e o que aparece no cardápio', promocoes:'Cupons e cupons automáticos', eventos:'Custos e recebimentos por evento',
-  restaurante:'Mesas do salão e QR Codes', taxasentregas:'Taxa, ajuda diária e fechamento dos entregadores', usuarios:'Quem acessa o sistema, o que pode fazer e a privacidade (LGPD) das contas', notifadmin:'Quais avisos ligam e para quem',
+  restaurante:'Mesas do salão e QR Codes', taxasentregas:'Taxa, ajuda diária e fechamento dos entregadores', usuarios:'Quem acessa o sistema, o que pode fazer e a privacidade (LGPD) das contas', notifadmin:'Quais avisos ligam, para quem, e os alertas automáticos',
   contas:'iFood, Nota fiscal, Mercado Pago, chaves das IAs e contas do sistema', armazenamento:'Backups, fotos e espaço do Google Drive', integridade:'Planilha de contingência e sincronização', auditoria:'Ações sensíveis registradas'
 };
 function adminBtnTxt_(id){
@@ -78,7 +78,7 @@ const ADMIN_BUSCA_PALAVRAS_ = {
   produtos:'combo categoria adicional receita foto preco cardapio item lanche', estoque:'ingrediente bebida inventario entrada perda minimo', compras:'fornecedor nota compra comprei',
   custosprecificacao:'calculadora margem custo preco simulador', cardapiodigital:'cardapio online cliente qr logo banner horario fechamento dados do restaurante razao social cnpj', pagamentos:'pix cartao credito debito dinheiro taxa troco prazo online ifood',
   promocoes:'cupom desconto indicacao fidelidade brinde', eventos:'evento festa',
-  restaurante:'mesa qr code salao', taxasentregas:'entregador motoboy frete taxa ajuda diaria fechamento', usuarios:'usuario login senha acesso perfil garcom cozinha operador permissao lgpd privacidade anonimizar aviso', notifadmin:'aviso notificacao alerta push',
+  restaurante:'mesa qr code salao', taxasentregas:'entregador motoboy frete taxa ajuda diaria fechamento', usuarios:'usuario login senha acesso perfil garcom cozinha operador permissao lgpd privacidade anonimizar aviso', notifadmin:'aviso notificacao alerta push pedido parado vencimento repetir',
   contas:'ifood nota fiscal nfce mercado pago ia chave gemini groq senha conta email supabase github integracao', armazenamento:'backup drive foto espaco restaurar', integridade:'sincronizar sincronizacao contingencia planilha espelho saude',
   auditoria:'log registro historico acao'
 };

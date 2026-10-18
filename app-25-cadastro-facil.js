@@ -665,7 +665,7 @@ async function cfAtualizarCustosItens(lista){
 /* Fase 8.2: duplicar produto = abre o "Novo produto" já preenchido (nada é salvo até tocar em Cadastrar; foto e preços próprios não vão) */
 async function duplicarProduto_(id){
   const p = (produtos || []).find(x => x.id === id); if(!p) return;
-  abrirFormModal('produtoNovoModal'); cfIniciarProduto('p', null);
+  abrirFormModal('produtoNovoModal'); window._cfSemRascunho_ = true; cfIniciarProduto('p', null); window._cfSemRascunho_ = false;
   cfSet_('pNome', p.nome + ' (cópia)'); cfSet_('pDescricao', p.descricao || ''); cfSet_('pCategoria', p.categoria || '');
   const d = precoDisplayProduto(p.id); cfSet_('pPreco', cfNum_(d.preco) > 0 ? cfNum_(d.preco) : '');
   const tinhaReceita = (produtoIngredientes || []).some(v => v.produtoId === p.id && v.ingredienteId !== p.estoqueProprioIngredienteId);
@@ -674,4 +674,71 @@ async function duplicarProduto_(id){
   else { cfSetTipo('p', 'manual'); cfSet_('pCusto', cfNum_(d.custo) > 0 ? cfNum_(d.custo) : ''); }
   cfAtualizarMargem('p');
   showMsg('pMsg', 'Cópia de "' + p.nome + '" aberta. Troque o nome e ajuste o que for diferente; só salva quando você tocar em Cadastrar.', 'ok');
+}
+
+
+/* ---------- Rascunho automático do "Novo produto" + ajuste de preços em lote (18/10/2026) ---------- */
+var CF_RASC_CHAVE_ = 'tb_rascunho_produto_v1';
+var CF_RASC_CAMPOS_ = ['pNome','pDescricao','pCategoria','pPreco','pCusto','pPrValor','pPrQtd','pEstoqueQtd','pEstoqueMin'];
+function cfRascunhoLer_(){ try{ const v = JSON.parse(localStorage.getItem(CF_RASC_CHAVE_) || 'null'); return v && v.c && v.c.pNome ? v : null; }catch(e){ return null; } }
+function cfRascunhoLimpar_(){ try{ localStorage.removeItem(CF_RASC_CHAVE_); }catch(e){} }
+function cfRascunhoSalvar_(){
+  try{
+    const c = {}; CF_RASC_CAMPOS_.forEach(id => { const el = document.getElementById(id); if(el) c[id] = el.value; });
+    if(!String(c.pNome || '').trim()){ cfRascunhoLimpar_(); return; }
+    localStorage.setItem(CF_RASC_CHAVE_, JSON.stringify({ c, tipo: CF_TIPO_.p, em: Date.now() }));
+  }catch(e){}
+}
+(function(){
+  const orig = cfIniciarProduto;
+  cfIniciarProduto = function(pre, p){
+    orig.apply(this, arguments);
+    if(pre !== 'p' || p || window._cfSemRascunho_) return;
+    const m = document.getElementById('produtoNovoModal'); if(!m || !m.classList.contains('open')) return;
+    const r = cfRascunhoLer_(); if(!r || typeof confirmarTxt_ !== 'function') return;
+    confirmarTxt_('Você deixou o produto "' + r.c.pNome + '" sem terminar. Continuar de onde parou?', 'Continuar', false, 'Rascunho salvo').then(ok => {
+      if(!ok){ cfRascunhoLimpar_(); return; }
+      CF_RASC_CAMPOS_.forEach(id => cfSet_(id, r.c[id]));
+      if(r.tipo) cfSetTipo('p', r.tipo);
+      try{ cfAtualizarMargem('p'); }catch(e){}
+    });
+  };
+  document.addEventListener('input', function(e){
+    const m = document.getElementById('produtoNovoModal');
+    if(m && m.classList.contains('open') && m.contains(e.target)) cfRascunhoSalvar_();
+  });
+})();
+
+/* Ajuste de preços em lote: percentual para todos os produtos ativos ou só de uma categoria */
+function cfAjustarPrecosAbrir(){
+  let m = document.getElementById('ajustePrecosModal');
+  if(!m){
+    m = document.createElement('div'); m.className = 'modal-overlay'; m.id = 'ajustePrecosModal';
+    m.innerHTML = '<div class="modal-box"><div class="modal-header"><h2>Ajustar preços (%)</h2><button class="close-btn" onclick="fecharFormModal(\'ajustePrecosModal\')" aria-label="Fechar">✕</button></div>' +
+      '<p class="hint">Sobe ou baixa o preço de vários produtos de uma vez. O custo não muda. Use negativo para baixar (ex.: -5).</p>' +
+      '<label>Percentual (%)</label><input type="number" id="apPct" step="0.1" placeholder="Ex.: 8">' +
+      '<label>Categoria</label><select id="apCat"></select>' +
+      '<div class="msg" id="apMsg"></div>' +
+      '<div class="btn-row"><button type="button" class="gold" id="apBtn" onclick="cfAjustarPrecosAplicar()">Aplicar</button><button type="button" class="ghost" onclick="fecharFormModal(\'ajustePrecosModal\')">Cancelar</button></div></div>';
+    document.body.appendChild(m);
+  }
+  const cats = Array.from(new Set((produtos || []).filter(x => x.ativo !== false && x.categoria).map(x => x.categoria)));
+  document.getElementById('apCat').innerHTML = '<option value="">Todas as categorias</option>' + cats.map(c => '<option>' + String(c).replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</option>').join('');
+  document.getElementById('apPct').value = ''; document.getElementById('apMsg').textContent = '';
+  abrirFormModal('ajustePrecosModal');
+}
+async function cfAjustarPrecosAplicar(){
+  const pct = Number(document.getElementById('apPct').value), cat = document.getElementById('apCat').value;
+  if(!pct || pct < -50 || pct > 100){ showMsg('apMsg', 'Informe um percentual entre -50 e 100.', 'warn'); return; }
+  const ok = await confirmarTxt_('Ajustar em ' + (pct > 0 ? '+' : '') + pct + '% os preços de ' + (cat ? 'todos os produtos da categoria "' + cat + '"' : 'TODOS os produtos ativos') + '? Fica registrado na auditoria.', 'Ajustar', true);
+  if(!ok) return;
+  const b = document.getElementById('apBtn'); b.disabled = true;
+  try{
+    const r = await apiCall('ajustarPrecosProdutosLote', { percentual: pct, categoria: cat });
+    if(r && r.ok){
+      if(r.produtos) produtos = r.produtos; if(r.produtoPrecos) produtoPrecos = r.produtoPrecos; if(r.comboPrecos) comboPrecos = r.comboPrecos; salvarCache();
+      fecharFormModal('ajustePrecosModal'); try{ renderProdutos(); }catch(e){} showMsg('pMsgLista', r.message, 'ok');
+    } else showMsg('apMsg', (r && r.message) || 'Não foi possível ajustar.', 'warn');
+  }catch(e){ showMsg('apMsg', 'Não foi possível ajustar agora. Tente de novo.', 'warn'); }
+  finally { b.disabled = false; }
 }

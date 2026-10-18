@@ -3,7 +3,7 @@
    • App aberto (Admin, Operador, Cozinha, Garçom): a cada 60 s pergunta ao servidor quais pedidos estão parados
      (a conta usa a hora do SERVIDOR, não a do aparelho). Pedido novo na lista, ou aviso repetido: toca o som e mostra a faixa.
    • App fechado: o servidor manda o push sozinho (agendamento de 1 em 1 minuto), para o perfil certo.
-   • Admin: cartão "⏰ Alertas automáticos" em Sistema → Sincronização e contingência (tempos, liga/desliga, vencimentos, teste). */
+   • Admin: cartão "⏰ Alertas automáticos" em Loja e equipe → Configurar avisos (tempos, liga/desliga, vencimentos, teste). */
 const AL_REGRAS_ = [
   ['recebido', 'Pedido novo sem ninguém aceitar', 'Cozinha e Caixa'],
   ['preparo', 'Em preparo há muito tempo', 'Cozinha e Caixa'],
@@ -13,7 +13,7 @@ const AL_REGRAS_ = [
   ['saiu', 'Saiu para entrega e não foi concluído', 'Caixa e Admin'],
   ['a_receber', 'Pagamento "a receber" com o pedido pronto', 'Caixa e Admin']
 ];
-let _alVistos_ = {}, _alTimer_ = null, _alLista_ = [], _alEscondido_ = false;
+let _alVistos_ = {}, _alTimer_ = null, _alLista_ = [], _alSis_ = [], _alEscondido_ = false;
 function alPode_(){
   try{ return USAR_SUPABASE_ && currentUser && !currentUser.emergencia && ['Admin','Operador','Cozinha','Garçom'].indexOf(currentUser.nivel) !== -1 && !(typeof _sb5Queda_ !== 'undefined' && _sb5Queda_); }
   catch(e){ return false; }
@@ -29,9 +29,10 @@ function alFaixa_(){
 }
 function alRender_(){
   const d = alFaixa_();
-  if(!_alLista_.length){ d.style.display = 'none'; d.innerHTML = ''; return; }
+  if(!_alLista_.length && !_alSis_.length){ d.style.display = 'none'; d.innerHTML = ''; return; }
   if(_alEscondido_){ d.style.display = 'none'; return; }
-  d.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:4px;"><b>⏰ Pedidos parados</b><button class="ghost" type="button" style="padding:2px 8px;" onclick="alFecharFaixa_()" aria-label="Esconder até o próximo aviso">✕</button></div>' +
+  const sisHtml = _alSis_.length ? '<div style="margin-bottom:4px;"><b>⚠️ Avisos do sistema</b></div>' + _alSis_.map(a => `<div style="border-top:1px solid rgba(255,255,255,.12);padding:6px 0;"><div><b>${escH(a.titulo)}</b>${a.vezes > 1 ? ' · ' + escH(a.vezes) + 'º aviso' : ''}</div><div class="sub">${escH(a.texto)}</div></div>`).join('') + '<div class="sub" style="margin:2px 0 6px;">Estes avisos se repetem até o problema ser resolvido.</div>' : '';
+  d.innerHTML = sisHtml + (_alLista_.length ? '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:4px;"><b>⏰ Pedidos parados</b><button class="ghost" type="button" style="padding:2px 8px;" onclick="alFecharFaixa_()" aria-label="Esconder até o próximo aviso">✕</button></div>' : '<div style="text-align:right;"><button class="ghost" type="button" style="padding:2px 8px;" onclick="alFecharFaixa_()" aria-label="Esconder até o próximo aviso">✕</button></div>') +
     _alLista_.map(a => `<div style="border-top:1px solid rgba(255,255,255,.12);padding:6px 0;">
       <div><b>#${escH(a.numero)}</b> · ${escH(a.rotulo)} · <b>há ${escH(a.minutos)} min</b>${a.vezes > 1 ? ' · ' + escH(a.vezes) + 'º aviso' : ''}</div>
       <div class="btnrow" style="margin-top:4px;gap:6px;display:flex;flex-wrap:wrap;">
@@ -63,20 +64,25 @@ async function alAdiar_(vendaId, acao){
   }catch(e){ avisar('Não foi possível agora. Tente de novo.'); }
 }
 async function alVerificar_(){
-  if(!alPode_()){ _alLista_ = []; alRender_(); return; }
+  if(!alPode_()){ _alLista_ = []; _alSis_ = []; alRender_(); return; }
   if(document.hidden) return;                                     // com a tela apagada quem avisa é o push do servidor
   try{
     const r = await sbRpc_('api_alertas_pedidos', { p:{} });
     if(!r || r.ok !== true) return;
     const lista = Array.isArray(r.alertas) ? r.alertas : [];
-    let tocar = false; const novos = {};
+    const sis = Array.isArray(r.sistema) ? r.sistema : [];
+    let tocar = false, tocarSis = false; const novos = {};
+    sis.forEach(a => { const k = 'sis:' + a.chave; novos[k] = a.vezes; if(!(k in _alVistos_) || (a.vezes || 0) > (_alVistos_[k] || 0)) tocarSis = true; });
     lista.forEach(a => { const k = a.vendaId + ':' + a.regra; novos[k] = a.vezes; if(!(k in _alVistos_) || (a.vezes || 0) > (_alVistos_[k] || 0)) tocar = true; });
-    if(tocar) _alEscondido_ = false;
-    _alVistos_ = novos; _alLista_ = lista; alRender_();
+    if(tocar || tocarSis) _alEscondido_ = false;
+    _alVistos_ = novos; _alLista_ = lista; _alSis_ = sis; alRender_();
     try{ if(typeof _alertaPed_ !== 'undefined' && lista.length){ lista.forEach(a => { const s = (a.regra === 'pronta_entrega' || a.regra === 'saiu') ? 'entregas' : a.regra === 'pronta_mesa' ? 'mesas' : 'pedidos'; _alertaPed_[s] = true; }); _atualizarAlertaPedidos_(); } }catch(e){}
     if(tocar && lista.length){
       const a = lista[0];
       try{ mostrarNotificacao_('⏰ Pedido #' + a.numero + ' parado', a.rotulo + ' há ' + a.minutos + ' min'); }catch(e){}
+      try{ somAlerta_(); }catch(e){}
+    } else if(tocarSis && sis.length){
+      try{ mostrarNotificacao_('⚠️ ' + sis[0].titulo, sis[0].texto); }catch(e){}
       try{ somAlerta_(); }catch(e){}
     }
   }catch(e){ /* sem conexão: tenta no próximo minuto */ }
@@ -91,10 +97,10 @@ function alLigar_(){
 /* ---------- cartão do Admin ---------- */
 function alMontarCartaoAdmin_(){
   try{
-    const aba = document.getElementById('tab-integridade');
+    const aba = document.getElementById('tab-notifadmin');
     if(!aba || !currentUser || currentUser.nivel !== 'Admin' || !USAR_SUPABASE_ || document.getElementById('alCard')) return;
     aba.insertAdjacentHTML('beforeend', `<div class="card" id="alCard"><h2>⏰ Alertas automáticos</h2>
-      <p class="sub">Só avisam (som e notificação). Nunca mudam pedido, pagamento ou caixa. Pedido parado: avisa quem precisa agir. Falha do sistema e vencimentos: avisam o Admin (notificação e e-mail).</p>
+      <p class="sub">Só avisam (som e notificação). Nunca mudam pedido, pagamento ou caixa. Pedido parado: avisa quem precisa agir. Falha do sistema e vencimentos: avisam o Admin (notificação e e-mail). Todos se repetem até o problema ser resolvido.</p>
       <div id="alCfgBox">Carregando…</div>
       <div class="msg" id="alCfgMsg"></div>
       <div class="btnrow" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
@@ -111,10 +117,10 @@ async function alCarregarCfg_(){
   try{
     const r = await sbRpc_('api_alertas_config', { p:{} });
     if(!r || r.ok !== true){ box.textContent = (r && r.message) || 'Não consegui carregar.'; return; }
-    _alCfg_ = r; alDesenharCfg_(r.regras, r.repetirMin, r.escalarApos, r.vencimentos, r.emailAtivo, r.ativos);
+    _alCfg_ = r; alDesenharCfg_(r.regras, r.repetirMin, r.escalarApos, r.vencimentos, r.emailAtivo, r.ativos, r.sistemaRepetirMin);
   }catch(e){ box.textContent = 'Não consegui carregar agora.'; }
 }
-function alDesenharCfg_(regras, rep, esc, venc, email, ativos){
+function alDesenharCfg_(regras, rep, esc, venc, email, ativos, sisRep){
   const box = document.getElementById('alCfgBox'); if(!box) return;
   const linhas = AL_REGRAS_.map(([k, nome, quem]) => { const g = (regras || {})[k] || {}; return `<tr>
       <td style="padding:4px 6px;"><label style="display:flex;gap:6px;align-items:center;"><input type="checkbox" id="alL_${k}" ${g.ligado !== false ? 'checked' : ''}> ${escH(nome)}</label><div class="sub">${escH(quem)}</div></td>
@@ -125,13 +131,14 @@ function alDesenharCfg_(regras, rep, esc, venc, email, ativos){
   box.innerHTML = at + `<h3 class="mt-2">Pedido parado</h3><div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;">${linhas}</table></div>
     <div class="row2 mt-2"><div><label for="alRep">Repetir o aviso a cada (min)</label><input type="number" inputmode="numeric" min="1" max="60" id="alRep" value="${escH(rep)}"></div>
     <div><label for="alEsc">Avisar também o Admin depois de (avisos)</label><input type="number" inputmode="numeric" min="1" max="20" id="alEsc" value="${escH(esc)}"></div></div>
+    <div class="row2 mt-2"><div><label for="alSisRep">Repetir avisos do sistema a cada (min)</label><input type="number" inputmode="numeric" min="10" max="240" id="alSisRep" value="${escH(sisRep || 30)}"></div><div class="sub" style="align-self:end;">Falha do sistema (planilha parada, backup, caixa vencido…) avisa de novo nesse intervalo até ser resolvida. O e-mail vai no máximo a cada 6 horas.</div></div>
     <h3 class="mt-3">Vencimentos (avisa 30, 15, 7 e 1 dia antes)</h3><p class="sub">Certificado digital da nota fiscal, domínio, plano pago, cartão da conta do Supabase… O que tiver data para vencer.</p>${vl}
     <label style="display:flex;gap:6px;align-items:center;margin-top:8px;"><input type="checkbox" id="alEmail" ${email !== false ? 'checked' : ''}> Mandar também por e-mail (para a conta dona da planilha principal)</label>`;
 }
 function alLerForm_(){
   const regras = {}; AL_REGRAS_.forEach(([k]) => { regras[k] = { ligado: !!(document.getElementById('alL_' + k) || {}).checked, min: Number((document.getElementById('alM_' + k) || {}).value) || 0 }; });
   const venc = []; for(let i = 0; document.getElementById('alVi_' + i); i++){ const it = document.getElementById('alVi_' + i).value.trim(), dt = document.getElementById('alVd_' + i).value; if(it || dt) venc.push({ item: it, vence: dt }); }
-  return { regras, repetirMin: Number(document.getElementById('alRep').value) || 5, escalarApos: Number(document.getElementById('alEsc').value) || 3, vencimentos: venc, emailAtivo: !!document.getElementById('alEmail').checked };
+  return { regras, repetirMin: Number(document.getElementById('alRep').value) || 5, escalarApos: Number(document.getElementById('alEsc').value) || 3, sistemaRepetirMin: Number(document.getElementById('alSisRep').value) || 30, vencimentos: venc, emailAtivo: !!document.getElementById('alEmail').checked };
 }
 async function alSalvarCfg_(){
   const p = alLerForm_();
@@ -139,7 +146,7 @@ async function alSalvarCfg_(){
   try{ const r = await sbRpc_('api_alertas_salvar', { p }); showMsg('alCfgMsg', (r && r.message) || 'Não foi possível salvar.', r && r.ok ? 'ok' : 'warn'); if(r && r.ok) alCarregarCfg_(); }
   catch(e){ showMsg('alCfgMsg', 'Não foi possível salvar agora.', 'warn'); }
 }
-function alPadrao_(){ if(!_alCfg_) return; const p = alLerForm_(); alDesenharCfg_(_alCfg_.padrao, 5, 3, p.vencimentos, p.emailAtivo, _alCfg_.ativos); showMsg('alCfgMsg', 'Tempos padrão na tela. Toque em Salvar para valer.', 'ok'); }
+function alPadrao_(){ if(!_alCfg_) return; const p = alLerForm_(); alDesenharCfg_(_alCfg_.padrao, 5, 3, p.vencimentos, p.emailAtivo, _alCfg_.ativos, 30); showMsg('alCfgMsg', 'Tempos padrão na tela. Toque em Salvar para valer.', 'ok'); }
 async function alTeste_(){
   try{ somAlerta_(); }catch(e){}
   try{ const r = await sbRpc_('api_alertas_teste', { p:{} }); showMsg('alCfgMsg', (r && r.message) || 'Não foi possível testar.', r && r.ok ? 'ok' : 'warn'); }
