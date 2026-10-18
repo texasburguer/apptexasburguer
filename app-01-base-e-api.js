@@ -6,7 +6,7 @@ const API_URL = "https://script.google.com/macros/s/AKfycbwCftUm-1pxhA8XLNqMB7dM
 const CONTINGENCIA_API_URL = "https://script.google.com/macros/s/AKfycby3WljBnr7gpJrHdkbTvBCh5uIXqS4KCS6wkBYB5idxf5gI04efoDumQj264kR_smoW/exec";
 
 /* ===================== VERSÃO DO APP ===================== */
-const APP_VERSAO = '1.8';
+const APP_VERSAO = '1.9';
 const APP_ATUALIZADO_EM = '18/10/2026';
 window.APP_VERSAO = APP_VERSAO;
 
@@ -298,6 +298,18 @@ function normalizarNumerosDados_(d){
   return d;
 }
 function apiConfigurada(){ return API_URL && API_URL.indexOf('http') === 0; }
+/* TURNO DO CAIXA: o "hoje" das listas de pedidos segue o caixa (abre num dia, fecha no outro), não a data do calendário.
+   Caixa aberto → do momento da abertura até agora. Sem caixa aberto → o último turno (abertura até fechamento). Sem nenhum registro → o dia do calendário. */
+function turnoCaixa_(){
+  try{
+    if(typeof sessaoCaixa !== 'undefined' && sessaoCaixa && sessaoCaixa.aberturaTimestamp) return { ini: sessaoCaixa.aberturaTimestamp, fim: Infinity, aberto: true };
+    const h = (typeof historicoCaixa !== 'undefined' && historicoCaixa || []).filter(c=>c && c.aberturaTimestamp);
+    if(h.length){ const u = h.reduce((a,b)=> b.aberturaTimestamp > a.aberturaTimestamp ? b : a); return { ini: u.aberturaTimestamp, fim: u.fechamentoTimestamp || Infinity, aberto: false }; }
+  }catch(e){}
+  const d = new Date(); const ini = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  return { ini, fim: ini + 864e5 - 1, aberto: false, calendario: true };
+}
+function noTurnoCaixa_(ts){ const t = turnoCaixa_(); ts = Number(ts) || 0; return ts >= t.ini && ts <= t.fim; }
 function dataLocalISO(date){ const y=date.getFullYear(), m=String(date.getMonth()+1).padStart(2,'0'), d=String(date.getDate()).padStart(2,'0'); return `${y}-${m}-${d}`; }
 function parseDataBR(str){
   if(!str) return null;

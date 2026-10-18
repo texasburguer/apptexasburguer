@@ -1,4 +1,4 @@
-/* ---------- Avisos com o app FECHADO (Web Push; só Admin/Operador). O servidor manda "Novo pedido" e "Cliente aguardando" mesmo com o app fechado. ---------- */
+/* ---------- Avisos com o app FECHADO (Web Push; Admin/Operador e, desde 18/10/2026, Cozinha e Garçom para os alertas de pedido parado). O servidor manda "Novo pedido" e "Cliente aguardando" mesmo com o app fechado. ---------- */
 const PUSH_CHAVE_PUBLICA_ = 'BK1UHD8LyT7jX5dBSaXZ4YdsnHIRa6JrYofIWpHMhEfFh3Lam6akQcpzhJERF_T6tg0JlXA3--hHk0geAzolFyI';
 function pushSuportado_(){ try{ return location.protocol==='https:' && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window; }catch(e){ return false; } }
 function pushChaveBytes_(b64){ const pad = '='.repeat((4 - b64.length % 4) % 4), raw = atob((b64 + pad).replace(/-/g,'+').replace(/_/g,'/')); const a = new Uint8Array(raw.length); for(let i=0;i<raw.length;i++) a[i] = raw.charCodeAt(i); return a; }
@@ -6,11 +6,11 @@ async function pushInscricaoAtual_(){ try{ const reg = await navigator.serviceWo
 async function atualizarPush_(){
   const box = document.getElementById('pushBox'); if(!box) return;
   const nivel = currentUser && currentUser.nivel;
-  const pode = pushSuportado_() && (nivel==='Admin' || nivel==='Operador' || nivel==='Desenvolvedor');
+  const pode = pushSuportado_() && ['Admin','Operador','Desenvolvedor','Cozinha','Garçom'].indexOf(nivel) !== -1;   // Cozinha e Garçom: alertas de pedido parado (18/10/2026)
   box.style.display = pode ? '' : 'none'; if(!pode) return;
   const sub = await pushInscricaoAtual_(), btn = document.getElementById('pushBtn'), txt = document.getElementById('pushTexto');
   const bloqueado = Notification.permission==='denied';
-  if(sub && Notification.permission==='granted'){ txt.textContent = 'Ligado neste aparelho: você recebe "Novo pedido" e "Cliente aguardando" mesmo com o app fechado.'; btn.textContent = 'Desligar avisos com o app fechado'; btn.className = 'ghost'; }
+  if(sub && Notification.permission==='granted'){ txt.textContent = 'Ligado neste aparelho: você recebe os avisos (pedido novo, cliente aguardando, pedido parado) mesmo com o app fechado.'; btn.textContent = 'Desligar avisos com o app fechado'; btn.className = 'ghost'; }
   else if(bloqueado){ txt.textContent = 'As notificações estão bloqueadas neste aparelho. Libere em configurações do navegador → permissões do site → Notificações.'; btn.textContent = 'Bloqueado'; btn.className = 'ghost'; btn.disabled = true; return; }
   else { txt.textContent = 'Receba o aviso de pedido novo e de cliente aguardando mesmo com o app fechado. No iPhone, instale o app na tela inicial primeiro (Compartilhar → Adicionar à Tela de Início).'; btn.textContent = 'Ligar avisos com o app fechado'; btn.className = 'primary'; }
   btn.disabled = false;
@@ -56,7 +56,7 @@ function fecharModalAvisos_(){ const m = document.getElementById('avisosModal');
 function atualizarCardAvisos_(){
   const botao = document.getElementById('avisosBtnTopo'); if(!botao) return;
   const nivel = currentUser && currentUser.nivel;
-  botao.style.display = nivel==='Garçom' ? 'none' : '';
+  botao.style.display = '';   // Garçom também (alerta de mesa pronta sem servir)
   botao.classList.toggle('pendente', avisosSuportado_() && Notification.permission==='default'); // ainda não ativou: chama atenção
   const txt = document.getElementById('avisosTexto'), btn = document.getElementById('avisosAtivarBtn');
   let t, mostrar = false;
@@ -297,7 +297,7 @@ ${(souEntregador && v.statusPedido==='Em preparo') ? `<div class="obs-line mt-2"
     }).join('') : `<div class="notif-empty">${souEntregador?'Nenhuma entrega atribuída a você agora.':'Nenhuma entrega em andamento.'}</div>`;
   }
   const hoje = dataLocalISO(new Date());
-  let concluidas = vendas.filter(v=>v.status==='Confirmada' && v.tipoEntrega==='Entrega' && v.statusPedido==='Entregue' && v.statusPagamento!=='A Receber' && dataLocalISO(new Date(v.timestamp))===hoje).sort((a,b)=>b.timestamp-a.timestamp);
+  let concluidas = vendas.filter(v=>v.status==='Confirmada' && v.tipoEntrega==='Entrega' && v.statusPedido==='Entregue' && v.statusPagamento!=='A Receber' && noTurnoCaixa_(v.timestamp)).sort((a,b)=>b.timestamp-a.timestamp);
   if(souEntregador) concluidas = concluidas.filter(v=>v.entregador===loginVisao_());
   const box2 = document.getElementById('entregasConcluidasLista');
   if(box2){
@@ -305,7 +305,7 @@ ${(souEntregador && v.statusPedido==='Em preparo') ? `<div class="obs-line mt-2"
       const tPreparo = tempoEntre(v.timestamp, v.timestampPronta);
       const tEntrega = tempoEntre(v.timestampSaiu, v.timestampConcluida);
       return `<div class="notif-card"><b>#${rotuloPedido(v)}</b> — 🛵 ${escH(v.clienteNome||'Sem cadastro')}${escH(v.entregador?' · '+v.entregador:'')}${v.taxaEntrega>0?' · taxa '+formatarMoeda(v.taxaEntrega):''}${v.fechamentoEntregaId?' · ✔ fechada':''}${tPreparo?' · preparo: '+tPreparo:''}${tEntrega?' · entrega: '+tEntrega:''}<details class="pd-det"><summary>ver pedido completo</summary>${pedidoDetalheHtml_(v)}</details></div>`;
-    }).join('') : '<div class="notif-empty">Nenhuma entrega concluída ainda hoje.</div>';
+    }).join('') : '<div class="notif-empty">Nenhuma entrega concluída ainda neste turno do caixa.</div>';
   }
   _alertaPed_.entregas = pendentes.length>0; _atualizarAlertaPedidos_();
   renderEntregasFinanceiro();
@@ -399,12 +399,12 @@ function renderEntregasFinanceiro(){
   if(nivel==='Entregador'){
     const box = document.getElementById('entregasMeuDia');
     const hoje = dataLocalISO(new Date());
-    const minhas = vendas.filter(v=>v.status==='Confirmada' && v.tipoEntrega==='Entrega' && v.statusPedido==='Entregue' && v.timestampConcluida && dataLocalISO(new Date(v.timestampConcluida))===hoje);
+    const minhas = vendas.filter(v=>v.status==='Confirmada' && v.tipoEntrega==='Entrega' && v.statusPedido==='Entregue' && v.timestampConcluida && noTurnoCaixa_(v.timestampConcluida));
     const taxas = arred2(minhas.reduce((s,v)=>s+(Number(v.taxaEntrega)||0),0));
     const jaFechouHoje = fechamentosEntrega.some(f=>f.dataRef===hoje);
     const ajuda = (minhas.length && !jaFechouHoje) ? configEntrega.ajudaDiaria : 0;
     const ult = fechamentosEntrega.slice().reverse().slice(0,5);
-    if(box) box.innerHTML = `<div class="obs-line">Entregas hoje: <b>${minhas.length}</b> · Taxas: <b>${formatarMoeda(taxas)}</b>${ajuda?` · Ajuda diária: <b>${formatarMoeda(ajuda)}</b>`:''}</div><div class="obs-line">Previsto hoje: <b>${formatarMoeda(taxas+ajuda)}</b> (o acerto oficial é feito pelo administrador no fechamento)</div>` +
+    if(box) box.innerHTML = `<div class="obs-line">Entregas no turno: <b>${minhas.length}</b> · Taxas: <b>${formatarMoeda(taxas)}</b>${ajuda?` · Ajuda diária: <b>${formatarMoeda(ajuda)}</b>`:''}</div><div class="obs-line">Previsto hoje: <b>${formatarMoeda(taxas+ajuda)}</b> (o acerto oficial é feito pelo administrador no fechamento)</div>` +
       (ult.length ? '<h3 class="mt-3">Últimos acertos</h3>' + ult.map(f=>`<div class="obs-line">${f.dataRef.split('-').reverse().join('/')} — ${f.qtd} entrega(s) · devido ${formatarMoeda(f.totalDevido)} · pago ${formatarMoeda(f.valorPago)}</div>`).join('') : '');
   }
 }
@@ -541,10 +541,10 @@ function renderInicio(){
     const caixaTxt = sessaoCaixa ? '🟢 Aberto' : '🔒 Fechado';
     const caixaSub = sessaoCaixa ? ('desde '+String(sessaoCaixa.abertura||'').split(' ').pop()) : 'toque para abrir';
     blocos.push(`<button type="button" class="resumo-box ${sessaoCaixa?'':'atencao'}" ${clique("document.querySelector('[data-tab=caixa]').click();abrirCaixaStatus_()")}><span class="rot">Caixa</span><b>${caixaTxt}</b><small>${escH(caixaSub)}</small></button>`);
-    const hoje = vendas.filter(v=>v.status==='Confirmada' && v.timestamp>=inicioDia);
+    const hoje = vendas.filter(v=>v.status==='Confirmada' && noTurnoCaixa_(v.timestamp));
     const faturado = hoje.filter(v=>v.statusPagamento!=='A Receber').reduce((t,v)=>t+(Number(v.valorTotal)||0),0);
     const aReceber = hoje.filter(v=>v.statusPagamento==='A Receber').reduce((t,v)=>t+(Number(v.valorTotal)||0),0);
-    blocos.push(`<div class="resumo-box" ${nivel==='Admin' ? clique("abrirAdministrador('visaogeral')") : ''}><span class="rot">Vendas hoje</span><b>${fmt(faturado)}</b><small>${hoje.length} pedido(s)${aReceber>0?' · '+fmt(aReceber)+' a receber':''}</small></div>`);
+    blocos.push(`<div class="resumo-box" ${nivel==='Admin' ? clique("abrirAdministrador('visaogeral')") : ''}><span class="rot">${turnoCaixa_().calendario?'Vendas hoje':'Vendas do turno'}</span><b>${fmt(faturado)}</b><small>${hoje.length} pedido(s)${aReceber>0?' · '+fmt(aReceber)+' a receber':''}</small></div>`);
   }
   // 4) Cardápio hoje (visitas) | Mesas (com a conta das mesas junto)
   if(staff){

@@ -940,12 +940,34 @@ async function avancarPedido(vendaId, novoStatus){
   } catch(e){}
   finally { finalizarOperacaoUnica(chave); }
 }
+/* Fase 5 (F5-1): ao receber, pergunta em que forma o cliente pagou de verdade (o pedido pode ter vindo como "Dinheiro"
+   e ser pago no Pix): assim o caixa espera na gaveta só o que entrou em dinheiro. Dá para dividir em duas formas. */
 async function confirmarRecebimento(vendaId){
+  const v = (vendas||[]).find(x=>x.id===vendaId);
+  const total = v ? Math.round(((Number(v.valorTotal)||0) - (Number(v.acrescimoForma)||0))*100)/100 : 0;
+  const formas = (formasPagamento||[]).filter(f=>f.ativa && f.nome !== 'A Receber (Mesa)' && !/ifood/i.test(f.nome)).map(f=>({ v:f.nome, t:f.nome }));
+  let corpo = { vendaId };
+  if(v && total > 0 && formas.length){
+    const atual = formas.find(o=>o.v===v.formaPagamento) ? v.formaPagamento : (formas.find(o=>o.v==='Dinheiro') ? 'Dinheiro' : formas[0].v);   // ex.: "iFood (pagar na entrega)" pago em dinheiro
+    const f = await vsForm({ titulo:'💰 Receber pedido #' + (v.numero||''), texto:'Total: ' + formatarMoeda(total) + '. Em que forma o cliente pagou?', ok:'Confirmar recebimento',
+      campos:[ { id:'forma', tipo:'escolha', rotulo:'Forma', valor: atual, opcoes: formas },
+               { id:'dividir', tipo:'escolha', rotulo:'Pagou parte em outra forma?', valor:'nao', opcoes:[ { v:'nao', t:'Não' }, { v:'sim', t:'Sim, dividir' } ] },
+               { id:'forma2', tipo:'escolha', rotulo:'Segunda forma', valor: formas[0].v, opcoes: formas, mostrarSe:{ campo:'dividir', valor:'sim' } },
+               { id:'valor2', tipo:'numero', rotulo:'Valor pago na segunda forma', sufixo:'R$', maiorQueZero:true, obrigatorio:true, mostrarSe:{ campo:'dividir', valor:'sim' } } ] });
+    if(!f) return;
+    if(f.dividir === 'sim'){
+      const v2 = Math.round(Number(f.valor2)*100)/100;
+      if(!(v2 > 0 && v2 < total)){ avisar('O valor da segunda forma precisa ser maior que zero e menor que ' + formatarMoeda(total) + '.'); return; }
+      if(f.forma2 === f.forma){ avisar('Escolha duas formas diferentes.'); return; }
+      corpo.pagamentos = [ { forma:f.forma, valor: Math.round((total - v2)*100)/100 }, { forma:f.forma2, valor: v2 } ];
+    } else corpo.pagamentos = [ { forma:f.forma, valor: total } ];
+  }
   const chave = 'receber-'+vendaId;
   if(!iniciarOperacaoUnica(chave)) return;
   try{
-    const r = await apiCall('confirmarRecebimentoPedido', { vendaId });
+    const r = await apiCall('confirmarRecebimentoPedido', corpo);
     if(r.ok){ vendas = r.vendas || vendas; salvarCache(); renderPedidos(); renderEntregas(); renderStatusCaixa(); }
+    else avisar(r.message || 'Não foi possível confirmar o recebimento.');
   } catch(e){}
   finally { finalizarOperacaoUnica(chave); }
 }

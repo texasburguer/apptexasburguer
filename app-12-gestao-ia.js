@@ -350,23 +350,32 @@ function cpComprimir_(file){
     img.src = url;
   });
 }
-async function cpToken_(){ let s = sbSessaoLer_(); if(!s) return ''; if(Date.now() > s.expira){ if(!(await sbRenovar_())) return ''; s = sbSessaoLer_(); } return s ? s.access_token : ''; }
-async function cpEnviarAnexo_(file){
-  const prep = await cpComprimir_(file), tk = await cpToken_(); if(!tk) throw new Error('Sessão expirada.');
-  const caminho = cpHoje_().slice(0,7).replace('-','/') + '/' + (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2)) + '.' + prep.ext;
-  const r = await sbJson_(SUPABASE_URL_ + '/storage/v1/object/notas/' + caminho, { method:'POST', headers:{ apikey:SUPABASE_CHAVE_, Authorization:'Bearer ' + tk, 'Content-Type':prep.tipo, 'x-upsert':'false' }, body: prep.blob }, 60000);
-  if(!r.ok) throw new Error('Envio do comprovante falhou (erro ' + r.status + ').');
-  return { path: caminho, nome: String(file.name||'comprovante').slice(0,120) };
+/* Comprovante no Google Drive (18/10/2026): mesmo caminho das fotos dos produtos (Edge Function -> planilha -> Drive),
+   escolhendo o Drive principal, o da contingência ou os dois. O arquivo fica privado: só o Admin abre, pelo app. */
+function cpDestinoAnexo_(){ let v = ''; try{ v = localStorage.getItem('cpAnexoDestino') || ''; }catch(e){} return ['ambos','principal','contingencia'].indexOf(v) >= 0 ? v : 'ambos'; }
+function cpGuardarDestino_(v){ try{ localStorage.setItem('cpAnexoDestino', v); }catch(e){} }
+function cpBlobBase64_(blob){ return new Promise((ok, falha)=>{ const fr = new FileReader(); fr.onload = ()=>ok(String(fr.result).split(',').pop()); fr.onerror = ()=>falha(new Error('Não consegui ler o arquivo.')); fr.readAsDataURL(blob); }); }
+async function cpEnviarAnexo_(file, destino){
+  const prep = await cpComprimir_(file);
+  if(prep.blob.size > 3*1024*1024) throw new Error('Arquivo maior que 3 MB.');
+  destino = destino || ((document.getElementById('cpAnexoDestino')||{}).value) || cpDestinoAnexo_();
+  const base64Data = await cpBlobBase64_(prep.blob);
+  const j = await sb410Edge_('nota-anexo', { acao:'enviar', base64Data, nomeBase: 'nota-' + cpHoje_(), destino }, 90000);
+  if(!j || !j.ok || !j.path) throw new Error((j && j.message) || 'Envio do comprovante falhou.');
+  return { path: j.path, nome: String(file.name||'comprovante').slice(0,120), aviso: j.aviso || '' };
 }
 async function cpVerAnexo_(id){
   const c = (_compras_.compras||[]).find(x=>x.id===id); if(!c || !c.anexoPath) return;
+  const w = window.open('', '_blank'); // abre já no toque (o celular bloqueia janela aberta depois da espera)
   try{
-    const tk = await cpToken_(); if(!tk) throw new Error('Sessão expirada.');
-    const r = await sbJson_(SUPABASE_URL_ + '/storage/v1/object/sign/notas/' + c.anexoPath, { method:'POST', headers:{ apikey:SUPABASE_CHAVE_, Authorization:'Bearer ' + tk, 'Content-Type':'application/json' }, body: JSON.stringify({ expiresIn: 300 }) }, 20000);
-    const j = await r.json().catch(()=>null);
-    if(!r.ok || !j || !(j.signedURL || j.signedUrl)) throw new Error('Não consegui abrir o comprovante.');
-    window.open(SUPABASE_URL_ + '/storage/v1' + (j.signedURL || j.signedUrl), '_blank', 'noopener');
-  }catch(e){ showMsg('cpListaMsg', e.message || 'Não consegui abrir o comprovante.', 'warn'); }
+    if(w) w.document.write('<p style="font-family:sans-serif;padding:20px">Abrindo o comprovante…</p>');
+    const j = await sb410Edge_('nota-anexo', { acao:'ver', compraId: id }, 60000);
+    if(!j || !j.ok || !j.base64) throw new Error((j && j.message) || 'Não consegui abrir o comprovante.');
+    const bin = atob(j.base64), u8 = new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) u8[i] = bin.charCodeAt(i);
+    const url = URL.createObjectURL(new Blob([u8], { type: j.tipo || 'application/octet-stream' }));
+    if(w) w.location.href = url; else window.open(url, '_blank');
+    setTimeout(()=>URL.revokeObjectURL(url), 120000);
+  }catch(e){ if(w) try{ w.close(); }catch(_){} showMsg('cpListaMsg', e.message || 'Não consegui abrir o comprovante.', 'warn'); }
 }
 /* ---------- lista ---------- */
 function renderCompras_(){
@@ -434,7 +443,7 @@ function cpDepoisDeGravar_(r){
 function cpLimparForm_(){
   cpItens_ = []; cpAddItem_(); cpPagsPadrao_(); cpEditandoDe_ = ''; cpAnexo_ = null;
   ['cpObs','cpNumNota','cpFrete','cpDesconto','cpTotalNota'].forEach(id=>{ const el = document.getElementById(id); if(el) el.value=''; });
-  const a = document.getElementById('cpAnexo'); if(a) a.value = ''; const ai = document.getElementById('cpAnexoInfo'); if(ai) ai.textContent = '';
+  const a = document.getElementById('cpAnexo'); if(a) a.value = ''; const ai = document.getElementById('cpAnexoInfo'); if(ai) ai.textContent = ''; const ad = document.getElementById('cpAnexoDestino'); if(ad) ad.value = cpDestinoAnexo_();
   const tt = document.getElementById('cpTituloNota'); if(tt) tt.textContent = 'Registrar nota de compra';
   cpAtualizarTotal_();
 }
@@ -454,7 +463,7 @@ async function registrarCompraUI(){
   const btn = document.getElementById('cpBtnSalvar'); if(btn) btn.disabled = true;
   try{
     let avisoAnexo = '';
-    if(cpAnexo_){ try{ const a = await cpEnviarAnexo_(cpAnexo_); p.anexoPath = a.path; p.anexoNome = a.nome; } catch(e){ avisoAnexo = ' O comprovante não foi enviado (' + (e.message||'erro') + '): anexe depois em "Editar dados da nota".'; } }
+    if(cpAnexo_){ try{ const a = await cpEnviarAnexo_(cpAnexo_); p.anexoPath = a.path; p.anexoNome = a.nome; if(a.aviso) avisoAnexo = ' ' + a.aviso; } catch(e){ avisoAnexo = ' O comprovante não foi enviado (' + (e.message||'erro') + '): anexe depois em "Editar dados da nota".'; } }
     let r = await apiCall('registrarCompra', p);
     if(r && r.precisaConfirmar){
       const det = [];
@@ -536,7 +545,8 @@ async function cpEditarInfoUI_(id){
   const c = (_compras_.compras||[]).find(x=>x.id===id); if(!c) return;
   const f = await vsForm({ titulo:'Dados da nota', texto:'Para mudar itens, valores ou pagamento, use "Corrigir nota".', ok:'Salvar',
     campos:[ { id:'numero', rotulo:'Nº da nota', tipo:'texto', valor:c.numeroNota||'', max:60 }, { id:'obs', rotulo:'Observação', tipo:'texto', valor:c.observacao||'', max:300 },
-             { id:'anexo', tipo:'escolha', rotulo:'Comprovante', valor:'manter', opcoes:[ { v:'manter', t: c.anexoPath ? 'Manter o atual' : 'Continuar sem' }, { v:'novo', t:'Anexar foto/PDF agora' } ].concat(c.anexoPath ? [ { v:'tirar', t:'Remover' } ] : []) } ] });
+             { id:'anexo', tipo:'escolha', rotulo:'Comprovante', valor:'manter', opcoes:[ { v:'manter', t: c.anexoPath ? 'Manter o atual' : 'Continuar sem' }, { v:'novo', t:'Anexar foto/PDF agora' } ].concat(c.anexoPath ? [ { v:'tirar', t:'Remover' } ] : []) },
+             { id:'destino', tipo:'escolha', rotulo:'Guardar o novo comprovante em', valor: cpDestinoAnexo_(), opcoes:[ { v:'ambos', t:'Os dois Drives' }, { v:'principal', t:'Só no principal' }, { v:'contingencia', t:'Só na contingência' } ] } ] });
   if(!f) return;
   const p = { id, numeroNota: f.numero, observacao: f.obs };
   try{
@@ -544,7 +554,7 @@ async function cpEditarInfoUI_(id){
     if(f.anexo === 'novo'){
       const arq = await new Promise(ok=>{ const inp = document.createElement('input'); inp.type='file'; inp.accept='image/*,application/pdf'; inp.onchange = ()=>ok(inp.files && inp.files[0]); inp.click(); });
       if(!arq){ showMsg('cpListaMsg','Nenhum arquivo escolhido.','warn'); return; }
-      const a = await cpEnviarAnexo_(arq); p.anexoPath = a.path; p.anexoNome = a.nome;
+      cpGuardarDestino_(f.destino); const a = await cpEnviarAnexo_(arq, f.destino); p.anexoPath = a.path; p.anexoNome = a.nome; if(a.aviso) showMsg('cpListaMsg', a.aviso, 'warn');
     }
     const r = await apiCall('editarCompraInfo', p); showMsg('cpListaMsg', r.message, r.ok?'ok':'warn'); if(r.ok) await carregarCompras_();
   }catch(e){ showMsg('cpListaMsg', (e && e.message) || 'Não foi possível salvar agora.','warn'); }

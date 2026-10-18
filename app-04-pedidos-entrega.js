@@ -188,7 +188,7 @@ function renderMesasPainel_(){
 
   // histórico de hoje: por mesa, separado em ATENDIMENTOS (cada cliente que sentou e pagou = um atendimento)
   const hoje = dataLocalISO(new Date());
-  const doDia = (vendas||[]).filter(v=>v.status==='Confirmada' && v.tipoEntrega==='Mesa' && v.mesaId && dataLocalISO(new Date(v.timestamp))===hoje);
+  const doDia = (vendas||[]).filter(v=>v.status==='Confirmada' && v.tipoEntrega==='Mesa' && v.mesaId && noTurnoCaixa_(v.timestamp));
   const porMesa = {};
   doDia.forEach(v=>{ (porMesa[v.mesaId] = porMesa[v.mesaId] || []).push(v); });
   const grupos = Object.keys(porMesa).map(id=>{
@@ -196,7 +196,7 @@ function renderMesasPainel_(){
     const atend = atendimentosDaMesa_(lista);
     return { id, atend, total: arred2(lista.reduce((s,v)=>s+Number(v.valorTotal||0),0)), ultimo: Math.max.apply(null, atend.map(x=>Math.max(x.inicio, x.fim||0))) };
   }).sort((a,b)=>b.ultimo-a.ultimo);
-  if(!grupos.length){ hist.innerHTML = '<div class="notif-empty">Nenhum pedido de mesa hoje ainda.</div>'; }
+  if(!grupos.length){ hist.innerHTML = '<div class="notif-empty">Nenhum pedido de mesa neste turno do caixa ainda.</div>'; }
   else {
     const totalDia = arred2(grupos.reduce((s,g)=>s+g.total,0));
     const nAtend = grupos.reduce((s,g)=>s+g.atend.length,0);
@@ -306,14 +306,14 @@ function renderPedidos(){
     }).join('') : ('<div class="notif-empty">'+(souGarcom_()?'Nenhum pedido de mesa em andamento.':'Nenhuma retirada em andamento.')+'</div>');
   }
   const hoje = dataLocalISO(new Date());
-  const concluidos = vendas.filter(v=>v.status==='Confirmada' && v.tipoEntrega==='Retirada' && v.statusPedido==='Retirada' && v.statusPagamento!=='A Receber' && dataLocalISO(new Date(v.timestamp))===hoje).sort((a,b)=>b.timestamp-a.timestamp);
+  const concluidos = vendas.filter(v=>v.status==='Confirmada' && v.tipoEntrega==='Retirada' && v.statusPedido==='Retirada' && v.statusPagamento!=='A Receber' && noTurnoCaixa_(v.timestamp)).sort((a,b)=>b.timestamp-a.timestamp);
   const box2 = document.getElementById('pedidosConcluidosLista');
   if(box2){
     box2.innerHTML = concluidos.length ? concluidos.map(v=>{
       const tPreparo = tempoEntre(v.timestamp, v.timestampPronta);
       return `<div class="notif-card"><b>#${rotuloPedido(v)}</b> — 🥡 ${escH(v.clienteNome||'Sem cadastro')} — Retirada${tPreparo?' · preparo: '+tPreparo:''}
         <details class="pd-det"><summary>ver pedido completo</summary>${pedidoDetalheHtml_(v)}</details></div>`;
-    }).join('') : '<div class="notif-empty">Nenhuma retirada concluída ainda hoje.</div>';
+    }).join('') : '<div class="notif-empty">Nenhuma retirada concluída ainda neste turno do caixa.</div>';
   }
   _alertaPed_.pedidos = pendentes.length>0; _atualizarAlertaPedidos_();
   try{ renderMesasPainel_(); }catch(e){}

@@ -6,7 +6,7 @@
    - BACKEND: NADA de Apps Script (script.google.com) nem de Supabase (*.supabase.co) é guardado aqui.
      Dados, pedidos, login e RPCs nunca passam pelo cache do service worker — sempre vão direto para a rede.
    - O único cache de dados é o de fotos (FOTOS) e o da casca/ícones (SHELL/ASSETS). Não adicionar outros. */
-const SHELL = 'texas-shell-v84';
+const SHELL = 'texas-shell-v85';
 const ASSETS = 'texas-assets-v6';   // trocou ícone/logo/manifest/leaflet? suba para v5
 const FOTOS = 'texas-fotos-v1';
 /* Código do app dividido em arquivos (app-*.js e estilo-*.css). Cada arquivo tem ?v=<impressão digital> na página; o cache guarda
@@ -15,18 +15,18 @@ const FOTOS = 'texas-fotos-v1';
 const CODIGO = 'texas-codigo-v2';
 const LISTA = [/*LISTA-INICIO*/
   'estilo-base.css?v=309b8857',
-  'app-01-base-e-api.js?v=eed224cb',
+  'app-01-base-e-api.js?v=7a6b08c8',
   'app-02-abas.js?v=bd55fd66',
-  'app-03-cadastros.js?v=a212db62',
-  'app-04-pedidos-entrega.js?v=5c4ec7a5',
-  'app-05-avisos-push.js?v=d76d4b0a',
+  'app-03-cadastros.js?v=0bae27c6',
+  'app-04-pedidos-entrega.js?v=5c2967f1',
+  'app-05-avisos-push.js?v=157e9c83',
   'app-06-caixa.js?v=edcbde35',
   'app-07-impressao.js?v=c7e50925',
   'app-08-vendas-despesas.js?v=42c06d58',
-  'app-09-ajuda.js?v=5e996f23',
+  'app-09-ajuda.js?v=e4aef674',
   'app-10-backup-financeiro.js?v=cd9fa05f',
   'app-11-admin-integracoes.js?v=e53763b1',
-  'app-12-gestao-ia.js?v=51e14ddb',
+  'app-12-gestao-ia.js?v=f1cc6dcc',
   'app-13-conexao-sync.js?v=4169baef',
   'app-14-relatorios.js?v=1ff528da',
   'app-15-cardapio-cliente.js?v=19a2d090',
@@ -48,6 +48,7 @@ const LISTA = [/*LISTA-INICIO*/
   'app-27-conta-cliente.js?v=6018b2b7',
   'app-29-usabilidade.js?v=8c6dd0c8',
   'app-30-teclado-pc.js?v=6ada025e',
+  'app-31-alertas.js?v=dc7bb097',
 /*LISTA-FIM*/];
 const FOTOS_MAX = 150;
 const PRE = ['manifest.webmanifest', 'icon-192.png', 'badge-96.png', 'apple-touch-icon.png', 'logo-texas-burger.webp', 'logo-impressao-cor.png'];
@@ -168,7 +169,7 @@ self.addEventListener('push', e => {
   const titulo = String(d.titulo || 'Texas Burger').slice(0, 80);
   e.waitUntil(self.registration.showNotification(titulo, {
     body: String(d.texto || '').slice(0, 140), tag: String(d.tag || 'texas'), renotify: true,
-    icon: 'icon-192.png', badge: 'badge-96.png', vibrate: [250, 120, 250, 120, 400], requireInteraction: d.tipo === 'pedido',
+    icon: 'icon-192.png', badge: 'badge-96.png', vibrate: [250, 120, 250, 120, 400], requireInteraction: d.tipo === 'pedido' || d.tipo === 'alerta',
     data: { url: String(d.url || './') }
   }));
 });
