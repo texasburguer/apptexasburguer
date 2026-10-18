@@ -839,26 +839,39 @@
   <section class="tab" id="tab-compras">
     <div class="admin-subnav" data-admin-nav="1"></div>
     <div class="card" id="cardCompraNova">
-      <h2>Registrar compra</h2>
-      <p class="sub">Ao marcar como recebida, o estoque aumenta, o custo do ingrediente é recalculado (média) e a despesa é lançada.</p>
-      <label>Fornecedor</label>
+      <h2 id="cpTituloNota">Registrar nota de compra</h2>
+      <p class="sub">Ao salvar uma nota recebida, o estoque aumenta, o custo do ingrediente passa a ser o <b>último custo pago</b> (o da nota mais recente) e as despesas são lançadas.</p>
+      <label for="cpFornecedor">Fornecedor</label>
       <select id="cpFornecedor"></select>
       <div class="row2">
-        <div><label>Data da compra</label><input type="date" id="cpData"></div>
-        <div><label>Situação</label><select id="cpStatus"><option value="Recebida">Recebida (já chegou)</option><option value="Pedido">Só pedido (ainda não chegou)</option></select></div>
+        <div><label for="cpData">Data da nota</label><input type="date" id="cpData"></div>
+        <div><label for="cpNumNota">Nº da nota (ou do cupom)</label><input type="text" id="cpNumNota" maxlength="60" inputmode="numeric" placeholder="Ex: 001234"></div>
       </div>
+      <label for="cpStatus">Situação</label>
+      <select id="cpStatus" onchange="cpMudouStatus_()"><option value="Recebida">Recebida (já chegou)</option><option value="Pedido">Só pedido (ainda não chegou)</option></select>
+      <label for="cpAnexo">Foto ou PDF da nota (opcional)</label>
+      <input type="file" id="cpAnexo" accept="image/*,application/pdf" capture="environment" onchange="cpAnexoEscolhido_(this)">
+      <div class="sub" id="cpAnexoInfo"></div>
       <h3 class="mt-3">Itens</h3>
       <div id="cpItens"></div>
       <button type="button" class="ghost" onclick="cpAddItem_()">+ Adicionar item</button>
       <div class="row2 mt-3">
-        <div><label>Pagamento</label><select id="cpPagamento" onchange="cpMudouPagamento_()"><option value="Pago">Pago</option><option value="A pagar">A pagar</option></select></div>
-        <div id="cpVencBox" style="display:none;"><label>Vencimento</label><input type="date" id="cpVenc"></div>
+        <div><label for="cpFrete">Frete da nota (R$, opcional)</label><input type="number" id="cpFrete" inputmode="decimal" min="0" step="0.01" oninput="cpAtualizarTotal_()"></div>
+        <div><label for="cpDesconto">Desconto da nota (R$, opcional)</label><input type="number" id="cpDesconto" inputmode="decimal" min="0" step="0.01" oninput="cpAtualizarTotal_()"></div>
       </div>
-      <label id="cpSaiuBox" class="d-flex ai-centro gap-2"><input type="checkbox" id="cpSaiuCaixa" class="largura-auto sem-margem"> O dinheiro saiu do caixa do dia</label>
-      <label>Observação (opcional)</label>
+      <label for="cpTotalNota">Total impresso na nota (R$, para conferir)</label>
+      <input type="number" id="cpTotalNota" inputmode="decimal" min="0" step="0.01" oninput="cpAtualizarTotal_()">
+      <div class="sub" id="cpConferencia"></div>
+      <div id="cpPagBox">
+        <h3 class="mt-3">Pagamento</h3>
+        <div id="cpPags"></div>
+        <button type="button" class="ghost" onclick="cpAddPag_()">+ Dividir (parte agora, parte depois)</button>
+        <div class="sub" id="cpPagsResumo"></div>
+      </div>
+      <label for="cpObs">Observação (opcional)</label>
       <input type="text" id="cpObs" maxlength="300">
-      <div class="mt-2 fw-7">Total: <span id="cpTotal">R$ 0,00</span></div>
-      <button type="button" class="primary" onclick="registrarCompraUI()">Registrar compra</button>
+      <div class="mt-2 fw-7">Total da nota: <span id="cpTotal">R$ 0,00</span></div>
+      <button type="button" class="primary" id="cpBtnSalvar" onclick="registrarCompraUI()">Registrar nota</button>
       <div class="msg" id="cpMsg"></div>
     </div>
     <div class="card">
@@ -878,10 +891,12 @@
       <div id="cpLista"><div class="notif-empty">Carregando…</div></div>
       <div class="msg" id="cpListaMsg"></div>
     </div>
-    <div class="card" id="fiscalHistoricoFinanceiro">
-      <h2><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v18H6zM9 8h6M9 12h6M9 16h4"/></svg>Histórico de notas lidas pelo Tex</h2>
-      <p class="sub">Quem confirmou, quando e qual compra foi lançada. As fotos são excluídas após 30 dias; o histórico permanece.</p>
-      <div id="fiscalHistoricoFinanceiroLista"><div class="notif-empty">Carregando histórico…</div></div>
+    <div class="card">
+      <h2>Histórico de custos</h2>
+      <p class="sub">Cada custo com a data e a nota de onde veio. Vale sempre o da nota mais recente; nota antiga lançada depois fica só no histórico.</p>
+      <label for="cpCustoIng">Ingrediente</label>
+      <select id="cpCustoIng" onchange="cpRenderCustos_()"></select>
+      <div id="cpCustos"><div class="notif-empty">Carregando…</div></div>
     </div>
   </section>
 
@@ -2439,7 +2454,7 @@
   </div>
 </div>
 
-<script src="app-01-base-e-api.js?v=20787e1d" charset="utf-8" data-origem="__big0__"></script>
+<script src="app-01-base-e-api.js?v=eed224cb" charset="utf-8" data-origem="__big0__"></script>
 <script src="app-02-abas.js?v=bd55fd66" charset="utf-8" data-origem="__big1__"></script>
 <script src="app-03-cadastros.js?v=a212db62" charset="utf-8" data-origem="__big2__"></script>
 <script src="app-04-pedidos-entrega.js?v=5c4ec7a5" charset="utf-8" data-origem="__big3__"></script>
@@ -2447,10 +2462,10 @@
 <script src="app-06-caixa.js?v=edcbde35" charset="utf-8" data-origem="__big5__"></script>
 <script src="app-07-impressao.js?v=c7e50925" charset="utf-8" data-origem="__big6__"></script>
 <script src="app-08-vendas-despesas.js?v=42c06d58" charset="utf-8" data-origem="__big7__"></script>
-<script src="app-09-ajuda.js?v=eebd9bed" charset="utf-8" data-origem="__big8__"></script>
+<script src="app-09-ajuda.js?v=5e996f23" charset="utf-8" data-origem="__big8__"></script>
 <script src="app-10-backup-financeiro.js?v=cd9fa05f" charset="utf-8" data-origem="__big9__"></script>
 <script src="app-11-admin-integracoes.js?v=e53763b1" charset="utf-8" data-origem="__big10__"></script>
-<script src="app-12-gestao-ia.js?v=52ed5ee4" charset="utf-8" data-origem="__big11__"></script>
+<script src="app-12-gestao-ia.js?v=51e14ddb" charset="utf-8" data-origem="__big11__"></script>
 <script src="app-13-conexao-sync.js?v=4169baef" charset="utf-8" data-origem="__big12__"></script>
 <script src="app-14-relatorios.js?v=1ff528da" charset="utf-8" data-origem="__big13__"></script>
 <script src="app-15-cardapio-cliente.js?v=19a2d090" charset="utf-8" data-origem="__big14__"></script>
@@ -2480,7 +2495,7 @@
    BALÃO ÚNICO — parte da EQUIPE (Fase 3/4): só texto. O roteador do ai-gateway escolhe o robô; a fila de clientes aparece como aviso.
    Reaproveita IA.chamar, sbRpc_, sbSessaoLer_, sbJson_. Nenhum botão de função: tudo é texto (exceto Assumir/Encerrar/Sair da conversa).
    ===================================================================== -->
-<script src="app-20-balao-interno.js?v=1b861bf1" charset="utf-8" data-origem="balaoInterno"></script>
+<script src="app-20-balao-interno.js?v=3dbb18df" charset="utf-8" data-origem="balaoInterno"></script>
 
 <!-- =====================================================================
    FASE 5 — Localização do entregador (plano V3 §49–§59). Aditivo.

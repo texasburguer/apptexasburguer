@@ -153,57 +153,79 @@ function renderConfigCardapio(){
   document.getElementById('cfgTempoMesa').value = configCardapio.tempoMesa || '';
   renderDadosRestaurante_();
 }
-/* ---------- COMPRAS E FORNECEDORES (só Admin / Desenvolvedor) ---------- */
-var _compras_ = { fornecedores:[], compras:[] }, cpItens_ = [];
+/* ---------- COMPRAS E FORNECEDORES (só Admin / Desenvolvedor) ----------
+   Fase 3.1 (auditoria 18/10/2026): entrada de NOTA de compra. Custo = ÚLTIMO custo pela data da nota (por unidade base),
+   nº da nota, comprovante opcional (foto/PDF, guardado em local privado), frete e desconto rateados, vários pagamentos
+   com a origem do dinheiro (caixa, conta, cartão, dinheiro do dono ou a pagar), item sem estoque na categoria certa,
+   embalagem lembrada por fornecedor, estorno completo e correção (estorna + relança), histórico de custos. */
+var _compras_ = { fornecedores:[], compras:[], vinculos:[], custos:[] }, cpItens_ = [], cpPags_ = [], cpPagsMexeu_ = false, cpEditandoDe_ = '', cpAnexo_ = null;
 const CP_UNIDADES_ = ['un','kg','g','l','ml'];
+const CP_ORIGENS_ = [ { v:'caixa', t:'Caixa (gaveta)' }, { v:'conta', t:'Conta bancária / Pix' }, { v:'cartao', t:'Cartão' }, { v:'dono', t:'Dinheiro do dono' }, { v:'apagar', t:'Vou pagar depois' } ];
+function cpOrigemTxt_(o){ const x = CP_ORIGENS_.find(z=>z.v===o); return x ? x.t : (o||''); }
 function cpHoje_(){ return new Date(Date.now()-3*3600000).toISOString().slice(0,10); }
+function cpChave_(t){ return String(t||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').slice(0,80); }
 async function carregarCompras_(){
   const box = document.getElementById('cpLista'); if(!box) return;
   if(!document.getElementById('cpData').value) document.getElementById('cpData').value = cpHoje_();
   if(!cpItens_.length) cpAddItem_();
+  if(!cpPags_.length) cpPagsPadrao_();
   try{
     const r = await apiCall('listarCompras', {});
     if(!r || !r.ok){ box.innerHTML = '<div class="notif-empty">' + escH((r && r.message) || 'Não foi possível carregar agora.') + '</div>'; return; }
-    _compras_ = { fornecedores: r.fornecedores||[], compras: r.compras||[] };
+    _compras_ = { fornecedores: r.fornecedores||[], compras: r.compras||[], vinculos: r.vinculos||[], custos: r.custos||[] };
     renderCompras_();
     if(_cpPend_) cpAplicarPend_();
   }catch(e){ box.innerHTML = '<div class="notif-empty">Não foi possível carregar agora.</div>'; }
 }
-function cpItemVazio_(){ return { ingredienteId:'', descricao:'', quantidade:'', unidade:'un', valorTotal:'', emb:'', porEmb:'' }; }
+function cpItemVazio_(){ return { ingredienteId:'', descricao:'', descNota:'', quantidade:'', unidade:'un', valorTotal:'', emb:'', porEmb:'', categoria:'Insumos' }; }
 function cpAddItem_(){ cpItens_.push(cpItemVazio_()); cpRenderItens_(); }
 function cpRemoverItem_(i){ cpItens_.splice(i,1); if(!cpItens_.length) cpItens_.push(cpItemVazio_()); cpRenderItens_(); }
 function cpNorm_(s){ return String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().trim(); }
 function cpEhBebida_(id){ return (produtos||[]).some(p=>p.estoqueProprioIngredienteId===id); }
 function cpEditarItem_(i, campo, v){
   cpItens_[i][campo] = v;
-  if(campo==='ingredienteId'){ const e = (estoque||[]).find(x=>x.id===v); if(e){ cpItens_[i].unidade = e.unidade || 'un'; cpItens_[i].descricao = ''; } cpRenderItens_(); return; }
+  if(campo==='ingredienteId'){ const e = (estoque||[]).find(x=>x.id===v); if(e){ cpItens_[i].unidade = e.unidade || 'un'; if(!cpItens_[i].descNota) cpItens_[i].descNota = cpItens_[i].descricao; cpItens_[i].descricao = ''; } cpRenderItens_(); return; }
   if(campo==='unidade'){ cpRenderItens_(); return; }
   cpInfoItem_(i); cpAtualizarTotal_();
+}
+/* vínculo lembrado: "como este fornecedor escreve na nota" -> ingrediente, unidade e embalagem */
+function cpVinculo_(txt){
+  const f = document.getElementById('cpFornecedor').value, k = cpChave_(txt).trim(); if(!f || !k) return null;
+  return (_compras_.vinculos||[]).find(v=>v.fornecedorId===f && String(v.chave).trim()===k) || null;
 }
 /* busca por digitação: escolher um ingrediente dá entrada no estoque; texto livre vira só despesa (com aviso) */
 function cpBuscar_(i, txt){
   const it = cpItens_[i]; if(!it) return;
-  it.descricao = txt; it.ingredienteId = '';
+  it.descricao = txt; it.descNota = txt; it.ingredienteId = '';
   const q = cpNorm_(txt), box = document.getElementById('cpSug_'+i);
   if(box){
     if(!q){ box.innerHTML = ''; }
     else {
+      const vin = cpVinculo_(txt), ev = vin ? (estoque||[]).find(e=>e.id===vin.ingredienteId) : null;
       const ativos = (estoque||[]).filter(e=>e.ativo!==false && cpNorm_(e.nome).indexOf(q)!==-1)
         .sort((a,b)=>((cpNorm_(a.nome).indexOf(q)===0?0:1)-(cpNorm_(b.nome).indexOf(q)===0?0:1)) || a.nome.localeCompare(b.nome)).slice(0,8);
       const ing = ativos.filter(e=>!cpEhBebida_(e.id)), beb = ativos.filter(e=>cpEhBebida_(e.id));
       const bt = e=>`<button type="button" class="cf-sug-item" onclick="cpEscolher_(${i},'${e.id}')">${escH(e.nome)} <span>${escH(e.unidade||'un')}</span></button>`;
-      box.innerHTML = (ing.length ? '<div class="cf-sug-grupo">Ingredientes</div>' + ing.map(bt).join('') : '')
+      box.innerHTML = (ev ? `<div class="cf-sug-grupo">Como na última nota deste fornecedor</div><button type="button" class="cf-sug-item" onclick="cpUsarVinculo_(${i})">↺ ${escH(ev.nome)} <span>${escH(vin.unidade)}${vin.fator ? ' · embalagem de ' + escH(String(vin.fator).replace('.',',')) : ''}</span></button>` : '')
+        + (ing.length ? '<div class="cf-sug-grupo">Ingredientes</div>' + ing.map(bt).join('') : '')
         + (beb.length ? '<div class="cf-sug-grupo">Bebidas e itens prontos</div>' + beb.map(bt).join('') : '');
     }
   }
   cpInfoItem_(i);
 }
+function cpUsarVinculo_(i){
+  const it = cpItens_[i]; if(!it) return; const v = cpVinculo_(it.descNota || it.descricao); if(!v) return;
+  const box = document.getElementById('cpSug_'+i); if(box) box.innerHTML = '';
+  it.ingredienteId = v.ingredienteId; it.unidade = v.unidade || 'un'; it.descricao = '';
+  if(v.fator){ it.porEmb = String(v.fator); if(!it.emb) it.emb = ''; }
+  cpRenderItens_();
+}
 function cpEscolher_(i, id){ const box = document.getElementById('cpSug_'+i); if(box) box.innerHTML = ''; cpEditarItem_(i, 'ingredienteId', id); }
-/* "Comprei N embalagens de M unidades" -> quantidade = N x M */
+/* "Comprei N embalagens de M (unidade)" -> quantidade = N x M (vale para un, kg, g, l e ml) */
 function cpEmb_(i, campo, v){
   const it = cpItens_[i]; if(!it) return;
   it[campo] = v;
-  const n = Number(it.emb)||0, m = Number(it.porEmb)||0;
+  const n = Number(String(it.emb).replace(',','.'))||0, m = Number(String(it.porEmb).replace(',','.'))||0;
   if(n>0 && m>0){ it.quantidade = String(Math.round(n*m*1000)/1000); const q = document.getElementById('cpQtd_'+i); if(q) q.value = it.quantidade; }
   cpInfoItem_(i); cpAtualizarTotal_();
 }
@@ -216,32 +238,37 @@ function cpInfoItem_(i){
     html = `<div class="cf-ok">✓ Entra no estoque de <b>${escH(e.nome)}</b>${cpEhBebida_(e.id)?' (bebida/item pronto)':''}</div>`;
     if(q>0 && v>0){
       const f = typeof cfFator_ === 'function' ? cfFator_(it.unidade||'un', e.unidade||'un') : (it.unidade===e.unidade?1:null);
-      html += `<div class="sub">= R$ ${(v/q).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:4})} por ${escH(it.unidade||'un')}${f && f!==1 ? ' (R$ ' + (v/(q*f)).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:4}) + ' por ' + escH(e.unidade) + ')' : ''}</div>`;
+      const novo = f ? v/(q*f) : null, ant = Number(e.custo)||0;
+      html += `<div class="sub">= R$ ${(v/q).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:4})} por ${escH(it.unidade||'un')}${f && f!==1 ? ' (R$ ' + novo.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:6}) + ' por ' + escH(e.unidade) + ')' : ''}${ant>0 && novo ? ' · custo atual R$ ' + ant.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:6}) : ''}</div>`;
       if(!f) html += `<div class="cf-alerta">⚠️ A unidade "${escH(it.unidade)}" não combina com a do estoque de ${escH(e.nome)} (${escH(e.unidade)}). Troque a unidade.</div>`;
+      else if(ant>0 && Math.abs(novo-ant)/ant > 0.30) html += `<div class="cf-alerta">⚠️ Custo ${novo>ant?'maior':'menor'} que o atual em ${Math.round(Math.abs(novo-ant)/ant*100)}%. Confira se não houve erro de digitação (ex.: 40 virou 400).</div>`;
     }
   } else if(String(it.descricao||'').trim()){
     const q2 = cpNorm_(it.descricao), parecido = (estoque||[]).filter(x=>x.ativo!==false && (cpNorm_(x.nome).indexOf(q2)!==-1 || q2.indexOf(cpNorm_(x.nome))!==-1)).slice(0,3);
-    html = `<div class="cf-alerta">⚠️ Este item <b>não vai dar entrada no estoque</b> (entra só como despesa).${parecido.length ? ' É algum destes? ' + parecido.map(x=>`<button type="button" class="link-btn" onclick="cpEscolher_(${i},'${x.id}')">${escH(x.nome)}</button>`).join(' ') : ' Se for ingrediente, cadastre em Produtos → Estoque.'}</div>`;
+    html = `<div class="cf-alerta">⚠️ Este item <b>não vai dar entrada no estoque</b> (entra só como despesa, na categoria abaixo).${parecido.length ? ' É algum destes? ' + parecido.map(x=>`<button type="button" class="link-btn" onclick="cpEscolher_(${i},'${x.id}')">${escH(x.nome)}</button>`).join(' ') : ' Se for ingrediente, cadastre em Produtos → Estoque.'}</div>`;
   }
   el.innerHTML = html;
 }
 function cpRenderItens_(){
   const box = document.getElementById('cpItens'); if(!box) return;
+  const cats = typeof CATEGORIAS_DESPESA_PADRAO !== 'undefined' ? CATEGORIAS_DESPESA_PADRAO : ['Insumos','Embalagens','Gás','Manutenção','Outros'];
   box.innerHTML = cpItens_.map((it,i)=>{
     const e = it.ingredienteId ? (estoque||[]).find(x=>x.id===it.ingredienteId) : null;
     const nome = e ? e.nome : (it.descricao||'');
+    const un = it.unidade||'un';
     return `<div class="notif-card" style="padding:10px;">
     <label for="cpBusca_${i}">O que você comprou?</label>
-    <div class="cf-busca"><input type="text" id="cpBusca_${i}" maxlength="80" autocomplete="off" placeholder="Digite: carne, queijo, coca, embalagem…" value="${escH(nome)}" oninput="cpBuscar_(${i},this.value)"><div class="cf-sug" id="cpSug_${i}"></div></div>
+    <div class="cf-busca"><input type="text" id="cpBusca_${i}" maxlength="80" autocomplete="off" placeholder="Digite como está na nota: carne, queijo, coca, gás…" value="${escH(nome)}" oninput="cpBuscar_(${i},this.value)"><div class="cf-sug" id="cpSug_${i}"></div></div>
     <div id="cpInfo_${i}"></div>
+    ${e ? '' : `<label for="cpCat_${i}">Categoria da despesa</label><select id="cpCat_${i}" onchange="cpEditarItem_(${i},'categoria',this.value)">${cats.map(c=>`<option${c===(it.categoria||'Insumos')?' selected':''}>${escH(c)}</option>`).join('')}</select>`}
     <div class="row2">
       <div><label for="cpQtd_${i}">Quantidade</label><input type="number" id="cpQtd_${i}" inputmode="decimal" min="0" step="0.001" value="${escH(it.quantidade)}" oninput="cpEditarItem_(${i},'quantidade',this.value)"></div>
-      <div><label for="cpUn_${i}">Unidade</label><select id="cpUn_${i}" onchange="cpEditarItem_(${i},'unidade',this.value)">${CP_UNIDADES_.map(u=>`<option${u===it.unidade?' selected':''}>${u}</option>`).join('')}</select></div>
+      <div><label for="cpUn_${i}">Unidade</label><select id="cpUn_${i}" onchange="cpEditarItem_(${i},'unidade',this.value)">${CP_UNIDADES_.map(u=>`<option${u===un?' selected':''}>${u}</option>`).join('')}</select></div>
     </div>
-    ${(it.unidade||'un')==='un' ? `<div class="row2 cf-emb">
-      <div><label for="cpEmb_${i}">Embalagens (opcional)</label><input type="number" id="cpEmb_${i}" inputmode="numeric" min="0" step="1" placeholder="Ex: 2 fardos" value="${escH(it.emb||'')}" oninput="cpEmb_(${i},'emb',this.value)"></div>
-      <div><label for="cpPorEmb_${i}">Unidades em cada</label><input type="number" id="cpPorEmb_${i}" inputmode="numeric" min="0" step="1" placeholder="Ex: 12" value="${escH(it.porEmb||'')}" oninput="cpEmb_(${i},'porEmb',this.value)"></div>
-    </div>` : ''}
+    <div class="row2 cf-emb">
+      <div><label for="cpEmb_${i}">Embalagens (opcional)</label><input type="number" id="cpEmb_${i}" inputmode="decimal" min="0" step="1" placeholder="Ex: 2 caixas" value="${escH(it.emb||'')}" oninput="cpEmb_(${i},'emb',this.value)"></div>
+      <div><label for="cpPorEmb_${i}">Quanto vem em cada (${escH(un)})</label><input type="number" id="cpPorEmb_${i}" inputmode="decimal" min="0" step="0.001" placeholder="Ex: 12" value="${escH(it.porEmb||'')}" oninput="cpEmb_(${i},'porEmb',this.value)"></div>
+    </div>
     <label for="cpValor_${i}">Valor total pago por este item (R$)</label><input type="number" id="cpValor_${i}" inputmode="decimal" min="0" step="0.01" value="${escH(it.valorTotal)}" oninput="cpEditarItem_(${i},'valorTotal',this.value)">
     ${cpItens_.length>1 ? `<button type="button" class="link-btn" onclick="cpRemoverItem_(${i})">remover item</button>` : ''}
   </div>`;
@@ -249,12 +276,99 @@ function cpRenderItens_(){
   cpItens_.forEach((it,i)=>cpInfoItem_(i));
   cpAtualizarTotal_();
 }
-function cpAtualizarTotal_(){ const t = cpItens_.reduce((s,it)=>s+(Number(it.valorTotal)||0),0); const el = document.getElementById('cpTotal'); if(el) el.textContent = formatarMoeda(t); }
-function cpMudouPagamento_(){
-  const pg = document.getElementById('cpPagamento').value;
-  document.getElementById('cpVencBox').style.display = pg==='A pagar' ? '' : 'none';
-  document.getElementById('cpSaiuBox').style.display = pg==='Pago' ? 'flex' : 'none';
+function cpNumCampo_(id){ const el = document.getElementById(id); return el ? (Number(String(el.value||'').replace(',','.'))||0) : 0; }
+function cpTotais_(){
+  const soma = Math.round(cpItens_.reduce((s,it)=>s+(Number(it.valorTotal)||0),0)*100)/100;
+  const frete = cpNumCampo_('cpFrete'), desc = cpNumCampo_('cpDesconto');
+  return { soma, frete, desc, total: Math.round((soma + frete - desc)*100)/100 };
 }
+function cpAtualizarTotal_(){
+  const t = cpTotais_();
+  const el = document.getElementById('cpTotal'); if(el) el.textContent = formatarMoeda(t.total);
+  const conf = document.getElementById('cpConferencia');
+  if(conf){
+    const imp = cpNumCampo_('cpTotalNota');
+    conf.innerHTML = 'Itens ' + formatarMoeda(t.soma) + (t.frete ? ' + frete ' + formatarMoeda(t.frete) : '') + (t.desc ? ' − desconto ' + formatarMoeda(t.desc) : '') + ' = <b>' + formatarMoeda(t.total) + '</b>'
+      + (imp ? (Math.abs(imp - t.total) < 0.005 ? ' · ✓ bate com o total da nota' : ' · <span class="cf-alerta">⚠️ não bate com o total da nota (' + formatarMoeda(imp) + ')</span>') : '');
+  }
+  if(!cpPagsMexeu_ && cpPags_.length === 1){ cpPags_[0].valor = t.total ? String(t.total) : ''; cpRenderPags_(); }
+  else cpPagsResumo_();
+}
+/* ---------- pagamento: uma ou mais linhas (parte agora, parte depois) ---------- */
+function cpPagsPadrao_(){ cpPags_ = [ { valor:'', origem:'caixa', vencimento:'' } ]; cpPagsMexeu_ = false; cpRenderPags_(); }
+function cpAddPag_(){ cpPagsMexeu_ = true; const t = cpTotais_().total, ja = cpPags_.reduce((s,p)=>s+(Number(p.valor)||0),0); cpPags_.push({ valor: t-ja > 0 ? String(Math.round((t-ja)*100)/100) : '', origem:'apagar', vencimento:'' }); cpRenderPags_(); }
+function cpRemPag_(i){ cpPags_.splice(i,1); if(!cpPags_.length) cpPagsPadrao_(); else cpRenderPags_(); }
+function cpEditarPag_(i, campo, v){
+  cpPagsMexeu_ = true; cpPags_[i][campo] = v;
+  if(campo==='valor' && cpPags_.length===2){   // duas linhas: a outra completa o total sozinha
+    const j = 1-i, t = cpTotais_().total, resto = Math.round(Math.max(0, t - (Number(v)||0))*100)/100;
+    cpPags_[j].valor = resto ? String(resto) : ''; const el = document.getElementById('cpPgV_'+j); if(el) el.value = cpPags_[j].valor;
+  }
+  if(campo==='origem') cpRenderPags_(); else cpPagsResumo_();
+}
+function cpRenderPags_(){
+  const box = document.getElementById('cpPags'); if(!box) return;
+  box.innerHTML = cpPags_.map((p,i)=>`<div class="notif-card" style="padding:10px;">
+    <div class="row2">
+      <div><label for="cpPgV_${i}">Valor (R$)</label><input type="number" id="cpPgV_${i}" inputmode="decimal" min="0" step="0.01" value="${escH(p.valor)}" oninput="cpEditarPag_(${i},'valor',this.value)"></div>
+      <div><label for="cpPgO_${i}">De onde saiu o dinheiro</label><select id="cpPgO_${i}" onchange="cpEditarPag_(${i},'origem',this.value)">${CP_ORIGENS_.map(o=>`<option value="${o.v}"${o.v===p.origem?' selected':''}>${escH(o.t)}</option>`).join('')}</select></div>
+    </div>
+    ${p.origem==='apagar' ? `<label for="cpPgD_${i}">Vencimento</label><input type="date" id="cpPgD_${i}" value="${escH(p.vencimento||'')}" oninput="cpEditarPag_(${i},'vencimento',this.value)">` : ''}
+    ${p.origem==='caixa' ? '<div class="sub">Sai do caixa aberto agora (entra no fechamento de hoje).</div>' : ''}
+    ${p.origem==='dono' ? '<div class="sub">Fica registrado que o dono pagou do próprio bolso (só informação).</div>' : ''}
+    ${cpPags_.length>1 ? `<button type="button" class="link-btn" onclick="cpRemPag_(${i})">remover pagamento</button>` : ''}
+  </div>`).join('');
+  cpPagsResumo_();
+}
+function cpPagsResumo_(){
+  const el = document.getElementById('cpPagsResumo'); if(!el) return;
+  const t = cpTotais_().total, s = Math.round(cpPags_.reduce((a,p)=>a+(Number(p.valor)||0),0)*100)/100;
+  el.innerHTML = Math.abs(s - t) < 0.005 ? '' : '<span class="cf-alerta">⚠️ Os pagamentos somam ' + formatarMoeda(s) + ' e a nota dá ' + formatarMoeda(t) + '.</span>';
+}
+function cpMudouStatus_(){ const b = document.getElementById('cpPagBox'); if(b) b.style.display = document.getElementById('cpStatus').value==='Pedido' ? 'none' : ''; }
+/* ---------- comprovante (opcional): foto vira WebP leve no próprio aparelho; PDF vai como está. Guardado em local privado (só Admin abre). ---------- */
+function cpAnexoEscolhido_(inp){
+  const f = inp.files && inp.files[0], info = document.getElementById('cpAnexoInfo');
+  cpAnexo_ = null; if(!f){ if(info) info.textContent = ''; return; }
+  if(!/^image\//.test(f.type) && f.type !== 'application/pdf'){ if(info) info.textContent = '⚠️ Use foto ou PDF.'; inp.value=''; return; }
+  if(f.size > 15*1024*1024){ if(info) info.textContent = '⚠️ Arquivo grande demais (máx. 15 MB).'; inp.value=''; return; }
+  cpAnexo_ = f; if(info) info.textContent = '📎 ' + f.name + ' (será enviado ao salvar)';
+}
+function cpComprimir_(file){
+  return new Promise((ok, falha)=>{
+    if(file.type === 'application/pdf'){ if(file.size > 3*1024*1024) return falha(new Error('PDF maior que 3 MB.')); return ok({ blob:file, ext:'pdf', tipo:'application/pdf' }); }
+    const img = new Image(), url = URL.createObjectURL(file);
+    img.onload = ()=>{
+      try{
+        const max = 1600, esc = Math.min(1, max/Math.max(img.width, img.height));
+        const c = document.createElement('canvas'); c.width = Math.round(img.width*esc); c.height = Math.round(img.height*esc);
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(url);
+        c.toBlob(b=>{ if(!b) return falha(new Error('Não consegui preparar a foto.')); ok({ blob:b, ext: b.type==='image/webp' ? 'webp' : 'jpg', tipo:b.type }); }, 'image/webp', 0.72);
+      }catch(e){ falha(e); }
+    };
+    img.onerror = ()=>{ URL.revokeObjectURL(url); falha(new Error('Não consegui abrir a foto.')); };
+    img.src = url;
+  });
+}
+async function cpToken_(){ let s = sbSessaoLer_(); if(!s) return ''; if(Date.now() > s.expira){ if(!(await sbRenovar_())) return ''; s = sbSessaoLer_(); } return s ? s.access_token : ''; }
+async function cpEnviarAnexo_(file){
+  const prep = await cpComprimir_(file), tk = await cpToken_(); if(!tk) throw new Error('Sessão expirada.');
+  const caminho = cpHoje_().slice(0,7).replace('-','/') + '/' + (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2)) + '.' + prep.ext;
+  const r = await sbJson_(SUPABASE_URL_ + '/storage/v1/object/notas/' + caminho, { method:'POST', headers:{ apikey:SUPABASE_CHAVE_, Authorization:'Bearer ' + tk, 'Content-Type':prep.tipo, 'x-upsert':'false' }, body: prep.blob }, 60000);
+  if(!r.ok) throw new Error('Envio do comprovante falhou (erro ' + r.status + ').');
+  return { path: caminho, nome: String(file.name||'comprovante').slice(0,120) };
+}
+async function cpVerAnexo_(id){
+  const c = (_compras_.compras||[]).find(x=>x.id===id); if(!c || !c.anexoPath) return;
+  try{
+    const tk = await cpToken_(); if(!tk) throw new Error('Sessão expirada.');
+    const r = await sbJson_(SUPABASE_URL_ + '/storage/v1/object/sign/notas/' + c.anexoPath, { method:'POST', headers:{ apikey:SUPABASE_CHAVE_, Authorization:'Bearer ' + tk, 'Content-Type':'application/json' }, body: JSON.stringify({ expiresIn: 300 }) }, 20000);
+    const j = await r.json().catch(()=>null);
+    if(!r.ok || !j || !(j.signedURL || j.signedUrl)) throw new Error('Não consegui abrir o comprovante.');
+    window.open(SUPABASE_URL_ + '/storage/v1' + (j.signedURL || j.signedUrl), '_blank', 'noopener');
+  }catch(e){ showMsg('cpListaMsg', e.message || 'Não consegui abrir o comprovante.', 'warn'); }
+}
+/* ---------- lista ---------- */
 function renderCompras_(){
   const fs = _compras_.fornecedores, sel = document.getElementById('cpFornecedor'), atual = sel.value;
   sel.innerHTML = '<option value="">Escolha o fornecedor</option>' + fs.filter(f=>f.ativo).map(f=>`<option value="${f.id}">${escH(f.nome)}</option>`).join('');
@@ -263,10 +377,35 @@ function renderCompras_(){
   const cs = _compras_.compras;
   document.getElementById('cpLista').innerHTML = cs.length ? cs.map(c=>{
     const d = String(c.data||'').split('-').reverse().join('/');
-    const itens = (c.itens||[]).map(i=>`${Number(i.quantidade)} ${escH(i.unidade)} ${escH(i.descricao)} (${formatarMoeda(i.valorTotal)})`).join(' · ');
-    const acoes = c.status==='Pedido' ? `<div class="btnrow"><button class="small-gold" onclick="receberCompraUI('${c.id}')">Marcar como recebida</button> <button class="ghost" onclick="cancelarCompraUI('${c.id}')">Cancelar pedido</button></div>` : '';
-    return `<div class="notif-card"><b>${escH(c.fornecedor)}</b> — ${formatarMoeda(c.total)} · ${d} · ${escH(c.status)}${c.status==='Recebida'?' · '+escH(c.pagamento)+(c.pagamento==='A pagar'&&c.vencimento?' (vence '+String(c.vencimento).split('-').reverse().join('/')+')':''):''}${c.origem==='ia'?' · ✨ via IA':''}<div class="obs-line">${itens}</div>${c.motivoCancelamento?`<div class="obs-line">Motivo: ${escH(c.motivoCancelamento)}</div>`:''}${acoes}</div>`;
+    const itens = (c.itens||[]).map(i=>`${Number(i.quantidade)} ${escH(i.unidade)} ${escH(i.descricao)} (${formatarMoeda(i.valorTotal)})${!i.ingredienteId && i.categoria ? ' · ' + escH(i.categoria) : ''}`).join(' · ');
+    const pags = (c.pagamentos||[]).map(p=>formatarMoeda(p.valor) + ' ' + escH(cpOrigemTxt_(p.origem)) + (p.origem==='apagar' && p.vencimento ? ' (vence ' + String(p.vencimento).split('-').reverse().join('/') + ')' : '')).join(' + ');
+    let acoes = '';
+    if(c.status==='Pedido') acoes = `<button class="small-gold" onclick="receberCompraUI('${c.id}')">Marcar como recebida</button> <button class="ghost" onclick="cancelarCompraUI('${c.id}')">Cancelar pedido</button>`;
+    else if(c.status==='Recebida') acoes = `<button class="ghost" onclick="cpEditarInfoUI_('${c.id}')">Editar dados da nota</button> <button class="ghost" onclick="cpCorrigirUI_('${c.id}')">Corrigir nota</button> <button class="ghost" onclick="estornarCompraUI('${c.id}')">Estornar nota</button>`;
+    if(c.anexoPath) acoes = `<button class="ghost" onclick="cpVerAnexo_('${c.id}')">📎 Ver comprovante</button> ` + acoes;
+    const tags = [c.numeroNota ? 'nota ' + escH(c.numeroNota) : '', c.status==='Recebida' ? escH(c.pagamento) : '', c.origem==='ia' ? '✨ via IA' : '', c.editadaDe ? '✏️ corrigida' : '',
+      c.semComprovante && c.status!=='Pedido' ? '<span class="txt-muted">sem comprovante</span>' : ''].filter(Boolean).join(' · ');
+    return `<div class="notif-card"><b>${escH(c.fornecedor)}</b> — ${formatarMoeda(c.total)} · ${d} · ${escH(c.status)}${tags ? ' · ' + tags : ''}<div class="obs-line">${itens}</div>`
+      + ((Number(c.frete)||Number(c.desconto)) ? `<div class="obs-line">Frete ${formatarMoeda(c.frete)} · desconto ${formatarMoeda(c.desconto)}</div>` : '')
+      + (pags ? `<div class="obs-line">Pagamento: ${pags}</div>` : '')
+      + (c.observacao ? `<div class="obs-line">${escH(c.observacao)}</div>` : '')
+      + (c.motivoCancelamento ? `<div class="obs-line">Motivo: ${escH(c.motivoCancelamento)}</div>` : '')
+      + (c.estornoMotivo ? `<div class="obs-line">Estornada: ${escH(c.estornoMotivo)}</div>` : '')
+      + (acoes ? `<div class="btnrow">${acoes}</div>` : '') + '</div>';
   }).join('') : '<div class="notif-empty">Nenhuma compra registrada.</div>';
+  cpRenderCustos_();
+}
+/* histórico de custos: cada custo com a data e a nota de origem */
+function cpRenderCustos_(){
+  const sel = document.getElementById('cpCustoIng'), box = document.getElementById('cpCustos'); if(!sel || !box) return;
+  const lista = _compras_.custos || [], ings = [...new Map(lista.map(h=>[h.ingredienteId, h.ingrediente])).entries()].sort((a,b)=>String(a[1]).localeCompare(String(b[1])));
+  const atual = sel.value;
+  sel.innerHTML = '<option value="">Todos os ingredientes</option>' + ings.map(([id,n])=>`<option value="${id}">${escH(n)}</option>`).join('');
+  if(atual) sel.value = atual;
+  const ver = lista.filter(h=>!sel.value || h.ingredienteId===sel.value).slice(0,60);
+  box.innerHTML = ver.length ? ver.map(h=>`<div class="notif-card"><b>${escH(h.ingrediente)}</b> — R$ ${Number(h.custo).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:6})} por ${escH(h.unidade)} · nota de ${String(h.data||'').split('-').reverse().join('/')}${h.nota ? ' nº ' + escH(h.nota) : ''} · ${escH(h.fornecedor||'')}`
+    + `${!h.ativo ? ' · <span class="txt-muted">estornada</span>' : (h.aplicado ? '' : ' · <span class="txt-muted">só no histórico (já havia nota mais nova)</span>')}${h.anterior!=null ? `<div class="obs-line">Antes: R$ ${Number(h.anterior).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:6})}</div>` : ''}</div>`).join('')
+    : '<div class="notif-empty">Nenhum custo de nota ainda.</div>';
 }
 function cfLimpar_(){ ['cfId','cfNome','cfTel','cfObs'].forEach(id=>{ document.getElementById(id).value=''; }); document.getElementById('cpFornTitulo').textContent = 'Novo fornecedor'; }
 function cfEditar_(id){ const f = _compras_.fornecedores.find(x=>x.id===id); if(!f) return; document.getElementById('cfId').value = f.id; document.getElementById('cfNome').value = f.nome; document.getElementById('cfTel').value = f.telefone||''; document.getElementById('cfObs').value = f.observacao||''; document.getElementById('cpFornTitulo').textContent = 'Editar fornecedor'; document.getElementById('cfNome').focus(); }
@@ -277,34 +416,73 @@ async function salvarFornecedorUI(){
 }
 async function cfAlternar_(id){ const f = _compras_.fornecedores.find(x=>x.id===id); if(!f) return; try{ const r = await apiCall('salvarFornecedor', { id:f.id, nome:f.nome, telefone:f.telefone, observacao:f.observacao, ativo:!f.ativo }); if(r.ok) await carregarCompras_(); else showMsg('cfMsg', r.message, 'warn'); }catch(e){ showMsg('cfMsg','Não foi possível alterar agora.','warn'); } }
 function cpMontarPayload_(){
-  return { fornecedorId: document.getElementById('cpFornecedor').value, data: document.getElementById('cpData').value, status: document.getElementById('cpStatus').value,
-    pagamento: document.getElementById('cpPagamento').value, vencimento: document.getElementById('cpVenc').value, saiuDoCaixa: document.getElementById('cpSaiuCaixa').checked,
-    observacao: document.getElementById('cpObs').value,
-    itens: cpItens_.filter(it=>it.ingredienteId || it.descricao || it.quantidade || it.valorTotal).map(it=>{ let ing = it.ingredienteId; if(!ing && it.descricao){ const x = (estoque||[]).find(e=>e.ativo!==false && cpNorm_(e.nome)===cpNorm_(it.descricao)); if(x) ing = x.id; } return { ingredienteId: ing || undefined, descricao: ing ? '' : it.descricao, quantidade: Number(it.quantidade)||0, unidade: it.unidade, valorTotal: Number(it.valorTotal)||0 }; }) };
+  const t = cpTotais_(), st = document.getElementById('cpStatus').value;
+  return { fornecedorId: document.getElementById('cpFornecedor').value, data: document.getElementById('cpData').value, status: st,
+    numeroNota: document.getElementById('cpNumNota').value, frete: t.frete, desconto: t.desc, totalNota: cpNumCampo_('cpTotalNota') || undefined,
+    observacao: document.getElementById('cpObs').value, editadaDe: cpEditandoDe_ || undefined,
+    pagamentos: st==='Pedido' ? undefined : cpPags_.map(p=>({ valor: Number(p.valor)||0, origem: p.origem, vencimento: p.origem==='apagar' ? p.vencimento : undefined })),
+    itens: cpItens_.filter(it=>it.ingredienteId || it.descricao || it.quantidade || it.valorTotal).map(it=>{ let ing = it.ingredienteId; if(!ing && it.descricao){ const x = (estoque||[]).find(e=>e.ativo!==false && cpNorm_(e.nome)===cpNorm_(it.descricao)); if(x) ing = x.id; }
+      const n = Number(String(it.porEmb||'').replace(',','.'))||0;
+      return { ingredienteId: ing || undefined, descricao: ing ? '' : it.descricao, descricaoNota: it.descNota || it.descricao || '', categoria: ing ? undefined : (it.categoria||'Insumos'), quantidade: Number(it.quantidade)||0, unidade: it.unidade, valorTotal: Number(it.valorTotal)||0,
+        fator: n>0 ? n : undefined, embalagem: n>0 ? 'embalagem de ' + String(n).replace('.',',') + ' ' + (it.unidade||'un') : undefined }; }) };
+}
+function cpDepoisDeGravar_(r){
+  if(r.estoque) estoque = r.estoque; if(r.movimentacoesEstoque) movimentacoesEstoque = r.movimentacoesEstoque; if(r.despesas) despesas = r.despesas; if(r.produtoPrecos) produtoPrecos = r.produtoPrecos; if(r.comboPrecos) comboPrecos = r.comboPrecos;
+  salvarCache(); try{ renderEstoque(); renderProdutos(); renderCombos(); renderDespesas(); }catch(e){}
+  if(r.prejuizo && r.prejuizo.length) setTimeout(()=>avisar('Atenção: com o custo novo, estes itens passaram a dar PREJUÍZO (preço abaixo do custo):\n' + r.prejuizo.map(x=>'• ' + x.produto + ' (' + x.forma + '): preço ' + formatarMoeda(x.preco) + ', custo ' + formatarMoeda(x.custo)).join('\n') + '\n\nAjuste o preço em Produtos.'), 300);
+}
+function cpLimparForm_(){
+  cpItens_ = []; cpAddItem_(); cpPagsPadrao_(); cpEditandoDe_ = ''; cpAnexo_ = null;
+  ['cpObs','cpNumNota','cpFrete','cpDesconto','cpTotalNota'].forEach(id=>{ const el = document.getElementById(id); if(el) el.value=''; });
+  const a = document.getElementById('cpAnexo'); if(a) a.value = ''; const ai = document.getElementById('cpAnexoInfo'); if(ai) ai.textContent = '';
+  const tt = document.getElementById('cpTituloNota'); if(tt) tt.textContent = 'Registrar nota de compra';
+  cpAtualizarTotal_();
 }
 async function registrarCompraUI(){
   const p = cpMontarPayload_();
   if(!p.fornecedorId){ showMsg('cpMsg','Escolha o fornecedor (cadastre abaixo, se for novo).','warn'); return; }
   if(!p.itens.length){ showMsg('cpMsg','Informe ao menos um item.','warn'); return; }
-  const total = p.itens.reduce((s,i)=>s+i.valorTotal,0);
-  const semEstoque = p.itens.filter(i=>!i.ingredienteId).map(i=>i.descricao||'item');
-  if(!await confirmarTxt_('Registrar compra de ' + formatarMoeda(total) + ' (' + p.itens.length + ' item(ns))?' + (p.status==='Recebida' ? '\nO estoque e o custo dos produtos serão atualizados agora.' : '') + (semEstoque.length ? '\n\nSem entrada no estoque (só despesa): ' + semEstoque.join(', ') : ''))) return;
+  if(!cpAnexo_ && !String(p.numeroNota||'').trim() && !String(p.observacao||'').trim()){ showMsg('cpMsg','Sem foto da nota: informe o número da nota ou uma observação (para ficar o rastro).','warn'); return; }
+  const t = cpTotais_();
+  if(p.status !== 'Pedido'){
+    const s = Math.round(p.pagamentos.reduce((a,x)=>a+x.valor,0)*100)/100;
+    if(Math.abs(s - t.total) >= 0.005){ showMsg('cpMsg','Os pagamentos (' + formatarMoeda(s) + ') precisam somar o total da nota (' + formatarMoeda(t.total) + ').','warn'); return; }
+    if(p.pagamentos.some(x=>x.origem==='apagar' && !x.vencimento)){ showMsg('cpMsg','Informe o vencimento do que vai ser pago depois.','warn'); return; }
+  }
+  const semEstoque = p.itens.filter(i=>!i.ingredienteId).map(i=>(i.descricao||'item') + ' → ' + i.categoria);
+  if(!await confirmarTxt_('Registrar nota de ' + formatarMoeda(t.total) + ' (' + p.itens.length + ' item(ns))?' + (p.status==='Recebida' ? '\nO estoque e o custo (último custo pago) serão atualizados agora.' : '') + (semEstoque.length ? '\n\nSem entrada no estoque (só despesa): ' + semEstoque.join(', ') : '') + (cpAnexo_ ? '' : '\n\nSem comprovante anexado.'), 'Registrar', false, 'Nota de compra')) return;
+  const btn = document.getElementById('cpBtnSalvar'); if(btn) btn.disabled = true;
   try{
-    const r = await apiCall('registrarCompra', p);
-    showMsg('cpMsg', r.message, r.ok?'ok':'warn');
-    if(r.ok){ if(r.estoque) estoque = r.estoque; if(r.movimentacoesEstoque) movimentacoesEstoque = r.movimentacoesEstoque; if(r.despesas) despesas = r.despesas; if(r.produtoPrecos) produtoPrecos = r.produtoPrecos; if(r.comboPrecos) comboPrecos = r.comboPrecos; salvarCache(); try{ renderEstoque(); renderProdutos(); renderCombos(); }catch(e){} cpItens_ = []; cpAddItem_(); document.getElementById('cpObs').value=''; await carregarCompras_(); }
+    let avisoAnexo = '';
+    if(cpAnexo_){ try{ const a = await cpEnviarAnexo_(cpAnexo_); p.anexoPath = a.path; p.anexoNome = a.nome; } catch(e){ avisoAnexo = ' O comprovante não foi enviado (' + (e.message||'erro') + '): anexe depois em "Editar dados da nota".'; } }
+    let r = await apiCall('registrarCompra', p);
+    if(r && r.precisaConfirmar){
+      const det = [];
+      if(r.duplicada) det.push('• Nota repetida: ' + r.message.split(' Há custo')[0]);
+      (r.variacoes||[]).forEach(v=>det.push('• ' + v.ingrediente + ': de R$ ' + Number(v.anterior).toLocaleString('pt-BR',{maximumFractionDigits:4}) + ' para R$ ' + Number(v.novo).toLocaleString('pt-BR',{maximumFractionDigits:4}) + ' por ' + v.unidade + ' (' + (v.pct>0?'+':'') + v.pct + '%)'));
+      if(!await confirmarTxt_('Confira antes de gravar:\n\n' + det.join('\n') + '\n\nGravar mesmo assim?', 'Gravar mesmo assim', true, 'Conferência')){ showMsg('cpMsg','Nada foi gravado. Confira os valores.','warn'); return; }
+      r = await apiCall('registrarCompra', Object.assign({}, p, { confirmar:true }));
+    }
+    showMsg('cpMsg', (r.message || '') + (r.ok ? avisoAnexo : ''), r.ok?'ok':'warn');
+    if(r.ok){ cpDepoisDeGravar_(r); cpLimparForm_(); await carregarCompras_(); }
   }catch(e){ showMsg('cpMsg','Não foi possível registrar agora. Confira em "Compras recentes" antes de tentar de novo.','warn'); }
+  finally{ if(btn) btn.disabled = false; }
+}
+/* pergunta de onde saiu o dinheiro (receber pedido e propostas da IA). Devolve as linhas de pagamento ou null. */
+async function cpPerguntarPagamento_(total, sugestao, venc){
+  const f = await vsForm({ titulo:'Pagamento da compra', texto:'Total: ' + formatarMoeda(total) + '. Para dividir (parte agora, parte depois), registre pela tela de Compras.', ok:'Continuar',
+    campos:[ { id:'origem', tipo:'escolha', rotulo:'De onde saiu o dinheiro', valor: sugestao==='A pagar' ? 'apagar' : 'conta', opcoes: CP_ORIGENS_.map(o=>({ v:o.v, t:o.t })) },
+             { id:'venc', rotulo:'Vencimento', tipo:'data', obrigatorio:true, valor: venc || cpHoje_(), mostrarSe:{ campo:'origem', valor:'apagar' } } ] });
+  if(!f) return null;
+  return [ { valor: Math.round(Number(total)*100)/100, origem: f.origem, vencimento: f.origem==='apagar' ? f.venc : undefined } ];
 }
 async function receberCompraUI(id){
-  const f = await vsForm({ titulo:'Compra recebida', texto:'A mercadoria entra no estoque e o custo dos produtos é atualizado.', ok:'Marcar recebida',
-    campos:[ { id:'pg', tipo:'escolha', rotulo:'Pagamento', valor:'Pago', opcoes:[ { v:'Pago', t:'✅ Já paguei' }, { v:'A pagar', t:'🕒 Vou pagar depois' } ] },
-             { id:'venc', rotulo:'Vencimento', tipo:'data', obrigatorio:true, valor:cpHoje_(), mostrarSe:{ campo:'pg', valor:'A pagar' } } ] });
-  if(!f) return;
-  const pg = f.pg === 'A pagar' ? 'A pagar' : 'Pago', venc = pg === 'A pagar' ? (f.venc || '') : '';
+  const c = (_compras_.compras||[]).find(x=>x.id===id); if(!c) return;
+  const pags = await cpPerguntarPagamento_(c.total, c.pagamento, c.vencimento); if(!pags) return;
   try{
-    const r = await apiCall('receberCompra', { id, pagamento: pg, vencimento: venc, saiuDoCaixa: false });
+    const r = await apiCall('receberCompra', { id, pagamentos: pags });
     showMsg('cpListaMsg', r.message, r.ok?'ok':'warn');
-    if(r.ok){ if(r.estoque) estoque = r.estoque; if(r.movimentacoesEstoque) movimentacoesEstoque = r.movimentacoesEstoque; if(r.despesas) despesas = r.despesas; if(r.produtoPrecos) produtoPrecos = r.produtoPrecos; if(r.comboPrecos) comboPrecos = r.comboPrecos; salvarCache(); try{ renderEstoque(); renderProdutos(); renderCombos(); }catch(e){} await carregarCompras_(); }
+    if(r.ok){ cpDepoisDeGravar_(r); await carregarCompras_(); }
   }catch(e){ showMsg('cpListaMsg','Não foi possível receber agora.','warn'); }
 }
 async function cancelarCompraUI(id){
@@ -313,6 +491,63 @@ async function cancelarCompraUI(id){
   if(!f) return; const motivo = f.motivo;
   try{ const r = await apiCall('cancelarCompra', { id, motivo }); showMsg('cpListaMsg', r.message, r.ok?'ok':'warn'); if(r.ok) await carregarCompras_(); }
   catch(e){ showMsg('cpListaMsg','Não foi possível cancelar agora.','warn'); }
+}
+/* estorno: devolve o estoque, cancela as despesas (o que saiu do caixa aberto volta para a gaveta) e volta o custo se esta nota era a fonte */
+async function cpEstornar_(id, motivo){
+  let r = await apiCall('estornarCompra', { id, motivo });
+  if(r && r.precisaConfirmar){
+    const det = (r.negativos||[]).map(n=>'• ' + n.ingrediente + ': tem ' + n.atual + ' ' + n.unidade + ', o estorno tira ' + n.tirar + ' → fica ' + n.fica).join('\n');
+    if(!await confirmarTxt_(r.message + '\n\n' + det, 'Estornar mesmo assim', true, 'Estoque já usado')) return { ok:false, message:'Estorno não feito.' };
+    r = await apiCall('estornarCompra', { id, motivo, confirmarNegativo:true });
+  }
+  return r;
+}
+async function estornarCompraUI(id){
+  const f = await vsForm({ titulo:'Estornar nota de compra', texto:'Desfaz tudo o que a nota fez: estoque, custo e despesas. A nota fica no histórico como estornada.', ok:'Estornar', perigo:true,
+    campos:[ { id:'motivo', rotulo:'Motivo', tipo:'texto', obrigatorio:true, sugestoes:['Lançada errada','Mercadoria devolvida','Nota duplicada'] } ] });
+  if(!f) return;
+  try{ const r = await cpEstornar_(id, f.motivo); showMsg('cpListaMsg', r.message, r.ok?'ok':'warn'); if(r.ok){ cpDepoisDeGravar_(r); await carregarCompras_(); } }
+  catch(e){ showMsg('cpListaMsg','Não foi possível estornar agora.','warn'); }
+}
+/* corrigir: estorna e abre a nota no formulário para relançar já com os dados (o histórico guarda as duas versões) */
+async function cpCorrigirUI_(id){
+  const c = (_compras_.compras||[]).find(x=>x.id===id); if(!c) return;
+  if(!await confirmarTxt_('Para corrigir itens, valores ou pagamento, a nota é ESTORNADA e reaberta no formulário para você ajustar e registrar de novo.\n\nContinuar?', 'Estornar e corrigir', true, 'Corrigir nota')) return;
+  try{
+    const r = await cpEstornar_(id, 'Correção da nota');
+    if(!r.ok){ showMsg('cpListaMsg', r.message, 'warn'); return; }
+    cpDepoisDeGravar_(r);
+    cpEditandoDe_ = c.id;
+    document.getElementById('cpFornecedor').value = c.fornecedorId; document.getElementById('cpData').value = c.data; document.getElementById('cpStatus').value = 'Recebida'; cpMudouStatus_();
+    document.getElementById('cpNumNota').value = c.numeroNota||''; document.getElementById('cpObs').value = c.observacao||'';
+    document.getElementById('cpFrete').value = Number(c.frete)||''; document.getElementById('cpDesconto').value = Number(c.desconto)||''; document.getElementById('cpTotalNota').value = '';
+    cpItens_ = (c.itens||[]).map(i=>({ ingredienteId: i.ingredienteId||'', descricao: i.ingredienteId ? '' : i.descricao, descNota: i.descricaoNota||'', quantidade: String(i.quantidade), unidade: i.unidade||'un', valorTotal: String(i.valorTotal), emb:'', porEmb: i.fator ? String(i.fator) : '', categoria: i.categoria||'Insumos' }));
+    if(!cpItens_.length) cpItens_.push(cpItemVazio_());
+    cpPags_ = (c.pagamentos||[]).map(p=>({ valor:String(p.valor), origem:p.origem, vencimento:p.vencimento||'' })); cpPagsMexeu_ = true; if(!cpPags_.length) cpPagsPadrao_();
+    cpRenderItens_(); cpRenderPags_();
+    const tt = document.getElementById('cpTituloNota'); if(tt) tt.textContent = 'Corrigir nota (relançar)';
+    await carregarCompras_();
+    const card = document.getElementById('cardCompraNova'); if(card) card.scrollIntoView({ behavior:'smooth', block:'start' });
+    showMsg('cpMsg', 'Nota estornada e carregada aqui. Ajuste e toque em Registrar. O comprovante antigo continua na nota estornada.', 'ok');
+  }catch(e){ showMsg('cpListaMsg','Não foi possível corrigir agora.','warn'); }
+}
+/* campos sem efeito: nº da nota, observação e comprovante (editam livres) */
+async function cpEditarInfoUI_(id){
+  const c = (_compras_.compras||[]).find(x=>x.id===id); if(!c) return;
+  const f = await vsForm({ titulo:'Dados da nota', texto:'Para mudar itens, valores ou pagamento, use "Corrigir nota".', ok:'Salvar',
+    campos:[ { id:'numero', rotulo:'Nº da nota', tipo:'texto', valor:c.numeroNota||'', max:60 }, { id:'obs', rotulo:'Observação', tipo:'texto', valor:c.observacao||'', max:300 },
+             { id:'anexo', tipo:'escolha', rotulo:'Comprovante', valor:'manter', opcoes:[ { v:'manter', t: c.anexoPath ? 'Manter o atual' : 'Continuar sem' }, { v:'novo', t:'Anexar foto/PDF agora' } ].concat(c.anexoPath ? [ { v:'tirar', t:'Remover' } ] : []) } ] });
+  if(!f) return;
+  const p = { id, numeroNota: f.numero, observacao: f.obs };
+  try{
+    if(f.anexo === 'tirar'){ p.anexoPath = ''; p.anexoNome = ''; }
+    if(f.anexo === 'novo'){
+      const arq = await new Promise(ok=>{ const inp = document.createElement('input'); inp.type='file'; inp.accept='image/*,application/pdf'; inp.onchange = ()=>ok(inp.files && inp.files[0]); inp.click(); });
+      if(!arq){ showMsg('cpListaMsg','Nenhum arquivo escolhido.','warn'); return; }
+      const a = await cpEnviarAnexo_(arq); p.anexoPath = a.path; p.anexoNome = a.nome;
+    }
+    const r = await apiCall('editarCompraInfo', p); showMsg('cpListaMsg', r.message, r.ok?'ok':'warn'); if(r.ok) await carregarCompras_();
+  }catch(e){ showMsg('cpListaMsg', (e && e.message) || 'Não foi possível salvar agora.','warn'); }
 }
 
 /* ---------- PROPOSTAS DA IA (só Admin/Dev): a IA propõe; só grava quando o administrador toca em Confirmar ---------- */
@@ -385,8 +620,13 @@ async function iaPropAgir_(btn){
   try{
     let r;
     if(o.tipo==='cadastrar_fornecedor') r = await apiCall('salvarFornecedor', { nome:o.bruto.nome, telefone:o.bruto.telefone, observacao:o.bruto.observacao });
-    else r = await apiCall('registrarCompra', { fornecedorId:o.fornecedor.id, data:cpHoje_(), status:'Recebida', pagamento:o.bruto.pagamento, vencimento:o.bruto.vencimento, saiuDoCaixa:false, observacao:o.bruto.observacao, origem:'ia',
-      itens:o.itens.map(it=>({ ingredienteId:it.est.id, quantidade:it.quantidade, unidade:it.unidade, valorTotal:it.valorTotal })) });
+    else {
+      const tot = Math.round(o.itens.reduce((a,i)=>a+(Number(i.valorTotal)||0),0)*100)/100;
+      const pags = await cpPerguntarPagamento_(tot, o.bruto.pagamento, o.bruto.vencimento);   // auditoria 18/10: antes ia sempre "não saiu do caixa"
+      if(!pags){ msg.textContent = 'Nada foi gravado (pagamento não informado).'; card.querySelectorAll('button').forEach(b=>{ b.disabled = false; }); return; }
+      r = await apiCall('registrarCompra', { fornecedorId:o.fornecedor.id, data:cpHoje_(), status:'Recebida', pagamentos:pags, observacao:o.bruto.observacao, origem:'ia', confirmar:true,
+        itens:o.itens.map(it=>({ ingredienteId:it.est.id, quantidade:it.quantidade, unidade:it.unidade, valorTotal:it.valorTotal })) });
+    }
     if(r && r.ok){
       if(r.estoque) estoque = r.estoque; if(r.movimentacoesEstoque) movimentacoesEstoque = r.movimentacoesEstoque; if(r.despesas) despesas = r.despesas;
       _compras_ = { fornecedores:[], compras:[] };
@@ -401,9 +641,9 @@ function cpAplicarPend_(){
   cpItens_ = o.itens.map(it=>({ ingredienteId: it.est ? it.est.id : '', descricao: it.est ? '' : it.ingrediente, quantidade: it.quantidade, unidade: it.unidade, valorTotal: it.valorTotal }));
   cpRenderItens_();
   if(o.fornecedor) document.getElementById('cpFornecedor').value = o.fornecedor.id;
-  document.getElementById('cpPagamento').value = p.pagamento; cpMudouPagamento_();
-  if(p.vencimento) document.getElementById('cpVenc').value = p.vencimento;
-  document.getElementById('cpObs').value = p.observacao || '';
+  const tot = Math.round(cpItens_.reduce((a,i)=>a+(Number(i.valorTotal)||0),0)*100)/100;
+  cpPags_ = [ { valor: String(tot), origem: p.pagamento==='A pagar' ? 'apagar' : 'conta', vencimento: p.vencimento || '' } ]; cpPagsMexeu_ = true; cpRenderPags_();
+  document.getElementById('cpObs').value = p.observacao || 'Proposta da assistente';
   showMsg('cpMsg', 'Sugestão da IA carregada. Confira e toque em registrar.' + (o.pend.length ? ' ' + o.pend.join(' ') : ''), o.pend.length ? 'warn' : 'ok');
 }
 /* ---------- OUTRAS AÇÕES DA IA (só Admin/Dev): sempre cartão + Confirmar; quem grava é o app, pelas mesmas funções das telas ---------- */
@@ -427,7 +667,7 @@ const IA_ACOES_ = {
       o.compra = r.item; o.linhas.push('Pedido de ' + escH(r.item.fornecedor) + ' · ' + formatarMoeda(r.item.total) + ' · ' + escH(iaDataBR_(r.item.data)));
       o.linhas.push('Pagamento: ' + escH(p.pagamento) + (p.vencimento ? ' (vence ' + escH(iaDataBR_(p.vencimento)) + ')' : '') + ' · entra no estoque agora');
       if(p.pagamento==='A pagar' && !p.vencimento) o.pend.push('Falta a data de vencimento.'); },
-    exec(p, o){ return apiCall('receberCompra', { id:o.compra.id, pagamento:p.pagamento, vencimento:p.vencimento, saiuDoCaixa:false }); } },
+    async exec(p, o){ const pags = await cpPerguntarPagamento_(o.compra.total, p.pagamento, p.vencimento); if(!pags) return { ok:false, message:'Nada foi gravado (pagamento não informado).' }; return apiCall('receberCompra', { id:o.compra.id, pagamentos:pags }); } },
   cancelar_compra: { titulo:'Cancelar pedido de compra', admin:true,
     async prep(p, o){ await iaCarregarCompras_();
       const r = iaAchar2_(_compras_.compras.filter(c=>c.status==='Pedido'), p.fornecedor, 'fornecedor', 'pedidos de compra pendentes'); if(r.erro){ o.pend.push(r.erro); return; }
