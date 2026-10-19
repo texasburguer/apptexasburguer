@@ -62,9 +62,11 @@ async function minhaExtrasCarregar_(){
 function pontoPosicao_(){
   return new Promise(res => {
     if(!navigator.geolocation) return res(null);
+    let fim = false; const ok = v => { if(!fim){ fim = true; res(v); } };
+    setTimeout(() => ok(null), 20000);   // se o celular nunca responder (permissão parada), segue sem localização
     navigator.geolocation.getCurrentPosition(
-      pos => res({ lat: pos.coords.latitude, lng: pos.coords.longitude, precisao: Math.round(pos.coords.accuracy || 0) }),
-      () => res(null), { enableHighAccuracy:true, timeout:15000, maximumAge:0 });
+      pos => ok({ lat: pos.coords.latitude, lng: pos.coords.longitude, precisao: Math.round(pos.coords.accuracy || 0) }),
+      () => ok(null), { enableHighAccuracy:true, timeout:15000, maximumAge:0 });
   });
 }
 async function pontoBater(){
@@ -131,15 +133,15 @@ function renderPonto_(){
   if(!ps.length){ box.innerHTML = '<p class="sub">Nenhum funcionário ainda.</p>'; return; }
   const loc = (pontoDados_ && pontoDados_.local) || {};
   const locCard = '<div class="notif-card"><b>📍 Local do ponto</b><div class="obs-line" style="margin-top:4px;">' + (loc.definido ? 'Ligado: o funcionário só bate o ponto a até ' + loc.raio + ' m do restaurante.' : 'Desligado: o ponto pode ser batido de qualquer lugar. Fique no restaurante e toque em "Definir local" para ligar a trava.') + '</div><div class="btn-row" style="margin-top:6px;"><button type="button" class="small-gold" onclick="pontoLocalDefinir()">' + (loc.definido ? 'Redefinir local aqui' : 'Definir local aqui') + '</button>' + (loc.definido ? '<button type="button" class="ghost small" onclick="pontoLocalDesligar()">Desligar trava</button>' : '') + '</div></div>';
-  box.innerHTML = locCard + ps.map(p => {
+  box.innerHTML = locCard + (typeof pontoRostoCard_ === 'function' ? pontoRostoCard_() : '') + ps.map(p => {
     const dif = Number(p.diferenca) || 0, regs = p.registros || [];
     return '<div class="notif-card"><div style="display:flex;justify-content:space-between;gap:8px;"><b>' + escH(p.nome) + '</b><span class="obs-line">' + escH(p.cargo || '') + '</span></div>' +
       '<div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap;"><div><div class="obs-line">Feitas</div><b>' + pontoH_(p.horasFeitas) + '</b></div><div><div class="obs-line">Escaladas</div><b>' + pontoH_(p.horasEscaladas) + '</b></div>' +
       '<div><div class="obs-line">Diferença</div><b style="color:' + (dif < -0.5 ? 'var(--red-hi)' : dif > 0.5 ? 'var(--gold)' : 'inherit') + ';">' + (dif > 0 ? '+' : '') + pontoH_(dif) + '</b></div>' +
       '<div><div class="obs-line">Extras (&gt;44 h)</div><b style="color:' + (p.horasExtras > 0 ? 'var(--red-hi)' : 'inherit') + ';">' + pontoH_(p.horasExtras) + '</b></div></div>' +
       (p.aberto ? '<div style="color:var(--red-hi);font-size:var(--fs-xs);margin-top:4px;">⚠ Entrada sem saída registrada</div>' : '') +
-      (regs.length ? '<div style="margin-top:6px;">' + regs.map(x => '<div style="padding:4px 0;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:6px;align-items:center;"><span>' + escDM_(x.dia) + ' · ' + escH(x.entrada) + '–' + escH(x.saida || '?') + ' <span class="obs-line">(' + pontoH_(x.horas) + (x.origem === 'dono' ? ' · lançado pelo dono' : '') + ')</span>' + (x.distEntrada != null ? ' <span class="obs-line">📍 ' + pontoDist_(x.distEntrada) + (x.distSaida != null ? ' / ' + pontoDist_(x.distSaida) : '') + '</span>' : '') + '</span><span><button type="button" class="ghost small" onclick="pontoEditar(\'' + x.id + '\',\'' + p.funcionarioId + '\')">Corrigir</button></span></div>').join('') + '</div>' : '<div class="obs-line" style="margin-top:6px;">Sem registros nessa semana.</div>') +
-      '<button type="button" class="ghost small" style="margin-top:6px;" onclick="pontoEditar(null,\'' + p.funcionarioId + '\')">+ Lançar registro</button></div>';
+      (regs.length ? '<div style="margin-top:6px;">' + regs.map(x => '<div style="padding:4px 0;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:6px;align-items:center;"><span>' + escDM_(x.dia) + ' · ' + escH(x.entrada) + '–' + escH(x.saida || '?') + ' <span class="obs-line">(' + pontoH_(x.horas) + (x.origem === 'dono' ? ' · lançado pelo dono' : '') + ')</span>' + (x.distEntrada != null ? ' <span class="obs-line">📍 ' + pontoDist_(x.distEntrada) + (x.distSaida != null ? ' / ' + pontoDist_(x.distSaida) : '') + '</span>' : '') + (typeof pontoRostoTag_ === 'function' ? pontoRostoTag_(x) : '') + '</span><span>' + (typeof pontoRostoBotoes_ === 'function' ? pontoRostoBotoes_(x) : '') + '<button type="button" class="ghost small" onclick="pontoEditar(\'' + x.id + '\',\'' + p.funcionarioId + '\')">Corrigir</button></span></div>').join('') + '</div>' : '<div class="obs-line" style="margin-top:6px;">Sem registros nessa semana.</div>') +
+      '<button type="button" class="ghost small" style="margin-top:6px;" onclick="pontoEditar(null,\'' + p.funcionarioId + '\')">+ Lançar registro</button>' + (p.temRosto ? ' <button type="button" class="ghost small" style="margin-top:6px;" onclick="pontoRostoApagar(\'' + p.funcionarioId + '\')">Apagar rosto</button>' : '') + '</div>';
   }).join('');
 }
 async function pontoEditar(id, fid){
