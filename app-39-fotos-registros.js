@@ -132,29 +132,4 @@ async function fvMarcar_(tipo){
   itens.forEach((el, i) => {
     el.querySelectorAll(':scope .fv-btn').forEach(b => b.remove());
     const n = ids[i] && mapa[ids[i]]; if(!n) return;
-    const b = document.createElement('button'); b.type = 'button'; b.className = 'ghost small fv-btn'; b.style.marginTop = '6px';
-    b.textContent = '📷 ' + (n > 1 ? n + ' fotos' : 'Foto'); b.setAttribute('onclick', "fvVer('" + tipo + "','" + ids[i] + "',0)");
-    el.appendChild(b);
-  });
-}
-['renderMovimentacoesEstoque', 'renderOcorrencias', 'renderCompras_'].forEach(nome => {
-  const orig = window[nome]; if(typeof orig !== 'function') return;
-  window[nome] = function(){ const r = orig.apply(this, arguments); try{ fvMarcarTudo_(); }catch(e){} return r; };
-});
-
-/* ---------- ver a foto ---------- */
-async function fvVer(tipo, refId, indice){
-  let m = document.getElementById('fvVerModal');
-  if(!m){ m = document.createElement('div'); m.className = 'modal-overlay'; m.id = 'fvVerModal';
-    m.innerHTML = '<div class="modal-box" style="max-width:520px;"><div class="modal-header"><h2 id="fvVerTitulo">Foto</h2><button class="close-btn" onclick="fecharFormModal(\'fvVerModal\')" aria-label="Fechar">✕</button></div><div id="fvVerCorpo"></div></div>'; document.body.appendChild(m); }
-  abrirFormModal('fvVerModal');
-  document.getElementById('fvVerTitulo').textContent = '📷 ' + FV_ROTULO_[tipo];
-  const corpo = document.getElementById('fvVerCorpo'); corpo.innerHTML = '<p class="sub">Abrindo a foto…</p>';
-  try{
-    const j = await sb410Edge_('evidencia-foto', { acao:'ver', tipo, refId, indice: indice || 0 }, 60000);
-    if(!j || !j.ok || !j.base64) throw new Error((j && j.message) || 'Não consegui abrir a foto.');
-    let abas = '';
-    if(j.total > 1){ abas = '<div class="btn-row" style="margin-bottom:8px;">'; for(let i = 0; i < j.total; i++) abas += '<button type="button" class="' + (i === (indice || 0) ? 'small-gold' : 'ghost small') + '" onclick="fvVer(\'' + tipo + '\',\'' + refId + '\',' + i + ')">Foto ' + (i + 1) + '</button>'; abas += '</div>'; }
-    corpo.innerHTML = abas + '<img alt="Foto do lançamento" style="width:100%;border-radius:10px;" src="data:' + (j.tipo || 'image/jpeg') + ';base64,' + j.base64 + '"><div class="obs-line" style="margin-top:6px;">Guardada por 45 dias.</div>';
-  }catch(e){ corpo.innerHTML = '<p class="sub">' + escH(e.message || 'Não consegui abrir a foto.') + '</p>'; }
-}
+    const b = document.createElement('button'); b.type = 'button'; b.
