@@ -6,7 +6,7 @@
    - BACKEND: NADA de Apps Script (script.google.com) nem de Supabase (*.supabase.co) é guardado aqui.
      Dados, pedidos, login e RPCs nunca passam pelo cache do service worker — sempre vão direto para a rede.
    - O único cache de dados é o de fotos (FOTOS) e o da casca/ícones (SHELL/ASSETS). Não adicionar outros. */
-const SHELL = 'texas-shell-v90';
+const SHELL = 'texas-shell-v91';
 const ASSETS = 'texas-assets-v7';   // trocou ícone/logo/manifest/leaflet? suba para v5
 const FOTOS = 'texas-fotos-v1';
 /* Código do app dividido em arquivos (app-*.js e estilo-*.css). Cada arquivo tem ?v=<impressão digital> na página; o cache guarda
@@ -14,7 +14,7 @@ const FOTOS = 'texas-fotos-v1';
    A lista abaixo é gerada pelo script de selagem (selar.py) a cada entrega. */
 const CODIGO = 'texas-codigo-v2';
 const LISTA = [/*LISTA-INICIO*/
-  'estilo-base.css?v=c42d4258',
+  'estilo-base.css?v=2687ab60',
   'app-01-base-e-api.js?v=fd04cc58',
   'app-02-abas.js?v=d1dbd674',
   'app-03-cadastros.js?v=59f57650',
@@ -26,7 +26,7 @@ const LISTA = [/*LISTA-INICIO*/
   'app-09-ajuda.js?v=6f319204',
   'app-10-backup-financeiro.js?v=3b7d8cd1',
   'app-11-admin-integracoes.js?v=e53763b1',
-  'app-12-gestao-ia.js?v=f1cc6dcc',
+  'app-12-gestao-ia.js?v=ab202e0e',
   'app-13-conexao-sync.js?v=4169baef',
   'app-14-relatorios.js?v=1e3c69a3',
   'app-15-cardapio-cliente.js?v=f9ed1bf0',

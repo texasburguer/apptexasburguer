@@ -809,6 +809,8 @@ function abrirBuscaGlobal(){
 }
 function fecharBuscaGlobal(){ document.getElementById('buscaGlobalModal').classList.remove('open'); }
 function bgAbrirCliente_(id){ fecharBuscaGlobal(); abrirPerfilCliente(id); }
+function bgAbrirProduto_(tipo, id){ fecharBuscaGlobal(); try{ if(tipo==='Combo') abrirEditarCombo(id); else abrirEditarProduto(id); }catch(e){ try{ avisar('Não consegui abrir o cadastro agora.'); }catch(_){} } }
+function bgPodeEditarProduto_(){ const n = bgNivel_(); return n==='Admin' || (currentUser && currentUser.nivelReal==='Desenvolvedor'); }
 function renderBuscaGlobal_(){
   const box = document.getElementById('bgResultado'); if(!box) return;
   const termo = document.getElementById('bgTermo').value.trim();
@@ -833,9 +835,10 @@ function renderBuscaGlobal_(){
     return `<div class="notif-card">${linha}${quando}${itens}${fin?`<details class="pd-det"><summary>ver pedido completo</summary>${pedidoDetalheHtml_(v)}</details>`:''}</div>`;
   }).join('');
   /* Produtos e combos */
-  const pr = (produtos||[]).filter(p=>semAcento_(p.nome||'').indexOf(t)!==-1).map(p=>({n:p.nome,tipo:'Produto',ativo:p.ativo}))
-    .concat((combos||[]).filter(c=>semAcento_(c.nome||'').indexOf(t)!==-1).map(c=>({n:c.nome,tipo:'Combo',ativo:c.ativo})));
-  if(pr.length) h += '<h3>Produtos ('+pr.length+')</h3>' + pr.slice(0,MAX).map(x=>`<div class="notif-card"><b>${escH(x.n)}</b> · ${x.tipo}${x.ativo===false?' · inativo':''}</div>`).join('');
+  const pr = (produtos||[]).filter(p=>semAcento_(p.nome||'').indexOf(t)!==-1).map(p=>({id:p.id,n:p.nome,tipo:'Produto',ativo:p.ativo}))
+    .concat((combos||[]).filter(c=>semAcento_(c.nome||'').indexOf(t)!==-1).map(c=>({id:c.id,n:c.nome,tipo:'Combo',ativo:c.ativo})));
+  const podeEd = bgPodeEditarProduto_();
+  if(pr.length) h += '<h3>Produtos ('+pr.length+')</h3>' + pr.slice(0,MAX).map(x=>`<div class="notif-card" style="display:flex;align-items:center;justify-content:space-between;gap:10px;"><span><b>${escH(x.n)}</b> · ${x.tipo}${x.ativo===false?' · inativo':''}</span>${podeEd?`<button class="small-gold" style="flex:none;" onclick="bgAbrirProduto_('${x.tipo}','${x.id}')">abrir cadastro</button>`:''}</div>`).join('');
   box.innerHTML = h || '<div class="notif-empty">Nada encontrado para "'+escH(termo)+'".</div>';
 }
 /* ---------- DADOS DO RESTAURANTE (texto livre) ---------- */
