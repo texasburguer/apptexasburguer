@@ -749,3 +749,6 @@ button:has(> .ic:only-child), .close-btn .ic{margin-right:0;}
 /* campos de pesquisa, hora e data+hora seguem o mesmo estilo dos demais; some o botão nativo de limpar do navegador (18/10/2026) */
 input[type=search]{-webkit-appearance:none;appearance:none;}input[type=search]::-webkit-search-cancel-button{-webkit-appearance:none;}
 input[type=date],input[type=time],input[type=datetime-local],input[type=month]{min-height:44px;color-scheme:dark;}
+
+/* selo discreto do iFood no número do pedido */
+.selo-ifood{display:inline-block;margin-left:4px;padding:0 6px;border-radius:999px;background:rgba(234,29,44,.14);color:#ea1d2c;border:1px solid rgba(234,29,44,.35);font-size:10px;font-weight:800;letter-spacing:.2px;line-height:16px;vertical-align:middle;text-transform:none;}

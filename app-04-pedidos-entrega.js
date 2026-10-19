@@ -62,7 +62,7 @@ function pdLinhaTempoHtml_(v){
   const fmt = ts => { const d = new Date(ts); const h = d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}); return dataLocalISO(d)===hojeIso ? h : d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})+' '+h; };
   const conclui = v.tipoEntrega==='Entrega' ? '✅ Entregue' : (v.tipoEntrega==='Mesa' ? '✅ Servido na mesa' : '✅ Retirado pelo cliente');
   const et = [
-    { ts:v.timestamp, rot: v.origem==='Cardápio' ? '🛒 Cliente fez o pedido' : '📝 Pedido lançado' },
+    { ts:v.timestamp, rot: ehIfood_(v) ? '🛵 Pedido recebido do iFood' : (v.origem==='Cardápio' ? '🛒 Cliente fez o pedido' : '📝 Pedido lançado') },
     { ts:v.timestampInicioPreparo, rot:'👨‍🍳 Aceito / começou o preparo' },
     { ts:v.timestampPronta, rot:'🍔 Pronto' },
     { ts: v.tipoEntrega==='Entrega' ? v.timestampSaiu : null, rot:'🛵 Saiu para entrega' },
@@ -118,7 +118,7 @@ function cartaoPedidoMesa_(v){
       ${podeEditarPedidoRecebido_() ? `<button class="ghost" onclick="abrirModalEditarVenda('${v.id}')">✏️ Editar</button>` : ''}
     </div>` : '';
   return `<div class="notif-card">
-    <div><b>#${escH(rotuloPedido(v))}</b> — ${escH(hora)} — <b>${formatarMoeda(v.valorTotal)}</b>${aguardandoAceite?' <span class="badge baixo">novo — aguardando aceite</span>':''}</div>
+    <div><b>#${escH(rotuloPedido(v))}</b>${seloIfood_(v)} — ${escH(hora)} — <b>${formatarMoeda(v.valorTotal)}</b>${aguardandoAceite?' <span class="badge baixo">novo — aguardando aceite</span>':''}</div>
     <div class="obs-line">${itensDoPedido(v.id)}</div>
     <details class="pd-det"><summary>ver pedido completo</summary>${pedidoDetalheHtml_(v)}</details>
     ${botaoOcorrenciaPedido(v)}
@@ -292,7 +292,7 @@ function renderPedidos(){
       ${podeEditarPedidoRecebido_() ? `<button class="ghost" onclick="abrirModalEditarVenda('${v.id}')">✏️ Editar</button>` : ''}
         </div>` : '';
       return `<div class="notif-card">
-        <div><b>#${rotuloPedido(v)}</b> — ${identificacao}${aguardandoAceite?' <span class="badge baixo">novo — aguardando aceite</span>':''}</div>
+        <div><b>#${rotuloPedido(v)}</b>${seloIfood_(v)} — ${identificacao}${aguardandoAceite?' <span class="badge baixo">novo — aguardando aceite</span>':''}</div>
         ${pedidoDetalheHtml_(v)}
         ${botaoOcorrenciaPedido(v)}
         <div class="obs-line">Status: <b>${v.statusPedido}</b> — há ${tempoDecorridoDesde(v.timestamp)}</div>
@@ -311,7 +311,7 @@ function renderPedidos(){
   if(box2){
     box2.innerHTML = concluidos.length ? concluidos.map(v=>{
       const tPreparo = tempoEntre(v.timestamp, v.timestampPronta);
-      return `<div class="notif-card"><b>#${rotuloPedido(v)}</b> — 🥡 ${escH(v.clienteNome||'Sem cadastro')} — Retirada${tPreparo?' · preparo: '+tPreparo:''}
+      return `<div class="notif-card"><b>#${rotuloPedido(v)}</b>${seloIfood_(v)} — 🥡 ${escH(v.clienteNome||'Sem cadastro')} — Retirada${tPreparo?' · preparo: '+tPreparo:''}
         <details class="pd-det"><summary>ver pedido completo</summary>${pedidoDetalheHtml_(v)}</details></div>`;
     }).join('') : '<div class="notif-empty">Nenhuma retirada concluída ainda neste turno do caixa.</div>';
   }
@@ -352,7 +352,7 @@ function cardCozinha_(v, acao){
   }
   return `<div class="cz-card${atrasado?' atrasado':''}">
     ${faixaAlterado}
-    <div class="cz-cab"><b>#${escOc_(rotuloPedido(v))} — ${destino}</b><span class="cz-tempo">${tempoDecorridoDesde(v.timestamp)}</span></div>
+    <div class="cz-cab"><b>#${escOc_(rotuloPedido(v))}${seloIfood_(v)} — ${destino}</b><span class="cz-tempo">${tempoDecorridoDesde(v.timestamp)}</span></div>
     <div class="obs-line">${escOc_(v.origem||'Balcão')}${quemFezPedido_(v)?' · '+escOc_(quemFezPedido_(v)):''}</div>
     ${itens}${obs}
     ${botaoOcorrenciaPedido(v)}
@@ -452,7 +452,7 @@ function comandaHtml_(v){
   let h = `<div class="cmd">`;
   h += `<div class="num">COMANDA #${escR(rotuloPedido(v))}</div>`;
   h += `<div class="dest">${escR(destino)}</div>`;
-  h += `<div class="meta">Pedido às <b>${escR(hora)}</b> · ${escR(dia)} · ${sem(v.origem||'Balcão')}</div>`;
+  h += `<div class="meta">Pedido às <b>${escR(hora)}</b> · ${escR(dia)} · ${sem(ehIfood_(v) ? 'iFood' : (v.origem||'Balcão'))}</div>`;
   if(quem) h += `<div class="meta">${quem}</div>`;
   /* ITENS (o mais importante para a cozinha) */
   h += `<div class="sec">ITENS (${totalItens} no total)</div>${itens}`;

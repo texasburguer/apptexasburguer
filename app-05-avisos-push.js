@@ -238,7 +238,7 @@ function entregadorUnico_(){ const a = (usuarios||[]).filter(u=>u.nivel==='Entre
 async function autoAtribuirEntregador_(){
   if(_autoEntBusy_ || !podeEnviarEntregador_()) return;
   const e = entregadorUnico_(); if(!e) return;
-  const sem = vendas.filter(v=>v.status==='Confirmada' && v.tipoEntrega==='Entrega' && v.statusPedido && v.statusPedido!=='Entregue' && !v.entregador);
+  const sem = vendas.filter(v=>v.status==='Confirmada' && v.tipoEntrega==='Entrega' && v.statusPedido && v.statusPedido!=='Entregue' && !v.entregador && !entregaPeloIfood_(v));
   if(!sem.length) return;
   _autoEntBusy_ = true;
   try{
@@ -251,7 +251,7 @@ function renderEntregas(){
   const souEntregador = currentUser && currentUser.nivel === 'Entregador';
   const _ef = document.getElementById('entFmt'); if(_ef) _ef.value = lerFormato('entrega','80mm');
   let pendentes = vendas.filter(v=>v.status==='Confirmada' && v.tipoEntrega==='Entrega' && v.statusPedido && !(v.statusPedido==='Entregue' && v.statusPagamento!=='A Receber')).sort((a,b)=>a.timestamp-b.timestamp);
-  if(souEntregador) pendentes = pendentes.filter(v=>v.entregador===loginVisao_());
+  if(souEntregador) pendentes = pendentes.filter(v=>v.entregador===loginVisao_() && !entregaPeloIfood_(v));
 
   if(souEntregador){
     const idsAtuais = pendentes.map(v=>v.id);
@@ -268,8 +268,8 @@ function renderEntregas(){
       const aReceber = v.statusPagamento==='A Receber' ? `<div class="obs-line" style="color:#f0d78c;">💰 A receber (${v.formaPagamento}) — ${(souEntregador||souGarcom_())?'':`<button class="ghost" style="padding:2px 8px;font-size:12px;" onclick="confirmarRecebimento('${v.id}')">marcar como recebido</button>`}</div>` : `<div class="obs-line">Pago (${v.formaPagamento})</div>`;
       const linkMaps = v.endereco ? `<a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(v.endereco+' '+(v.complemento||''))}" target="_blank" class="obs-line txt-ouro">📍 Ver no Maps</a>` : '';
       const telefoneCliente = v.clienteTelefone ? `<div class="obs-line">📞 ${v.clienteTelefone}</div>` : '';
-      const entregadorBox = souEntregador
-        ? ''
+      const entregadorBox = (souEntregador || entregaPeloIfood_(v))
+        ? (entregaPeloIfood_(v) ? '<div class="obs-line">🛵 Entrega feita pelo iFood — não precisa de entregador.</div><span data-rast="'+v.id+'"></span>' : '')
         : `<div class="mt-2"><label class="fs-2xs">Entregador</label>${popularSelectEntregadoresHtml(v.id, v.entregador)}</div>`;
       const labelBotao = prox==='Entregue' ? '✅ Já entreguei' : `Marcar como "${prox}"`;
       const aguardandoAceite = v.statusPedido==='Recebido';
@@ -279,7 +279,7 @@ function renderEntregas(){
       ${podeEditarPedidoRecebido_() ? `<button class="ghost" onclick="abrirModalEditarVenda('${v.id}')">✏️ Editar</button>` : ''}
         </div>` : '';
       return `<div class="notif-card">
-        <div><b>#${rotuloPedido(v)}</b> — 🛵 ${escH(v.clienteNome||'Sem cadastro')}${aguardandoAceite?' <span class="badge baixo">novo — aguardando aceite</span>':''}</div>
+        <div><b>#${rotuloPedido(v)}</b>${seloIfood_(v)} — 🛵 ${escH(v.clienteNome||'Sem cadastro')}${aguardandoAceite?' <span class="badge baixo">novo — aguardando aceite</span>':''}</div>
         ${pedidoDetalheHtml_(v)}
         ${botaoOcorrenciaPedido(v)}
         <div class="obs-line">Status: <b>${v.statusPedido}</b> — há ${tempoDecorridoDesde(v.timestamp)}</div>
@@ -304,7 +304,7 @@ ${(souEntregador && v.statusPedido==='Em preparo') ? `<div class="obs-line mt-2"
     box2.innerHTML = concluidas.length ? concluidas.map(v=>{
       const tPreparo = tempoEntre(v.timestamp, v.timestampPronta);
       const tEntrega = tempoEntre(v.timestampSaiu, v.timestampConcluida);
-      return `<div class="notif-card"><b>#${rotuloPedido(v)}</b> — 🛵 ${escH(v.clienteNome||'Sem cadastro')}${escH(v.entregador?' · '+v.entregador:'')}${v.taxaEntrega>0?' · taxa '+formatarMoeda(v.taxaEntrega):''}${v.fechamentoEntregaId?' · ✔ fechada':''}${tPreparo?' · preparo: '+tPreparo:''}${tEntrega?' · entrega: '+tEntrega:''}<details class="pd-det"><summary>ver pedido completo</summary>${pedidoDetalheHtml_(v)}</details></div>`;
+      return `<div class="notif-card"><b>#${rotuloPedido(v)}</b>${seloIfood_(v)} — 🛵 ${escH(v.clienteNome||'Sem cadastro')}${escH(v.entregador?' · '+v.entregador:'')}${v.taxaEntrega>0?' · taxa '+formatarMoeda(v.taxaEntrega):''}${v.fechamentoEntregaId?' · ✔ fechada':''}${tPreparo?' · preparo: '+tPreparo:''}${tEntrega?' · entrega: '+tEntrega:''}<details class="pd-det"><summary>ver pedido completo</summary>${pedidoDetalheHtml_(v)}</details></div>`;
     }).join('') : '<div class="notif-empty">Nenhuma entrega concluída ainda neste turno do caixa.</div>';
   }
   _alertaPed_.entregas = pendentes.length>0; _atualizarAlertaPedidos_();
@@ -320,7 +320,7 @@ function alertasDeEntregas(){
   const ehStaff = currentUser && (currentUser.nivel==='Admin' || currentUser.nivel==='Operador');
   if(!ehStaff) return [];
   const out = [];
-  const ativas = vendas.filter(v=>v.status==='Confirmada' && v.tipoEntrega==='Entrega' && v.statusPedido && v.statusPedido!=='Entregue');
+  const ativas = vendas.filter(v=>v.status==='Confirmada' && v.tipoEntrega==='Entrega' && v.statusPedido && v.statusPedido!=='Entregue' && !entregaPeloIfood_(v));
   const semEntregador = ativas.filter(v=>!v.entregador && v.statusPedido!=='Recebido');
   if(semEntregador.length) out.push(`<b>${semEntregador.length}</b> entrega(s) sem entregador atribuído: ` + semEntregador.map(v=>'#'+rotuloPedido(v)).join(', '));
   const paradas = ativas.filter(v=>v.statusPedido==='Pronta' && v.timestampPronta && (Date.now()-v.timestampPronta)>10*60000);
@@ -813,7 +813,7 @@ function caixaFaixaHtml_(ctx){
   const noCaixa = ctx === 'caixa';
   const nivel = currentUser.nivel, fecha = (nivel === 'Admin' || nivel === 'Operador' || nivel === 'Desenvolvedor'), admin = (nivel === 'Admin' || nivel === 'Desenvolvedor');
   const quando = sessaoCaixa.abertura || '';
-  const ext = (vendas||[]).filter(v=>v.status==='Confirmada' && v.statusPedido==='Recebido' && v.origem && v.origem!=='Balcão' && v.origem!=='Garçom').length;
+  const ext = (vendas||[]).filter(v=>v.status==='Confirmada' && v.statusPedido==='Recebido' && ((v.origem && v.origem!=='Balcão' && v.origem!=='Garçom') || ehIfood_(v))).length;
   const extTxt = ext ? ' <b>' + ext + ' pedido(s) do iFood/cardápio aguardando aceite: aceite normalmente, não trava.</b>' : '';
   const irCaixa = (!noCaixa && fecha) ? '<div class="caixa-faixa-btns"><button type="button" class="small-gold" onclick="caixaIrParaTela_()">Ir ao Caixa</button></div>' : '';
   if(e.vencido){

@@ -894,6 +894,11 @@ function totaisPorFormaNaSessao(idsVendas){
    ============================================================ */
 function ultimos5(id){ return id ? id.slice(-5).toUpperCase() : ''; }
 /* número amigável do pedido (venda antiga sem número cai nos 5 últimos caracteres do ID) */
+/* Selo discreto do iFood: pedido que veio do iFood (canal 'iFood'). */
+function ehIfood_(v){ return !!v && v.canal==='iFood'; }
+/* Entrega feita pelo próprio iFood: não precisa de entregador nem entra no acerto da loja. */
+function entregaPeloIfood_(v){ return ehIfood_(v) && /ENTREGA PELO iFOOD/i.test(String(v.observacoesEntrega||'')); }
+function seloIfood_(v){ return ehIfood_(v) ? ' <span class="selo-ifood" title="Pedido do iFood">iFood</span>' : ''; }
 function rotuloPedido(v){ return (v && v.numero) ? String(v.numero) : ultimos5(v && v.id); }
 function rotuloPedidoId(id){
   const v = (vendas||[]).find(x=>x.id===id); if(v) return rotuloPedido(v);
@@ -1086,6 +1091,7 @@ function avisarClienteWhatsApp(vendaId){
    Pedido feito sozinho pelo cliente (cardápio): "Cliente" + o nome que ele informou. */
 function quemFezPedido_(v){
   if(!v) return '';
+  if(ehIfood_(v)) return '🛵 Pedido do iFood' + (v.clienteNome && v.clienteNome!=='Cliente iFood' ? ' ('+v.clienteNome+')' : '');
   const ehCliente = v.origem==='Cardápio' || /^Cardápio/i.test(String(v.registradoPor||''));
   if(ehCliente) return '📱 Cliente' + (v.clienteNome ? ' ('+v.clienteNome+')' : '');
   const login = String(v.registradoPor||'').trim();
