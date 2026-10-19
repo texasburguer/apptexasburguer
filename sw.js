@@ -6,7 +6,7 @@
    - BACKEND: NADA de Apps Script (script.google.com) nem de Supabase (*.supabase.co) é guardado aqui.
      Dados, pedidos, login e RPCs nunca passam pelo cache do service worker — sempre vão direto para a rede.
    - O único cache de dados é o de fotos (FOTOS) e o da casca/ícones (SHELL/ASSETS). Não adicionar outros. */
-const SHELL = 'texas-shell-v94';
+const SHELL = 'texas-shell-v98';
 const ASSETS = 'texas-assets-v7';   // trocou ícone/logo/manifest/leaflet? suba para v5
 const FOTOS = 'texas-fotos-v1';
 /* Código do app dividido em arquivos (app-*.js e estilo-*.css). Cada arquivo tem ?v=<impressão digital> na página; o cache guarda
@@ -15,7 +15,7 @@ const FOTOS = 'texas-fotos-v1';
 const CODIGO = 'texas-codigo-v2';
 const LISTA = [/*LISTA-INICIO*/
   'estilo-base.css?v=8e7ad1a9',
-  'app-01-base-e-api.js?v=8ea49e97',
+  'app-01-base-e-api.js?v=6c7ea260',
   'app-02-abas.js?v=d1dbd674',
   'app-03-cadastros.js?v=3cfc0725',
   'app-04-pedidos-entrega.js?v=58e9add7',
@@ -23,10 +23,10 @@ const LISTA = [/*LISTA-INICIO*/
   'app-06-caixa.js?v=edcbde35',
   'app-07-impressao.js?v=5c9f0484',
   'app-08-vendas-despesas.js?v=86517a81',
-  'app-09-ajuda.js?v=3518550f',
+  'app-09-ajuda.js?v=e8fdd783',
   'app-10-backup-financeiro.js?v=3b7d8cd1',
-  'app-11-admin-integracoes.js?v=c36beba4',
-  'app-12-gestao-ia.js?v=ab202e0e',
+  'app-11-admin-integracoes.js?v=a14be6f3',
+  'app-12-gestao-ia.js?v=c93c8f19',
   'app-13-conexao-sync.js?v=4169baef',
   'app-14-relatorios.js?v=1e3c69a3',
   'app-15-cardapio-cliente.js?v=f9ed1bf0',
@@ -57,7 +57,7 @@ const LISTA = [/*LISTA-INICIO*/
   'app-38-ponto-rosto.js?v=4f9edca3',
   'app-39-fotos-registros.js?v=b24b7995',
   'app-40-etiquetas.js?v=5ac4487f',
-  'app-41-ifood-extras.js?v=712e53b7',
+  'app-41-ifood-extras.js?v=ac925d68',
   'app-32-equipe.js?v=94d12e93',
 /*LISTA-FIM*/];
 const FOTOS_MAX = 150;

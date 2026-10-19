@@ -13,7 +13,7 @@ function renderFeedbacks(){
   const lista = (filtroFeedbacksAtual==='todos' ? feedbacks : feedbacks.filter(f=>f.status===filtroFeedbacksAtual))
     .slice().sort((a,b)=> dataBrNum_(b.data) - dataBrNum_(a.data));
   box.innerHTML = lista.length ? lista.map(f=>`<div class="notif-card">
-      <div>${'★'.repeat(Math.max(0,Math.min(5,f.nota||0)))}${'☆'.repeat(5-Math.max(0,Math.min(5,f.nota||0)))} <span class="obs-line">${f.data}${escH(f.telefone?' · '+f.telefone:'')}${f.vendaId?' · pedido #'+rotuloPedidoId(f.vendaId):''}${f.origem==='chat'?' · 💬 veio pelo chat':(f.origem==='aviso'?' · 🔔 veio pelo aviso do pedido':'')}${f.userId?' · 👤 com conta':' · sem conta'}</span></div>
+      <div>${f.origem==='iFood'?'<span class="selo-ifood" style="margin:0 6px 0 0;">iFood</span>':''}${'★'.repeat(Math.max(0,Math.min(5,f.nota||0)))}${'☆'.repeat(5-Math.max(0,Math.min(5,f.nota||0)))} <span class="obs-line">${f.data}${escH(f.telefone?' · '+f.telefone:'')}${f.vendaId?' · pedido #'+rotuloPedidoId(f.vendaId):''}${f.origem==='iFood'?' · 🛵 veio do iFood':''}${f.origem==='chat'?' · 💬 veio pelo chat':(f.origem==='aviso'?' · 🔔 veio pelo aviso do pedido':'')}${f.userId?' · 👤 com conta':' · sem conta'}</span></div>
       ${f.comentario?`<div class="mt-1">${escH(f.comentario)}</div>`:''}
       ${f.resposta?`<div class="obs-line" style="margin-top:6px;padding:6px 8px;border-left:3px solid var(--gold);"><b>Sua resposta</b> (${escH(f.respondidoEm||'')}${f.respondidoPor?' · '+escH(f.respondidoPor):''})<br>${escH(f.resposta)}</div>`:''}
       <div class="btnrow mt-2">
@@ -30,12 +30,12 @@ function renderFeedbacks(){
 async function responderFeedback(id){
   const f = feedbacks.find(x=>x.id===id); if(!f) return;
   const v = await vsForm({ titulo: f.resposta ? 'Editar resposta' : 'Responder feedback',
-    texto: (f.userId ? 'O cliente vai ver a resposta em Minha conta › Pedidos.' : 'Este cliente não tem conta, então não vê a resposta no app. A resposta fica registrada aqui; para falar com ele use o botão WhatsApp.') + (f.comentario ? ' Ele escreveu: “' + f.comentario + '”' : ''),
-    ok:'Salvar resposta', campos:[{ id:'resposta', rotulo:'Sua resposta', tipo:'longo', max:1000, valor:f.resposta||'', obrigatorio:true }] });
+    texto: (f.origem==='iFood' ? 'Avaliação do iFood: a resposta é enviada ao iFood (só o Administrador envia; até 600 letras) e fica registrada aqui.' : f.userId ? 'O cliente vai ver a resposta em Minha conta › Pedidos.' : 'Este cliente não tem conta, então não vê a resposta no app. A resposta fica registrada aqui; para falar com ele use o botão WhatsApp.') + (f.comentario ? ' Ele escreveu: “' + f.comentario + '”' : ''),
+    ok:'Salvar resposta', campos:[{ id:'resposta', rotulo:'Sua resposta', tipo:'longo', max:(f.origem==='iFood'?600:1000), valor:f.resposta||'', obrigatorio:true }] });
   if(!v) return;
   try{
     const r = await apiCall('responderFeedback', { id, resposta: v.resposta });
-    if(r && r.ok){ feedbacks = r.feedbacks || feedbacks; salvarCache(); renderFeedbacks(); avisar(r.comConta ? 'Resposta enviada. O cliente vê em Minha conta.' : 'Resposta registrada (cliente sem conta).'); }
+    if(r && r.ok){ feedbacks = r.feedbacks || feedbacks; salvarCache(); renderFeedbacks(); avisar(r.ifood==='enviada' ? 'Resposta enviada ao iFood.' : r.ifood==='so_admin' ? 'Resposta registrada aqui. Só o Administrador envia ao iFood.' : r.ifood==='desligado' ? 'Resposta registrada aqui. A integração do iFood está desligada, então não foi ao iFood.' : r.ifood==='tamanho' ? 'Resposta registrada aqui, mas o iFood aceita de 3 a 600 letras: não foi enviada.' : (r.comConta ? 'Resposta enviada. O cliente vê em Minha conta.' : 'Resposta registrada (cliente sem conta).')); }
     else avisar((r && r.message) || 'Não foi possível salvar a resposta.');
   }catch(e){ avisar('Não foi possível salvar a resposta agora. Tente de novo.'); }
 }
@@ -107,7 +107,7 @@ function renderOcorrencias(){
     const cor = o.status==='Resolvida' ? 'var(--muted)' : 'var(--gold)';
     return `<div class="notif-card">
       <div><b>#${o.numero}</b> — ${escOc_(o.tipo)} <span class="obs-line" style="color:${cor};">· ${escOc_(o.status)}</span></div>
-      <div class="obs-line">${escOc_(o.data)} · ${escOc_(o.setor)} · por ${escOc_(o.registradoPor)}${v?(' · pedido #'+rotuloPedido(v)):''}${o.clienteNome?(' · '+escOc_(o.clienteNome)):''}</div>
+      <div class="obs-line">${escOc_(o.data)} · ${escOc_(o.setor)} · por ${escOc_(o.registradoPor)}${v?(' · pedido #'+rotuloPedido(v)+(ehIfood_(v)?' (🛵 iFood)':'')):''}${o.clienteNome?(' · '+escOc_(o.clienteNome)):''}</div>
       <div class="mt-1">${escOc_(o.descricao)}</div>
       ${o.responsavel?`<div class="obs-line">Responsável: ${escOc_(o.responsavel)}</div>`:''}
       ${o.solucao?`<div class="obs-line">Solução: ${escOc_(o.solucao)}</div>`:''}
@@ -829,7 +829,7 @@ function renderBuscaGlobal_(){
     return fin && dig.length>=4 && normTel(v.clienteTelefone).indexOf(dig)!==-1;
   }).sort((a,b)=>(b.timestamp||0)-(a.timestamp||0));
   if(ped.length) h += '<h3>Pedidos ('+ped.length+')</h3>' + ped.slice(0,MAX).map(v=>{
-    const linha = `<b>#${escH(rotuloPedido(v))}</b> — ${escH(v.clienteNome||'Sem cadastro')} · ${escH(v.tipoEntrega||'')} · ${escH(v.statusPedido||v.status||'')}${fin?' · '+formatarMoeda(v.valorTotal):''}`;
+    const linha = `<b>#${escH(rotuloPedido(v))}</b>${seloIfood_(v)} — ${escH(v.clienteNome||'Sem cadastro')} · ${escH(v.tipoEntrega||'')} · ${escH(v.statusPedido||v.status||'')}${fin?' · '+formatarMoeda(v.valorTotal):''}`;
     const quando = v.timestamp ? '<div class="obs-line">'+escH(new Date(v.timestamp).toLocaleString('pt-BR'))+'</div>' : '';
     const itens = '<div class="obs-line">'+itensDoPedido(v.id)+'</div>';
     return `<div class="notif-card">${linha}${quando}${itens}${fin?`<details class="pd-det"><summary>ver pedido completo</summary>${pedidoDetalheHtml_(v)}</details>`:''}</div>`;

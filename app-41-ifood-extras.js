@@ -67,9 +67,11 @@
     document.querySelectorAll('[data-rast]').forEach(el=>{
       const x = cache_.mapa[el.getAttribute('data-rast')]; const d = x && x.dados;
       if(!d){ el.innerHTML = ''; return; }
-      const pos = (Number(d.latitude) && Number(d.longitude)) ? ` · <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(d.latitude+','+d.longitude)}" target="_blank" rel="noopener">ver no mapa</a>` : '';
-      const prev = hora_(d.expectedDelivery || d.deliveryEtaEnd);
-      el.innerHTML = `<div class="obs-line">📍 Entregador do iFood · posição das ${escH(hora_(d.trackDate || x.em))}${prev ? ' · chegada prevista '+escH(prev) : ''}${pos}</div>`;
+      const ET = {ADR:'Entregador do iFood alocado', GTO:'Entregador do iFood a caminho da loja', AAO:'Entregador do iFood chegou na loja', CLT:'Entregador do iFood pegou o pedido', AAD:'Entregador do iFood chegou ao endereço do cliente', DRGO:'Entregador do iFood voltando à loja', DRDO:'Entregador do iFood voltando à loja'};
+      const cod = String(d.etapa || '').toUpperCase();
+      const txt = ET[cod] || (cod==='ASSIGN_DRIVER'?ET.ADR:cod==='GOING_TO_ORIGIN'?ET.GTO:cod==='ARRIVED_AT_ORIGIN'?ET.AAO:cod==='COLLECTED'?ET.CLT:cod==='ARRIVED_AT_DESTINATION'?ET.AAD:'');
+      if(!txt){ el.innerHTML = ''; return; }
+      el.innerHTML = `<div class="obs-line">📍 ${escH(txt)} · às ${escH(hora_(d.em || x.em))}</div>`;
     });
   }
   async function atualizarRastreios_(){

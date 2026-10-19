@@ -423,4 +423,29 @@ button.cf-chip:hover,button.cf-chip:focus-visible,button.cf-chip.on{border-color
 @media (max-width:899px){
   /* Botões do topo: o visual continua IGUAL; só a área que responde ao toque cresce (invisível), para o dedo acertar mais fácil */
   header.brand .userbar button{position:relative;}
-  header.brand .userbar button::before{content:'';position:absolute;lef
+  header.brand .userbar button::before{content:'';position:absolute;left:-3px;right:-3px;top:-9px;bottom:-9px;}
+}
+
+/* ===== Caixas de marcar e "Escolher arquivo" no visual da página (antes apareciam brancas, do navegador) ===== */
+input[type=checkbox], input[type=radio]{
+  -webkit-appearance:none; appearance:none; display:inline-grid; place-content:center; vertical-align:middle;
+  width:22px; height:22px; margin:0; flex:0 0 22px; padding:0;
+  background:var(--bg); border:1.5px solid var(--line-forte); cursor:pointer; position:relative;
+}
+input[type=checkbox]{ border-radius:6px; }
+input[type=radio]{ border-radius:50%; }
+input[type=checkbox]:checked, input[type=radio]:checked{ background:var(--gold); border-color:var(--gold); }
+input[type=checkbox]:checked::after{ content:""; width:6px; height:11px; border:solid var(--on-gold); border-width:0 3px 3px 0; transform:translateY(-1px) rotate(45deg); }
+input[type=radio]:checked::after{ content:""; width:8px; height:8px; border-radius:50%; background:var(--on-gold); }
+input[type=checkbox]:focus-visible, input[type=radio]:focus-visible{ outline:2px solid var(--gold); outline-offset:2px; }
+input[type=checkbox]:disabled, input[type=radio]:disabled{ opacity:.5; cursor:default; }
+input[type=file]{ color:var(--muted); font-size:var(--fs-sm); max-width:100%; background:transparent; border:0; padding:4px 0; }
+input[type=file]::file-selector-button{
+  background:transparent; color:var(--cream); border:1px solid var(--line-forte); border-radius:var(--raio-controle);
+  padding:8px 14px; margin-right:10px; font:inherit; font-size:var(--fs-xs); cursor:pointer; min-height:var(--alvo-toque-pc);
+}
+input[type=file]::file-selector-button:hover{ border-color:var(--gold); color:var(--gold); }
+input[type=date], input[type=month], input[type=time], input[type=datetime-local]{ color-scheme:dark; }
+
+/* botão Escala e ponto: bolinha verde quando a pessoa está em turno */
+header.brand .userbar button.pr-on::after{content:'';display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--ok,#6fbf4a);margin-left:5px;vertical-align:middle;}

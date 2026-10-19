@@ -335,14 +335,16 @@ const INTEG_INFO_ = {
     segredos:[['ifood_client_id','Client ID'],['ifood_client_secret','Client Secret'],['ifood_merchant_id','Código da loja (Merchant ID)']],
     guia:[
       'Quem faz: o DONO do restaurante (precisa do CNPJ e do acesso ao Portal do Parceiro do iFood).',
-      '1) Entre no portal de desenvolvedores do iFood (developer.ifood.com.br) com o login do restaurante e crie a conta de desenvolvedor.',
-      '2) Crie um aplicativo do tipo "Distribuído" (ou o tipo que o iFood indicar para a sua loja) e peça os módulos: Pedidos, Catálogo, Loja (Merchant), Financeiro e Avaliações.',
-      '3) O iFood mostra o Client ID e o Client Secret. Copie e digite aqui (botões abaixo). NUNCA mande por mensagem.',
-      '4) O código da loja (Merchant ID) aparece no Portal do Parceiro. Digite aqui também.',
-      '5) O iFood exige uma HOMOLOGAÇÃO (testes obrigatórios) antes de liberar para valer. Quando ele aprovar, marque o passo no checklist.',
-      '6) Na aba Itens do iFood (quando ligado), ligue cada item do iFood ao seu produto.',
+      '1) Entre em developer.ifood.com.br e crie a conta de desenvolvedor com o CNPJ do restaurante (conta de CPF é recusada). O login do Portal do Desenvolvedor NÃO é o mesmo do Portal do Parceiro.',
+      '2) Ao se registrar, o iFood cria sozinho um aplicativo de TESTE. O aplicativo de produção só pode ser criado depois da homologação.',
+      '3) O tipo do aplicativo é "Centralizado" (categoria Food): é o que roda em servidor e guarda o segredo, como este sistema. NÃO use o "Distribuído".',
+      '4) O iFood mostra o Client ID e o Client Secret. Copie e digite aqui (botões abaixo). NUNCA mande por mensagem.',
+      '5) O código da loja (Merchant ID) aparece no Portal do Parceiro. Digite aqui também.',
+      '6) Para testar: ligue a integração aqui e, no portal do iFood, use Testes > Gerar pedido de teste. Marque "Modo homologação" só durante os testes de homologação.',
+      '7) A homologação é pedida no portal, em Suporte > Tickets > Homologação. O iFood manda um formulário e marca uma reunião. Quando aprovar, marque o passo no checklist e troque pelas chaves do aplicativo de produção.',
+      '8) Na aba Itens do iFood (quando ligado), ligue cada item do iFood ao seu produto.',
       '⚠️ Esta parte ainda não foi testada com o iFood de verdade: os detalhes podem pedir ajuste na primeira ligação.'],
-    opcoes:[['confirmacaoAutomatica','Confirmar pedidos do iFood automaticamente (o iFood cancela sozinho se demorar mais de ~8 min)'],['abrirFecharComCaixa','Abrir e fechar a loja no iFood junto com o caixa'],['pausarSemEstoque','Pausar no iFood o item que acabar no estoque'],['enviarPrecos','Permitir enviar nossos preços ao iFood (com trava de variação e histórico)'],['conferirRepasse','EXTRA · Conferir os repasses do iFood com as vendas do sistema e mostrar a diferença (só mostra, não muda nada)'],['avaliacaoAlerta','EXTRA · Avisar também quando chegar avaliação nota 3 no iFood (sem isso, só avisa nota 1 e 2)'],['avaliacaoSugestao','EXTRA · Mostrar o botão "Sugerir resposta" nas avaliações do iFood (escreve um rascunho; você revisa antes de enviar)'],['acompanharEntrega','EXTRA · Mostrar no pedido onde está o entregador do iFood e a previsão de chegada (quando a entrega é feita pelo iFood)']] },
+    opcoes:[['confirmacaoAutomatica','Confirmar pedidos do iFood automaticamente (o iFood cancela sozinho se demorar mais de ~8 min)'],['abrirFecharComCaixa','Abrir e fechar a loja no iFood junto com o caixa'],['pausarSemEstoque','Pausar no iFood o item que acabar no estoque'],['enviarPrecos','Permitir enviar nossos preços ao iFood (com trava de variação e histórico)'],['conferirRepasse','EXTRA · Conferir os repasses do iFood com as vendas do sistema e mostrar a diferença (só mostra, não muda nada)'],['avaliacaoAlerta','EXTRA · Avisar também quando chegar avaliação nota 3 no iFood (sem isso, só avisa nota 1 e 2)'],['avaliacaoSugestao','EXTRA · Mostrar o botão "Sugerir resposta" nas avaliações do iFood (escreve um rascunho; você revisa antes de enviar)'],['acompanharEntrega','EXTRA · Mostrar no pedido a etapa da entrega feita pelo iFood (entregador alocado, a caminho da loja, pegou o pedido, chegou ao cliente)'],['modoHomologacao','Modo homologação: marque SÓ durante os testes de homologação do iFood (envia o cabeçalho que o iFood pede nos testes). Desmarque depois de aprovado.']] },
   nfce: { nome:'Nota fiscal (NFC-e)', icone:'🧾',
     segredos:[['nfce_token_homologacao','Token da Focus NFe — TESTE (homologação)'],['nfce_token_producao','Token da Focus NFe — PRODUÇÃO'],['nfce_csc','CSC — código de segurança secreto (Sefaz)']],
     guia:[
@@ -510,11 +512,33 @@ function integBotoes_(it){
     }
     return `<button class="primary" ${it.podeLigarTeste?'':'disabled'} onclick="ligarInteg_('mercadopago','homologacao')">Ligar em TESTE</button><button class="ghost" ${it.podeLigarProducao?'':'disabled'} onclick="ligarInteg_('mercadopago','producao')">Ligar em PRODUÇÃO</button>`;
   }
-  return it.ligado
+  const testar_ = it.provedor==='ifood' ? `<button class="ghost" onclick="ifoodTestarConexao_(this)">Testar conexão</button>` : '';
+  return testar_ + (it.ligado
     ? `<button class="ghost" onclick="desligarInteg_('${it.provedor}')">Desligar</button>`
     : (it.provedor==='nfce'
         ? `<button class="primary" ${it.podeLigar?'':'disabled'} onclick="ligarInteg_('nfce','homologacao')">Ligar em TESTE</button><button class="ghost" ${it.podeLigar?'':'disabled'} onclick="ligarInteg_('nfce','producao')">Ligar em PRODUÇÃO</button>`
-        : `<button class="primary" ${it.podeLigar?'':'disabled'} onclick="ligarInteg_('${it.provedor}','producao')">Ligar</button>`);
+        : `<button class="primary" ${it.podeLigar?'':'disabled'} onclick="ligarInteg_('${it.provedor}','producao')">Ligar</button>`));
+}
+/* iFood: "Testar conexão" (funciona com a integração desligada): pede um acesso ao iFood com as chaves digitadas e confere a loja. */
+async function ifoodTestarConexao_(btn){
+  const msg = integMsgId_(), rot = btn ? btn.textContent : '';
+  try{
+    if(btn){ btn.disabled = true; btn.textContent = 'Testando…'; }
+    showMsg(msg, 'Testando a conexão com o iFood…', 'ok');
+    const r = await apiCall('ifoodTestar', {});
+    if(!r || !r.ok){ showMsg(msg, (r && r.message) || 'Não foi possível iniciar o teste.', 'warn'); return; }
+    for(let i=0;i<12;i++){
+      await new Promise(ok=>setTimeout(ok, 2500));
+      const x = await apiCall('ifoodTestar', { ler:true, desde:r.desde });
+      if(x && x.ok && x.pronto){
+        showMsg(msg, x.certo ? '✅ Conexão com o iFood funcionou.' : '⚠️ ' + (x.erro || 'O teste não passou.'), x.certo ? 'ok' : 'warn');
+        try{ const st = await apiCall('integracoesStatus', {}); if(st && st.ok){ integStatus_ = st.integracoes || integStatus_; renderIntegracoes_(); } }catch(e){}
+        return;
+      }
+    }
+    showMsg(msg, 'O iFood demorou para responder. Espere um pouco e toque em "Testar conexão" de novo.', 'warn');
+  }catch(e){ showMsg(msg, 'Sem conexão. Tente de novo.', 'warn'); }
+  finally{ const b = document.querySelector('[onclick^="ifoodTestarConexao_"]'); if(b){ b.disabled = false; b.textContent = rot || 'Testar conexão'; } }
 }
 /* ---- Cartão do Mercado Pago no Admin: mesmo desenho da Prévia_Mercado_Pago.html (título com estado, lista ✓/!, campos, chave liga/desliga, guia) ---- */
 let mpModoVisto_ = '';   // modo que o Admin está olhando: 'homologacao' (teste) ou 'producao'
