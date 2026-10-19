@@ -356,7 +356,7 @@ body{background:radial-gradient(ellipse at top, var(--on-gold) 0%, var(--bg) 55%
 header.brand{text-align:center;position:relative;border-bottom:0;padding:6px 0 14px;margin-bottom:14px;}
 header.brand::after{content:'';display:block;height:4px;margin-top:12px;border-radius:2px;background:linear-gradient(90deg,transparent,var(--gold) 14%,var(--red) 50%,var(--gold) 86%,transparent);}
 header.brand .status{font-size:var(--fs-2xs);color:var(--muted);margin-top:6px;}
-header.brand .userbar #userbarTexto{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--cream);font-weight:700;}
+header.brand .userbar #userbarTexto{display:none;flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--cream);font-weight:700;}
 header.brand .userbar button{background:var(--panel-2);border-color:var(--line-forte);color:var(--cream);font-weight:700;}
 /* ---- Abas principais (viram "placas" com degrau) ---- */
 nav.tabs button:active{transform:translateY(2px);}

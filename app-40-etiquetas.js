@@ -3,7 +3,7 @@
    Botão discreto no topo (Admin, Operador de caixa e Cozinha). Escolhe o item, o tipo (aberto, manipulado, descongelado ou fechado),
    a validade é calculada pelos dias que o dono cadastrou (e pode ser trocada na hora) e imprime em 58 mm ou 80 mm (térmica).
    O dono cadastra os dias em "Itens e validades"; o sistema mostra uma SUGESTÃO geral como dica, mas nunca preenche sozinho.
-   Cada impressão fica registrada (quem, quando, o quê) por 90 dias.
+   Cada impressão fica registrada (quem, quando, o quê) por 45 dias.
    ============================================================ */
 const ET_TIPOS_ = [
   { id:'Aberto', chave:'aberto', rot:'Aberto', data:'Aberto em' },

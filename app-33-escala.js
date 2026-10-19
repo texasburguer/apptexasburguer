@@ -187,6 +187,8 @@ function escImprimir(){
 
 /* ---------- Início: "Minha escala" e janela "Escala da equipe" (todos os perfis) ---------- */
 async function carregarMinhaEscala_(){
+  /* o cartão "Minha escala" saiu do Início (18/10/2026): a escala e o ponto ficam só no botão do relógio, no topo */
+  return;
   const card = document.getElementById('minhaEscalaCard'); if(!card || typeof currentUser === 'undefined' || !currentUser || !apiConfigurada()) return;
   try{
     const r = await apiCall('minhaEscala', {});
