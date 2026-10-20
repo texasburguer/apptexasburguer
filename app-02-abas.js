@@ -307,7 +307,11 @@ function onMudarTipoCupom_(){
   const t = document.getElementById('cupTipo').value;
   document.getElementById('cupFaixasBox').style.display = t==='progressivo' ? '' : 'none';
   document.getElementById('cupValorBox').style.display = (t==='progressivo' || t==='frete') ? 'none' : '';
+  document.getElementById('cupRegraBox').style.display = t==='combo' ? '' : 'none';
+  document.getElementById('cupValorRotulo').textContent = t==='combo' ? 'Preço final do combo (R$)' : 'Valor';
 }
+function regraResumo_(c){ const g=(c.regra&&c.regra.grupos)||[]; return g.map(x=>x.qtd+' x '+(x.produtos||[]).map(y=>y.nome).join(' ou ')).join(' + '); }
+function regraTexto_(c){ const g=(c&&c.regra&&c.regra.grupos)||[]; return g.map(x=>x.qtd+' x '+(x.produtos||[]).map(y=>y.nome).join(', ')).join('\n'); }
 function faixasDoTexto_(txt){
   return String(txt||'').split(/\n/).map(l=>l.trim()).filter(Boolean).map(l=>{ const n = l.replace(/R\$/gi,'').replace(/,/g,'.').match(/\d+(?:\.\d+)?/g)||[]; return { minimo:Number(n[0])||0, desconto:Number(n[1])||0 }; });
 }
@@ -320,7 +324,7 @@ const CUP_AUTO_ = {
   em_risco:{ t:'💌 Sentimos sua falta (cliente em risco)', d:'Todo dia de manhã: quem tem conta, aceitou promoções e está há mais de 45 dias sem pedir recebe este cupom (no máximo 1 a cada 60 dias).' },
   vip:{ t:'⭐ Cliente VIP', d:'Todo dia de manhã: cliente VIP (10 ou mais pedidos, ou R$ 800 ou mais gastos) com conta e promoções aceitas recebe este cupom (no máximo 1 por trimestre).' }
 };
-function cupBeneficio_(c){ return c.tipo==='percentual'?c.valor+'%':c.tipo==='fixo'?'R$ '+Number(c.valor).toFixed(2).replace('.',','):c.tipo==='progressivo'?faixasResumo_(c):'Frete grátis'; }
+function cupBeneficio_(c){ return c.tipo==='percentual'?c.valor+'%':c.tipo==='fixo'?'R$ '+Number(c.valor).toFixed(2).replace('.',','):c.tipo==='progressivo'?faixasResumo_(c):c.tipo==='combo'?'Combo R$ '+Number(c.valor).toFixed(2).replace('.',',')+' ('+regraResumo_(c)+')':'Frete grátis'; }
 function cupClienteNome_(id){ const c=(clientes||[]).find(x=>x.id===id); return c ? (c.nome||'Sem nome') : 'cliente'; }
 function renderCuponsUI(){
   const box=document.getElementById('cupLista'); if(!box) return;
@@ -337,6 +341,7 @@ function abrirCupomUI(id){
   const c=id?(cupons||[]).find(x=>x.id===id):null, v=(i,val)=>{ document.getElementById(i).value=val==null?'':val; };
   const dl=document.getElementById('cupClienteLista'); if(dl) dl.innerHTML=(clientes||[]).slice(0,3000).map(x=>`<option value="${escH(cupClienteLabel_(x))}"></option>`).join('');
   v('cupId',c?c.id:''); v('cupAuto',c?c.automatico:''); v('cupCodigo',c?c.codigo:''); v('cupNome',c?c.nome:''); v('cupTipo',c?c.tipo:'percentual'); v('cupValor',c?c.valor:'');
+  v('cupRegra',c&&c.tipo==='combo'?regraTexto_(c):'');
   v('cupFaixas',c&&c.tipo==='progressivo'?(c.faixas||[]).map(f=>f.minimo+' '+f.desconto).join('\n'):''); v('cupInicio',c?c.dataInicio:''); v('cupFim',c?c.dataFim:'');
   v('cupLimite',c?c.limiteTotal:'0'); v('cupLimiteCliente',c?c.limitePorCliente:'1'); v('cupMinimo',c?c.valorMinimo:'0'); v('cupValidadeDias',c?c.validadeDias:'30'); v('cupMensagem',c?c.mensagem:'');
   document.getElementById('cupFrete').checked=!!(c&&c.freteGratis); document.getElementById('cupAtiva').checked=c?c.ativa:true;
@@ -353,7 +358,7 @@ async function salvarCupomUI(){
   const id=cupId.value; let clienteId='';
   const txt=cupCliente.value.trim();
   if(txt){ const f=(clientes||[]).find(x=>cupClienteLabel_(x)===txt); if(!f) return showMsg('cupMsg','Escolha o cliente na lista que aparece ao digitar.','warn'); clienteId=f.id; }
-  const p={id,codigo:cupCodigo.value,nome:cupNome.value,tipo:cupTipo.value,valor:cupValor.value,faixas:cupTipo.value==='progressivo'?faixasDoTexto_(cupFaixas.value):[],freteGratis:cupFrete.checked,dataInicio:cupInicio.value,dataFim:cupFim.value,horaInicio:'',horaFim:'',limiteTotal:cupLimite.value,limitePorCliente:cupLimiteCliente.value,valorMinimo:cupMinimo.value,ativa:cupAtiva.checked,acumula:false,
+  const p={id,codigo:cupCodigo.value,nome:cupNome.value,tipo:cupTipo.value,valor:cupValor.value,faixas:cupTipo.value==='progressivo'?faixasDoTexto_(cupFaixas.value):[],regraTexto:cupTipo.value==='combo'?cupRegra.value:'',freteGratis:cupFrete.checked,dataInicio:cupInicio.value,dataFim:cupFim.value,horaInicio:'',horaFim:'',limiteTotal:cupLimite.value,limitePorCliente:cupLimiteCliente.value,valorMinimo:cupMinimo.value,ativa:cupAtiva.checked,acumula:false,
     automatico:cupAuto.value,validadeDias:cupValidadeDias.value,mensagem:cupMensagem.value,somenteConta:cupSomenteConta.checked,visivelConta:cupVisivelConta.checked,clienteId};
   try{const r=await apiCall(id?'editarCupom':'salvarCupom',p);showMsg('cupMsg',r.message,r.ok?'ok':'warn');if(r.ok){cupons=r.cupons||[];renderCuponsUI();fecharFormModal('cupomNovoModal');showMsg('cupMsgLista',r.message,'ok');}}catch(e){showMsg('cupMsg','Erro ao salvar cupom.','warn');}
 }

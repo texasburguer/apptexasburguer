@@ -532,6 +532,7 @@ Operador:{ nome:'Caixa', secoes:[
     'Em Entregas, o entregador já vem preenchido quando só existe um cadastrado. Com mais de um, escolha no campo "Entregador".',
     'Para imprimir (o modelo da comanda é o mesmo em todas): nas Entregas toque em "🖨️ Imprimir para o entregador"; nas Retiradas e nas Mesas, em "🖨️ Imprimir pedido da retirada" (ou "da mesa"). O botão aparece depois que o pedido é aceito. Papel (58mm, 80mm ou A4) em Pedidos → Entregas.',
     'Venda "A Receber": quando o cliente pagar, toque em "marcar como recebido" e escolha em que forma ele pagou (Dinheiro, Pix, cartão…; dá para dividir em duas). O padrão é a forma do pedido.',
+    'Cupom "Combo por preço fixo": em Promoções → novo cupom, tipo "Combo por preço fixo". Em "Valor" ponha o preço final do combo (ex.: 65) e, em "Produtos do combo", uma linha por grupo no modelo "3 x Smash Catupiry, Smash Cheddar" e "1 x Guaraná 1L" (nome igual ao do cadastro). O cupom só vale com esses produtos no carrinho e o desconto é a diferença para o preço normal deles; a entrega é somada depois. Vale um combo por pedido.',
     '"✖ Cancelar pedido" fica ao lado de "⏸ Suspender" nos pedidos já aceitos (antes do aceite, use "Rejeitar"): escolha o motivo e informe se a mercadoria foi perdida (em pedido do iFood, o cancelamento vai para o iFood sozinho). '+
     '"⏸ Suspender" pausa o pedido (toque num motivo pronto, como "Cliente não atende", ou escreva) e "▶️ Retomar" volta. Recusar pedido também tem motivos prontos.' ],
     comuns:['Só dá para editar os itens com o pedido "Em preparo".',

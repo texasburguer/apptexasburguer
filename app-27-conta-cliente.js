@@ -399,7 +399,7 @@ window.contaRepetir_ = function(i){
 
 /* Cupons */
 function textoBeneficio(c){
-  var t = c.tipo === 'percentual' ? (Number(c.valor) + '% de desconto') : c.tipo === 'fixo' ? (dinheiro(c.valor) + ' de desconto') : c.tipo === 'frete' ? 'Frete grátis' : 'Desconto progressivo';
+  var t = c.tipo === 'percentual' ? (Number(c.valor) + '% de desconto') : c.tipo === 'fixo' ? (dinheiro(c.valor) + ' de desconto') : c.tipo === 'frete' ? 'Frete grátis' : c.tipo === 'combo' ? ('Combo por ' + dinheiro(c.valor)) : 'Desconto progressivo';
   if(Number(c.minimo) > 0) t += ' · pedido a partir de ' + dinheiro(c.minimo);
   return t;
 }

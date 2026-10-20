@@ -2262,7 +2262,8 @@
       <input type="hidden" id="cupId"><input type="hidden" id="cupAuto">
       <div id="cupAutoAviso" class="obs-line" style="display:none;margin-bottom:6px;"></div>
       <div class="row2"><div><label>Código</label><input id="cupCodigo" maxlength="40" placeholder="PROMO10"></div><div><label>Nome</label><input id="cupNome" placeholder="Promoção de 10%"></div></div>
-      <div class="row2"><div><label>Tipo</label><select id="cupTipo" onchange="onMudarTipoCupom_()"><option value="percentual">Percentual (%)</option><option value="fixo">Valor fixo (R$)</option><option value="progressivo">Progressivo (por faixa)</option><option value="frete">Frete grátis</option></select></div><div id="cupValorBox"><label>Valor</label><input type="number" id="cupValor" min="0" step="0.01"></div></div>
+      <div class="row2"><div><label>Tipo</label><select id="cupTipo" onchange="onMudarTipoCupom_()"><option value="percentual">Percentual (%)</option><option value="fixo">Valor fixo (R$)</option><option value="progressivo">Progressivo (por faixa)</option><option value="frete">Frete grátis</option><option value="combo">Combo por preço fixo (produtos escolhidos)</option></select></div><div id="cupValorBox"><label id="cupValorRotulo">Valor</label><input type="number" id="cupValor" min="0" step="0.01"></div></div>
+      <div id="cupRegraBox" style="display:none;"><label>Produtos do combo (uma linha por grupo)</label><textarea id="cupRegra" rows="4" placeholder="3 x Smash Catupiry, Smash Cheddar, Smash Tasty&#10;1 x Guaraná 1L"></textarea><div class="obs-line">Em "Valor" coloque o PREÇO FINAL do combo (ex.: 65). Cada linha é "quantidade x produto, produto…" com o nome igual ao do cadastro. O cupom só vale se o carrinho tiver esses produtos; o desconto é a diferença para o preço normal deles. A taxa de entrega não entra na conta.</div></div>
       <div id="cupFaixasBox" style="display:none;"><label>Faixas (uma por linha: pedido mínimo e desconto, em R$)</label><textarea id="cupFaixas" rows="4" placeholder="50 5&#10;100 10"></textarea><div class="obs-line">Ex.: "50 5" = R$ 5 de desconto em pedidos a partir de R$ 50. Vale a maior faixa que o pedido alcança (itens, sem a taxa de entrega).</div></div>
       <div class="row2"><div><label>Início</label><input type="date" id="cupInicio"></div><div><label>Fim</label><input type="date" id="cupFim"></div></div>
       <div class="row2"><div><label>Limite total (0 = ilimitado)</label><input type="number" id="cupLimite" min="0" step="1" value="0"></div><div><label>Limite por cliente</label><input type="number" id="cupLimiteCliente" min="0" step="1" value="1"></div></div>
@@ -2533,21 +2534,21 @@
   </div>
 </div>
 
-<script src="app-01-base-e-api.js?v=57a09374" charset="utf-8" data-origem="__big0__"></script>
-<script src="app-02-abas.js?v=d1dbd674" charset="utf-8" data-origem="__big1__"></script>
+<script src="app-01-base-e-api.js?v=f28ac549" charset="utf-8" data-origem="__big0__"></script>
+<script src="app-02-abas.js?v=6ceee0e2" charset="utf-8" data-origem="__big1__"></script>
 <script src="app-03-cadastros.js?v=4311d2ff" charset="utf-8" data-origem="__big2__"></script>
 <script src="app-04-pedidos-entrega.js?v=58e9add7" charset="utf-8" data-origem="__big3__"></script>
 <script src="app-05-avisos-push.js?v=b139d0ad" charset="utf-8" data-origem="__big4__"></script>
 <script src="app-06-caixa.js?v=edcbde35" charset="utf-8" data-origem="__big5__"></script>
 <script src="app-07-impressao.js?v=5c9f0484" charset="utf-8" data-origem="__big6__"></script>
 <script src="app-08-vendas-despesas.js?v=86517a81" charset="utf-8" data-origem="__big7__"></script>
-<script src="app-09-ajuda.js?v=cfe59714" charset="utf-8" data-origem="__big8__"></script>
+<script src="app-09-ajuda.js?v=9b22a19b" charset="utf-8" data-origem="__big8__"></script>
 <script src="app-10-backup-financeiro.js?v=3b7d8cd1" charset="utf-8" data-origem="__big9__"></script>
 <script src="app-11-admin-integracoes.js?v=a14be6f3" charset="utf-8" data-origem="__big10__"></script>
 <script src="app-12-gestao-ia.js?v=c93c8f19" charset="utf-8" data-origem="__big11__"></script>
 <script src="app-13-conexao-sync.js?v=4169baef" charset="utf-8" data-origem="__big12__"></script>
 <script src="app-14-relatorios.js?v=1e3c69a3" charset="utf-8" data-origem="__big13__"></script>
-<script src="app-15-cardapio-cliente.js?v=f9ed1bf0" charset="utf-8" data-origem="__big14__"></script>
+<script src="app-15-cardapio-cliente.js?v=06ae8898" charset="utf-8" data-origem="__big14__"></script>
 <script src="app-16-sessao-final.js?v=ef1da8ab" charset="utf-8" data-origem="__big15__"></script>
 <!-- ═══════════ SINCRONIZAÇÃO, BACKUP, ESPAÇO E INTEGRIDADE ═══════════
      app-17 cria cartões (ids sb410*) nas telas Backup e espaço e Sincronização e contingência. -->
@@ -2597,7 +2598,7 @@
 <script src="app-26-visual.js?v=3c963d27" charset="utf-8" data-origem=""></script>
 <link rel="stylesheet" href="estilo-conta-pagamento.css?v=c8bbf776">
 <script src="app-28-dialogos.js?v=58e2325f" charset="utf-8" data-origem=""></script>
-<script src="app-27-conta-cliente.js?v=6018b2b7" charset="utf-8" data-origem=""></script>
+<script src="app-27-conta-cliente.js?v=d9bcbf53" charset="utf-8" data-origem=""></script>
 <script src="app-29-usabilidade.js?v=8c6dd0c8" charset="utf-8" data-origem=""></script>
 <script src="app-30-teclado-pc.js?v=6ada025e" charset="utf-8" data-origem=""></script>
 <script src="app-31-alertas.js?v=cc24a649" charset="utf-8" data-origem=""></script>
