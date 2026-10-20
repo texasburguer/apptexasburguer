@@ -19,6 +19,8 @@ window.APP_VERSAO = APP_VERSAO;
 const APP_NOVIDADES = {
   Admin: [
     { v:'1.12', em:'19/10/2026', itens:[
+      'Login: nova caixinha "Lembrar login e senha neste aparelho" — marcando, o celular oferece salvar a senha no próprio cofre de senhas (o sistema não guarda). Só vale no aparelho em que você marcar.',
+      'iFood → produto novo: ao cadastrar um produto que tem preço do iFood, ele é enviado ao iFood já PAUSADO (com a categoria, se faltar) e você recebe um aviso para revisar a foto e ativar em Cardápio no iFood. Os pedidos desse item já chegam ligados ao produto.',
       'Queda do sistema com iFood ligado: a faixa laranja agora avisa que os pedidos do iFood NÃO entram enquanto o sistema estiver fora (fique de olho no tablet/portal do iFood). Na volta o sistema varre sozinho os pedidos do período, avisa Admin e Operador e mostra quantos chegaram e quantos o iFood já cancelou.',
       'iFood → Cardápio no iFood: crie e edite categorias, itens (nome, descrição, preço, foto, pausa), grupos de complementos e complementos direto no iFood, e mude preço e status em massa. Pedido do iFood para a homologação do Catalog.',
       'Cancelar venda ou despesa agora pede a sua senha sempre, também para o Admin.',
@@ -1117,6 +1119,17 @@ function emergenciaVigiar_(){
     emergenciaEncerrar_();
   }, 30000);
 }
+/* "Lembrar neste aparelho": com a caixinha marcada o navegador/celular passa a oferecer salvar o login e a senha no gerenciador de senhas
+   do próprio aparelho (cofre com digital/PIN). O sistema NÃO guarda a senha. Desmarcada (padrão) = como sempre foi. */
+function loginLembrarAlternar_(){
+  const cb = document.getElementById('loginLembrar'), u = document.getElementById('loginUsuario'), s = document.getElementById('loginSenha'), f = document.getElementById('formLogin');
+  if(!cb || !u || !s) return;
+  const on = !!cb.checked;
+  u.setAttribute('autocomplete', on ? 'username' : 'off'); s.setAttribute('autocomplete', on ? 'current-password' : 'off');
+  if(f) f.setAttribute('autocomplete', on ? 'on' : 'off');
+  try{ localStorage.setItem('txbLembrarLogin', on ? '1' : '0'); }catch(e){}
+}
+(function(){ try{ const cb = document.getElementById('loginLembrar'); if(cb && localStorage.getItem('txbLembrarLogin') === '1'){ cb.checked = true; loginLembrarAlternar_(); } }catch(e){} })();
 async function tentarLogin(){
   try{ desbloquearAudio_(); if('Notification' in window && Notification.permission==='default') Notification.requestPermission(); }catch(e){}
   const login = document.getElementById('loginUsuario').value.trim();

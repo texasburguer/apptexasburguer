@@ -332,9 +332,12 @@
     <p id="loginSubtitulo">Faça login para acessar o sistema</p>
 
     <div id="telaLogin">
-      <input type="text" id="loginUsuario" placeholder="Login" autocomplete="off">
-      <input type="password" id="loginSenha" placeholder="Senha" autocomplete="off">
-      <button class="primary" onclick="tentarLogin()">Entrar</button>
+      <form id="formLogin" onsubmit="tentarLogin(); return false;" autocomplete="off">
+      <input type="text" id="loginUsuario" name="username" placeholder="Login" autocomplete="off">
+      <input type="password" id="loginSenha" name="password" placeholder="Senha" autocomplete="off">
+      <label class="lembrar-aparelho" style="display:flex;align-items:center;gap:8px;margin:6px 2px 10px;font-size:13px;cursor:pointer;"><input type="checkbox" id="loginLembrar" onchange="loginLembrarAlternar_()" style="width:auto;margin:0;padding:0;"> Lembrar login e senha neste aparelho</label>
+      <button class="primary" type="submit">Entrar</button>
+      </form>
       <div class="erro" id="lockErro">Login ou senha incorretos.</div>
       <button class="link-btn" onclick="fecharAreaFuncionarios()">← Voltar ao cardápio</button>
     </div>
@@ -2534,7 +2537,7 @@
   </div>
 </div>
 
-<script src="app-01-base-e-api.js?v=eb01eab9" charset="utf-8" data-origem="__big0__"></script>
+<script src="app-01-base-e-api.js?v=cb26bf21" charset="utf-8" data-origem="__big0__"></script>
 <script src="app-02-abas.js?v=6ceee0e2" charset="utf-8" data-origem="__big1__"></script>
 <script src="app-03-cadastros.js?v=4311d2ff" charset="utf-8" data-origem="__big2__"></script>
 <script src="app-04-pedidos-entrega.js?v=58e9add7" charset="utf-8" data-origem="__big3__"></script>
@@ -2542,7 +2545,7 @@
 <script src="app-06-caixa.js?v=edcbde35" charset="utf-8" data-origem="__big5__"></script>
 <script src="app-07-impressao.js?v=5c9f0484" charset="utf-8" data-origem="__big6__"></script>
 <script src="app-08-vendas-despesas.js?v=5b972747" charset="utf-8" data-origem="__big7__"></script>
-<script src="app-09-ajuda.js?v=375b3070" charset="utf-8" data-origem="__big8__"></script>
+<script src="app-09-ajuda.js?v=e39d028b" charset="utf-8" data-origem="__big8__"></script>
 <script src="app-10-backup-financeiro.js?v=3b7d8cd1" charset="utf-8" data-origem="__big9__"></script>
 <script src="app-11-admin-integracoes.js?v=b2467276" charset="utf-8" data-origem="__big10__"></script>
 <script src="app-12-gestao-ia.js?v=c93c8f19" charset="utf-8" data-origem="__big11__"></script>
