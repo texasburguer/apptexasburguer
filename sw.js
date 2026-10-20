@@ -6,7 +6,7 @@
    - BACKEND: NADA de Apps Script (script.google.com) nem de Supabase (*.supabase.co) é guardado aqui.
      Dados, pedidos, login e RPCs nunca passam pelo cache do service worker — sempre vão direto para a rede.
    - O único cache de dados é o de fotos (FOTOS) e o da casca/ícones (SHELL/ASSETS). Não adicionar outros. */
-const SHELL = 'texas-shell-v109';
+const SHELL = 'texas-shell-v110';
 const ASSETS = 'texas-assets-v7';   // trocou ícone/logo/manifest/leaflet? suba para v5
 const FOTOS = 'texas-fotos-v1';
 /* Código do app dividido em arquivos (app-*.js e estilo-*.css). Cada arquivo tem ?v=<impressão digital> na página; o cache guarda
@@ -14,55 +14,55 @@ const FOTOS = 'texas-fotos-v1';
    A lista abaixo é gerada pelo script de selagem (selar.py) a cada entrega. */
 const CODIGO = 'texas-codigo-v3';   // trocou o nome = todo aparelho descarta o cache de código antigo (inclusive cópia vazia)
 const LISTA = [/*LISTA-INICIO*/
-  'estilo-base.css?v=8e7ad1a9',
-  'app-01-base-e-api.js?v=cb26bf21',
-  'app-02-abas.js?v=6ceee0e2',
-  'app-03-cadastros.js?v=4311d2ff',
-  'app-04-pedidos-entrega.js?v=58e9add7',
-  'app-05-avisos-push.js?v=b139d0ad',
-  'app-06-caixa.js?v=edcbde35',
-  'app-07-impressao.js?v=5c9f0484',
-  'app-08-vendas-despesas.js?v=5b972747',
-  'app-09-ajuda.js?v=e39d028b',
-  'app-10-backup-financeiro.js?v=3b7d8cd1',
-  'app-11-admin-integracoes.js?v=b2467276',
-  'app-12-gestao-ia.js?v=c93c8f19',
-  'app-13-conexao-sync.js?v=4169baef',
-  'app-14-relatorios.js?v=1e3c69a3',
-  'app-15-cardapio-cliente.js?v=06ae8898',
-  'app-16-sessao-final.js?v=ef1da8ab',
-  'app-17-sessao-supabase.js?v=3fdfeb13',
-  'app-18-queda-supabase.js?v=c3cdfe49',
-  'estilo-ia-cardapio.css?v=22645202',
-  'app-19-ia.js?v=37d36dbd',
-  'app-20-balao-interno.js?v=3dbb18df',
-  'app-21-localizacao.js?v=bb28de16',
-  'estilo-equipe.css?v=99519ca0',
-  'app-22-navegacao-inferior.js?v=9c0835e7',
-  'app-23-janelas-popup.js?v=6f031891',
-  'app-24-acessibilidade.js?v=1567f2c1',
-  'app-25-cadastro-facil.js?v=1b11178b',
-  'app-26-visual.js?v=3c963d27',
-  'estilo-conta-pagamento.css?v=c8bbf776',
-  'app-28-dialogos.js?v=58e2325f',
-  'app-27-conta-cliente.js?v=d9bcbf53',
-  'app-29-usabilidade.js?v=8c6dd0c8',
-  'app-30-teclado-pc.js?v=6ada025e',
-  'app-31-alertas.js?v=cc24a649',
-  'app-33-escala.js?v=345a54d7',
-  'app-34-eventos.js?v=e0698031',
-  'app-35-equipe-extras.js?v=650e4df1',
-  'app-36-gestao.js?v=bb125f4f',
-  'app-37-ponto-rapido.js?v=2dcb25e1',
-  'app-38-ponto-rosto.js?v=4f9edca3',
-  'app-39-fotos-registros.js?v=b24b7995',
-  'app-40-etiquetas.js?v=5ac4487f',
-  'app-41-ifood-extras.js?v=ac925d68',
-  'app-42-ifood-catalogo.js?v=7b63e35f',
-  'app-32-equipe.js?v=94d12e93',
+  'css/estilo-base.css?v=bb860417',
+  'js/app-01-base-e-api.js?v=cb26bf21',
+  'js/app-02-abas.js?v=6ceee0e2',
+  'js/app-03-cadastros.js?v=4311d2ff',
+  'js/app-04-pedidos-entrega.js?v=58e9add7',
+  'js/app-05-avisos-push.js?v=b139d0ad',
+  'js/app-06-caixa.js?v=edcbde35',
+  'js/app-07-impressao.js?v=5c9f0484',
+  'js/app-08-vendas-despesas.js?v=5b972747',
+  'js/app-09-ajuda.js?v=e39d028b',
+  'js/app-10-backup-financeiro.js?v=3b7d8cd1',
+  'js/app-11-admin-integracoes.js?v=b2467276',
+  'js/app-12-gestao-ia.js?v=c93c8f19',
+  'js/app-13-conexao-sync.js?v=4169baef',
+  'js/app-14-relatorios.js?v=1e3c69a3',
+  'js/app-15-cardapio-cliente.js?v=06ae8898',
+  'js/app-16-sessao-final.js?v=ef1da8ab',
+  'js/app-17-sessao-supabase.js?v=3fdfeb13',
+  'js/app-18-queda-supabase.js?v=c3cdfe49',
+  'css/estilo-ia-cardapio.css?v=22645202',
+  'js/app-19-ia.js?v=37d36dbd',
+  'js/app-20-balao-interno.js?v=3dbb18df',
+  'js/app-21-localizacao.js?v=bb28de16',
+  'css/estilo-equipe.css?v=99519ca0',
+  'js/app-22-navegacao-inferior.js?v=9c0835e7',
+  'js/app-23-janelas-popup.js?v=6f031891',
+  'js/app-24-acessibilidade.js?v=1567f2c1',
+  'js/app-25-cadastro-facil.js?v=1b11178b',
+  'js/app-26-visual.js?v=3c963d27',
+  'css/estilo-conta-pagamento.css?v=c8bbf776',
+  'js/app-28-dialogos.js?v=58e2325f',
+  'js/app-27-conta-cliente.js?v=d9bcbf53',
+  'js/app-29-usabilidade.js?v=8c6dd0c8',
+  'js/app-30-teclado-pc.js?v=6ada025e',
+  'js/app-31-alertas.js?v=cc24a649',
+  'js/app-33-escala.js?v=345a54d7',
+  'js/app-34-eventos.js?v=e0698031',
+  'js/app-35-equipe-extras.js?v=650e4df1',
+  'js/app-36-gestao.js?v=bb125f4f',
+  'js/app-37-ponto-rapido.js?v=2dcb25e1',
+  'js/app-38-ponto-rosto.js?v=11d93b24',
+  'js/app-39-fotos-registros.js?v=b24b7995',
+  'js/app-40-etiquetas.js?v=5ac4487f',
+  'js/app-41-ifood-extras.js?v=ac925d68',
+  'js/app-42-ifood-catalogo.js?v=7b63e35f',
+  'js/app-32-equipe.js?v=94d12e93',
 /*LISTA-FIM*/];
 const FOTOS_MAX = 150;
-const PRE = ['manifest.webmanifest', 'icon-192.png', 'badge-96.png', 'apple-touch-icon.png', 'logo-texas-burger.webp', 'logo-impressao-cor.png'];
+const PRE = ['manifest.webmanifest', 'img/icon-192.png', 'img/badge-96.png', 'img/apple-touch-icon.png', 'img/logo-texas-burger.webp', 'img/logo-impressao-cor.png'];
 const HOSTS_FOTO = ['drive.google.com', 'lh3.googleusercontent.com'];
 
 self.addEventListener('install', e => e.waitUntil((async () => {
@@ -79,7 +79,8 @@ self.addEventListener('activate', e => e.waitUntil((async () => {
   try {   /* limpa do cache de código o que não está na lista atual */
     const cc = await caches.open(CODIGO);
     const validos = new Set(LISTA.map(u => new URL(u, self.registration.scope).href));
-    for (const rq of await cc.keys()) if (!validos.has(rq.url)) await cc.delete(rq);
+    /* Nesta entrega (arquivos em js/ e css/) as cópias do endereço ANTIGO (na raiz) ficam guardadas, para o app antigo ainda aberto não quebrar. Na próxima entrega, apagar esta exceção. */
+    for (const rq of await cc.keys()) if (!validos.has(rq.url) && /\/(js|css)\//.test(new URL(rq.url).pathname)) await cc.delete(rq);
   } catch (err) {}
   await self.clients.claim();
 })()));
@@ -187,7 +188,7 @@ self.addEventListener('push', e => {
   const titulo = String(d.titulo || 'Texas Burger').slice(0, 80);
   e.waitUntil(self.registration.showNotification(titulo, {
     body: String(d.texto || '').slice(0, 140), tag: String(d.tag || 'texas'), renotify: true,
-    icon: 'icon-192.png', badge: 'badge-96.png', vibrate: [250, 120, 250, 120, 400], requireInteraction: d.tipo === 'pedido' || d.tipo === 'alerta',
+    icon: 'img/icon-192.png', badge: 'img/badge-96.png', vibrate: [250, 120, 250, 120, 400], requireInteraction: d.tipo === 'pedido' || d.tipo === 'alerta',
     data: { url: String(d.url || './') }
   }));
 });

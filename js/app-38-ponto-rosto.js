@@ -15,9 +15,9 @@ function prCarregarModelos_(){
   prFace_.carregando = (async () => {
     try{
       if(!window.faceapi){
-        await new Promise((ok, falha) => { const s = document.createElement('script'); s.src = 'face-api.min.js?v=1'; s.onload = ok; s.onerror = () => falha(new Error('biblioteca')); document.head.appendChild(s); });
+        await new Promise((ok, falha) => { const s = document.createElement('script'); s.src = 'js/face-api.min.js?v=1'; s.onload = ok; s.onerror = () => falha(new Error('biblioteca')); document.head.appendChild(s); });
       }
-      await Promise.all([ faceapi.nets.tinyFaceDetector.loadFromUri('.'), faceapi.nets.faceLandmark68TinyNet.loadFromUri('.'), faceapi.nets.faceRecognitionNet.loadFromUri('.') ]);
+      await Promise.all([ faceapi.nets.tinyFaceDetector.loadFromUri('modelos'), faceapi.nets.faceLandmark68TinyNet.loadFromUri('modelos'), faceapi.nets.faceRecognitionNet.loadFromUri('modelos') ]);
       prFace_.pronto = true; return true;
     }catch(e){ prFace_.falhou = true; prFace_.carregando = null; return false; }
   })();

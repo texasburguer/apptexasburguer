@@ -183,7 +183,7 @@ tr.cancelada td{opacity:.5;text-decoration:line-through;}
 /* cartão fidelidade (moedas): vazia = bege com a logo desbotada; marcada = logo colorida */
 .punch{display:grid;grid-template-columns:repeat(5,1fr);margin:14px 0;gap:10px;padding:12px;border-radius:var(--raio-card);background:var(--bg);border:1px solid var(--line);}
 .punch .hole{aspect-ratio:1;border-radius:50%;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;font-size:0;color:transparent;border:2px dashed #6b5a3f;background:radial-gradient(circle at 35% 30%,#f6ecd6,#e6d6b3 70%,#d9c7a0);box-shadow:inset 0 0 0 3px rgba(255,255,255,.35);}
-.punch .hole::before{content:"";position:absolute;inset:12%;background:url("logo-impressao-cor.png") center/contain no-repeat;opacity:.22;filter:grayscale(1) sepia(.5);transition:opacity .25s,filter .25s,transform .25s;}
+.punch .hole::before{content:"";position:absolute;inset:12%;background:url("../img/logo-impressao-cor.png") center/contain no-repeat;opacity:.22;filter:grayscale(1) sepia(.5);transition:opacity .25s,filter .25s,transform .25s;}
 .punch .hole.filled::before{opacity:1;filter:none;inset:8%;transform:scale(1.02);}
 .btnrow{display:flex;gap:8px;margin-top:12px;}
 .btnrow button{flex:1;}

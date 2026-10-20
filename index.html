@@ -6,7 +6,7 @@
 <!-- SEGURANÇA: mesmo que algum texto malicioso escapasse, a página só consegue falar com o Google Apps Script (planilha e contingência). -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://sdk.mercadopago.com https://*.mercadopago.com https://*.mercadopago.com.br https://*.mercadolibre.com https://*.mlstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://*.mercadopago.com https://*.mlstatic.com; font-src https://fonts.gstatic.com https://*.mlstatic.com; img-src 'self' https: data: blob:; connect-src 'self' https://*.mercadopago.com https://*.mercadopago.com.br https://*.mercadolibre.com https://*.mlstatic.com https://nominatim.openstreetmap.org https://viacep.com.br https://script.google.com https://script.googleusercontent.com https://awryywtgqfaxppayzpca.supabase.co wss://awryywtgqfaxppayzpca.supabase.co; frame-src https://*.mercadopago.com https://*.mercadopago.com.br https://*.mercadolibre.com https://*.mlstatic.com; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none';">
 <!-- Aparelho da equipe com sessão salva: mostra só o fundo e a logo até o sistema abrir (o cardápio público não "pisca" antes do login). Cliente sem login: nada muda. -->
-<style id="txbSplashCss">html.txb-equipe::before{content:"";position:fixed;left:0;top:0;right:0;bottom:0;z-index:2147483000;background:#0b0705 url(logo-texas-burger.webp) center center/min(52vw,210px) auto no-repeat;}</style>
+<style id="txbSplashCss">html.txb-equipe::before{content:"";position:fixed;left:0;top:0;right:0;bottom:0;z-index:2147483000;background:#0b0705 url(img/logo-texas-burger.webp) center center/min(52vw,210px) auto no-repeat;}</style>
 <script id="txbSplash">(function(){var h=document.documentElement;window.txbSplashFim_=function(){try{h.classList.remove('txb-equipe');}catch(e){}};try{if(localStorage.getItem('texasBurgerSessao_v2')){h.classList.add('txb-equipe');setTimeout(window.txbSplashFim_,8000);}}catch(e){}})();</script>
 <!-- =====================================================================
  TEXAS BURGER — captura de ERROS DE JAVASCRIPT (para o diagnóstico do Desenvolvedor)
@@ -75,8 +75,8 @@
 <meta name="referrer" content="no-referrer">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0b0705">
-<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
-<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="img/icon-192.png">
+<link rel="apple-touch-icon" href="img/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -87,7 +87,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alfa+Slab+One&display=swap">
 <title>Texas Burger — Sistema Completo</title>
-<link rel="stylesheet" href="estilo-base.css?v=8e7ad1a9">
+<link rel="stylesheet" href="css/estilo-base.css?v=bb860417">
 </head>
 <body>
 
@@ -96,7 +96,7 @@
      Funcionários" é discreto e só ele revela a tela de login interna. -->
 <div id="cardapioPublico">
   <div class="cd-banner">
-    <img class="hero-logo" src="logo-texas-burger.webp" alt="Texas Burger" width="470" height="441" decoding="async">
+    <img class="hero-logo" src="img/logo-texas-burger.webp" alt="Texas Burger" width="470" height="441" decoding="async">
     <h1 class="sr-only">Texas Burger</h1>
     <div class="kicker" id="cdKicker">DELIVERY · SABOR QUE CONQUISTA</div>
     <div class="frase" id="cdFrase">Peça pelo cardápio — rápido, sem complicação.</div>
@@ -116,7 +116,7 @@
     </div>
   </div>
   <div class="cd-instalar" id="cdInstalarApp">
-    <img src="icon-192.png" alt="" width="40" height="40">
+    <img src="img/icon-192.png" alt="" width="40" height="40">
     <div class="cd-inst-txt"><b>Instale o app Texas Burger</b>Peça mais rápido, direto da tela inicial.</div>
     <div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
       <button class="cd-inst-btn" onclick="instalarApp()">Instalar</button>
@@ -327,7 +327,7 @@
 
 <div class="lock-screen hidden" id="lockScreen">
   <div class="lock-box">
-    <img class="hero-logo" src="logo-texas-burger.webp" alt="Texas Burger" width="470" height="441" decoding="async">
+    <img class="hero-logo" src="img/logo-texas-burger.webp" alt="Texas Burger" width="470" height="441" decoding="async">
     <h1 class="sr-only">Texas Burger</h1>
     <p id="loginSubtitulo">Faça login para acessar o sistema</p>
 
@@ -353,7 +353,7 @@
   </div>
 
   <header class="brand">
-    <img class="brand-logo" src="logo-texas-burger.webp" alt="Texas Burger" width="470" height="441" decoding="async">
+    <img class="brand-logo" src="img/logo-texas-burger.webp" alt="Texas Burger" width="470" height="441" decoding="async">
     <h1 class="sr-only">Texas Burger</h1>
     <div class="status" id="connStatus" style="display:none">conectando...</div>
     <div class="userbar">
@@ -2537,31 +2537,31 @@
   </div>
 </div>
 
-<script src="app-01-base-e-api.js?v=cb26bf21" charset="utf-8" data-origem="__big0__"></script>
-<script src="app-02-abas.js?v=6ceee0e2" charset="utf-8" data-origem="__big1__"></script>
-<script src="app-03-cadastros.js?v=4311d2ff" charset="utf-8" data-origem="__big2__"></script>
-<script src="app-04-pedidos-entrega.js?v=58e9add7" charset="utf-8" data-origem="__big3__"></script>
-<script src="app-05-avisos-push.js?v=b139d0ad" charset="utf-8" data-origem="__big4__"></script>
-<script src="app-06-caixa.js?v=edcbde35" charset="utf-8" data-origem="__big5__"></script>
-<script src="app-07-impressao.js?v=5c9f0484" charset="utf-8" data-origem="__big6__"></script>
-<script src="app-08-vendas-despesas.js?v=5b972747" charset="utf-8" data-origem="__big7__"></script>
-<script src="app-09-ajuda.js?v=e39d028b" charset="utf-8" data-origem="__big8__"></script>
-<script src="app-10-backup-financeiro.js?v=3b7d8cd1" charset="utf-8" data-origem="__big9__"></script>
-<script src="app-11-admin-integracoes.js?v=b2467276" charset="utf-8" data-origem="__big10__"></script>
-<script src="app-12-gestao-ia.js?v=c93c8f19" charset="utf-8" data-origem="__big11__"></script>
-<script src="app-13-conexao-sync.js?v=4169baef" charset="utf-8" data-origem="__big12__"></script>
-<script src="app-14-relatorios.js?v=1e3c69a3" charset="utf-8" data-origem="__big13__"></script>
-<script src="app-15-cardapio-cliente.js?v=06ae8898" charset="utf-8" data-origem="__big14__"></script>
-<script src="app-16-sessao-final.js?v=ef1da8ab" charset="utf-8" data-origem="__big15__"></script>
+<script src="js/app-01-base-e-api.js?v=cb26bf21" charset="utf-8" data-origem="__big0__"></script>
+<script src="js/app-02-abas.js?v=6ceee0e2" charset="utf-8" data-origem="__big1__"></script>
+<script src="js/app-03-cadastros.js?v=4311d2ff" charset="utf-8" data-origem="__big2__"></script>
+<script src="js/app-04-pedidos-entrega.js?v=58e9add7" charset="utf-8" data-origem="__big3__"></script>
+<script src="js/app-05-avisos-push.js?v=b139d0ad" charset="utf-8" data-origem="__big4__"></script>
+<script src="js/app-06-caixa.js?v=edcbde35" charset="utf-8" data-origem="__big5__"></script>
+<script src="js/app-07-impressao.js?v=5c9f0484" charset="utf-8" data-origem="__big6__"></script>
+<script src="js/app-08-vendas-despesas.js?v=5b972747" charset="utf-8" data-origem="__big7__"></script>
+<script src="js/app-09-ajuda.js?v=e39d028b" charset="utf-8" data-origem="__big8__"></script>
+<script src="js/app-10-backup-financeiro.js?v=3b7d8cd1" charset="utf-8" data-origem="__big9__"></script>
+<script src="js/app-11-admin-integracoes.js?v=b2467276" charset="utf-8" data-origem="__big10__"></script>
+<script src="js/app-12-gestao-ia.js?v=c93c8f19" charset="utf-8" data-origem="__big11__"></script>
+<script src="js/app-13-conexao-sync.js?v=4169baef" charset="utf-8" data-origem="__big12__"></script>
+<script src="js/app-14-relatorios.js?v=1e3c69a3" charset="utf-8" data-origem="__big13__"></script>
+<script src="js/app-15-cardapio-cliente.js?v=06ae8898" charset="utf-8" data-origem="__big14__"></script>
+<script src="js/app-16-sessao-final.js?v=ef1da8ab" charset="utf-8" data-origem="__big15__"></script>
 <!-- ═══════════ SINCRONIZAÇÃO, BACKUP, ESPAÇO E INTEGRIDADE ═══════════
      app-17 cria cartões (ids sb410*) nas telas Backup e espaço e Sincronização e contingência. -->
 
-<script src="app-17-sessao-supabase.js?v=3fdfeb13" charset="utf-8" data-origem=""></script>
+<script src="js/app-17-sessao-supabase.js?v=3fdfeb13" charset="utf-8" data-origem=""></script>
 
 <!-- ═══════════ MODO RESERVA (queda do Supabase) ═══════════
      Detecta a queda do Supabase, avisa com faixa laranja e reenvia a fila do aparelho sozinha na volta.
      As vendas ficam guardadas pela fila offline + requisicaoId (sem duplicar). O tempo real é o bloco "TEMPO REAL" acima. -->
-<script src="app-18-queda-supabase.js?v=c3cdfe49" charset="utf-8" data-origem=""></script>
+<script src="js/app-18-queda-supabase.js?v=c3cdfe49" charset="utf-8" data-origem=""></script>
 
 <!-- =====================================================================
  TEXAS BURGER — IA · FASE 3 (IA-01 … IA-08)
@@ -2571,14 +2571,14 @@
  Sem segundo cliente Supabase · sem listener duplicado · sem setInterval (nada de consumo automático) ·
  fora do renderizarTudo() · toda resposta da IA é escapada (nada de innerHTML cru, eval ou Function).
 ===================================================================== -->
-<link rel="stylesheet" href="estilo-ia-cardapio.css?v=22645202">
+<link rel="stylesheet" href="css/estilo-ia-cardapio.css?v=22645202">
 
-<script src="app-19-ia.js?v=37d36dbd" charset="utf-8" data-origem="iaModulo"></script>
+<script src="js/app-19-ia.js?v=37d36dbd" charset="utf-8" data-origem="iaModulo"></script>
 <!-- =====================================================================
    BALÃO ÚNICO — parte da EQUIPE (Fase 3/4): só texto. O roteador do ai-gateway escolhe o robô; a fila de clientes aparece como aviso.
    Reaproveita IA.chamar, sbRpc_, sbSessaoLer_, sbJson_. Nenhum botão de função: tudo é texto (exceto Assumir/Encerrar/Sair da conversa).
    ===================================================================== -->
-<script src="app-20-balao-interno.js?v=3dbb18df" charset="utf-8" data-origem="balaoInterno"></script>
+<script src="js/app-20-balao-interno.js?v=3dbb18df" charset="utf-8" data-origem="balaoInterno"></script>
 
 <!-- =====================================================================
    FASE 5 — Localização do entregador (plano V3 §49–§59). Aditivo.
@@ -2586,36 +2586,36 @@
    Cliente: vê só a distância aproximada (o banco calcula; latitude/longitude nunca chegam ao cliente) e pode compartilhar o destino (opcional).
    Equipe (Admin/Operador): "📍 Ver localização" no cartão da entrega. Nada aqui bloqueia a conclusão da entrega.
    ===================================================================== -->
-<script src="app-21-localizacao.js?v=bb28de16" charset="utf-8" data-origem="fase5Localizacao"></script>
+<script src="js/app-21-localizacao.js?v=bb28de16" charset="utf-8" data-origem="fase5Localizacao"></script>
 
-<link rel="stylesheet" href="estilo-equipe.css?v=99519ca0">
+<link rel="stylesheet" href="css/estilo-equipe.css?v=99519ca0">
 <nav id="navInf" aria-label="Navegação principal"></nav>
 <div id="navInfMais" onclick="if(event.target===this)navInfFechar_()"><div class="nm-box" id="navInfMaisBox"></div></div>
-<script src="app-22-navegacao-inferior.js?v=9c0835e7" charset="utf-8" data-origem="navInfJs"></script>
+<script src="js/app-22-navegacao-inferior.js?v=9c0835e7" charset="utf-8" data-origem="navInfJs"></script>
 <div id="balaoIa" class="balao-ia" style="display:none">
     <button type="button" onclick="balaoIaAbrir_()" aria-label="Balão de atendimento e assistente Texas Burger"><span id="balaoIaIcone"><span class="tex-av g" role="img" aria-label="Tex"></span></span><span id="balaoIaRot">Atendimento</span><span class="balao-ia-cont" id="balaoIaContador" hidden>0</span><span class="balao-ia-avisos" id="balaoIaAvisos" hidden title="Avisos">🔔 0</span></button>
   </div>
-<script src="app-23-janelas-popup.js?v=6f031891" charset="utf-8" data-origem=""></script>
-<script src="app-24-acessibilidade.js?v=1567f2c1" charset="utf-8" data-origem=""></script>
-<script src="app-25-cadastro-facil.js?v=1b11178b" charset="utf-8" data-origem=""></script>
-<script src="app-26-visual.js?v=3c963d27" charset="utf-8" data-origem=""></script>
-<link rel="stylesheet" href="estilo-conta-pagamento.css?v=c8bbf776">
-<script src="app-28-dialogos.js?v=58e2325f" charset="utf-8" data-origem=""></script>
-<script src="app-27-conta-cliente.js?v=d9bcbf53" charset="utf-8" data-origem=""></script>
-<script src="app-29-usabilidade.js?v=8c6dd0c8" charset="utf-8" data-origem=""></script>
-<script src="app-30-teclado-pc.js?v=6ada025e" charset="utf-8" data-origem=""></script>
-<script src="app-31-alertas.js?v=cc24a649" charset="utf-8" data-origem=""></script>
-<script src="app-32-equipe.js?v=94d12e93" charset="utf-8" data-origem=""></script>
-<script src="app-33-escala.js?v=345a54d7" charset="utf-8" data-origem=""></script>
-<script src="app-34-eventos.js?v=e0698031" charset="utf-8" data-origem=""></script>
-<script src="app-35-equipe-extras.js?v=650e4df1" charset="utf-8" data-origem=""></script>
-<script src="app-36-gestao.js?v=bb125f4f" charset="utf-8" data-origem=""></script>
-<script src="app-37-ponto-rapido.js?v=2dcb25e1" charset="utf-8" data-origem=""></script>
-<script src="app-38-ponto-rosto.js?v=4f9edca3" charset="utf-8" data-origem=""></script>
-<script src="app-39-fotos-registros.js?v=b24b7995" charset="utf-8" data-origem=""></script>
-<script src="app-40-etiquetas.js?v=5ac4487f" charset="utf-8" data-origem=""></script>
-<script src="app-41-ifood-extras.js?v=ac925d68" charset="utf-8" data-origem=""></script>
-<script src="app-42-ifood-catalogo.js?v=7b63e35f" charset="utf-8" data-origem=""></script>
+<script src="js/app-23-janelas-popup.js?v=6f031891" charset="utf-8" data-origem=""></script>
+<script src="js/app-24-acessibilidade.js?v=1567f2c1" charset="utf-8" data-origem=""></script>
+<script src="js/app-25-cadastro-facil.js?v=1b11178b" charset="utf-8" data-origem=""></script>
+<script src="js/app-26-visual.js?v=3c963d27" charset="utf-8" data-origem=""></script>
+<link rel="stylesheet" href="css/estilo-conta-pagamento.css?v=c8bbf776">
+<script src="js/app-28-dialogos.js?v=58e2325f" charset="utf-8" data-origem=""></script>
+<script src="js/app-27-conta-cliente.js?v=d9bcbf53" charset="utf-8" data-origem=""></script>
+<script src="js/app-29-usabilidade.js?v=8c6dd0c8" charset="utf-8" data-origem=""></script>
+<script src="js/app-30-teclado-pc.js?v=6ada025e" charset="utf-8" data-origem=""></script>
+<script src="js/app-31-alertas.js?v=cc24a649" charset="utf-8" data-origem=""></script>
+<script src="js/app-32-equipe.js?v=94d12e93" charset="utf-8" data-origem=""></script>
+<script src="js/app-33-escala.js?v=345a54d7" charset="utf-8" data-origem=""></script>
+<script src="js/app-34-eventos.js?v=e0698031" charset="utf-8" data-origem=""></script>
+<script src="js/app-35-equipe-extras.js?v=650e4df1" charset="utf-8" data-origem=""></script>
+<script src="js/app-36-gestao.js?v=bb125f4f" charset="utf-8" data-origem=""></script>
+<script src="js/app-37-ponto-rapido.js?v=2dcb25e1" charset="utf-8" data-origem=""></script>
+<script src="js/app-38-ponto-rosto.js?v=11d93b24" charset="utf-8" data-origem=""></script>
+<script src="js/app-39-fotos-registros.js?v=b24b7995" charset="utf-8" data-origem=""></script>
+<script src="js/app-40-etiquetas.js?v=5ac4487f" charset="utf-8" data-origem=""></script>
+<script src="js/app-41-ifood-extras.js?v=ac925d68" charset="utf-8" data-origem=""></script>
+<script src="js/app-42-ifood-catalogo.js?v=7b63e35f" charset="utf-8" data-origem=""></script>
 <script id="autoCura">
 /* Se o arquivo principal do app não carregou (cópia vazia/velha guardada no aparelho), limpa os guardados e recarrega sozinho, uma vez. */
 (function(){
