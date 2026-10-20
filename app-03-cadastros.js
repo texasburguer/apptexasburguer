@@ -986,7 +986,7 @@ async function confirmarRecebimento(vendaId){
 }
 function botoesSuspensao(v){
   if(!currentUser || ['Admin','Operador'].indexOf(currentUser.nivel)===-1 || v.status!=='Confirmada') return '';
-  const btnCancelar = !v.fechamentoEntregaId ? `<button class="ghost" onclick="abrirModalCancelar('venda','${v.id}')">✖ Cancelar pedido</button>` : '';
+  const btnCancelar = (!v.fechamentoEntregaId && v.statusPedido!=='Recebido') ? `<button class="ghost" onclick="abrirModalCancelar('venda','${v.id}')">✖ Cancelar pedido</button>` : '';
   if(v.statusPedido==='Suspenso') return `<div class="btnrow mt-2"><button class="small-gold" onclick="retomarPedidoUI('${v.id}')">▶️ Retomar pedido</button>${btnCancelar}</div>`;
   if(['Recebido','Em preparo','Pronta'].indexOf(v.statusPedido)!==-1 && !v.fechamentoEntregaId) return `<div class="btnrow mt-2"><button class="ghost" onclick="suspenderPedidoUI('${v.id}')">⏸ Suspender</button>${btnCancelar}</div>`;
   return '';
