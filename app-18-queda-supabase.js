@@ -18,7 +18,8 @@ function sb5Atualizar_(){
   const d = sb5Faixa_();
   if(!_sb5Queda_ || !sb5Logado_()){ d.style.display = 'none'; return; }
   const n = (typeof _fila !== 'undefined') ? _fila.filter(i => i.estado !== 'erro').length : 0;
-  d.textContent = '🟠 Modo reserva — Supabase fora do ar. FUNCIONA: venda do Caixa (retirada/entrega, sem desconto, sem cupom) e pedido do cardápio, pela contingência; consulta dos pedidos em Pedidos. Cadastro de cliente, fidelidade, feedback e ocorrência ficam na fila' + (n ? ' (' + n + ' agora)' : '') + ' e seguem sozinhos na volta. FICA PARA A VOLTA: mudar status, estoque, compras, relatórios, avisos e IA.';
+  d.textContent = '🟠 Modo reserva — Supabase fora do ar. FUNCIONA: venda do Caixa (retirada/entrega, sem desconto, sem cupom) e pedido do cardápio, pela contingência; consulta dos pedidos em Pedidos. Cadastro de cliente, fidelidade, feedback e ocorrência ficam na fila' + (n ? ' (' + n + ' agora)' : '') + ' e seguem sozinhos na volta. FICA PARA A VOLTA: mudar status, estoque, compras, relatórios, avisos e IA.'
+    + ((window.INTEG_ && INTEG_.ifood) ? ' ⚠️ iFOOD: os pedidos do iFood NÃO entram no sistema enquanto durar a queda — fique de olho no tablet/portal do iFood e aceite lá. Na volta o sistema varre e avisa o que chegou.' : '');
   d.style.display = 'block';
 }
 /* MODO RESERVA: com o Supabase fora (3 falhas seguidas) o app (a) para o tempo real e volta às atualizações de 3 e 15 minutos,
@@ -108,6 +109,7 @@ async function sb5SairReserva_(){
   try{ sb5PainelReservaLigar_(false); }catch(e){}
   try{ sbNivelMarcar_(true); }catch(e){}
   sb5Atualizar_();
+  try{ setTimeout(()=>ifLacunaVerificar_(), 45000); setTimeout(()=>ifLacunaVerificar_(), 120000); }catch(e){}
   if(!sb5Logado_()) return;
   try{ setConexaoStatus('syncing'); }catch(e){}
   try{ await filaProcessar(); }catch(e){}
@@ -137,3 +139,38 @@ async function sb5SairReserva_(){
   // o contador da faixa só roda durante a queda (ligado em sb5EntrarReserva_, desligado em sb5SairReserva_)
   window.addEventListener('online', ()=>{ if(_sb5Reserva_) sb5Sondar_().then(ok=>{ if(ok) sb5SairReserva_(); }); });   // o celular voltou da rede: testa já
 })();
+
+
+/* ===================== iFOOD: VARREDURA NA VOLTA DA QUEDA ===================== */
+/* Enquanto o Supabase está fora, o iFood não consegue entregar pedidos (a consulta roda no Supabase). Na volta o servidor
+   registra a "lacuna", varre os pedidos do iFood criados nela e avisa; aqui a equipe vê a faixa e confirma que viu. */
+let _ifLacunaEm_ = 0;
+function ifLacunaFaixa_(){
+  let d = document.getElementById('ifLacunaFaixa');
+  if(!d){
+    d = document.createElement('div'); d.id = 'ifLacunaFaixa';
+    d.style.cssText = 'display:none;position:fixed;left:8px;right:8px;bottom:8px;z-index:9997;background:#7c2d12;color:#fff;padding:10px 12px;border-radius:10px;font:600 13px/1.35 system-ui,sans-serif;box-shadow:0 4px 14px rgba(0,0,0,.35);';
+    document.body.appendChild(d);
+  }
+  return d;
+}
+function ifLacunaHora_(v){ try{ return new Date(v).toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' }); }catch(e){ return ''; } }
+async function ifLacunaVerificar_(visto){
+  try{
+    const nivel = currentUser && currentUser.nivel;
+    if(!(window.INTEG_ && INTEG_.ifood) || !(nivel === 'Admin' || nivel === 'Operador') || currentUser.emergencia){ ifLacunaFaixa_().style.display = 'none'; return; }
+    if(_sb5Queda_) return;
+    _ifLacunaEm_ = Date.now();
+    const r = await apiCall('ifoodLacunas', visto ? { marcarVisto:true } : {});
+    const d = ifLacunaFaixa_();
+    const l = (r && r.ok && r.lacunas) ? r.lacunas : [];
+    if(!l.length){ d.style.display = 'none'; return; }
+    const tot = l.reduce((a,x)=>a+(Number(x.pedidos)||0),0), canc = l.reduce((a,x)=>a+(Number(x.cancelados)||0),0);
+    const per = l.map(x=>ifLacunaHora_(x.inicio) + '–' + ifLacunaHora_(x.fim)).join(', ');
+    let h = '<div>🟠 <b>iFood: o sistema ficou fora do ar (' + escH(per) + ').</b> ';
+    h += tot ? ('Nesse período chegaram <b>' + tot + '</b> pedido(s) do iFood' + (canc ? ', <b>' + canc + '</b> já cancelado(s) pelo iFood por falta de confirmação' : '') + '. Eles já estão nos Pedidos — confira os que ainda estão abertos e confirme no iFood o que faltar.') : 'Nenhum pedido do iFood foi criado nesse período. Por garantia, confira o portal do iFood.';
+    h += '</div><div style="margin-top:8px;text-align:right"><button class="primary" onclick="ifLacunaVerificar_(true)">Entendi</button></div>';
+    d.innerHTML = h; d.style.display = 'block';
+  }catch(e){}
+}
+setInterval(()=>{ if(!document.hidden && Date.now() - _ifLacunaEm_ > 300000) ifLacunaVerificar_(); }, 60000);

@@ -6,7 +6,7 @@
    - BACKEND: NADA de Apps Script (script.google.com) nem de Supabase (*.supabase.co) é guardado aqui.
      Dados, pedidos, login e RPCs nunca passam pelo cache do service worker — sempre vão direto para a rede.
    - O único cache de dados é o de fotos (FOTOS) e o da casca/ícones (SHELL/ASSETS). Não adicionar outros. */
-const SHELL = 'texas-shell-v104';
+const SHELL = 'texas-shell-v108';
 const ASSETS = 'texas-assets-v7';   // trocou ícone/logo/manifest/leaflet? suba para v5
 const FOTOS = 'texas-fotos-v1';
 /* Código do app dividido em arquivos (app-*.js e estilo-*.css). Cada arquivo tem ?v=<impressão digital> na página; o cache guarda
@@ -15,24 +15,24 @@ const FOTOS = 'texas-fotos-v1';
 const CODIGO = 'texas-codigo-v3';   // trocou o nome = todo aparelho descarta o cache de código antigo (inclusive cópia vazia)
 const LISTA = [/*LISTA-INICIO*/
   'estilo-base.css?v=8e7ad1a9',
-  'app-01-base-e-api.js?v=f28ac549',
+  'app-01-base-e-api.js?v=eb01eab9',
   'app-02-abas.js?v=6ceee0e2',
   'app-03-cadastros.js?v=4311d2ff',
   'app-04-pedidos-entrega.js?v=58e9add7',
   'app-05-avisos-push.js?v=b139d0ad',
   'app-06-caixa.js?v=edcbde35',
   'app-07-impressao.js?v=5c9f0484',
-  'app-08-vendas-despesas.js?v=86517a81',
-  'app-09-ajuda.js?v=9b22a19b',
+  'app-08-vendas-despesas.js?v=5b972747',
+  'app-09-ajuda.js?v=375b3070',
   'app-10-backup-financeiro.js?v=3b7d8cd1',
-  'app-11-admin-integracoes.js?v=a14be6f3',
+  'app-11-admin-integracoes.js?v=b2467276',
   'app-12-gestao-ia.js?v=c93c8f19',
   'app-13-conexao-sync.js?v=4169baef',
   'app-14-relatorios.js?v=1e3c69a3',
   'app-15-cardapio-cliente.js?v=06ae8898',
   'app-16-sessao-final.js?v=ef1da8ab',
   'app-17-sessao-supabase.js?v=3fdfeb13',
-  'app-18-queda-supabase.js?v=02bb8c67',
+  'app-18-queda-supabase.js?v=c3cdfe49',
   'estilo-ia-cardapio.css?v=22645202',
   'app-19-ia.js?v=37d36dbd',
   'app-20-balao-interno.js?v=3dbb18df',
@@ -58,6 +58,7 @@ const LISTA = [/*LISTA-INICIO*/
   'app-39-fotos-registros.js?v=b24b7995',
   'app-40-etiquetas.js?v=5ac4487f',
   'app-41-ifood-extras.js?v=ac925d68',
+  'app-42-ifood-catalogo.js?v=7b63e35f',
   'app-32-equipe.js?v=94d12e93',
 /*LISTA-FIM*/];
 const FOTOS_MAX = 150;

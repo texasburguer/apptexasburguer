@@ -463,7 +463,7 @@ function abrirModalCancelar(tipo, id){
   document.getElementById('cancelMotivoOutro').value='';
   document.getElementById('cancelMotivoOutroBox').style.display = 'none';
   document.getElementById('cancelSenhaAdmin').value='';
-  document.getElementById('cancelSenhaAdminBox').style.display = precisaConfirmarAdmin() ? 'block' : 'none';
+  document.getElementById('cancelSenhaAdminBox').style.display = 'block';   /* senha sempre, também para o Admin */
   const box = document.getElementById('cancelMercadoriaBox');
   if(tipo==='venda'){
     const v = vendas.find(x=>x.id===id);
@@ -480,6 +480,7 @@ async function confirmarCancelamento(){
   if(motivoSelecionado==='Outro' && !motivoOutro){ showMsg('cancelMsg','Descreva o motivo do cancelamento.','warn'); return; }
   const motivo = motivoSelecionado==='Outro' ? motivoOutro : motivoSelecionado;
   const senhaAdminConfirmacao = document.getElementById('cancelSenhaAdmin').value;
+  if(!senhaAdminConfirmacao){ showMsg('cancelMsg','Digite a sua senha para confirmar o cancelamento.','warn'); return; }
   if(document.getElementById('cancelMercadoriaBox').style.display==='block' && mercadoriaPerdidaAtual===null){ showMsg('cancelMsg','Informe se a mercadoria foi perdida.','warn'); return; }
   if(!iniciarOperacaoUnica('cancelamento')) return;
   try{

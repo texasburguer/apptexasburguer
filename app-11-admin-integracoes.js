@@ -323,6 +323,7 @@ async function carregarIntegFlags_(){
     window.INTEG_ = { ifood:!!r.ifood, nfce:!!r.nfce, mp:!!r.mercadopago, nfceModo:r.nfceModo||'homologacao', impostoPct:Number(r.impostoPct)||0, impostoPadrao:Number(r.impostoPadrao)||0, impostoMeses:(r.impostoMeses && typeof r.impostoMeses==='object') ? r.impostoMeses : {} };
     try{ atualizarCpfBox_(); }catch(e){}
     try{ mpFaixaAtualizar_(true); }catch(e){}
+    try{ ifLacunaVerificar_(); }catch(e){}
     /* a alíquota do imposto chega depois do login: redesenha o que já estiver aberto com ela */
     try{ const at = (document.querySelector('section.tab.active')||{}).id || '';
       if(at==='tab-visaogeral') renderVisaoGeral();
@@ -1002,13 +1003,15 @@ function ifoodExtraHtml_(it, parte){
       <button class="ghost" onclick="carregarIfoodLoja_()">Loja no iFood</button>
       <button class="ghost" onclick="carregarIfoodNeg_()">Negociações</button>
       <button class="ghost" onclick="carregarIfoodPedidos_()">Pedidos do iFood</button>
+      <button class="ghost" onclick="carregarIfoodHorario_()">Horário da loja</button>
+      <button class="ghost" onclick="carregarIfoodCat_()">Cardápio no iFood</button>
       <button class="ghost" onclick="carregarIfoodPrecos_()">Preços</button>
       <button class="ghost" onclick="carregarIfoodFin_()">Financeiro</button>
       <button class="ghost" onclick="carregarIfoodAval_()">Avaliações</button>
       <button class="ghost" onclick="carregarIfoodRel_()">Relatório por canal</button>
       ${dev?'<button class="ghost" onclick="simularIfood_()">🧪 Simular pedido do iFood (treino)</button>':''}
     </div>
-    <div id="ifoodLoja"></div><div id="ifoodNeg"></div><div id="ifoodPedidos"></div><div id="ifoodPrecos"></div><div id="ifoodFin"></div><div id="ifoodAval"></div><div id="ifoodRel"></div></div>`;
+    <div id="ifoodLoja"></div><div id="ifoodHorario"></div><div id="ifoodCat"></div><div id="ifoodNeg"></div><div id="ifoodPedidos"></div><div id="ifoodPrecos"></div><div id="ifoodFin"></div><div id="ifoodAval"></div><div id="ifoodRel"></div></div>`;
 }
 const IFOOD_ESTADO_ROT_ = { novo:'aguardando confirmação', confirmado:'confirmado', em_preparo:'em preparo', pronto:'pronto', despachado:'saiu para entrega', concluido:'concluído', cancelado:'cancelado' };
 
@@ -1023,6 +1026,54 @@ async function carregarIfoodLoja_(){
       ${l.motivo?`<div class="obs-line">${escH(l.motivo)}</div>`:''}
       <div class="btnrow mt-2"><button class="ghost" onclick="lojaIfoodAcao_('pausar',30)">Pausar 30 min</button><button class="ghost" onclick="lojaIfoodAcao_('pausar',60)">Pausar 1 h</button><button class="ghost" onclick="lojaIfoodAcao_('retomar')">Retomar</button><button class="ghost" onclick="lojaIfoodAcao_('fechar')">Fechar</button><button class="ghost" onclick="lojaIfoodAcao_('abrir')">Abrir</button></div></div>`;
   }catch(e){ box.innerHTML = '<div class="obs-line">Sem conexão.</div>'; }
+}
+/* ---------- Horário de funcionamento da loja no iFood (Merchant) ---------- */
+const IFOOD_DIAS_ = [['MONDAY','Segunda'],['TUESDAY','Terça'],['WEDNESDAY','Quarta'],['THURSDAY','Quinta'],['FRIDAY','Sexta'],['SATURDAY','Sábado'],['SUNDAY','Domingo']];
+let ifoodHorarioDados_ = null;
+async function carregarIfoodHorario_(){
+  const box = document.getElementById('ifoodHorario'); if(!box) return;
+  try{
+    const r = await apiCall('ifoodHorario', {});
+    if(!r || !r.ok){ box.innerHTML = '<div class="obs-line">' + escH((r && r.message) || 'Não foi possível carregar.') + '</div>'; return; }
+    ifoodHorarioDados_ = r; renderIfoodHorario_();
+  }catch(e){ box.innerHTML = '<div class="obs-line">Sem conexão.</div>'; }
+}
+function renderIfoodHorario_(){
+  const box = document.getElementById('ifoodHorario'); const r = ifoodHorarioDados_; if(!box || !r) return;
+  const h = r.horario || {};
+  const lido = Array.isArray(r.ifood) ? r.ifood : null;
+  const dMin = (hm)=>{ const p=String(hm||'').split(':'); return (+p[0])*60+(+p[1]||0); };
+  const hhmm = (min)=>{ min = ((min%1440)+1440)%1440; return String(Math.floor(min/60)).padStart(2,'0')+':'+String(min%60).padStart(2,'0'); };
+  const linhas = IFOOD_DIAS_.map(([k,rot])=>{
+    const t = (h[k]||[])[0] || {};
+    return `<div class="obs-line" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;"><b style="min-width:62px;">${rot}</b>
+      <input type="time" id="ifH_i_${k}" value="${escH(t.inicio||'')}" style="width:auto;"> <span>às</span> <input type="time" id="ifH_f_${k}" value="${escH(t.fim||'')}" style="width:auto;"></div>`;
+  }).join('');
+  const noIfood = lido ? (lido.length ? lido.map(x=>{ const d = IFOOD_DIAS_.find(y=>y[0]===x.dayOfWeek); const ini = String(x.start||'').slice(0,5); return (d?d[1]:x.dayOfWeek)+' '+ini+'–'+hhmm(dMin(ini)+Number(x.duration||0)); }).join(' · ') : 'sem horário cadastrado') : 'ainda não lido';
+  box.innerHTML = `<div class="notif-card" style="border-left:4px solid #888;"><b>Horário da loja no iFood</b>
+    <div class="obs-line">Deixe os dois campos de um dia vazios para o dia ficar fechado. Cada dia aceita uma faixa aqui (fechamento depois da abertura, no mesmo dia).</div>
+    ${linhas}
+    <div class="btnrow mt-2"><button class="primary" onclick="salvarIfoodHorario_(true)">Salvar e enviar ao iFood</button><button class="ghost" onclick="salvarIfoodHorario_(false)">Só salvar aqui</button><button class="ghost" onclick="lerIfoodHorario_()">Ler do iFood</button><button class="ghost" onclick="carregarIfoodHorario_()">Atualizar</button></div>
+    <div class="obs-line">No iFood agora: <b>${escH(noIfood)}</b>${r.ifoodEm?' <i>(lido em '+escH(fmtDiaHoraBr_(r.ifoodEm))+')</i>':''}</div></div>`;
+}
+async function salvarIfoodHorario_(enviar){
+  const horario = {};
+  for(const [k,rot] of IFOOD_DIAS_){
+    const i = (document.getElementById('ifH_i_'+k)||{}).value || '', f = (document.getElementById('ifH_f_'+k)||{}).value || '';
+    if(!i && !f) continue;
+    if(!i || !f) return showMsg(integMsgId_(), rot+': preencha abertura e fechamento (ou deixe os dois vazios).','warn');
+    if(f <= i) return showMsg(integMsgId_(), rot+': o fechamento precisa ser depois da abertura.','warn');
+    horario[k] = [{ inicio:i, fim:f }];
+  }
+  if(enviar && !await confirmarTxt_('Enviar este horário ao iFood? Ele passa a valer no iFood para a sua loja.')) return;
+  try{
+    const r = await apiCall('ifoodHorarioSalvar', { horario, enviar });
+    if(r && r.ok){ ifoodHorarioDados_ = r; renderIfoodHorario_(); showMsg(integMsgId_(), r.message || 'Salvo.','ok'); if(enviar) setTimeout(carregarIfoodHorario_, 8000); }
+    else showMsg(integMsgId_(), (r && r.message) || 'Não foi possível salvar.','warn');
+  }catch(e){ showMsg(integMsgId_(),'Sem conexão.','warn'); }
+}
+async function lerIfoodHorario_(){
+  try{ const r = await apiCall('ifoodHorarioLer', {}); showMsg(integMsgId_(), (r && r.message) || 'Não foi possível.', r && r.ok ? 'ok' : 'warn'); setTimeout(carregarIfoodHorario_, 8000); }catch(e){ showMsg(integMsgId_(),'Sem conexão.','warn'); }
 }
 async function lojaIfoodAcao_(acao, minutos){
   try{ const r = await apiCall('ifoodLojaAcao', { acao, minutos }); showMsg(integMsgId_(), (r && r.message) || 'Não foi possível.', r && r.ok ? 'ok' : 'warn'); setTimeout(carregarIfoodLoja_, 4000); carregarIfoodLoja_(); }catch(e){ showMsg(integMsgId_(),'Sem conexão.','warn'); }
@@ -1140,7 +1191,9 @@ async function carregarIfoodItens_(){
 function renderIfoodItens_(){
   const box = document.getElementById('ifoodItens'); const r = ifoodItensDados_; if(!box || !r) return;
   const op = (tipo, lista)=> (lista||[]).map(x=>`<option value="${tipo}:${escH(x.id)}">${escH(x.nome)}</option>`).join('');
+  const nSug = (r.itens||[]).filter(i=>!i.ligado && !i.ignorar && i.sugestao).length;
   box.innerHTML = '<p class="sub mt-2">Cada item do iFood precisa estar ligado a um produto do sistema para baixar os ingredientes e calcular o custo. Itens aparecem aqui quando chegam em pedidos.</p>' +
+    (nSug ? `<div class="btnrow"><button class="small-gold" onclick="ligarIfoodItem_(0,'todas')">🔗 Ligar todos os itens com nome igual (${nSug})</button></div>` : '') +
     ((r.itens||[]).map((i,ix)=>{
       const pend = !i.ligado && !i.ignorar;
       return `<div class="notif-card" style="border-left:4px solid ${pend?'#e0a800':'#2e9e5b'};">
@@ -1154,7 +1207,17 @@ function renderIfoodItens_(){
       </div>`; }).join('') || '<div class="obs-line">Nenhum item do iFood conhecido ainda.</div>');
 }
 async function ligarIfoodItem_(ix, modo){
-  const r0 = ifoodItensDados_; const i = r0 && r0.itens[ix]; if(!i) return;
+  const r0 = ifoodItensDados_; const i = r0 && r0.itens[ix]; if(!i && modo!=='todas') return;
+  if(modo==='todas'){
+    const n = (r0.itens||[]).filter(x=>!x.ligado && !x.ignorar && x.sugestao).length;
+    if(!await confirmarTxt_('Ligar ' + n + ' item(ns) do iFood ao produto de nome igual no sistema? Os que não tiverem nome igual ficam para você tratar. Dá para desfazer um a um.')) return;
+    try{
+      const r = await apiCall('ifoodLigarItem', { todasSugestoes: true });
+      if(r && r.ok){ ifoodItensDados_ = r; renderIfoodItens_(); showMsg(integMsgId_(), (r.message||'Pronto.') + ' Pedidos antigos sem ligação podem ser refeitos com "Refazer pedidos sem ligação".','ok'); }
+      else showMsg(integMsgId_(),(r&&r.message)||'Não foi possível salvar.','warn');
+    }catch(e){ showMsg(integMsgId_(),'Sem conexão.','warn'); }
+    return;
+  }
   let corpo = { chave: i.chave };
   if(modo==='sugestao' && i.sugestao){ corpo.tipo = i.sugestao.tipo; corpo.id = i.sugestao.id; }
   else if(modo==='escolha'){ const v = (document.getElementById('ifSel_'+ix)||{}).value || ''; if(!v) return showMsg(integMsgId_(),'Escolha um item do sistema.','warn'); const p = v.split(':'); corpo.tipo = p[0]; corpo.id = p[1]; }
