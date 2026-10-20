@@ -6,13 +6,13 @@
    - BACKEND: NADA de Apps Script (script.google.com) nem de Supabase (*.supabase.co) é guardado aqui.
      Dados, pedidos, login e RPCs nunca passam pelo cache do service worker — sempre vão direto para a rede.
    - O único cache de dados é o de fotos (FOTOS) e o da casca/ícones (SHELL/ASSETS). Não adicionar outros. */
-const SHELL = 'texas-shell-v103';
+const SHELL = 'texas-shell-v104';
 const ASSETS = 'texas-assets-v7';   // trocou ícone/logo/manifest/leaflet? suba para v5
 const FOTOS = 'texas-fotos-v1';
 /* Código do app dividido em arquivos (app-*.js e estilo-*.css). Cada arquivo tem ?v=<impressão digital> na página; o cache guarda
    pela endereço COMPLETO, então uma página antiga sempre acha os arquivos antigos dela e a nova acha os novos (nunca mistura versões).
    A lista abaixo é gerada pelo script de selagem (selar.py) a cada entrega. */
-const CODIGO = 'texas-codigo-v2';
+const CODIGO = 'texas-codigo-v3';   // trocou o nome = todo aparelho descarta o cache de código antigo (inclusive cópia vazia)
 const LISTA = [/*LISTA-INICIO*/
   'estilo-base.css?v=8e7ad1a9',
   'app-01-base-e-api.js?v=f28ac549',
@@ -67,13 +67,13 @@ const HOSTS_FOTO = ['drive.google.com', 'lh3.googleusercontent.com'];
 self.addEventListener('install', e => e.waitUntil((async () => {
   const c = await caches.open(ASSETS);
   await Promise.all(PRE.map(u => c.add(u).catch(() => {})));
-  try { const cc = await caches.open(CODIGO); await Promise.all(LISTA.map(u => cc.add(u).catch(() => {}))); } catch (err) {}
+  try { const cc = await caches.open(CODIGO); await Promise.all(LISTA.map(async u => { try { const rs = await fetch(u, { cache: 'reload' }); if (rs && rs.ok && !(await vazia_(rs))) await cc.put(u, rs); } catch (err) {} })); } catch (err) {}
   await self.skipWaiting();
 })()));
 
 self.addEventListener('activate', e => e.waitUntil((async () => {
   for (const k of await caches.keys()) {
-    if ((k.indexOf('texas-shell') === 0 && k !== SHELL) || (k.indexOf('texas-assets') === 0 && k !== ASSETS)) await caches.delete(k);
+    if ((k.indexOf('texas-shell') === 0 && k !== SHELL) || (k.indexOf('texas-assets') === 0 && k !== ASSETS) || (k.indexOf('texas-codigo') === 0 && k !== CODIGO)) await caches.delete(k);
   }
   try {   /* limpa do cache de código o que não está na lista atual */
     const cc = await caches.open(CODIGO);
@@ -82,6 +82,11 @@ self.addEventListener('activate', e => e.waitUntil((async () => {
   } catch (err) {}
   await self.clients.claim();
 })()));
+
+/* Resposta vazia (0 byte) nunca vale como cópia boa: pode vir de envio incompleto ao GitHub. Não guardar e não servir. */
+async function vazia_(res) {
+  try { const b = await res.clone().blob(); return b.size === 0; } catch (err) { return false; }
+}
 
 async function avisarNovaVersao_() {
   const lista = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
@@ -112,9 +117,10 @@ function paginaRapida_(r) {
 async function cacheDepoisRede_(r, nome) {
   const c = await caches.open(nome);
   const hit = await c.match(r);
-  if (hit) return hit;
+  if (hit && !(await vazia_(hit))) return hit;
+  if (hit) await c.delete(r);
   const res = await fetch(r);
-  if (res && res.ok) c.put(r, res.clone());
+  if (res && res.ok && !(await vazia_(res))) c.put(r, res.clone());
   return res;
 }
 
@@ -122,9 +128,10 @@ async function cacheDepoisRede_(r, nome) {
 async function codigoCache_(r) {
   const c = await caches.open(CODIGO);
   const hit = await c.match(r);
-  if (hit) return hit;
+  if (hit && !(await vazia_(hit))) return hit;
+  if (hit) await c.delete(r);
   const res = await fetch(r);
-  if (res && res.ok) c.put(r, res.clone());
+  if (res && res.ok && !(await vazia_(res))) c.put(r, res.clone());
   return res;
 }
 

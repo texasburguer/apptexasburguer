@@ -2612,5 +2612,23 @@
 <script src="app-39-fotos-registros.js?v=b24b7995" charset="utf-8" data-origem=""></script>
 <script src="app-40-etiquetas.js?v=5ac4487f" charset="utf-8" data-origem=""></script>
 <script src="app-41-ifood-extras.js?v=ac925d68" charset="utf-8" data-origem=""></script>
+<script id="autoCura">
+/* Se o arquivo principal do app não carregou (cópia vazia/velha guardada no aparelho), limpa os guardados e recarrega sozinho, uma vez. */
+(function(){
+  try{
+    if(typeof APP_VERSAO!=='undefined'){ try{ sessionStorage.removeItem('txbAutoCura'); }catch(e){} return; }
+    var ja=0; try{ ja=+sessionStorage.getItem('txbAutoCura')||0; }catch(e){}
+    if(ja>=2) return;
+    try{ sessionStorage.setItem('txbAutoCura', String(ja+1)); }catch(e){}
+    var fim=function(){ location.replace(location.pathname+(location.search?location.search+'&':'?')+'r='+Date.now()+location.hash); };
+    var tudo=[];
+    try{ if(window.caches) tudo.push(caches.keys().then(function(ks){ return Promise.all(ks.map(function(k){ return caches.delete(k); })); })); }catch(e){}
+    try{ if(navigator.serviceWorker) tudo.push(navigator.serviceWorker.getRegistrations().then(function(rs){ return Promise.all(rs.map(function(r){ return r.unregister(); })); })); }catch(e){}
+    try{ document.querySelectorAll('script[src^="app-"]').forEach(function(sc){ tudo.push(fetch(sc.getAttribute('src'),{cache:'reload'}).catch(function(){})); }); }catch(e){}
+    Promise.all(tudo).then(fim,fim);
+    setTimeout(fim,6000);
+  }catch(e){}
+})();
+</script>
 </body>
 </html>
