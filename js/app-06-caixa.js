@@ -154,7 +154,7 @@ function mudarFormaPreco(formaId){
     carrinhoAtual.forEach(item=>{
       const extraAdicionais = (item.adicionaisIds||[]).reduce((s,id)=>{ const a = adicionais.find(x=>x.id===id); return s + (a?a.preco:0); },0);
       if(item.produtoId){ const p = precoProdutoPorForma(item.produtoId, formaId); item.valorUnitario = p.preco + extraAdicionais; item.custoUnitario = p.custo; }
-      else if(item.comboId){ const p = precoComboPorForma(item.comboId, formaId); item.valorUnitario = p.preco + extraAdicionais; item.custoUnitario = p.custo; }
+      else if(item.comboId){ const p = precoComboPorForma(item.comboId, formaId); item.valorUnitario = p.preco + extraAdicionais; item.custoUnitario = custoComboComEscolha_(item.comboId, item.escolhas, p.custo); }
     });
     renderCarrinho();
   }
@@ -693,7 +693,50 @@ function limitarQtd50_(el, msgId){
   let n = Math.floor(Number(el.value));
   if(el.value !== '' && Number.isFinite(n) && n > QTD_MAX_ITEM_){ el.value = QTD_MAX_ITEM_; el.style.outline = '2px solid var(--red, #c0392b)'; setTimeout(()=>{ el.style.outline = ''; }, 1500); avisoQtdMax_(msgId); }
 }
-function adicionarItemCarrinho(){
+/* Combo com escolha (ex.: "3 Smash"): pergunta os sabores de cada unidade antes de entrar na venda */
+function comboEscolhaCfgCaixa_(comboId){
+  const c = combos.find(x=>x.id===comboId); const n = Number(c && c.escolhaQtd) || 0; if(n <= 0) return null;
+  const ops = comboItens.filter(ci=>ci.comboId===comboId && ci.escolha).map(ci=>{ const p = produtos.find(x=>x.id===ci.produtoId); return p && p.ativo ? { produtoId:p.id, nome:p.nome } : null; }).filter(Boolean);
+  return ops.length >= 2 ? { qtd:n, opcoes:ops } : null;
+}
+function custoProdutoMax_(pid){ return Math.max(0, ...produtoPrecos.filter(x=>x.produtoId===pid).map(x=>Number(x.custo)||0)); }
+function custoComboComEscolha_(comboId, escolhas, custoPadrao){
+  if(!escolhas || !escolhas.length) return custoPadrao;
+  const fixo = comboItens.filter(ci=>ci.comboId===comboId && !ci.escolha).reduce((s,ci)=>s+ci.quantidade*custoProdutoMax_(ci.produtoId),0);
+  const esc = escolhas.reduce((s,e)=>s+e.quantidade*custoProdutoMax_(e.produtoId),0);
+  return Math.round((fixo+esc)*100)/100;
+}
+function caixaEscolherSabores_(cfg, titulo){
+  return new Promise(resolve=>{
+    const ov = document.createElement('div'); ov.className = 'modal-overlay open'; ov.style.zIndex = 99999;
+    const box = document.createElement('div'); box.className = 'modal-box'; box.style.maxWidth = '420px'; ov.appendChild(box);
+    const q = {}; const fechar = v => { ov.remove(); resolve(v); };
+    const tot = () => Object.keys(q).reduce((s,k)=>s+q[k],0);
+    const pintar = () => {
+      box.innerHTML = '<h3 style="margin-top:0;">' + escH(titulo) + '</h3><p class="sub">Escolha ' + cfg.qtd + ' itens (pode repetir)</p>' +
+        cfg.opcoes.map(o=>`<div class="carrinho-item"><span>${escH(o.nome)}</span><div class="qtd-controle"><button type="button" data-p="${o.produtoId}" data-d="-1">−</button><span>${q[o.produtoId]||0}</span><button type="button" data-p="${o.produtoId}" data-d="1" ${tot()>=cfg.qtd?'disabled':''}>+</button></div></div>`).join('') +
+        `<p class="sub" style="color:${tot()===cfg.qtd?'var(--gold)':'#e74c3c'};">${tot()} de ${cfg.qtd} escolhidos</p>` +
+        `<div class="row2"><button type="button" class="secondary" data-ac="x">Cancelar</button><button type="button" class="primary" data-ac="ok" ${tot()===cfg.qtd?'':'disabled'}>Confirmar</button></div>`;
+      box.querySelectorAll('button[data-p]').forEach(b=>b.onclick=()=>{ const id=b.dataset.p, d=Number(b.dataset.d); if(d>0 && tot()>=cfg.qtd) return; q[id]=Math.max(0,(q[id]||0)+d); pintar(); });
+      box.querySelector('[data-ac="x"]').onclick = ()=>fechar(null);
+      box.querySelector('[data-ac="ok"]').onclick = ()=>{ if(tot()===cfg.qtd) fechar(cfg.opcoes.filter(o=>q[o.produtoId]>0).map(o=>({ produtoId:o.produtoId, quantidade:q[o.produtoId], nome:o.nome }))); };
+    };
+    document.body.appendChild(ov); pintar();
+  });
+}
+async function adicionarComboComEscolha_(comboId, nome, qtd, preco, custo){
+  const cfg = comboEscolhaCfgCaixa_(comboId);
+  if(!cfg){ carrinhoAtual.push({ produtoId: null, comboId, descricao: nome, quantidade: qtd, valorUnitario: preco, custoUnitario: custo, adicionaisIds: [] }); return true; }
+  const novos = [];
+  for(let i=0;i<qtd;i++){
+    const esc = await caixaEscolherSabores_(cfg, nome + (qtd>1 ? ' — ' + (i+1) + ' de ' + qtd : ''));
+    if(!esc) return false;
+    novos.push({ produtoId: null, comboId, descricao: nome + ' (' + esc.map(e=>e.quantidade+'x '+e.nome).join(', ') + ')', quantidade: 1, valorUnitario: preco, custoUnitario: custoComboComEscolha_(comboId, esc, custo), adicionaisIds: [], escolhas: esc });
+  }
+  novos.forEach(n=>carrinhoAtual.push(n));
+  return true;
+}
+async function adicionarItemCarrinho(){
   const qtd = Math.min(QTD_MAX_ITEM_, Math.max(1, Math.floor(Number(document.getElementById('vQtd').value)) || 1));
   if(modoItem === 'produto'){
     const sel = document.getElementById('vProduto');
@@ -710,7 +753,7 @@ function adicionarItemCarrinho(){
     const sel = document.getElementById('vCombo');
     const opt = sel.options[sel.selectedIndex];
     if(!opt || !opt.value){ showMsg('vMsg','Cadastre um combo primeiro.','warn'); return; }
-    carrinhoAtual.push({ produtoId: null, comboId: opt.value, descricao: opt.dataset.nome, quantidade: qtd, valorUnitario: Number(opt.dataset.preco), custoUnitario: Number(opt.dataset.custo), adicionaisIds: [] });
+    if(!await adicionarComboComEscolha_(opt.value, opt.dataset.nome, qtd, Number(opt.dataset.preco), Number(opt.dataset.custo))) return;
   } else {
     const descricao = document.getElementById('vDescManual').value.trim();
     const valorUnitario = Number(document.getElementById('vValorManual').value) || 0;
@@ -902,7 +945,7 @@ function recalcularCarrinhoPorFormasSelecionadas(){
     let maiorPreco = item.valorUnitario, maiorCusto = item.custoUnitario;
     idsFormas.forEach(fid=>{
       const p = item.produtoId ? precoProdutoPorForma(item.produtoId, fid) : precoComboPorForma(item.comboId, fid);
-      if(p.preco > maiorPreco){ maiorPreco = p.preco; maiorCusto = p.custo; }
+      if(p.preco > maiorPreco){ maiorPreco = p.preco; maiorCusto = item.comboId ? custoComboComEscolha_(item.comboId, item.escolhas, p.custo) : p.custo; }
     });
     item.valorUnitario = maiorPreco; item.custoUnitario = maiorCusto;
   });
@@ -1101,7 +1144,7 @@ async function venderEmContingencia_(ctx){
   if(!await confirmarTxt_((ctx.preventivo ? 'O servidor está muito lento (2 falhas seguidas).' : 'O servidor não respondeu.') + '\n\nRegistrar esta venda na CONTINGÊNCIA?\n• Ela fica guardada e entra no sistema quando o servidor voltar (o Admin recebe sozinho ao reabrir o app).\n• Estoque, fidelidade e o total do caixa só atualizam depois disso.\n• Não confirme se a venda já apareceu em Vendas.', 'Registrar na contingência', false, 'Servidor sem resposta', 'Não registrar')) return 'recusou';
   const idRequisicao = ctx.reqConteudo ? reqIdPersist_('venda', ctx.reqConteudo) : novaRequisicao_(); // o MESMO id da tentativa ao servidor: se a venda já tinha entrado, a reconciliação não duplica
   const idFila = 'cx-' + idRequisicao.replace(/[^A-Za-z0-9_-]/g,'');
-  const itens = ctx.carrinho.map(it=>({ produtoId: it.produtoId||undefined, comboId: it.comboId||undefined, descricao: it.descricao, quantidade: it.quantidade, valorUnitario: it.valorUnitario, custoUnitario: it.custoUnitario||0, adicionaisIds: it.adicionaisIds||[] }));
+  const itens = ctx.carrinho.map(it=>({ produtoId: it.produtoId||undefined, comboId: it.comboId||undefined, descricao: it.descricao, quantidade: it.quantidade, valorUnitario: it.valorUnitario, custoUnitario: it.custoUnitario||0, adicionaisIds: it.adicionaisIds||[], escolhas: it.escolhas }));
   const dados = { itens, clienteNome: ctx.clienteNome||'', clienteTelefone: ctx.clienteTelefone||'', pagamentos: ctx.pagamentos, tipoEntrega: ctx.tipoEntrega, dadosEntrega: ctx.dadosEntrega, statusPagamento: ctx.statusPagamento, desconto: null, origem: 'Caixa', requisicaoOriginal: idRequisicao, timestampOriginal: ctx.timestampOriginal || Date.now(), emergenciaOperador: (currentUser && currentUser.emergencia) ? currentUser.login : undefined };
   setBotoesOcupados(true);
   try{

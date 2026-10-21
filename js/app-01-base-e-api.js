@@ -6,7 +6,7 @@ const API_URL = "https://script.google.com/macros/s/AKfycbwCftUm-1pxhA8XLNqMB7dM
 const CONTINGENCIA_API_URL = "https://script.google.com/macros/s/AKfycby3WljBnr7gpJrHdkbTvBCh5uIXqS4KCS6wkBYB5idxf5gI04efoDumQj264kR_smoW/exec";
 
 /* ===================== VERSÃO DO APP ===================== */
-const APP_VERSAO = '1.13';
+const APP_VERSAO = '1.14';
 const APP_ATUALIZADO_EM = '21/10/2026';
 window.APP_VERSAO = APP_VERSAO;
 
@@ -18,6 +18,9 @@ window.APP_VERSAO = APP_VERSAO;
    A seção "🆕 O que mudou" do manual é gerada daqui. */
 const APP_NOVIDADES = {
   Admin: [
+    { v:'1.14', em:'21/10/2026', itens:[
+      'Combo com escolha: no cadastro do combo (Editar), marque em cada produto "opção de escolha do cliente" e diga quantos itens o cliente escolhe (ex.: 3 Smash entre Cheddar, Tasty e Catupiry, podendo repetir). No cardápio e no Caixa o cliente/atendente escolhe os sabores antes de adicionar; o preço do combo continua fixo e o estoque baixa conforme o que foi escolhido. O combo "3 Smash + Guaraná 1L" já está assim.'
+    ]},
     { v:'1.13', em:'21/10/2026', itens:[
       'Preço promocional: em Produtos e em Combos (Editar) há a caixinha "Preço promocional: não aceita desconto nem cupom". Item marcado fica de fora de cupom do cardápio e de desconto do Caixa: o desconto vale só para os outros itens do pedido (o frete grátis de cupom continua valendo). Se o pedido só tem itens marcados, o cupom e o desconto são recusados. Na lista aparece "🏷️ sem desconto/cupom".'
     ]},
@@ -631,9 +634,9 @@ async function sbMontarDados_(nivel, chaves){
     produtos: prods.map(p=>({ id:p.id, nome:p.nome, descricao:p.descricao||'', categoria:p.categoria_id||'', ativo:p.ativo, fotoId:p.foto_id_principal||'', fotoUrl:sbFotoUrl_(p.foto_id_principal), destaque:p.destaque, premioFidelidade:!!p.premio_fidelidade, premioIndicacao:!!p.premio_indicacao, semDesconto:!!p.sem_desconto, estoqueProprioIngredienteId:p.estoque_proprio_ingrediente_id||'', ordemCardapio:Number(p.ordem_cardapio)||0 })),
     produtoPrecos: pprec.map(x=>semCusto({ id:x.id, produtoId:x.produto_id, formaPagamentoId:x.forma_pagamento_id, preco:Number(x.preco), custo:Number(x.custo) })),
     produtoIngredientes: ping.map(x=>({ id:x.id, produtoId:x.produto_id, ingredienteId:x.ingrediente_id, ingredienteNome:nomeIng[x.ingrediente_id]||'', quantidadePorUnidade:Number(x.quantidade_por_unidade) })),
-    combos: combos.map(c=>({ id:c.id, nome:c.nome, categoria:c.categoria_id||'', ativo:c.ativo, fotoId:c.foto_id_principal||'', fotoUrl:sbFotoUrl_(c.foto_id_principal), destaque:c.destaque, semDesconto:!!c.sem_desconto, ordemCardapio:Number(c.ordem_cardapio)||0 })),
+    combos: combos.map(c=>({ id:c.id, nome:c.nome, categoria:c.categoria_id||'', ativo:c.ativo, fotoId:c.foto_id_principal||'', fotoUrl:sbFotoUrl_(c.foto_id_principal), destaque:c.destaque, semDesconto:!!c.sem_desconto, escolhaQtd:Number(c.escolha_qtd)||0, ordemCardapio:Number(c.ordem_cardapio)||0 })),
     comboPrecos: cprec.map(x=>semCusto({ id:x.id, comboId:x.combo_id, formaPagamentoId:x.forma_pagamento_id, preco:Number(x.preco), custo:Number(x.custo) })),
-    comboItens: citens.map(x=>({ id:x.id, comboId:x.combo_id, produtoId:x.produto_id, quantidade:Number(x.quantidade) })),
+    comboItens: citens.map(x=>({ id:x.id, comboId:x.combo_id, produtoId:x.produto_id, quantidade:Number(x.quantidade), escolha:!!x.escolha })),
     adicionais: adic.map(a=>({ id:a.id, nome:a.nome, preco:Number(a.preco)||0, ativo:a.ativo, ingredienteId:a.ingrediente_id||'', quantidadeDesconto:Number(a.quantidade_descontar)||1 })),
     produtoAdicionais: padic.map(x=>({ id:x.id, produtoId:x.produto_id, adicionalId:x.adicional_id })),
     configCardapio: { kicker: sbCfg_(sistema,'CardapioKicker','DELIVERY · SABOR QUE CONQUISTA'), frase: sbCfg_(sistema,'CardapioFrase','Peça pelo cardápio — rápido, sem complicação.'), tempoEntrega: sbCfg_(sistema,'CardapioTempoEntrega','40-60 min'), tempoRetirada: sbCfg_(sistema,'CardapioTempoRetirada','20-30 min'), tempoMesa: sbCfg_(sistema,'CardapioTempoMesa','20-30 min'),
@@ -727,12 +730,12 @@ async function sbCardapioPublico_(){
     ok: true,
     categorias: cats.map(c=>({ id:c.id, nome:c.nome, ativa:true, ordem:Number(c.ordem)||0 })).sort((a,b)=>a.ordem-b.ordem),
     produtos: prods.sort((a,b)=>(a.ordem_cardapio||0)-(b.ordem_cardapio||0)).map(p=>({ id:p.id, nome:p.nome, descricao:p.descricao||'', categoria:p.categoria_id||'', fotoUrl:sbFotoUrl_(p.foto_id_principal), destaque:p.destaque, semDesconto:!!p.sem_desconto })),
-    combos: combos.sort((a,b)=>(a.ordem_cardapio||0)-(b.ordem_cardapio||0)).map(c=>({ id:c.id, nome:c.nome, categoria:c.categoria_id||'', fotoUrl:sbFotoUrl_(c.foto_id_principal), destaque:c.destaque, semDesconto:!!c.sem_desconto })),
+    combos: combos.sort((a,b)=>(a.ordem_cardapio||0)-(b.ordem_cardapio||0)).map(c=>({ id:c.id, nome:c.nome, categoria:c.categoria_id||'', fotoUrl:sbFotoUrl_(c.foto_id_principal), destaque:c.destaque, semDesconto:!!c.sem_desconto, escolhaQtd:Number(c.escolha_qtd)||0 })),
     formasPagamento: formas.sort((a,b)=>(a.ordem||0)-(b.ordem||0)).map(f=>({ id:f.id, nome:f.nome, ativa:true, visivelCardapio:true, acrescimoPct:Number(f.acrescimo_percentual)||0, acrescimoFixo:Number(f.acrescimo_fixo)||0 })),
     produtoPrecos: precos.filter(x=>x.tipo==='produto').map(x=>({ produtoId:x.item_id, formaPagamentoId:x.forma_pagamento_id, preco:Number(x.preco) })),
     comboPrecos: precos.filter(x=>x.tipo==='combo').map(x=>({ comboId:x.item_id, formaPagamentoId:x.forma_pagamento_id, preco:Number(x.preco) })),
     adicionais, produtoAdicionais,
-    comboItens: citens.map(x=>({ comboId:x.combo_id, produtoId:x.produto_id })),
+    comboItens: citens.map(x=>({ comboId:x.combo_id, produtoId:x.produto_id, quantidade:Number(x.quantidade)||1, escolha:!!x.escolha })),
     config: { kicker: cfgv.CardapioKicker || 'DELIVERY · SABOR QUE CONQUISTA', frase: cfgv.CardapioFrase || 'Peça pelo cardápio — rápido, sem complicação.', tempoEntrega: cfgv.CardapioTempoEntrega || '40-60 min', tempoRetirada: cfgv.CardapioTempoRetirada || '20-30 min', tempoMesa: cfgv.CardapioTempoMesa || '20-30 min', taxaEntrega: Number(cfgv.TaxaEntregaPadrao)||0, restaurante: { nome: cfgv.RestauranteNome||'', endereco: cfgv.RestauranteEndereco||'', telefone: cfgv.RestauranteTelefone||'', horario: cfgv.RestauranteHorario||'', redes: cfgv.RestauranteRedes||'' } },
     maisPedidos: maisDb.map(m=>({ tipo:m.tipo, id:m.id })), caixaAberto: !!(st[0] && st[0].caixa_aberto), cardapioBloqueio: (st[0] && st[0].cardapio_bloqueio) || '',
     esgotados: { produtos: esgDb.filter(x=>x.tipo==='produto').map(x=>x.id), combos: esgDb.filter(x=>x.tipo==='combo').map(x=>x.id) }

@@ -464,7 +464,8 @@ function cfCustoCombo(pre){
   let nota = document.getElementById(pre + 'CustoNota');
   if(!nota){ nota = document.createElement('p'); nota.className = 'sub'; nota.id = pre + 'CustoNota'; const row = c.closest('.row2') || c.parentNode; row.parentNode.insertBefore(nota, row.nextSibling); }
   if(lista && lista.length){
-    const v = lista.reduce((s, it) => s + cfNum_(it.quantidade) * cfNum_(precoDisplayProduto(it.produtoId).custo), 0);
+    const _q = pre === 'ko' ? escolhaQtdNovo : escolhaQtdEdicao, _cu = it => cfNum_(precoDisplayProduto(it.produtoId).custo);
+    const v = lista.filter(it=>!it.escolha).reduce((s, it) => s + cfNum_(it.quantidade) * _cu(it), 0) + (_q||0) * Math.max(0, ...lista.filter(it=>it.escolha).map(_cu));
     c.value = (Math.round(v * 100) / 100).toFixed(2); c.readOnly = true;
     nota.textContent = 'Custo = soma dos produtos do combo. Muda sozinho quando o custo deles muda.';
   } else { c.readOnly = false; nota.textContent = ''; }
@@ -651,7 +652,7 @@ async function cfAtualizarCustosItens(lista){
   }catch(err){ return false; }
   (lista || []).forEach(it => {
     if(it.produtoId) it.custoUnitario = cfNum_(precoDisplayProduto(it.produtoId).custo);
-    else if(it.comboId) it.custoUnitario = cfNum_(precoDisplayCombo(it.comboId).custo);
+    else if(it.comboId) it.custoUnitario = custoComboComEscolha_(it.comboId, it.escolhas, cfNum_(precoDisplayCombo(it.comboId).custo));
   });
   return true;
 }

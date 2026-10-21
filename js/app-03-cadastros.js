@@ -366,6 +366,7 @@ function popularSelectProdutosParaCombo(selectId){
   if(!sel) return;
   sel.innerHTML = produtos.filter(p=>p.ativo).map(p=>`<option value="${p.id}" data-nome="${escH(p.nome)}">${escH(p.nome)}</option>`).join('') || '<option value="">Cadastre um produto primeiro</option>';
 }
+let escolhaQtdNovo = 0, escolhaQtdEdicao = 0;
 function adicionarItemAoComboNovo(){
   const sel = document.getElementById('koProdutoSelect');
   const opt = sel.options[sel.selectedIndex];
@@ -377,7 +378,8 @@ function adicionarItemAoComboNovo(){
 }
 function renderItensComboNovo(){
   const box = document.getElementById('koItensLista');
-  box.innerHTML = itensComboNovo.map((it,idx)=>`<div class="ingrediente-row"><span>${it.quantidade}x ${it.produtoNome}</span><button class="rm-row" onclick="itensComboNovo.splice(${idx},1);renderItensComboNovo();">✕</button></div>`).join('') || '<div class="notif-empty">Nenhum produto adicionado ainda.</div>';
+  box.innerHTML = itensComboNovo.map((it,idx)=>`<div class="ingrediente-row"><span>${it.quantidade}x ${it.produtoNome}<label class="fs-xs" style="display:block;font-weight:400;"><input type="checkbox" ${it.escolha?'checked':''} onchange="itensComboNovo[${idx}].escolha=this.checked;renderItensComboNovo();"> opção de escolha do cliente</label></span><button class="rm-row" onclick="itensComboNovo.splice(${idx},1);renderItensComboNovo();">✕</button></div>`).join('') || '<div class="notif-empty">Nenhum produto adicionado ainda.</div>';
+  if(itensComboNovo.some(it=>it.escolha)) box.innerHTML += `<div class="ingrediente-row" style="gap:8px;"><span>O cliente escolhe <input type="number" min="1" max="20" step="1" value="${escolhaQtdNovo||''}" oninput="escolhaQtdNovo=Number(this.value)||0;if(typeof cfCustoCombo==='function')cfCustoCombo('ko');" style="width:64px;display:inline-block;"> itens entre as opções marcadas (pode repetir). O preço do combo continua fixo.</span></div>`;
   if(typeof cfCustoCombo === 'function') cfCustoCombo('ko');
 }
 function adicionarItemAoComboEdicao(){
@@ -391,13 +393,14 @@ function adicionarItemAoComboEdicao(){
 }
 function renderItensComboEdicao(){
   const box = document.getElementById('kkItensLista');
-  box.innerHTML = itensComboEdicao.map((it,idx)=>`<div class="ingrediente-row"><span>${it.quantidade}x ${it.produtoNome}</span><button class="rm-row" onclick="itensComboEdicao.splice(${idx},1);renderItensComboEdicao();">✕</button></div>`).join('') || '<div class="notif-empty">Nenhum produto vinculado.</div>';
+  box.innerHTML = itensComboEdicao.map((it,idx)=>`<div class="ingrediente-row"><span>${it.quantidade}x ${it.produtoNome}<label class="fs-xs" style="display:block;font-weight:400;"><input type="checkbox" ${it.escolha?'checked':''} onchange="itensComboEdicao[${idx}].escolha=this.checked;renderItensComboEdicao();"> opção de escolha do cliente</label></span><button class="rm-row" onclick="itensComboEdicao.splice(${idx},1);renderItensComboEdicao();">✕</button></div>`).join('') || '<div class="notif-empty">Nenhum produto vinculado.</div>';
+  if(itensComboEdicao.some(it=>it.escolha)) box.innerHTML += `<div class="ingrediente-row" style="gap:8px;"><span>O cliente escolhe <input type="number" min="1" max="20" step="1" value="${escolhaQtdEdicao||''}" oninput="escolhaQtdEdicao=Number(this.value)||0;if(typeof cfCustoCombo==='function')cfCustoCombo('kk');" style="width:64px;display:inline-block;"> itens entre as opções marcadas (pode repetir). O preço do combo continua fixo.</span></div>`;
   if(typeof cfCustoCombo === 'function') cfCustoCombo('kk');
 }
 function descricaoItensCombo(comboId){
   return comboItens.filter(it=>it.comboId===comboId).map(it=>{
     const p = produtos.find(x=>x.id===it.produtoId);
-    return it.quantidade+'x '+(p?p.nome:'(produto removido)');
+    return (it.escolha?'':it.quantidade+'x ')+(p?p.nome:'(produto removido)')+(it.escolha?' (opção)':'');
   }).join(', ');
 }
 function popularSelectIngredientes(selectId){
@@ -627,7 +630,7 @@ async function registrarCombo(){
   if(typeof cfConfirmarPrejuizo_ === 'function' && !await cfConfirmarPrejuizo_(nome, precos)) return;
   setBotoesOcupados(true);
   try{
-    const r = await apiCall('addCombo', { nome, categoria, precoBase, custoBase, precos, itens: itensComboNovo, destaque: document.getElementById('koDestaque').checked });
+    const r = await apiCall('addCombo', { nome, categoria, precoBase, custoBase, precos, itens: itensComboNovo, escolhaQtd: itensComboNovo.some(i=>i.escolha) ? escolhaQtdNovo : 0, destaque: document.getElementById('koDestaque').checked });
     combos = r.combos || combos; comboPrecos = r.comboPrecos || comboPrecos; comboItens = r.comboItens || comboItens; salvarCache();
     if(r.ok){
       showMsg('koMsg', r.message, 'ok');
@@ -646,7 +649,7 @@ async function registrarCombo(){
       document.getElementById('koFoto').value = ''; document.getElementById('koFotoPreview').innerHTML = '';
       renderPrecosExcecoes('ko', {}); excecoesPreco.ko = [];
       document.getElementById('koAvancadoBox').style.display = 'none'; document.getElementById('koAvancadoSeta').textContent = '▸';
-      itensComboNovo = []; renderItensComboNovo(); atualizarMargemPreviewCombo();
+      itensComboNovo = []; escolhaQtdNovo = 0; renderItensComboNovo(); atualizarMargemPreviewCombo();
       renderCombos(); renderComboCuradoria(); popularSelectCombos();
     } else { showMsg('koMsg', r.message, 'warn'); }
   } catch(e){ showMsg('koMsg','Não foi possível cadastrar.','warn'); }
@@ -671,7 +674,8 @@ function abrirEditarCombo(id){
   document.getElementById('kkFotoAtual').innerHTML = c.fotoUrl ? `<img src="${fotoSrc_(c.fotoUrl, 400)}" onerror="fotoFalhou_(this)" style="max-width:140px;border-radius:8px;border:1px solid var(--gold);">` : '<span class="txt-muted fs-xs">Nenhuma foto cadastrada.</span>';
   document.getElementById('kkFoto').value = ''; document.getElementById('kkFotoMsg').innerHTML = '';
   popularSelectProdutosParaCombo('kkProdutoSelect');
-  itensComboEdicao = comboItens.filter(v=>v.comboId===id).map(v=>({produtoId:v.produtoId, produtoNome:(produtos.find(p=>p.id===v.produtoId)||{}).nome||'(produto removido)', quantidade:v.quantidade}));
+  itensComboEdicao = comboItens.filter(v=>v.comboId===id).map(v=>({produtoId:v.produtoId, produtoNome:(produtos.find(p=>p.id===v.produtoId)||{}).nome||'(produto removido)', quantidade:v.quantidade, escolha:!!v.escolha}));
+  escolhaQtdEdicao = Number((combos.find(x=>x.id===id)||{}).escolhaQtd)||0;
   renderItensComboEdicao();
   document.getElementById('comboModal').classList.add('open');
 }
@@ -708,7 +712,7 @@ async function salvarEdicaoCombo(){
   try{
     const r = await apiCall('editarCombo', {
       id: comboEditandoId, nome, categoria: document.getElementById('kkCategoria').value,
-      precos: montarPrecosComExcecoes('kk', precoBase, custoBase), itens: itensComboEdicao,
+      precos: montarPrecosComExcecoes('kk', precoBase, custoBase), itens: itensComboEdicao, escolhaQtd: itensComboEdicao.some(i=>i.escolha) ? escolhaQtdEdicao : 0,
       ativo: document.getElementById('kkAtivo').checked, destaque: document.getElementById('kkDestaque').checked
     });
     combos = r.combos || combos; comboPrecos = r.comboPrecos || comboPrecos; comboItens = r.comboItens || comboItens; salvarCache();

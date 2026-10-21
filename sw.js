@@ -6,7 +6,7 @@
    - BACKEND: NADA de Apps Script (script.google.com) nem de Supabase (*.supabase.co) é guardado aqui.
      Dados, pedidos, login e RPCs nunca passam pelo cache do service worker — sempre vão direto para a rede.
    - O único cache de dados é o de fotos (FOTOS) e o da casca/ícones (SHELL/ASSETS). Não adicionar outros. */
-const SHELL = 'texas-shell-v112';
+const SHELL = 'texas-shell-v113';
 const ASSETS = 'texas-assets-v7';   // trocou ícone/logo/manifest/leaflet? suba para v5
 const FOTOS = 'texas-fotos-v1';
 /* Código do app dividido em arquivos (app-*.js e estilo-*.css). Cada arquivo tem ?v=<impressão digital> na página; o cache guarda
@@ -15,21 +15,21 @@ const FOTOS = 'texas-fotos-v1';
 const CODIGO = 'texas-codigo-v3';   // trocou o nome = todo aparelho descarta o cache de código antigo (inclusive cópia vazia)
 const LISTA = [/*LISTA-INICIO*/
   'css/estilo-base.css?v=bb860417',
-  'js/app-01-base-e-api.js?v=07758f85',
+  'js/app-01-base-e-api.js?v=d4f6d685',
   'js/app-02-abas.js?v=6ceee0e2',
-  'js/app-03-cadastros.js?v=30806fa2',
+  'js/app-03-cadastros.js?v=16f83394',
   'js/app-04-pedidos-entrega.js?v=58e9add7',
   'js/app-05-avisos-push.js?v=b139d0ad',
-  'js/app-06-caixa.js?v=b7f5e880',
+  'js/app-06-caixa.js?v=053d29ee',
   'js/app-07-impressao.js?v=5c9f0484',
   'js/app-08-vendas-despesas.js?v=de541e9c',
-  'js/app-09-ajuda.js?v=920a1522',
+  'js/app-09-ajuda.js?v=acbf074b',
   'js/app-10-backup-financeiro.js?v=3b7d8cd1',
   'js/app-11-admin-integracoes.js?v=b2467276',
   'js/app-12-gestao-ia.js?v=c93c8f19',
   'js/app-13-conexao-sync.js?v=4169baef',
   'js/app-14-relatorios.js?v=1e3c69a3',
-  'js/app-15-cardapio-cliente.js?v=2381675c',
+  'js/app-15-cardapio-cliente.js?v=d16db04d',
   'js/app-16-sessao-final.js?v=ef1da8ab',
   'js/app-17-sessao-supabase.js?v=3fdfeb13',
   'js/app-18-queda-supabase.js?v=c3cdfe49',
@@ -41,7 +41,7 @@ const LISTA = [/*LISTA-INICIO*/
   'js/app-22-navegacao-inferior.js?v=9c0835e7',
   'js/app-23-janelas-popup.js?v=6f031891',
   'js/app-24-acessibilidade.js?v=1567f2c1',
-  'js/app-25-cadastro-facil.js?v=1b11178b',
+  'js/app-25-cadastro-facil.js?v=ba581fbe',
   'js/app-26-visual.js?v=3c963d27',
   'css/estilo-conta-pagamento.css?v=c8bbf776',
   'js/app-28-dialogos.js?v=58e2325f',

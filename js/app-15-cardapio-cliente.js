@@ -365,7 +365,7 @@ async function cdMpCancelarReserva_(id){
   if(cdMpReservaAtiva_===id) cdMpReservaAtiva_='';
 }
 function cdMpPayloadPedido_(nome,telefone,tipoEntrega,dadosEntrega,trocoParaObs){
-  const itens=cdCarrinho.map(it=>({produtoId:it.tipo==='produto'?it.id:undefined,comboId:it.tipo==='combo'?it.id:undefined,quantidade:it.qtd,adicionaisIds:it.adicionais.map(a=>a.id),observacao:it.obs||''}));
+  const itens=cdCarrinho.map(it=>({produtoId:it.tipo==='produto'?it.id:undefined,comboId:it.tipo==='combo'?it.id:undefined,quantidade:it.qtd,adicionaisIds:it.adicionais.map(a=>a.id),escolhas:cdEscolhasPayload_(it),observacao:it.obs||''}));
   const brindes=cdBrindes_().map(b=>({tipo:b.tipo,id:b.id,produtoId:b.produtoId}));
   return {requisicaoId:reqIdPersist_('mp_pedido_cardapio',{itens,telefone,forma:cdFormaAtualId_(),tipoEntrega}),itens,clienteNome:nome,clienteTelefone:telefone,tipoEntrega,dadosEntrega,formaPagamentoId:cdFormaAtualId_(),observacaoTroco:trocoParaObs||'',codigoCupom:cdCupomAplicado?cdCupomAplicado.codigo:'',beneficios:brindes,observacoes:(document.getElementById('cdObservacoes')||{}).value.trim()};
 }
@@ -736,7 +736,8 @@ function abrirCdItemModal(tipo, id){
     const ids = (cdDados.produtoAdicionais||[]).filter(pa=>produtoIds.includes(pa.produtoId)).map(pa=>pa.adicionalId);
     adicionaisDoItem = (cdDados.adicionais||[]).filter(a=>ids.includes(a.id));
   }
-  cdItemAtual = { tipo, id, nome: item.nome, precoBase: preco, qtd: 1, adicionaisDisponiveis: adicionaisDoItem, adicionaisEscolhidos: [] };
+  cdItemAtual = { tipo, id, nome: item.nome, precoBase: preco, qtd: 1, adicionaisDisponiveis: adicionaisDoItem, adicionaisEscolhidos: [], escolhaCfg: cdEscolhaCfg_(tipo, id), escolhas: {} };
+  cdRenderEscolhas_();
   document.getElementById('cdItemNome').textContent = item.nome;
   document.getElementById('cdItemDesc').textContent = (item.descricao || '') + (item.semDesconto ? (item.descricao ? ' ' : '') + '🏷️ Preço promocional: não aceita cupom.' : '');
   document.getElementById('cdItemQtd').textContent = '1';
@@ -757,6 +758,36 @@ function abrirCdItemModal(tipo, id){
   }catch(e){}
   document.getElementById('cdItemModal').classList.add('open');
 }
+/* Combo com escolha (ex.: "3 Smash"): o cliente escolhe N itens entre as opções, podendo repetir */
+function cdEscolhaCfg_(tipo, id){
+  if(tipo !== 'combo') return null;
+  const c = (cdDados.combos||[]).find(x=>x.id===id); const n = Number(c && c.escolhaQtd) || 0; if(n <= 0) return null;
+  const ops = (cdDados.comboItens||[]).filter(ci=>ci.comboId===id && ci.escolha).map(ci=>{ const p = (cdDados.produtos||[]).find(x=>x.id===ci.produtoId); return p ? { produtoId: p.id, nome: p.nome } : null; }).filter(Boolean);
+  return ops.length >= 2 ? { qtd: n, opcoes: ops } : null;
+}
+function cdEscolhasLista_(esc, cfg){ return cfg.opcoes.filter(o=>(esc[o.produtoId]||0) > 0).map(o=>({ produtoId: o.produtoId, quantidade: esc[o.produtoId], nome: o.nome })); }
+function cdEscolhasTotal_(esc){ return Object.keys(esc||{}).reduce((s,k)=>s+(esc[k]||0),0); }
+function cdRenderEscolhas_(){
+  let box = document.getElementById('cdItemEscolhas');
+  if(!box){ const ad = document.getElementById('cdItemAdicionais'); box = document.createElement('div'); box.id = 'cdItemEscolhas'; ad.parentNode.insertBefore(box, ad); }
+  const ctrl = document.querySelector('#cdItemModal .cd-qtd-row > .cd-qtd-ctrl'); const btn = document.querySelector('#cdItemModal button.primary');
+  const cfg = cdItemAtual && cdItemAtual.escolhaCfg;
+  if(ctrl) ctrl.style.display = cfg ? 'none' : '';
+  if(!cfg){ box.innerHTML = ''; if(btn) btn.disabled = false; return; }
+  const esc = cdItemAtual.escolhas, tot = cdEscolhasTotal_(esc);
+  box.innerHTML = '<div class="cd-secao-titulo mt-2">Escolha seus ' + cfg.qtd + ' sabores <small class="txt-muted">(pode repetir)</small></div>' +
+    cfg.opcoes.map(o=>`<div class="cd-adicional-linha"><span>${escH(o.nome)}</span><span class="cd-qtd-ctrl"><button type="button" onclick="cdAlterarEscolha_('${o.produtoId}',-1)">−</button><span>${esc[o.produtoId]||0}</span><button type="button" ${tot>=cfg.qtd?'disabled':''} onclick="cdAlterarEscolha_('${o.produtoId}',1)">+</button></span></div>`).join('') +
+    `<div class="obs-line" style="margin-top:6px;color:${tot===cfg.qtd?'var(--gold)':'#e74c3c'};">${tot} de ${cfg.qtd} escolhidos${tot===cfg.qtd?' ✓':''}</div>`;
+  if(btn){ btn.disabled = tot !== cfg.qtd; }
+}
+function cdAlterarEscolha_(pid, d){
+  if(!cdItemAtual || !cdItemAtual.escolhaCfg) return;
+  const e = cdItemAtual.escolhas, tot = cdEscolhasTotal_(e);
+  if(d > 0 && tot >= cdItemAtual.escolhaCfg.qtd) return;
+  e[pid] = Math.max(0, (e[pid]||0) + d); cdRenderEscolhas_();
+}
+function cdEscolhasTexto_(it){ return (it.escolhas && it.escolhas.length) ? it.escolhas.map(x=>x.quantidade+'x '+x.nome).join(', ') : ''; }
+function cdEscolhasPayload_(it){ return (it.escolhas && it.escolhas.length) ? it.escolhas.map(x=>({ produtoId: x.produtoId, quantidade: x.quantidade })) : undefined; }
 function fecharCdItemModal(){ document.getElementById('cdItemModal').classList.remove('open'); cdItemAtual = null; }
 function toggleCdAdicional(adId){
   if(!cdItemAtual) return;
@@ -768,7 +799,7 @@ function toggleCdAdicional(adId){
 }
 function cdAvisoQtdMax_(){ avisar('O máximo é ' + QTD_MAX_ITEM_ + ' unidades por item. Para uma quantidade maior, fale com o restaurante.'); }
 function alterarQtdCdItem(delta){
-  if(!cdItemAtual) return;
+  if(!cdItemAtual || cdItemAtual.escolhaCfg) return;
   if(cdItemAtual.qtd + delta > QTD_MAX_ITEM_){ const q = document.getElementById('cdItemQtd'); if(q){ q.style.color = '#e74c3c'; setTimeout(()=>{ q.style.color = ''; }, 1200); } try{ cdAvisoQtdMax_(); }catch(e){} return; }
   cdItemAtual.qtd = Math.max(1, cdItemAtual.qtd + delta);
   document.getElementById('cdItemQtd').textContent = cdItemAtual.qtd;
@@ -788,7 +819,9 @@ function atualizarCdItemTotal(){
 }
 function confirmarAddCarrinho(){
   if(!cdItemAtual) return;
-  cdCarrinho.push({ tipo: cdItemAtual.tipo, id: cdItemAtual.id, nome: cdItemAtual.nome, precoBase: cdItemAtual.precoBase, qtd: cdItemAtual.qtd, adicionais: cdItemAtual.adicionaisEscolhidos.slice(), obs: ((document.getElementById('cdItemObs')||{}).value||'').trim().slice(0,100) });
+  const _cfg = cdItemAtual.escolhaCfg;
+  if(_cfg && cdEscolhasTotal_(cdItemAtual.escolhas) !== _cfg.qtd){ avisar('Escolha exatamente ' + _cfg.qtd + ' sabores.'); return; }
+  cdCarrinho.push({ escolhas: _cfg ? cdEscolhasLista_(cdItemAtual.escolhas, _cfg) : undefined, tipo: cdItemAtual.tipo, id: cdItemAtual.id, nome: cdItemAtual.nome, precoBase: cdItemAtual.precoBase, qtd: cdItemAtual.qtd, adicionais: cdItemAtual.adicionaisEscolhidos.slice(), obs: ((document.getElementById('cdItemObs')||{}).value||'').trim().slice(0,100) });
   fecharCdItemModal();
   atualizarFabCarrinho();
 }
@@ -818,7 +851,7 @@ function cdSalvarCarrinho_(){
   try{
     if(typeof mesaQr !== 'undefined' && mesaQr) return;
     if(!cdCarrinho.length){ if(_cdCarrinhoOferecido_ || !localStorage.getItem(CD_CARRINHO_KEY_)) { localStorage.removeItem(CD_CARRINHO_KEY_); } return; }
-    localStorage.setItem(CD_CARRINHO_KEY_, JSON.stringify({ em: Date.now(), itens: cdCarrinho.map(it=>({ tipo:it.tipo, id:it.id, qtd:it.qtd, obs:it.obs||'', adicionais:(it.adicionais||[]).map(a=>a.id) })) }));
+    localStorage.setItem(CD_CARRINHO_KEY_, JSON.stringify({ em: Date.now(), itens: cdCarrinho.map(it=>({ tipo:it.tipo, id:it.id, qtd:it.qtd, obs:it.obs||'', adicionais:(it.adicionais||[]).map(a=>a.id), escolhas:cdEscolhasPayload_(it) })) }));
   }catch(e){}
 }
 function cdLerCarrinhoSalvo_(){
@@ -846,7 +879,9 @@ function cdContinuarCarrinhoSalvo_(){
     const item = (lista||[]).find(x=>x.id===i.id);
     if(!item || cdEsgotado_(i.tipo, i.id)){ perdidos++; return; }
     const adicionais = (i.adicionais||[]).map(id=>(cdDados.adicionais||[]).find(a=>a.id===id)).filter(Boolean).map(a=>({ id:a.id, nome:a.nome, preco:Number(a.preco)||0 }));
-    novo.push({ tipo:i.tipo, id:i.id, nome:item.nome, precoBase:cdPrecoDe(i.tipo, i.id)||0, qtd:Math.max(1, Math.min(99, Number(i.qtd)||1)), adicionais, obs:String(i.obs||'').slice(0,100) });
+    const _cfgS = cdEscolhaCfg_(i.tipo, i.id); let escS;
+    if(_cfgS){ const e = {}; (Array.isArray(i.escolhas)?i.escolhas:[]).forEach(x=>{ if(_cfgS.opcoes.some(o=>o.produtoId===x.produtoId)) e[x.produtoId] = Math.max(0, Number(x.quantidade)||0); }); if(cdEscolhasTotal_(e) !== _cfgS.qtd){ perdidos++; return; } escS = cdEscolhasLista_(e, _cfgS); }
+    novo.push({ escolhas: escS, tipo:i.tipo, id:i.id, nome:item.nome, precoBase:cdPrecoDe(i.tipo, i.id)||0, qtd:Math.max(1, Math.min(99, Number(i.qtd)||1)), adicionais, obs:String(i.obs||'').slice(0,100) });
   });
   cdCarrinho = novo; atualizarFabCarrinho();
   if(perdidos) avisar(perdidos + (perdidos===1?' item não está':' itens não estão') + ' mais disponível' + (perdidos===1?'':'is') + ' e ficou de fora. Os preços foram atualizados.');
@@ -928,7 +963,7 @@ function renderCdCarrinho(){
   const htmlBr = brs.map(b=>`<div class="cd-adicional-linha"><span>🎁 1x ${escH(b.nome)} <small class="txt-muted">(${b.tipo==='Fidelidade'?'cartão fidelidade':'indicação'})</small></span><span>${cdFormatarPreco(0)} <button class="link-btn" onclick="contaRemoverBrinde_('${escH(b.chave)}')">remover</button></span></div>`).join('');
   if(!cdCarrinho.length && !brs.length){ cont.innerHTML = '<p class="sub">Seu carrinho está vazio.</p>'; }
   else cont.innerHTML = cdCarrinho.map((it,i)=>`<div class="cd-adicional-linha">
-      <span>${it.qtd}x ${escH(it.nome)}${it.adicionais.length?' ('+it.adicionais.map(a=>escH(a.nome)).join(', ')+')':''}${it.obs?'<br><small class="txt-muted">📝 '+escH(it.obs)+'</small>':''}${cdSemDesc_(it.tipo,it.id)?'<br><small class="txt-muted">🏷️ preço promocional · não aceita cupom</small>':''}</span>
+      <span>${it.qtd}x ${escH(it.nome)}${cdEscolhasTexto_(it)?' <small class="txt-muted">('+escH(cdEscolhasTexto_(it))+')</small>':''}${it.adicionais.length?' ('+it.adicionais.map(a=>escH(a.nome)).join(', ')+')':''}${it.obs?'<br><small class="txt-muted">📝 '+escH(it.obs)+'</small>':''}${cdSemDesc_(it.tipo,it.id)?'<br><small class="txt-muted">🏷️ preço promocional · não aceita cupom</small>':''}</span>
       <span>${cdFormatarPreco(cdPrecoItemCarrinho(it))} <button class="link-btn" onclick="removerDoCarrinho(${i})">remover</button></span>
     </div>`).join('') + htmlBr;
   cdAtualizarTotal_();
@@ -1057,8 +1092,8 @@ async function finalizarPedidoPublico(){
       const idFila = (_idFilaContingencia = _idFilaContingencia || ('cd-' + Date.now() + '-' + Math.random().toString(36).slice(2,8))); // mesmo id em toda nova tentativa: a fila da contingência não duplica
       const itens = cdCarrinho.map(it=>{
         const extra = it.adicionais.reduce((s,a)=>s+a.preco,0);
-        const nomeComAdicionais = it.nome + (it.adicionais.length ? ' + '+it.adicionais.map(a=>a.nome).join(', ') : '') + (it.obs ? ' — Obs: '+it.obs : '');
-        const base = { descricao: nomeComAdicionais, quantidade: it.qtd, valorUnitario: it.precoBase + extra, custoUnitario: 0, adicionaisIds: it.adicionais.map(a=>a.id) };
+        const nomeComAdicionais = it.nome + (cdEscolhasTexto_(it) ? ' ('+cdEscolhasTexto_(it)+')' : '') + (it.adicionais.length ? ' + '+it.adicionais.map(a=>a.nome).join(', ') : '') + (it.obs ? ' — Obs: '+it.obs : '');
+        const base = { descricao: nomeComAdicionais, quantidade: it.qtd, valorUnitario: it.precoBase + extra, custoUnitario: 0, adicionaisIds: it.adicionais.map(a=>a.id), escolhas: cdEscolhasPayload_(it) };
         return it.tipo==='produto' ? Object.assign({produtoId: it.id}, base) : Object.assign({comboId: it.id}, base);
       });
       const total = itens.reduce((s,it)=>s+it.valorUnitario*it.quantidade, 0);
@@ -1093,6 +1128,7 @@ async function finalizarPedidoPublico(){
     comboId: it.tipo==='combo' ? it.id : undefined,
     quantidade: it.qtd,
     adicionaisIds: it.adicionais.map(a=>a.id),
+    escolhas: cdEscolhasPayload_(it),
     observacao: it.obs || ''
   }));
   const beneficios = brindes.map(b=>({ tipo:b.tipo, id:b.id, produtoId:b.produtoId }));
