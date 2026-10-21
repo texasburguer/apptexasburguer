@@ -39,8 +39,11 @@ function setTipoDesconto(tipo){
   atualizarPreviewDesconto();
 }
 function valorDescontoAtualNumero(){ const el = document.getElementById('descValor'); return el ? (Number(el.value) || 0) : 0; }
+/* Itens marcados como "preço promocional" no cadastro não aceitam desconto: ele vale só sobre o resto do carrinho (o servidor confere de novo). */
+function itemSemDesconto_(it){ const l = it && it.comboId ? combos : produtos; const id = it && (it.comboId || it.produtoId); const x = (l||[]).find(y=>y.id===id); return !!(x && x.semDesconto); }
+function baseDescontoCaixa_(){ return Math.round(carrinhoAtual.reduce((s,it)=>s+(itemSemDesconto_(it) ? 0 : it.quantidade*it.valorUnitario),0)*100)/100; }
 function valorDescontoCalculado(){
-  const bruto = totalCarrinho();
+  const bruto = baseDescontoCaixa_();
   const v = valorDescontoAtualNumero();
   if(v<=0) return 0;
   return tipoDescontoAtual==='percentual' ? Math.round(bruto*(v/100)*100)/100 : Math.round(v*100)/100;
@@ -91,7 +94,12 @@ function atualizarPreviewDesconto(){
   if(elTaxaPrev){ elTaxaPrev.style.display = taxaPrev>0 ? '' : 'none'; document.getElementById('descTaxa').textContent = formatarMoeda(taxaPrev); }
   document.getElementById('descTotalFinal').textContent = formatarMoeda(total);
   const msgEl = document.getElementById('descMsg');
-  msgEl.innerHTML = (desc>0 && desc>=bruto) ? '<span class="warn">O desconto não pode zerar ou deixar negativo o total.</span>' : '';
+  const elig = baseDescontoCaixa_(), vSol = valorDescontoAtualNumero();
+  let avisoSd = '';
+  if(vSol>0 && elig<=0) avisoSd = '<span class="warn">Os itens do carrinho têm preço promocional e não aceitam desconto.</span>';
+  else if(vSol>0 && tipoDescontoAtual==='fixo' && vSol>elig+0.005) avisoSd = '<span class="warn">O desconto fixo não pode passar de ' + formatarMoeda(elig) + ' (só vale para itens sem preço promocional).</span>';
+  else if(vSol>0 && elig<bruto-0.005) avisoSd = '<span class="sub">🏷️ O desconto vale só para os itens sem preço promocional (' + formatarMoeda(elig) + ').</span>';
+  msgEl.innerHTML = (desc>0 && desc>=bruto) ? '<span class="warn">O desconto não pode zerar ou deixar negativo o total.</span>' : avisoSd;
   renderPagamentos();
 }
 /* no Caixa, pedido de mesa de Admin/Operador pode ficar na conta ("sair") ou ser pago na hora ("agora"). O Garçom é sempre "sair". */
@@ -828,7 +836,7 @@ function renderCarrinho(){
     const subtotal = it.quantidade*it.valorUnitario;
     total += subtotal;
     return `<div class="carrinho-item">
-      <span>${escH(it.descricao)} — ${formatarMoeda(subtotal)}</span>
+      <span>${escH(it.descricao)}${itemSemDesconto_(it)?' 🏷️':''} — ${formatarMoeda(subtotal)}</span>
       <div class="qtd-controle">
         <button onclick="alterarQtdCarrinho(${idx},-1)">−</button>
         <span>${it.quantidade}</span>
@@ -970,6 +978,11 @@ async function finalizarVenda(){
   if(carrinhoAtual.length===0){ showMsg('vMsg','Adicione ao menos um item ao carrinho.','warn'); return; }
   const valorDesc = valorDescontoCalculado();
   if(valorDesc>0 && valorDesc>=totalCarrinho()){ showMsg('vMsg','O desconto não pode deixar a venda com valor zero ou negativo.','warn'); return; }
+  if(valorDescontoAtualNumero()>0){
+    const eligF = baseDescontoCaixa_();
+    if(eligF<=0){ showMsg('vMsg','Os itens do carrinho têm preço promocional e não aceitam desconto.','warn'); return; }
+    if(tipoDescontoAtual==='fixo' && valorDescontoAtualNumero()>eligF+0.005){ showMsg('vMsg','O desconto fixo não pode passar de ' + formatarMoeda(eligF) + ' (só vale para itens sem preço promocional).','warn'); return; }
+  }
   const total = totalComDesconto();
   const alocado = pagamentosAtuais.reduce((s,p)=>s+(Number(p.valor)||0),0);
   // Mesa "pagar ao sair" não usa o painel de pagamento; todos os outros casos (inclusive mesa "pagar agora") conferem a soma.

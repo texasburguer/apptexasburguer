@@ -473,6 +473,7 @@ function abrirEditarProduto(id){
   document.getElementById('ppAtivo').checked = p.ativo;
   document.getElementById('ppDestaque').checked = !!p.destaque;
   document.getElementById('ppPremioFid').checked = !!p.premioFidelidade;
+  document.getElementById('ppSemDesc').checked = !!p.semDesconto;
   document.getElementById('ppPremioInd').checked = !!p.premioIndicacao;
   const ingredienteProprio = p.estoqueProprioIngredienteId ? estoque.find(e=>e.id===p.estoqueProprioIngredienteId) : null;
   document.getElementById('ppEstoqueProprioAtivo').checked = !!ingredienteProprio;
@@ -542,6 +543,11 @@ async function salvarEdicaoProduto(){
       if(rp && rp.ok){ produtos = rp.produtos || produtos; salvarCache(); }
       else { showMsg('ppMsg', 'Produto salvo, mas o prêmio não foi atualizado: ' + ((rp && rp.message) || 'tente de novo.'), 'warn'); renderProdutos(); return; }
     }
+    if(r.ok && !!document.getElementById('ppSemDesc').checked !== !!pAntes.semDesconto){
+      const rs = await apiCall('editarSemDesconto', { produtoId: produtoEditandoId, semDesconto: document.getElementById('ppSemDesc').checked });
+      if(rs && rs.ok){ produtos = rs.produtos || produtos; if(rs.combos) combos = rs.combos; salvarCache(); }
+      else { showMsg('ppMsg', 'Produto salvo, mas a marca "sem desconto" não foi atualizada: ' + ((rs && rs.message) || 'tente de novo.'), 'warn'); renderProdutos(); return; }
+    }
     if(r.ok){ showMsg('ppMsg', r.message, 'ok'); renderProdutos(); renderProdutoCuradoria(); renderEstoque(); popularSelectProdutos(); try{ renderCombos(); }catch(e){} setTimeout(fecharModalProduto, 700); }
     else showMsg('ppMsg', r.message, 'warn');
   } catch(e){ showMsg('ppMsg','Não foi possível salvar.','warn'); }
@@ -564,7 +570,7 @@ function renderProdutos(){
     const ingredientesDoProduto = produtoIngredientes.filter(v=>v.produtoId===p.id);
     const ingredientesTxt = ingredientesDoProduto.filter(v=>v.ingredienteId!==p.estoqueProprioIngredienteId).map(v=>{ const e = estoque.find(x=>x.id===v.ingredienteId)||{}; const u = e.unidade||'un'; const f = (u==='kg'||u==='l')?1000:1; return (Math.round(Number(v.quantidadePorUnidade)*f*1000)/1000).toLocaleString('pt-BR')+' '+(u==='kg'?'g':(u==='l'?'ml':u))+' '+v.ingredienteNome; }).join(', ');
     const thumb = p.fotoUrl ? `<img src="${fotoSrc_(p.fotoUrl, 100)}" onerror="fotoFalhou_(this)" style="width:34px;height:34px;border-radius:6px;object-fit:cover;vertical-align:middle;margin-right:6px;">` : '';
-    return `<tr class="vs-linha" onclick="abrirEditarProduto('${p.id}')"><td>${thumb}${escH(p.nome)}<span class="obs-line">${nomeCategoria(p.categoria)}${ingredientesTxt?' · '+ingredientesTxt:''}</span></td><td>${formatarMoeda(preco)}</td><td>${custo>0 ? (margem<0 ? '<span class="cf-perda">PREJUÍZO '+formatarMoeda(-margem)+'</span>' : formatarMoeda(margem))+'<span class="obs-line">'+pct.toFixed(0)+'%</span>' : '<span class="cf-sem">custo não informado</span>'}</td>
+    return `<tr class="vs-linha" onclick="abrirEditarProduto('${p.id}')"><td>${thumb}${escH(p.nome)}<span class="obs-line">${nomeCategoria(p.categoria)}${p.semDesconto?' · 🏷️ sem desconto/cupom':''}${ingredientesTxt?' · '+ingredientesTxt:''}</span></td><td>${formatarMoeda(preco)}</td><td>${custo>0 ? (margem<0 ? '<span class="cf-perda">PREJUÍZO '+formatarMoeda(-margem)+'</span>' : formatarMoeda(margem))+'<span class="obs-line">'+pct.toFixed(0)+'%</span>' : '<span class="cf-sem">custo não informado</span>'}</td>
       <td><button type="button" class="ghost vs-mais" aria-label="Ações de ${escH(p.nome)}" onclick="event.stopPropagation();vsAcoesProduto('${p.id}')">⋯</button></td></tr>`;
   }).join('');
 }
@@ -660,6 +666,7 @@ function abrirEditarCombo(id){
   carregarExcecoesExistentes('kk', precosDoCombo, precoBaseAtual);
   document.getElementById('kkAtivo').checked = c.ativo;
   document.getElementById('kkDestaque').checked = !!c.destaque;
+  document.getElementById('kkSemDesc').checked = !!c.semDesconto;
   document.getElementById('kkAvancadoBox').style.display = 'none'; document.getElementById('kkAvancadoSeta').textContent = '▸';
   document.getElementById('kkFotoAtual').innerHTML = c.fotoUrl ? `<img src="${fotoSrc_(c.fotoUrl, 400)}" onerror="fotoFalhou_(this)" style="max-width:140px;border-radius:8px;border:1px solid var(--gold);">` : '<span class="txt-muted fs-xs">Nenhuma foto cadastrada.</span>';
   document.getElementById('kkFoto').value = ''; document.getElementById('kkFotoMsg').innerHTML = '';
@@ -705,6 +712,11 @@ async function salvarEdicaoCombo(){
       ativo: document.getElementById('kkAtivo').checked, destaque: document.getElementById('kkDestaque').checked
     });
     combos = r.combos || combos; comboPrecos = r.comboPrecos || comboPrecos; comboItens = r.comboItens || comboItens; salvarCache();
+    if(r.ok && !!document.getElementById('kkSemDesc').checked !== !!((combos.find(x=>x.id===comboEditandoId)||{}).semDesconto)){
+      const rs = await apiCall('editarSemDesconto', { comboId: comboEditandoId, semDesconto: document.getElementById('kkSemDesc').checked });
+      if(rs && rs.ok){ combos = rs.combos || combos; if(rs.produtos) produtos = rs.produtos; salvarCache(); }
+      else { showMsg('kkMsg', 'Combo salvo, mas a marca "sem desconto" não foi atualizada: ' + ((rs && rs.message) || 'tente de novo.'), 'warn'); renderCombos(); return; }
+    }
     if(r.ok){ showMsg('kkMsg', r.message, 'ok'); renderCombos(); renderComboCuradoria(); popularSelectCombos(); setTimeout(fecharModalCombo, 700); }
     else showMsg('kkMsg', r.message, 'warn');
   } catch(e){ showMsg('kkMsg','Não foi possível salvar.','warn'); }
@@ -722,7 +734,7 @@ function renderCombos(){
     const itensTxt = descricaoItensCombo(c.id);
     const perdaC = (Number(custoC) > 0 && Number(preco) < Number(custoC)) ? '<span class="obs-line cf-perda">PREJUÍZO de '+formatarMoeda(Number(custoC)-Number(preco))+' por venda: o preço está abaixo do custo</span>' : '';
     const thumb = c.fotoUrl ? `<img src="${fotoSrc_(c.fotoUrl, 100)}" onerror="fotoFalhou_(this)" style="width:34px;height:34px;border-radius:6px;object-fit:cover;vertical-align:middle;margin-right:6px;">` : '';
-    return `<tr class="vs-linha" onclick="abrirEditarCombo('${c.id}')"><td>${thumb}${escH(c.nome)}<span class="obs-line">${nomeCategoria(c.categoria)}${itensTxt?' · '+itensTxt:''}</span>${perdaC}</td><td>${formatarMoeda(preco)}</td><td><button type="button" class="ghost vs-mais" aria-label="Ações de ${escH(c.nome)}" onclick="event.stopPropagation();vsAcoesCombo('${c.id}')">⋯</button></td></tr>`;
+    return `<tr class="vs-linha" onclick="abrirEditarCombo('${c.id}')"><td>${thumb}${escH(c.nome)}<span class="obs-line">${nomeCategoria(c.categoria)}${c.semDesconto?' · 🏷️ sem desconto/cupom':''}${itensTxt?' · '+itensTxt:''}</span>${perdaC}</td><td>${formatarMoeda(preco)}</td><td><button type="button" class="ghost vs-mais" aria-label="Ações de ${escH(c.nome)}" onclick="event.stopPropagation();vsAcoesCombo('${c.id}')">⋯</button></td></tr>`;
   }).join('');
 }
 function renderComboCuradoria(){

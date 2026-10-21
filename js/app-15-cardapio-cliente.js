@@ -738,7 +738,7 @@ function abrirCdItemModal(tipo, id){
   }
   cdItemAtual = { tipo, id, nome: item.nome, precoBase: preco, qtd: 1, adicionaisDisponiveis: adicionaisDoItem, adicionaisEscolhidos: [] };
   document.getElementById('cdItemNome').textContent = item.nome;
-  document.getElementById('cdItemDesc').textContent = item.descricao || '';
+  document.getElementById('cdItemDesc').textContent = (item.descricao || '') + (item.semDesconto ? (item.descricao ? ' ' : '') + '🏷️ Preço promocional: não aceita cupom.' : '');
   document.getElementById('cdItemQtd').textContent = '1';
   { const av = document.getElementById('cdItemAvisoAdic'); if(av) av.style.display = 'none'; const ob = document.getElementById('cdItemObs'); if(ob) ob.value = ''; }
   const cont = document.getElementById('cdItemAdicionais');
@@ -795,6 +795,9 @@ function confirmarAddCarrinho(){
 /* Brindes da conta do cliente (cartão fidelidade / indicação): vão no pedido a R$ 0,00; a entrega continua sendo cobrada */
 function cdBrindes_(){ try{ return (!mesaQr && window.contaBrindesEscolhidos_) ? window.contaBrindesEscolhidos_() : []; }catch(e){ return []; } }
 function cdPrecoItemCarrinho(it){ return (it.precoBase + it.adicionais.reduce((s,a)=>s+a.preco,0)) * it.qtd; }
+/* Itens de preço promocional (marcados no cadastro) não entram em cupom: o desconto vale só sobre o resto do carrinho */
+function cdSemDesc_(tipo, id){ const l = tipo==='produto' ? cdDados.produtos : cdDados.combos; const x = (l||[]).find(y=>y.id===id); return !!(x && x.semDesconto); }
+function subtotalElegivelCd_(){ return Math.round(cdCarrinho.reduce((s,it)=>s+(cdSemDesc_(it.tipo,it.id) ? 0 : cdPrecoItemCarrinho(it)),0)*100)/100; }
 function subtotalCarrinhoCd(){ return Math.round(cdCarrinho.reduce((s,it)=>s+cdPrecoItemCarrinho(it),0)*100)/100; }
 function taxaEntregaCdAtual(){ const tipo=(document.getElementById('cdTipoEntrega')||{}).value; const taxa=Number(cdDados.config&&cdDados.config.taxaEntrega)||0; return tipo==='Entrega' && !(cdCupomAplicado&&cdCupomAplicado.freteGratis) ? taxa : 0; }
 function totalSemAcrescimoCd_(){ return Math.round((subtotalCarrinhoCd()+taxaEntregaCdAtual()-Number(cdCupomAplicado&&cdCupomAplicado.desconto||0))*100)/100; }
@@ -925,7 +928,7 @@ function renderCdCarrinho(){
   const htmlBr = brs.map(b=>`<div class="cd-adicional-linha"><span>🎁 1x ${escH(b.nome)} <small class="txt-muted">(${b.tipo==='Fidelidade'?'cartão fidelidade':'indicação'})</small></span><span>${cdFormatarPreco(0)} <button class="link-btn" onclick="contaRemoverBrinde_('${escH(b.chave)}')">remover</button></span></div>`).join('');
   if(!cdCarrinho.length && !brs.length){ cont.innerHTML = '<p class="sub">Seu carrinho está vazio.</p>'; }
   else cont.innerHTML = cdCarrinho.map((it,i)=>`<div class="cd-adicional-linha">
-      <span>${it.qtd}x ${escH(it.nome)}${it.adicionais.length?' ('+it.adicionais.map(a=>escH(a.nome)).join(', ')+')':''}${it.obs?'<br><small class="txt-muted">📝 '+escH(it.obs)+'</small>':''}</span>
+      <span>${it.qtd}x ${escH(it.nome)}${it.adicionais.length?' ('+it.adicionais.map(a=>escH(a.nome)).join(', ')+')':''}${it.obs?'<br><small class="txt-muted">📝 '+escH(it.obs)+'</small>':''}${cdSemDesc_(it.tipo,it.id)?'<br><small class="txt-muted">🏷️ preço promocional · não aceita cupom</small>':''}</span>
       <span>${cdFormatarPreco(cdPrecoItemCarrinho(it))} <button class="link-btn" onclick="removerDoCarrinho(${i})">remover</button></span>
     </div>`).join('') + htmlBr;
   cdAtualizarTotal_();
@@ -1116,8 +1119,8 @@ async function aplicarCupomPublicoUI(){
   const codigo=document.getElementById('cdCupom').value.trim(); const msg=document.getElementById('cdCupomMsg');
   if(!codigo){msg.textContent='Digite o código do cupom.';msg.className='msg warn';return;}
   if(modoContingenciaAtivo){msg.textContent='Cupons ficam indisponíveis durante a contingência. Envie o pedido sem cupom ou tente novamente quando normalizar.';msg.className='msg warn';return;}
-  const telefone=document.getElementById('cdTelefone').value.trim(); const subtotal=subtotalCarrinhoCd(); const tipo=document.getElementById('cdTipoEntrega').value;
-  try{const r=await apiCall('validarCupomCardapio',{codigo,telefone,subtotal,tipoEntrega:tipo,formaPagamentoId:(document.getElementById('cdFormaPagamento')||{}).value||'',itens:cdCarrinho.map(it=>({tipo:it.tipo,id:it.id,qtd:it.qtd,precoBase:it.precoBase}))}); if(r.ok){cdCupomAplicado=r;msg.textContent='Cupom aplicado: '+r.codigo;msg.className='msg ok';document.getElementById('cdCupomResumo').textContent=(r.desconto>0?'Desconto: -R$ '+Number(r.desconto).toFixed(2).replace('.',',')+' · ':'')+(r.freteGratis?'Frete grátis':'');document.getElementById('cdCarrinhoTotal').textContent=cdFormatarPreco(Math.max(0.01,totalCarrinhoCd()));onMudarTipoCdEntrega();}else{cdCupomAplicado=null;msg.textContent=r.message;msg.className='msg warn';document.getElementById('cdCupomResumo').textContent='';}}catch(e){msg.textContent='Não foi possível validar o cupom agora.';msg.className='msg warn';}
+  const telefone=document.getElementById('cdTelefone').value.trim(); const subtotal=subtotalElegivelCd_(); const tipo=document.getElementById('cdTipoEntrega').value;
+  try{const r=await apiCall('validarCupomCardapio',{codigo,telefone,subtotal,tipoEntrega:tipo,formaPagamentoId:(document.getElementById('cdFormaPagamento')||{}).value||'',itens:cdCarrinho.map(it=>({tipo:it.tipo,id:it.id,qtd:it.qtd,precoBase:it.precoBase}))}); if(r.ok && !(Number(r.desconto)>0) && !r.freteGratis && subtotal<=0){cdCupomAplicado=null;msg.textContent='Os itens do carrinho têm preço promocional e não aceitam cupom.';msg.className='msg warn';}else if(r.ok){cdCupomAplicado=r;msg.textContent='Cupom aplicado: '+r.codigo+(subtotal<subtotalCarrinhoCd()?' (vale só para os itens sem preço promocional)':'');msg.className='msg ok';document.getElementById('cdCupomResumo').textContent=(r.desconto>0?'Desconto: -R$ '+Number(r.desconto).toFixed(2).replace('.',',')+' · ':'')+(r.freteGratis?'Frete grátis':'');document.getElementById('cdCarrinhoTotal').textContent=cdFormatarPreco(Math.max(0.01,totalCarrinhoCd()));onMudarTipoCdEntrega();}else{cdCupomAplicado=null;msg.textContent=r.message;msg.className='msg warn';document.getElementById('cdCupomResumo').textContent='';}}catch(e){msg.textContent='Não foi possível validar o cupom agora.';msg.className='msg warn';}
 }
 function cdEnderecoTexto_(){
   const v = id => ((document.getElementById(id)||{}).value||'').trim();
