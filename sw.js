@@ -6,7 +6,7 @@
    - BACKEND: NADA de Apps Script (script.google.com) nem de Supabase (*.supabase.co) é guardado aqui.
      Dados, pedidos, login e RPCs nunca passam pelo cache do service worker — sempre vão direto para a rede.
    - O único cache de dados é o de fotos (FOTOS) e o da casca/ícones (SHELL/ASSETS). Não adicionar outros. */
-const SHELL = 'texas-shell-v110';
+const SHELL = 'texas-shell-v111';
 const ASSETS = 'texas-assets-v7';   // trocou ícone/logo/manifest/leaflet? suba para v5
 const FOTOS = 'texas-fotos-v1';
 /* Código do app dividido em arquivos (app-*.js e estilo-*.css). Cada arquivo tem ?v=<impressão digital> na página; o cache guarda
@@ -15,15 +15,15 @@ const FOTOS = 'texas-fotos-v1';
 const CODIGO = 'texas-codigo-v3';   // trocou o nome = todo aparelho descarta o cache de código antigo (inclusive cópia vazia)
 const LISTA = [/*LISTA-INICIO*/
   'css/estilo-base.css?v=bb860417',
-  'js/app-01-base-e-api.js?v=cb26bf21',
+  'js/app-01-base-e-api.js?v=87299a84',
   'js/app-02-abas.js?v=6ceee0e2',
   'js/app-03-cadastros.js?v=4311d2ff',
   'js/app-04-pedidos-entrega.js?v=58e9add7',
   'js/app-05-avisos-push.js?v=b139d0ad',
   'js/app-06-caixa.js?v=edcbde35',
   'js/app-07-impressao.js?v=5c9f0484',
-  'js/app-08-vendas-despesas.js?v=5b972747',
-  'js/app-09-ajuda.js?v=e39d028b',
+  'js/app-08-vendas-despesas.js?v=de541e9c',
+  'js/app-09-ajuda.js?v=31048655',
   'js/app-10-backup-financeiro.js?v=3b7d8cd1',
   'js/app-11-admin-integracoes.js?v=b2467276',
   'js/app-12-gestao-ia.js?v=c93c8f19',

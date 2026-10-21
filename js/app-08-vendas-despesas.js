@@ -8,6 +8,7 @@ function abrirModalEditarVenda(vendaId){
   document.getElementById('evMotivo').value = '';
   document.getElementById('evSenhaAdmin').value = '';
   document.getElementById('evSenhaAdminBox').style.display = precisaConfirmarAdmin() ? 'block' : 'none';
+  try{ const lb = document.querySelector('label[for="evSenhaAdmin"]'); if(lb) lb.textContent = (currentUser && currentUser.nivel === 'Admin') ? 'Sua senha (confirma a edição) *' : 'Senha do administrador *'; }catch(e){}
   renderItensEdicaoVenda();
   document.getElementById('editarVendaModal').classList.add('open');
 }
@@ -54,6 +55,7 @@ async function salvarEdicaoVenda(){
   const motivo = document.getElementById('evMotivo').value.trim();
   const senhaAdminConfirmacao = document.getElementById('evSenhaAdmin').value;
   if(!motivo){ showMsg('evMsg','Informe o motivo da edição.','warn'); return; }
+  if(precisaConfirmarAdmin() && !senhaAdminConfirmacao){ showMsg('evMsg','Digite a sua senha para confirmar a edição.','warn'); return; }
   if(itensEdicaoVenda.length===0){ showMsg('evMsg','A venda precisa ter ao menos um item.','warn'); return; }
   try{
     const formaDif_ = (document.getElementById('evDifBox').style.display !== 'none' && document.getElementById('evFormaDif').value) || undefined;

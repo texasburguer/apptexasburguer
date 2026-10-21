@@ -19,6 +19,7 @@ window.APP_VERSAO = APP_VERSAO;
 const APP_NOVIDADES = {
   Admin: [
     { v:'1.12', em:'19/10/2026', itens:[
+      'Senha sempre: recusar pedido, excluir cliente, cancelar pagamento de funcionário, cancelar movimento de evento, dar desconto no Caixa e editar venda agora pedem a sua senha também para o Admin.',
       'Login: nova caixinha "Lembrar login e senha neste aparelho" — marcando, o celular oferece salvar a senha no próprio cofre de senhas (o sistema não guarda). Só vale no aparelho em que você marcar.',
       'iFood → produto novo: ao cadastrar um produto que tem preço do iFood, ele é enviado ao iFood já PAUSADO (com a categoria, se faltar) e você recebe um aviso para revisar a foto e ativar em Cardápio no iFood. Os pedidos desse item já chegam ligados ao produto.',
       'Queda do sistema com iFood ligado: a faixa laranja agora avisa que os pedidos do iFood NÃO entram enquanto o sistema estiver fora (fique de olho no tablet/portal do iFood). Na volta o sistema varre sozinho os pedidos do período, avisa Admin e Operador e mostra quantos chegaram e quantos o iFood já cancelou.',
@@ -1341,9 +1342,11 @@ async function sair(){
 }
 
 /* ---------- CONFIRMAÇÃO DE SENHA DE ADMIN (para operador) ---------- */
-function precisaConfirmarAdmin(){ return !currentUser || currentUser.nivel !== 'Admin'; }
+/* Desde 20/10/2026 TODA ação sensível (recusar pedido, excluir cliente, cancelar pagamento/movimento, desconto, editar venda) pede a senha, inclusive para o Admin. */
+function precisaConfirmarAdmin(){ return true; }
 function abrirModalSenhaAdmin(callback){
   senhaAdminCallback = callback;
+  try{ const ehAdmin = currentUser && currentUser.nivel === 'Admin'; const sub = document.querySelector('#senhaAdminModal .sub'), lb = document.querySelector('label[for="senhaAdminInput"]'); if(sub) sub.textContent = ehAdmin ? 'Digite a sua senha para confirmar esta ação.' : 'Essa ação exige a senha de um administrador.'; if(lb) lb.textContent = ehAdmin ? 'Sua senha' : 'Senha do administrador'; }catch(e){}
   document.getElementById('senhaAdminInput').value = '';
   document.getElementById('senhaAdminMsg').className = 'msg';
   document.getElementById('senhaAdminModal').classList.add('open');
