@@ -42,6 +42,7 @@
       + '</div>' + (extra || '') + '</div>';
   }
 
+  window.armBarra_ = barra_;   // as barras dos dois Drives (app-10) usam o mesmo desenho
   let ultimo = null, celulas = null, celulasErro = '', msgHtml = '';   // msgHtml: o resultado da última ação continua na tela depois de atualizar
   window.carregarArmazenamentoArquivo_ = async function(){
     const c = document.getElementById('armArqCorpo'); if(!c) return;
@@ -82,6 +83,9 @@
     h += barra_('📗 Planilha principal', fmtN(pl.celulas), '10.000.000 células', pl.pct,
       '<div class="obs-line fs-xs mt-1">Medido em ' + fmtData(pl.medidoEm) + '.</div>' + celTxt);
 
+    // ---- daqui para baixo: Avançado (recolhido, no fim da tela) ----
+    const av = document.getElementById('armArqAvancado');
+    if(av){ c.innerHTML = h; h = ''; }
     // ---- 4. Caminho dos dados (explicação curta) ----
     h += '<div class="card-inset fs-xs" style="border:1px solid var(--line,#3a2d1d);border-radius:8px;padding:8px 10px;margin:6px 0 12px;">'
       + '<b>Como funciona</b><br>1) Vendas e caixas fechados com mais de ' + fmtN(cfg.arquivarDias) + ' dias saem do banco e vão para o <b>Storage</b> (comprimidos). Só saem depois de o arquivo ser lido de volta e conferido.'
@@ -125,7 +129,7 @@
       + '<button class="ghost" type="button" onclick="armMoverAgora_()">📤 Mandar o arquivo mais antigo para a planilha</button>'
       + '<button class="ghost" type="button" onclick="carregarArmazenamentoArquivo_()">🔄 Atualizar</button></div>'
       + '<div id="armArqMsg" class="mt-2" role="status" aria-live="polite">' + msgHtml + '</div>';
-    c.innerHTML = h;
+    if(av) av.innerHTML = h; else c.innerHTML = h;
   }
 
   const senha_ = () => new Promise(res => abrirModalSenhaAdmin(s => res(s)));

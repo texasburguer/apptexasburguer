@@ -2,24 +2,34 @@
 function escBk_(s){ return escH(s); }
 function formatarBytes_(b){ b=Number(b)||0; if(b<=0) return '—'; const u=['B','KB','MB','GB','TB']; let i=0; while(b>=1024&&i<u.length-1){ b/=1024; i++; } return b.toFixed(i?1:0)+' '+u[i]; }
 function marcarAlertaAdmin_(ativo){ if(!ativo) return; const b=document.querySelector('[data-tab="administrador"]'); if(b) b.classList.add('has-alert'); }
+/* Barra de um Drive na tela Backup e espaço (mesmo desenho do banco, Storage e planilha). Erro sempre aparece. */
+function bkDriveBarra_(boxId, titulo, d, alerta){
+  const box = document.getElementById(boxId); if(!box) return;
+  const total = (Number(d.usado)||0) + (Number(d.livre)||0);
+  const html = (typeof armBarra_ === 'function')
+    ? armBarra_(titulo, formatarBytes_(d.usado), d.livre===null ? '—' : formatarBytes_(total), d.percentual===null ? 0 : d.percentual, alerta ? '<div class="obs-line fs-xs mt-1" style="color:#ffb3ab;">' + alerta + '</div>' : '')
+    : '<b>' + titulo + '</b> ' + formatarBytes_(d.usado) + ' · ' + (d.percentual===null?'—':d.percentual+'%');
+  box.innerHTML = html;
+}
+function bkDriveErro_(boxId, titulo, txt){
+  const box = document.getElementById(boxId); if(!box) return;
+  box.innerHTML = '<div class="arm-bloco" style="margin:10px 0 14px;"><b>' + titulo + '</b><div class="msg warn" role="alert" style="display:block;margin-top:4px;">⚠️ ' + escBk_(txt) + '</div></div>';
+}
 async function carregarArmazenamento(){
-  const res = document.getElementById('driveResumo'), lista = document.getElementById('driveArquivos');
-  if(!res) return;
+  if(!document.getElementById('armDrivePrin')) return;
   try{
     const r = await apiCall('obterArmazenamento', {});
-    if(!r || r.ok===false){ res.innerHTML = '<span class="txt-muted">'+escBk_(r&&r.message||'Indisponível.')+'</span>'; return; }
-    const d = r.drive, cor = {Normal:'#7cc46a','Atenção':'#e0b53a','Crítico':'#e5534b'}[d.nivel] || '#999';
-    const pct = d.percentual===null ? 0 : Math.min(100,d.percentual);
-    res.innerHTML = `<div style="height:12px;background:#3a2c1c;border-radius:6px;overflow:hidden;"><div style="width:${pct}%;height:100%;background:${cor};"></div></div>
-      <div class="mt-2">Usado: <b>${formatarBytes_(d.usado)}</b> · Livre: <b>${d.livre===null?'—':formatarBytes_(d.livre)}</b> · <b style="color:${cor};">${d.percentual===null?'—':d.percentual+'%'} (${escBk_(d.nivel)})</b></div>
-      ${d.nivel==='Crítico'?'<div class="obs-line" style="color:#ffb3ab;margin-top:4px;">⚠️ Drive quase cheio: novos backups e fotos podem falhar. Libere espaço.</div>':d.nivel==='Atenção'?'<div class="obs-line mt-1">Atenção: acima de 70% do espaço.</div>':''}`;
-    sistemaAlertas_.drive = d.nivel==='Crítico' ? ('Google Drive quase cheio ('+d.percentual+'% usado). Libere espaço em Administrador → Sistema → Espaço e arquivamento → Drive e fotos.') : '';
+    if(!r || r.ok===false){ bkDriveErro_('armDrivePrin', '☁️ Drive principal', 'Não foi possível medir: ' + ((r&&r.message)||'sem resposta') + '.'); return; }
+    const d = r.drive;
+    bkDriveBarra_('armDrivePrin', '☁️ Drive principal', d, d.nivel==='Crítico' ? '⚠️ Drive quase cheio: novos backups e fotos podem falhar. Libere espaço.' : '');
+    sistemaAlertas_.drive = d.nivel==='Crítico' ? ('Google Drive quase cheio ('+d.percentual+'% usado). Libere espaço (Administrador → Sistema → Backup e espaço → Avançado → Fotos sem uso).') : '';
     marcarAlertaAdmin_(d.nivel==='Crítico'); renderNotificacoes();
-    const cats = Object.entries(r.categorias).map(([n,v])=>`<tr><td>${escBk_(n)}</td><td align="right">${v.qtd}</td><td align="right">${formatarBytes_(v.bytes)}</td></tr>`).join('');
-    const arqs = (r.arquivos||[]).slice(0,10).map(a=>`<tr><td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;">${escBk_(a.nome)}</td><td>${escBk_(a.categoria)}</td><td align="right">${formatarBytes_(a.tamanho)}</td></tr>`).join('');
-    lista.innerHTML = `<table style="width:100%;border-collapse:collapse;white-space:nowrap;"><thead><tr><th align="left">Categoria</th><th align="right">Arquivos</th><th align="right">Tamanho</th></tr></thead><tbody>${cats}</tbody></table>
-      <div style="margin-top:8px;font-weight:600;">Maiores arquivos</div><table style="width:100%;border-collapse:collapse;white-space:nowrap;"><tbody>${arqs}</tbody></table>`;
-  } catch(e){ res.innerHTML = '<span class="txt-muted">Não foi possível consultar o Drive agora.</span>'; }
+  } catch(e){ bkDriveErro_('armDrivePrin', '☁️ Drive principal', 'Sem conexão para medir o Drive agora. Toque em Atualizar.'); }
+}
+/* Botão Atualizar do cartão "Uso do espaço": mede tudo de novo (banco, Storage, planilha e os dois Drives). */
+function bkAtualizarEspaco_(){
+  try{ if(typeof carregarArmazenamentoArquivo_ === 'function') carregarArmazenamentoArquivo_(); }catch(e){}
+  carregarArmazenamento(); carregarArmazenamentoContingencia();
 }
 
 
@@ -138,26 +148,20 @@ async function carregarStatusContingencia(){
         box.innerHTML = `🟢 Contingência acessível — espelho atualizado em: <b>${idade}</b> · ${pend} venda(s) pendente(s) de reconciliar`;
       }
       carregarArmazenamentoContingencia();
-    } else box.innerHTML = '🔴 Contingência respondeu com erro.';
-  } catch(e){ box.innerHTML = '🔴 Não foi possível falar com a API de contingência agora.'; }
+    } else { box.innerHTML = '🔴 Contingência respondeu com erro.'; bkDriveErro_('armDriveCont', '☁️ Drive da contingência', 'A contingência respondeu com erro; não deu para medir o espaço.'); }
+  } catch(e){ box.innerHTML = '🔴 Não foi possível falar com a API de contingência agora.'; bkDriveErro_('armDriveCont', '☁️ Drive da contingência', 'A contingência não respondeu; não deu para medir o espaço.'); }
 }
 async function carregarArmazenamentoContingencia(){
-  const box = document.getElementById('contingenciaArmazenamento');
-  if(!box) return;
+  const T = '☁️ Drive da contingência';
+  if(!document.getElementById('armDriveCont')) return;
   try{
     const r = await apiCall('obterArmazenamentoContingencia', {});
-    if(!r || r.ok===false){ box.innerHTML = '<span class="txt-muted">Espaço da conta da contingência indisponível: '+escBk_(r&&r.message||'sem resposta')+'</span>'; sistemaAlertas_.driveCont=''; return; }
-    const d = r.drive, cor = {Normal:'#7cc46a','Atenção':'#e0b53a','Crítico':'#e5534b'}[d.nivel] || '#999';
-    const pct = d.percentual===null ? 0 : Math.min(100,d.percentual);
-    const cats = Object.entries(r.categorias||{}).map(([n,v])=>`<tr><td>${escBk_(n)}</td><td align="right">${v.qtd}</td><td align="right">${formatarBytes_(v.bytes)}</td></tr>`).join('');
-    box.innerHTML = `<div style="font-weight:600;margin-bottom:4px;">Espaço da conta da contingência</div>
-      <div style="height:12px;background:#3a2c1c;border-radius:6px;overflow:hidden;"><div style="width:${pct}%;height:100%;background:${cor};"></div></div>
-      <div class="mt-2">Usado: <b>${formatarBytes_(d.usado)}</b> · Livre: <b>${d.livre===null?'—':formatarBytes_(d.livre)}</b> · <b style="color:${cor};">${d.percentual===null?'—':d.percentual+'%'} (${escBk_(d.nivel)})</b></div>
-      ${d.nivel==='Crítico'?'<div class="obs-line" style="color:#ffb3ab;margin-top:4px;">⚠️ Drive da contingência quase cheio: novas cópias de backup e fotos podem ser recusadas. Libere espaço nessa conta.</div>':d.nivel==='Atenção'?'<div class="obs-line mt-1">Atenção: acima de 70% do espaço.</div>':''}
-      <table style="width:100%;border-collapse:collapse;white-space:nowrap;margin-top:6px;"><thead><tr><th align="left">Guardado lá</th><th align="right">Arquivos</th><th align="right">Tamanho</th></tr></thead><tbody>${cats}</tbody></table>`;
+    if(!r || r.ok===false){ bkDriveErro_('armDriveCont', T, 'Não foi possível medir: ' + ((r&&r.message)||'sem resposta') + '.'); sistemaAlertas_.driveCont=''; return; }
+    const d = r.drive;
+    bkDriveBarra_('armDriveCont', T, d, d.nivel==='Crítico' ? '⚠️ Drive da contingência quase cheio: novas cópias de backup e fotos podem ser recusadas. Libere espaço nessa conta.' : '');
     sistemaAlertas_.driveCont = d.nivel==='Crítico' ? ('Drive da conta da contingência quase cheio ('+d.percentual+'% usado). Libere espaço nessa conta.') : '';
     marcarAlertaAdmin_(d.nivel==='Crítico'); renderNotificacoes();
-  } catch(e){ box.innerHTML = '<span class="txt-muted">Não foi possível consultar o espaço da contingência agora.</span>'; }
+  } catch(e){ bkDriveErro_('armDriveCont', T, 'Sem conexão para medir o Drive da contingência agora. Toque em Atualizar.'); }
 }
 async function sincronizarContingenciaUI(){
   showMsg('contingenciaMsg','Sincronizando espelho (produtos, preços, clientes)... pode levar alguns segundos.','ok');

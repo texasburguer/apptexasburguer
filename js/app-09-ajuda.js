@@ -75,7 +75,7 @@ Admin:{ nome:'Administrador', secoes:[
 
   { t:'Onde fica cada coisa', itens:[
     'Ao tocar em Admin, nada abre sozinho: aparecem só os 6 grupos; toque num grupo para ver as telas dele e depois na tela que quer abrir.',
-    'A aba Administrador tem uma barra dividida em 6 grupos: Hoje (Visão Geral, Ocorrências, Feedbacks); Dinheiro (Contas a pagar e despesas, Histórico, Reembolsos e ajustes, Previsto e metas, Relatórios e DRE); Produtos (Produtos, combos e adicionais, Estoque, Compras e fornecedores, Custos e precificação); Vendas e cardápio (Cardápio Digital, Formas de pagamento, Promoções e cupons, Eventos); Loja e equipe (Mesas e QR Codes, Entregadores e taxas, Equipe e pagamentos, Escala da equipe, Usuários e permissões, Configurar avisos); Sistema (Backup e cópias, Espaço e arquivamento, Integrações e contas, Auditoria, mais o botão Saúde do sistema).',
+    'A aba Administrador tem uma barra dividida em 6 grupos: Hoje (Visão Geral, Ocorrências, Feedbacks); Dinheiro (Contas a pagar e despesas, Histórico, Reembolsos e ajustes, Previsto e metas, Relatórios e DRE); Produtos (Produtos, combos e adicionais, Estoque, Compras e fornecedores, Custos e precificação); Vendas e cardápio (Cardápio Digital, Formas de pagamento, Promoções e cupons, Eventos); Loja e equipe (Ponto, Escala da equipe, Equipe e pagamentos, Entregadores e taxas, Mesas e QR Codes, Usuários e permissões, Configurar avisos); Sistema (Integrações e contas, Auditoria, Backup e espaço). A Saúde do sistema abre pela bolinha colorida do topo.',
     'O campo “Ir para…”, no topo do menu, acha uma tela pelo nome ou por uma palavra (ex.: cupom, estoque, iFood, reembolso). Toque na tela que aparecer.',
     'Cada tela do menu traz embaixo do nome uma linha explicando o que ela faz.',
     'Caixa, Pedidos, Entregas e Clientes funcionam como nos outros perfis, e você pode tudo.' ],
@@ -244,7 +244,7 @@ Admin:{ nome:'Administrador', secoes:[
     'Cliente que estava com o cupom no carrinho vê "Esse cupom não está mais disponível" e o total sem o desconto.' ] },
 
   { t:'🧹 Limpar fotos sem uso do Google Drive', itens:[
-    'Administrador → Sistema → Espaço e arquivamento → aba Drive e fotos → "🔍 Analisar fotos sem uso". Nada é apagado nesta etapa.',
+    'Administrador → Sistema → Backup e espaço → Avançado (no fim da tela) → "🔍 Analisar fotos sem uso". Nada é apagado nesta etapa.',
     'Aparecem dois blocos: Drive principal e Drive da contingência, com quantas fotos estão sem uso, quanto espaço libera e o motivo (sem produto/combo, duplicada, cópia que não é mais usada).',
     'Desmarque o que quiser manter e toque em "Mandar as marcadas para a lixeira do Drive" (pede a senha). O sistema confere de novo, na hora, que nenhuma está em uso. Até 200 fotos por vez: repita se precisar.',
     'Nunca entram: fotos de produtos e combos, as do histórico de fotos, as que o Espelho da contingência ainda usa, as com menos de 7 dias, comprovantes de nota e fotos do ponto.',
@@ -252,7 +252,7 @@ Admin:{ nome:'Administrador', secoes:[
     'Não roda durante um backup (o sistema avisa e não apaga nada).' ] },
 
   { t:'📦 Armazenamento (banco, Storage e planilha)', prints:[{id:'adm-armazenamento',alt:'Tela Armazenamento com as barras do banco, do Storage e da planilha',leg:'Cada barra mostra o uso, quanto cresce por dia e a previsão de quando chega a 95% (1).'}], itens:[
-    'Onde: Administrador → Sistema → Espaço e arquivamento → aba "Uso". Mostra três barras: banco do Supabase, Storage (arquivos) e planilha principal, com quanto cresce por dia e quanto tempo falta para chegar a 95%.',
+    'Onde: Administrador → Sistema → Backup e espaço → cartão "Uso do espaço" (no topo). Mostra cinco barras: banco do Supabase, Storage (arquivos), planilha principal, Drive principal e Drive da contingência, com quanto cresce por dia e quanto tempo falta para chegar a 95%.',
     'Pedidos e caixas fechados antigos saem do banco e vão para o Storage, comprimidos. Antes de sair, o arquivo é lido de volta e a contagem tem de bater; se não bater, nada sai.',
     'Se o Storage chegar a 95%, o arquivo mais antigo vai para a planilha (um por hora) até voltar a 80%. Fica num arquivo por ano, "Texas Burger - Arquivo AAAA", para a planilha principal não encher. Avisos no celular em 70% e 85%.',
     'Às 05:30 a compactação devolve o espaço ao Supabase. Às 06:00 o sistema mede quanto liberou; na lista "Últimas execuções" aparece o que cada arquivamento liberou, ou "não diminuiu" (com aviso no celular).',
@@ -453,12 +453,12 @@ Admin:{ nome:'Administrador', secoes:[
     'Um aviso laranja fixo no topo mostra "MODO EMERGÊNCIA". Um vigia testa o servidor a cada 30 s. Assim que ele responde, o app pede login de novo.',
     'Errar a senha 5 vezes no modo emergência bloqueia por 5 minutos.' ]},
 
-  { t:'Contingência e modo reserva', prints:[{id:'adm-sync',alt:'Administrador, Sistema, Backup e cópias',leg:'Planilha de contingência e o botão Sincronizar espelho agora (1).'}], itens:[
+  { t:'Contingência e modo reserva', prints:[{id:'adm-sync',alt:'Administrador, Sistema, Backup e espaço',leg:'Planilha de contingência e o botão Sincronizar espelho agora (1).'}], itens:[
     'O Supabase é o servidor principal; a planilha principal é a reserva e a planilha de contingência é o último recurso. Se o Supabase cai, o modo reserva segura o app e a contingência segura o cardápio e as vendas.',
     'No modo reserva: faixa laranja no topo e cartão "Pedidos na reserva (somente consulta)" em Pedidos. Mostra o que estava em andamento no último espelho e o que entrou na fila da contingência.',
     'Ao voltar, o Admin recebe sozinho as vendas da contingência. Falhas ficam na tela de Contingência.',
     'Tempo real (WebSocket) e modo reserva são automáticos.',
-    'Administrador → Sistema → Backup e cópias: mostra o uso de espaço da planilha de contingência, "🔄 Sincronizar espelho agora" e "⬇️ Trazer vendas pendentes da contingência".',
+    'Administrador → Sistema → Backup e espaço → cartão Contingência: "🔄 Sincronizar espelho agora" e "⬇️ Trazer vendas pendentes da contingência". O espaço do Drive da contingência aparece no cartão "Uso do espaço", no topo.',
     'O espelho da contingência (cardápio, preços, clientes e pedidos em andamento) se atualiza sozinho a cada 10 minutos e por completo todo dia às 3h. Não há nada para ligar.',
     'Na mesma tela, "Cópia na planilha principal" mostra quantos itens faltam ir para a planilha (o cardápio, os clientes e as vendas vão a cada 2 minutos).' ]},
 
@@ -492,7 +492,7 @@ Admin:{ nome:'Administrador', secoes:[
     'Em "Dados completos do período" baixe Vendas, Itens vendidos ou Despesas. Meses já arquivados entram sozinhos (as despesas só se estiverem no app). O arquivo abre direto no Excel, com acentos corretos.' ]},
 
   { t:'Arquivamento e uso do banco', itens:[
-    'Administrador → Sistema → Espaço e arquivamento → aba "Arquivamento".',
+    'Administrador → Sistema → Backup e espaço → Avançado (no fim da tela).',
     'Em "Tamanho do banco do seu plano", informe o plano do Supabase: Grátis (500 MB), Pro (8 GB) ou outro tamanho (confira no painel do Supabase). A porcentagem de uso e a proteção abaixo usam esse número. Se você pagar o Supabase, atualize aqui.',
     'Em "Arquivamento por idade" escolha: Automático (todo dia de madrugada, vendas e caixas fechados com mais de X dias vão para a planilha, abas Arquivo_*) ou Só manual (o sistema não arquiva sozinho; você manda quando quiser em "Mandar para a planilha agora"). O prazo é livre: digite quantos dias quer manter no Supabase (mínimo 30). "Simular" mostra o que sairia sem mover nada.',
     '"Proteção de espaço" (sempre ligada, não dá para desligar nem mudar): quando o banco chegar a 95% do tamanho do plano, o sistema manda para a planilha, aos poucos (até 1.000 vendas por hora), as vendas e caixas já encerrados, do mais antigo para o mais novo, e minutos depois devolve o espaço ao Supabase. O que tem menos de 1 dia, os pedidos em andamento e o caixa aberto nunca saem; só apaga o que a planilha confirmou. Aos 70% e aos 85% você recebe aviso.',
@@ -508,8 +508,8 @@ Admin:{ nome:'Administrador', secoes:[
     '"O que precisa comprar?" — sugestão de compras pelo consumo.',
     '"Como cancelo uma venda?" / "Como fecho o caixa?" — passo a passo do manual.' ]},
 
-  { t:'Backup e armazenamento', prints:[{id:'adm-backup',alt:'Administrador, Sistema, Backup e cópias',leg:'Backup do Supabase (1), uso do banco e arquivamento mais abaixo.'}], passos:[
-    'Administrador → Sistema → Backup e cópias → "Fazer backup agora" (começa na hora, sem pergunta).',
+  { t:'Backup e armazenamento', prints:[{id:'adm-backup',alt:'Administrador, Sistema, Backup e espaço',leg:'Backup do Supabase (1), uso do banco e arquivamento mais abaixo.'}], passos:[
+    'Administrador → Sistema → Backup e espaço → "Fazer backup agora" (começa na hora, sem pergunta).',
     'Ative o backup automático e escolha o horário e a retenção (por quantos dias guardar).',
     'Para restaurar, escolha o backup no histórico e confirme com sua senha de administrador.',
     'Para apagar um backup, toque em "Excluir" no histórico e confirme com a sua senha de administrador.',
@@ -547,7 +547,7 @@ Admin:{ nome:'Administrador', secoes:[
     'Voltar para a visão normal: selecione "Admin (visão normal)".',
     'Auto-teste da Ajuda (também no console): testarAjuda_() — valida os 7 manuais em sequência e devolve o resultado.',
     'Painel de uso da IA (custo, erros e cota): dentro do balão (✨) → "Uso da IA". A IA de análise de código do Desenvolvedor foi retirada.',
-    'Diagnóstico do sistema: Administrador → Sistema → Backup e cópias → "Conferência de integridade". Somente leitura.',
+    'Diagnóstico do sistema: Administrador → Sistema → Backup e espaço → "Conferência de integridade". Somente leitura.',
     'Ao criar/editar usuário Desenvolvedor: você cria como qualquer outro, mas depois de criado o acesso fica travado. Nem você nem ele excluem. Só o próprio Desenvolvedor edita a senha.',
     'O servidor sempre confere o nível de quem pede; não adianta forçar "Ver como" para ganhar acesso.' ]},
 

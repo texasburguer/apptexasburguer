@@ -43,7 +43,7 @@ const ADMIN_GRUPOS = [
   { nome:'Produtos',           ico:'catalogo',   subs:['produtos', 'estoque', 'compras', 'custosprecificacao'] },
   { nome:'Vendas e cardápio',  ico:'campanhas',  subs:['cardapiodigital', 'pagamentos', 'promocoes', 'eventos'] },
   { nome:'Loja e equipe',      ico:'operacao',   subs:['ponto', 'escala', 'equipe', 'taxasentregas', 'restaurante', 'usuarios', 'notifadmin'] },
-  { nome:'Sistema',            ico:'sistema',    subs:['contas', 'auditoria', 'integridade', 'armazenamento'] }
+  { nome:'Sistema',            ico:'sistema',    subs:['contas', 'auditoria', 'integridade'] }
 ];
 const ADMIN_SUBABAS = ADMIN_GRUPOS.reduce((a,g)=>a.concat(g.subs), []);
 /* a barra do Administrador existia copiada em 13 telas. Agora há UMA definição, desenhada em todas. */
@@ -53,7 +53,7 @@ const ADMIN_SUBABAS_ROTULOS = {
   produtos:'Produtos, combos e adicionais', estoque:'Estoque', compras:'Compras e fornecedores', custosprecificacao:'Custos e precificação',
   cardapiodigital:'Cardápio Digital', pagamentos:'Formas de pagamento', promocoes:'Promoções e cupons', eventos:'Eventos',
   restaurante:'Mesas e QR Codes', taxasentregas:'Entregadores e taxas', equipe:'Equipe e pagamentos', escala:'Escala da equipe', ponto:'Ponto', usuarios:'Usuários e permissões', notifadmin:'Configurar avisos',
-  contas:'Integrações e contas', armazenamento:'Espaço e arquivamento', integridade:'Backup e cópias', auditoria:'Auditoria'
+  contas:'Integrações e contas', integridade:'Backup e espaço', auditoria:'Auditoria'
 };
 const ADMIN_GRUPOS_OPERADOR_ = [ { nome:'Atendimento', ico:'atendimento', subs:['ocorrencias', 'feedbacks'] } ];
 function gruposAdmin_(){ return (currentUser && currentUser.nivel==='Operador') ? ADMIN_GRUPOS_OPERADOR_ : ADMIN_GRUPOS; }
@@ -64,7 +64,7 @@ const ADMIN_SUBABAS_DESCRICOES = {
   produtos:'Cadastro de produtos, combos e adicionais', estoque:'Ingredientes, bebidas e movimentações', compras:'Registrar compras e fornecedores', custosprecificacao:'Simular custo e preço de venda',
   cardapiodigital:'O que o cliente vê no cardápio: dados, visual, ordem e destaques', pagamentos:'Taxas, prazos, troco e o que aparece no cardápio', promocoes:'Cupons e cupons automáticos', eventos:'Custos e recebimentos por evento',
   restaurante:'Mesas do salão e QR Codes', taxasentregas:'Taxa, ajuda diária e fechamento dos entregadores', equipe:'Funcionários, salários, pagamentos, encargos e recibos', escala:'Quem trabalha em cada dia e horário', ponto:'Entradas e saídas, horas feitas e horas extras', usuarios:'Quem acessa o sistema, o que pode fazer e a privacidade (LGPD) das contas', notifadmin:'Quais avisos ligam, para quem, e os alertas automáticos',
-  contas:'iFood, Nota fiscal, Mercado Pago, chaves das IAs e contas do sistema', armazenamento:'Quanto falta para encher, arquivamento, Drive e fotos sem uso', integridade:'Backup, cópia nas planilhas, contingência e conferência', auditoria:'Ações sensíveis registradas'
+  contas:'iFood, Nota fiscal, Mercado Pago, chaves das IAs e contas do sistema', integridade:'Uso do espaço, backup, cópia na planilha e contingência', auditoria:'Ações sensíveis registradas'
 };
 function adminBtnTxt_(id){
   const d = ADMIN_SUBABAS_DESCRICOES[id];
@@ -79,7 +79,7 @@ const ADMIN_BUSCA_PALAVRAS_ = {
   custosprecificacao:'calculadora margem custo preco simulador', cardapiodigital:'cardapio online cliente qr logo banner horario fechamento dados do restaurante razao social cnpj', pagamentos:'pix cartao credito debito dinheiro taxa troco prazo online ifood',
   promocoes:'cupom desconto indicacao fidelidade brinde', eventos:'evento festa',
   restaurante:'mesa qr code salao', taxasentregas:'entregador motoboy frete taxa ajuda diaria fechamento', ponto:'ponto bater entrada saida horas extras banco de horas atraso esqueceu', escala:'troca de turno trocar escala turno horario folga ferias falta atestado quem trabalha semana padrao escalar', equipe:'funcionario funcionarios salario pagamento folha pagar recibo encargos fgts inss ferias decimo terceiro adiantamento vale diaria comissao equipe', usuarios:'usuario login senha acesso perfil garcom cozinha operador permissao lgpd privacidade anonimizar aviso', notifadmin:'aviso notificacao alerta push pedido parado vencimento repetir',
-  contas:'ifood nota fiscal nfce mercado pago ia chave gemini groq senha conta email supabase github integracao', armazenamento:'drive foto fotos espaco storage arquivo arquivar arquivamento banco planilha celulas compactacao vacuum previsao plano limite', integridade:'backup restaurar sincronizar sincronizacao contingencia planilha espelho integridade conferir copia',
+  contas:'ifood nota fiscal nfce mercado pago ia chave gemini groq senha conta email supabase github integracao', integridade:'backup restaurar sincronizar sincronizacao contingencia planilha espelho integridade conferir copia drive foto fotos espaco storage arquivo arquivar arquivamento banco celulas compactacao vacuum previsao plano limite uso',
   auditoria:'log registro historico acao'
 };
 function adminNorm_(t){ return String(t==null?'':t).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim(); }
@@ -150,7 +150,7 @@ function ativarApenasSecao_(id){
 }
 /* Abas internas: mostra só os cards marcados com data-painel="nome" (um card pode ter mais de um nome, separados por espaço).
    Cards sem data-painel ficam sempre visíveis. Lembra a última aba escolhida em cada tela. */
-const _abaInterna_ = { 'tab-produtos':'produtos', 'tab-cardapiodigital':'categorias', 'tab-historico':'vendas', 'tab-contas':'contas', 'tab-pagamentos':'taxas', 'tab-armazenamento':'uso' };
+const _abaInterna_ = { 'tab-produtos':'produtos', 'tab-cardapiodigital':'categorias', 'tab-historico':'vendas', 'tab-contas':'contas', 'tab-pagamentos':'taxas' };
 function abaInterna_(tabId, q){
   const sec = document.getElementById(tabId); if(!sec) return;
   _abaInterna_[tabId] = q;
@@ -161,15 +161,16 @@ function abaInterna_(tabId, q){
 function abrirCadastro_(aba){ _abaInterna_['tab-produtos'] = aba; abrirAdministrador('produtos'); }
 function abrirAdministrador(sub){
   if(['ias','ifood','nfce','mercadopago','infinitepay'].includes(sub)){ _abaInterna_['tab-contas'] = sub; sub = 'contas'; }   // atalho direto para o sub-menu
-  if(sub === 'drive'){ _abaInterna_['tab-armazenamento'] = 'drive'; sub = 'armazenamento'; }   // Drive e fotos: aba de "Espaço e arquivamento"
-  if(sub === 'arquivo'){ _abaInterna_['tab-armazenamento'] = 'uso'; sub = 'armazenamento'; }   // "Armazenamento" virou a aba "Uso" de "Espaço e arquivamento"
+  // v1.16: "Espaço e arquivamento" (e suas abas Uso/Arquivamento/Drive e fotos) entrou na tela "Backup e espaço"
+  let _bkAbrirAvancado = false;
+  if(sub === 'drive' || sub === 'armazenamento' || sub === 'arquivo'){ _bkAbrirAvancado = (sub === 'drive'); sub = 'integridade'; }
   const permitidos = gruposAdmin_().reduce((a,g)=>a.concat(g.subs), []);
   const alvo = (ADMIN_SUBABAS.includes(sub) && permitidos.includes(sub)) ? sub : permitidos[0];
   montarBarrasAdmin_(alvo);
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
   document.querySelector('[data-tab="administrador"]').classList.add('active');
   ativarApenasSecao_('tab-'+alvo);
-  if(alvo==='armazenamento' && apiConfigurada()){ carregarArmazenamento(); if(typeof carregarArmazenamentoArquivo_ === 'function') carregarArmazenamentoArquivo_(); }
+  if(alvo==='integridade'){ const av = document.getElementById('bkAvancado'); if(av && _bkAbrirAvancado) av.open = true; if(apiConfigurada()){ carregarArmazenamento(); if(typeof carregarArmazenamentoArquivo_ === 'function') carregarArmazenamentoArquivo_(); } }
   if(alvo==='ifoodfin' && apiConfigurada() && typeof carregarIfoodFin_ === 'function') carregarIfoodFin_();   // v1.15: financeiro do iFood   // v1.15: tela Armazenamento
   if(_abaInterna_['tab-'+alvo]) abaInterna_('tab-'+alvo, _abaInterna_['tab-'+alvo]);
   if((alvo==='visaogeral' || alvo==='relatorios') && apiConfigurada()) sincronizarEmSegundoPlano(); // ITEM 92: atualiza ao entrar, sem refresh periódico

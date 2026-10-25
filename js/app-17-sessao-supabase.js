@@ -19,9 +19,9 @@ const sb410Fmt_ = iso => iso ? new Date(iso).toLocaleString('pt-BR') : '—';
 const sb410Admin_ = () => !!currentUser && currentUser.nivel === 'Admin';
 const sb410Gestor_ = () => !!currentUser && (currentUser.nivel === 'Admin' || currentUser.nivel === 'Operador');
 
-/* ---------- cartões (criados uma vez; ficam em Backup e cópias e em Espaço e arquivamento) ---------- */
+/* ---------- cartões (criados uma vez; ficam na tela única Backup e espaço) ---------- */
 function sb410Montar_(){
-  const aba = document.getElementById('tab-armazenamento');
+  const aba = document.getElementById('tab-integridade');
   if(!aba || !USAR_SUPABASE_ || document.getElementById('sb410Sync')) return;
   aba.insertAdjacentHTML('beforeend', `
   <div class="card" id="sb410Sync"><h2>Cópia na planilha principal</h2><p class="sub">O cardápio, os clientes e as vendas são copiados para a planilha a cada 2 minutos, sozinhos.</p><div id="sb410SyncBox">Carregando…</div>
@@ -40,26 +40,23 @@ function sb410Montar_(){
     </div>
     <div id="sb410BkBox">Carregando…</div>
     <button class="small-gold" style="width:100%;padding:10px;margin-top:8px;" onclick="sb410BkAgora()">Fazer backup agora</button></div>
-  <div class="card" id="sb410Esp" data-painel="arquivamento"><h2>Uso do Supabase e arquivamento</h2><div id="sb410EspBox">Carregando…</div></div>
+  <div id="sb410Esp"><h3 style="font-size:16px;margin:10px 0 4px;">🗄️ Plano do Supabase e arquivamento</h3><div id="sb410EspBox">Carregando…</div></div>
   <div class="card" id="sb410Integ"><h2>Conferência de integridade</h2>
     <p class="sub">Compara as vendas de hoje no Supabase com a planilha (a conferência automática, às 6h10, confere o dia anterior).</p>
     <button class="ghost" style="width:100%;padding:10px;" onclick="sb410Integ()">Conferir agora</button><div class="msg" id="sb410IntegMsg"></div></div>`);
-  const mover = (id, destino) => { const c = document.getElementById(id), d = document.getElementById('tab-'+destino); if(c && d && c.parentNode !== d) d.appendChild(c); };
-  mover('sb410Sync','integridade'); mover('sb410Integ','integridade'); mover('sb410Bk','integridade');
-  // Backup e cópias: Backup, cópia na planilha principal, contingência e, por último, a conferência de integridade
-  { const ti = document.getElementById('tab-integridade'), cc = document.getElementById('contCard');
-    if(ti && cc){ ['sb410Bk','sb410Sync'].forEach(id=>{ const e = document.getElementById(id); if(e) ti.insertBefore(e, cc); }); const ie = document.getElementById('sb410Integ'); if(ie) ti.appendChild(ie); } }
-  // Espaço e arquivamento: abas Uso, Arquivamento (este cartão) e Drive e fotos
-  mover('sb410Esp','armazenamento');
-  { const dc = document.getElementById('driveCard'), ta = document.getElementById('tab-armazenamento'); if(dc && ta) ta.appendChild(dc); }
-  try{ abaInterna_('tab-armazenamento', _abaInterna_['tab-armazenamento'] || 'uso'); }catch(e){}
+  // Ordem da tela: Uso do espaço, Backup, Cópia na planilha, Contingência, Conferência e, por último, Avançado (recolhido)
+  const sit = document.getElementById('bkSituacao'), cc = document.getElementById('contCard'), av = document.getElementById('bkAvancado');
+  const por = (id, ref) => { const e = document.getElementById(id); if(e && ref && ref.parentNode === aba) aba.insertBefore(e, ref); };
+  if(sit && sit.parentNode === aba) aba.insertBefore(sit, aba.querySelector('.card'));
+  por('sb410Bk', cc); por('sb410Sync', cc); por('sb410Integ', av);
+  { const e = document.getElementById('sb410Esp'), d = document.getElementById('bkAvancadoEsp'); if(e && d) d.appendChild(e); }
 }
 function sb410Carregar_(){
   sb410Montar_();
   try{ const s = document.getElementById('tab-integridade'); if(s && s.classList.contains('active')) contAbrirTela_(); }catch(e){}
   try{ // no servidor novo os cartões antigos (planilha) não têm dados: ficam escondidos, os sb410* fazem o papel deles
     const velhos = ['Backup','Histórico e restauração','Conferência de integridade'];
-    document.querySelectorAll('#tab-armazenamento > .card, #tab-integridade > .card').forEach(c=>{
+    document.querySelectorAll('#tab-integridade > .card').forEach(c=>{
       if(c.id && c.id.indexOf('sb410') === 0) return;
       const h = c.querySelector('h2'); if(h && velhos.indexOf(h.textContent.trim()) !== -1) c.style.display = 'none';
     });
@@ -67,8 +64,7 @@ function sb410Carregar_(){
   if(!sb410Gestor_()) return;
   sb410SyncStatus();
   const adm = sb410Admin_();
-  ['sb410Bk','sb410Esp','driveCard','sb410Integ'].forEach(id=>{ const e=document.getElementById(id); if(e) e.style.display = adm ? '' : 'none'; });
-  try{ abaInterna_('tab-armazenamento', _abaInterna_['tab-armazenamento'] || 'uso'); }catch(e){}   // o display acima mostraria todos os painéis: reaplica a aba escolhida
+  ['sb410Bk','sb410Esp','sb410Integ','bkSituacao','bkAvancado'].forEach(id=>{ const e=document.getElementById(id); if(e) e.style.display = adm ? '' : 'none'; });
   if(adm){ sb410VerificarAlertaBackup_(); sb410BkLista(); sb410BkCfgCarregar(); sb410Espaco(); }
 }
 
@@ -119,9 +115,9 @@ async function sb410VerificarAlertaBackup_(){
     const ok = l.find(b=>b.status==='Sucesso'), ult = l[0];
     const limiteH = auto ? 30 : 72;
     let msg = '';
-    if(!ok) msg = 'Nenhum backup com sucesso foi encontrado. Faça um em Administrador → Sistema → Backup e cópias.';
+    if(!ok) msg = 'Nenhum backup com sucesso foi encontrado. Faça um em Administrador → Sistema → Backup e espaço.';
     else if(ult && ult.status === 'Erro') msg = 'O último backup falhou em ' + sb410Fmt_(ult.data_hora) + (ult.erro ? ' (' + String(ult.erro).slice(0,120) + ')' : '') + '. Último com sucesso: ' + sb410Fmt_(ok.data_hora) + '.';
-    else if(Date.now() - Date.parse(ok.data_hora) > limiteH*3600*1000) msg = 'Faz mais de ' + limiteH + ' horas sem backup com sucesso (último: ' + sb410Fmt_(ok.data_hora) + '). Confira em Administrador → Sistema → Backup e cópias.';
+    else if(Date.now() - Date.parse(ok.data_hora) > limiteH*3600*1000) msg = 'Faz mais de ' + limiteH + ' horas sem backup com sucesso (último: ' + sb410Fmt_(ok.data_hora) + '). Confira em Administrador → Sistema → Backup e espaço.';
     sistemaAlertas_.backup = msg;
     if(msg) marcarAlertaAdmin_(true);
     renderNotificacoes();
@@ -198,10 +194,7 @@ async function sb410Espaco(){
     const j = await sb410Rpc_('api_espaco_uso');
     if(!j || !j.ok){ box.textContent = '—'; return; }
     const cor = j.percentual > 90 ? '#e0443a' : j.percentual > 70 ? '#f5902e' : '#4cc35f';
-    box.innerHTML = `<div style="height:12px;background:#3a2c1c;border-radius:6px;overflow:hidden;"><div style="width:${Math.min(100,j.percentual)}%;height:100%;background:${cor};"></div></div>
-      <div class="stat-row mt-3"><div class="stat-box"><b>${j.db_mb} MB</b>Usado</div><div class="stat-box"><b>${j.percentual}%</b>De ${Math.round(j.limite_mb)} MB</div>
-      <div class="stat-box"><b>${j.vendas_total}</b>Vendas ativas</div><div class="stat-box"><b>${j.vendas_arquivadas}</b>Arquivadas</div></div>
-      <span class="obs-line" id="sb410ArqTexto">Vendas com mais de 90 dias vão para a planilha (abas Arquivo_*) e saem do Supabase, todo dia de madrugada. Eles continuam acessíveis no sistema (histórico do cliente, relatórios e Histórico de vendas). Pedidos com chat, ocorrência ou nota fiscal ficam no sistema.</span>
+    box.innerHTML = `<span class="obs-line" id="sb410ArqTexto">Vendas com mais de 90 dias vão para a planilha (abas Arquivo_*) e saem do Supabase, todo dia de madrugada. Eles continuam acessíveis no sistema (histórico do cliente, relatórios e Histórico de vendas). Pedidos com chat, ocorrência ou nota fiscal ficam no sistema.</span>
       <div style="margin-top:10px;border-top:1px solid #3a2c1c;padding-top:10px;">
         <label for="sb410Plano">Tamanho do banco do seu plano do Supabase (o sistema calcula a porcentagem e a proteção em cima disso)</label>
         <select id="sb410Plano" onchange="sb410PlanoMudou()" style="width:100%;margin:6px 0;"><option value="500">Grátis (500 MB)</option><option value="8192">Pro (8 GB)</option><option value="outro">Outro tamanho…</option></select>
@@ -223,7 +216,7 @@ async function sb410Espaco(){
         <b>Proteção de espaço (sempre ligada)</b>
         <span class="obs-line">Mesmo com o arquivamento por idade em "Só manual", quando o banco chegar a 95% do tamanho do plano o sistema manda para a planilha, aos poucos (até 1.000 vendas por hora), as vendas e caixas já encerrados, do mais antigo para o mais novo, e devolve o espaço ao Supabase minutos depois. Só apaga do Supabase o que a planilha confirmou. Pedido em andamento e caixa aberto nunca saem. Isso não pode ser desligado: é o que impede o sistema de parar por falta de espaço. Aos 70% e aos 85% você recebe aviso.</span>
       </div>`;
-    sb410ArqCarregarRegra_(); sb410PlanoCarregar_(j.limite_mb); sb410HistoricoCarregar_();
+    sb410ArqCarregarRegra_(); sb410PlanoCarregar_(j.limite_mb);
   }catch(e){ box.textContent = '—'; }
 }
 async function sb410HistoricoCarregar_(){
@@ -360,7 +353,7 @@ async function sb410Integ(){
   catch(e){ if(m){ m.className = 'msg warn'; m.textContent = 'Sem conexão.'; } }
 }
 
-/* ---------- gancho: ao abrir Administrador → Sistema → Backup e cópias / Espaço e arquivamento ---------- */
+/* ---------- gancho: ao abrir Administrador → Sistema → Backup e espaço ---------- */
 (function(){
   const orig = window.abrirAdministrador;
   if(typeof orig !== 'function') return;

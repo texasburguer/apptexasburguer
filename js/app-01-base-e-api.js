@@ -19,6 +19,9 @@ window.APP_VERSAO = APP_VERSAO;
 const APP_NOVIDADES = {
   Admin: [
     { v:'1.16', em:'25/10/2026', itens:[
+      'Administrador → Sistema: "Backup e cópias" e "Espaço e arquivamento" viraram uma tela só, "Backup e espaço". No topo, "Uso do espaço" com cinco barras (banco, Storage, planilha, Drive principal e Drive da contingência); depois Backup, Cópia na planilha, Contingência e Conferência. Plano, arquivamento e fotos sem uso ficam em "Avançado", recolhido no fim. O botão "Saúde do sistema" saiu do menu (ela abre pela bolinha do topo) e os menus foram reordenados pelo uso.',
+      'iFood · Preço automático: ao salvar o preço da forma "iFood" de um produto ou combo ligado ao iFood, o novo preço vai sozinho para o iFood. Acima do limite de variação não envia e cria um aviso para você conferir.',
+      'iFood · Ligação automática: item do iFood com nome exatamente igual ao de um produto, combo ou adicional se liga sozinho e aparece marcado "🤖 ligado sozinho"; se estiver errado, toque em Desfazer.',
       'iFood · Avisos: nova tela "Avisos" em Integrações › iFood. Junta o que o iFood mandou e pede atenção: pedido alterado pelo cliente, cancelamento recusado, troca de endereço, pedido devolvido, hora ideal de começar o preparo e prazo de avaliação. Cada aviso também chega como notificação. Tem "Marcar como visto".',
       'iFood · Pedido completo: o sistema agora lê todos os eventos do iFood (alteração do pedido, cancelamento pedido pelo cliente, recusa do iFood, devolução, retirada em área) e mostra o motivo real do cancelamento em português (origem, código e motivo). Itens e valores vêm do pedido completo do iFood.',
       'iFood · Cardápio no iFood: nome até 100 e descrição até 500 letras, combo, tipo de grupo de complementos, código separado por produto e envio em lote conferido até o fim. Novo "Diagnóstico": pergunta ao iFood por que um item NÃO aparece no app e diz o que fazer.',
