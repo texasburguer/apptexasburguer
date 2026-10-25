@@ -13,7 +13,7 @@ async function carregarArmazenamento(){
     res.innerHTML = `<div style="height:12px;background:#3a2c1c;border-radius:6px;overflow:hidden;"><div style="width:${pct}%;height:100%;background:${cor};"></div></div>
       <div class="mt-2">Usado: <b>${formatarBytes_(d.usado)}</b> · Livre: <b>${d.livre===null?'—':formatarBytes_(d.livre)}</b> · <b style="color:${cor};">${d.percentual===null?'—':d.percentual+'%'} (${escBk_(d.nivel)})</b></div>
       ${d.nivel==='Crítico'?'<div class="obs-line" style="color:#ffb3ab;margin-top:4px;">⚠️ Drive quase cheio: novos backups e fotos podem falhar. Libere espaço.</div>':d.nivel==='Atenção'?'<div class="obs-line mt-1">Atenção: acima de 70% do espaço.</div>':''}`;
-    sistemaAlertas_.drive = d.nivel==='Crítico' ? ('Google Drive quase cheio ('+d.percentual+'% usado). Libere espaço em Administrador → Sistema → Backup e espaço.') : '';
+    sistemaAlertas_.drive = d.nivel==='Crítico' ? ('Google Drive quase cheio ('+d.percentual+'% usado). Libere espaço em Administrador → Sistema → Espaço e arquivamento → Drive e fotos.') : '';
     marcarAlertaAdmin_(d.nivel==='Crítico'); renderNotificacoes();
     const cats = Object.entries(r.categorias).map(([n,v])=>`<tr><td>${escBk_(n)}</td><td align="right">${v.qtd}</td><td align="right">${formatarBytes_(v.bytes)}</td></tr>`).join('');
     const arqs = (r.arquivos||[]).slice(0,10).map(a=>`<tr><td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;">${escBk_(a.nome)}</td><td>${escBk_(a.categoria)}</td><td align="right">${formatarBytes_(a.tamanho)}</td></tr>`).join('');

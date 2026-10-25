@@ -19,7 +19,7 @@ const sb410Fmt_ = iso => iso ? new Date(iso).toLocaleString('pt-BR') : '—';
 const sb410Admin_ = () => !!currentUser && currentUser.nivel === 'Admin';
 const sb410Gestor_ = () => !!currentUser && (currentUser.nivel === 'Admin' || currentUser.nivel === 'Operador');
 
-/* ---------- cartões (criados uma vez; ficam em Backup e espaço e em Sincronização e contingência) ---------- */
+/* ---------- cartões (criados uma vez; ficam em Backup e cópias e em Espaço e arquivamento) ---------- */
 function sb410Montar_(){
   const aba = document.getElementById('tab-armazenamento');
   if(!aba || !USAR_SUPABASE_ || document.getElementById('sb410Sync')) return;
@@ -40,15 +40,19 @@ function sb410Montar_(){
     </div>
     <div id="sb410BkBox">Carregando…</div>
     <button class="small-gold" style="width:100%;padding:10px;margin-top:8px;" onclick="sb410BkAgora()">Fazer backup agora</button></div>
-  <div class="card" id="sb410Esp"><h2>Uso do Supabase</h2><div id="sb410EspBox">Carregando…</div></div>
+  <div class="card" id="sb410Esp" data-painel="arquivamento"><h2>Uso do Supabase e arquivamento</h2><div id="sb410EspBox">Carregando…</div></div>
   <div class="card" id="sb410Integ"><h2>Conferência de integridade</h2>
     <p class="sub">Compara as vendas de hoje no Supabase com a planilha (a conferência automática, às 6h10, confere o dia anterior).</p>
     <button class="ghost" style="width:100%;padding:10px;" onclick="sb410Integ()">Conferir agora</button><div class="msg" id="sb410IntegMsg"></div></div>`);
   const mover = (id, destino) => { const c = document.getElementById(id), d = document.getElementById('tab-'+destino); if(c && d && c.parentNode !== d) d.appendChild(c); };
-  mover('sb410Sync','integridade'); mover('sb410Integ','integridade');
-  // Backup e espaço: Backup, Uso do Supabase (com o arquivamento) e, por último, o Google Drive
+  mover('sb410Sync','integridade'); mover('sb410Integ','integridade'); mover('sb410Bk','integridade');
+  // Backup e cópias: Backup, cópia na planilha principal, contingência e, por último, a conferência de integridade
+  { const ti = document.getElementById('tab-integridade'), cc = document.getElementById('contCard');
+    if(ti && cc){ ['sb410Bk','sb410Sync'].forEach(id=>{ const e = document.getElementById(id); if(e) ti.insertBefore(e, cc); }); const ie = document.getElementById('sb410Integ'); if(ie) ti.appendChild(ie); } }
+  // Espaço e arquivamento: abas Uso, Arquivamento (este cartão) e Drive e fotos
   mover('sb410Esp','armazenamento');
   { const dc = document.getElementById('driveCard'), ta = document.getElementById('tab-armazenamento'); if(dc && ta) ta.appendChild(dc); }
+  try{ abaInterna_('tab-armazenamento', _abaInterna_['tab-armazenamento'] || 'uso'); }catch(e){}
 }
 function sb410Carregar_(){
   sb410Montar_();
@@ -64,6 +68,7 @@ function sb410Carregar_(){
   sb410SyncStatus();
   const adm = sb410Admin_();
   ['sb410Bk','sb410Esp','driveCard','sb410Integ'].forEach(id=>{ const e=document.getElementById(id); if(e) e.style.display = adm ? '' : 'none'; });
+  try{ abaInterna_('tab-armazenamento', _abaInterna_['tab-armazenamento'] || 'uso'); }catch(e){}   // o display acima mostraria todos os painéis: reaplica a aba escolhida
   if(adm){ sb410VerificarAlertaBackup_(); sb410BkLista(); sb410BkCfgCarregar(); sb410Espaco(); }
 }
 
@@ -114,9 +119,9 @@ async function sb410VerificarAlertaBackup_(){
     const ok = l.find(b=>b.status==='Sucesso'), ult = l[0];
     const limiteH = auto ? 30 : 72;
     let msg = '';
-    if(!ok) msg = 'Nenhum backup com sucesso foi encontrado. Faça um em Administrador → Sistema → Backup.';
+    if(!ok) msg = 'Nenhum backup com sucesso foi encontrado. Faça um em Administrador → Sistema → Backup e cópias.';
     else if(ult && ult.status === 'Erro') msg = 'O último backup falhou em ' + sb410Fmt_(ult.data_hora) + (ult.erro ? ' (' + String(ult.erro).slice(0,120) + ')' : '') + '. Último com sucesso: ' + sb410Fmt_(ok.data_hora) + '.';
-    else if(Date.now() - Date.parse(ok.data_hora) > limiteH*3600*1000) msg = 'Faz mais de ' + limiteH + ' horas sem backup com sucesso (último: ' + sb410Fmt_(ok.data_hora) + '). Confira em Administrador → Sistema → Backup.';
+    else if(Date.now() - Date.parse(ok.data_hora) > limiteH*3600*1000) msg = 'Faz mais de ' + limiteH + ' horas sem backup com sucesso (último: ' + sb410Fmt_(ok.data_hora) + '). Confira em Administrador → Sistema → Backup e cópias.';
     sistemaAlertas_.backup = msg;
     if(msg) marcarAlertaAdmin_(true);
     renderNotificacoes();
@@ -355,7 +360,7 @@ async function sb410Integ(){
   catch(e){ if(m){ m.className = 'msg warn'; m.textContent = 'Sem conexão.'; } }
 }
 
-/* ---------- gancho: ao abrir Administrador → Sistema → Backup e espaço / Sincronização e contingência ---------- */
+/* ---------- gancho: ao abrir Administrador → Sistema → Backup e cópias / Espaço e arquivamento ---------- */
 (function(){
   const orig = window.abrirAdministrador;
   if(typeof orig !== 'function') return;
