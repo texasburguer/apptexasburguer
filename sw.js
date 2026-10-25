@@ -14,7 +14,7 @@ const FOTOS = 'texas-fotos-v1';
    A lista abaixo é gerada pelo script de selagem (selar.py) a cada entrega. */
 const CODIGO = 'texas-codigo-v3';   // trocou o nome = todo aparelho descarta o cache de código antigo (inclusive cópia vazia)
 const LISTA = [/*LISTA-INICIO*/
-  'css/estilo-base.css?v=54956429',
+  'css/estilo-base.css?v=3125b6b4',
   'js/app-01-base-e-api.js?v=b8c174cf',
   'js/app-02-abas.js?v=d2406404',
   'js/app-03-cadastros.js?v=46167420',
@@ -33,7 +33,7 @@ const LISTA = [/*LISTA-INICIO*/
   'js/app-16-sessao-final.js?v=ef1da8ab',
   'js/app-17-sessao-supabase.js?v=8d95f924',
   'js/app-18-queda-supabase.js?v=c3cdfe49',
-  'css/estilo-ia-cardapio.css?v=df438235',
+  'css/estilo-ia-cardapio.css?v=b19ce938',
   'js/app-19-ia.js?v=37d36dbd',
   'js/app-20-balao-interno.js?v=c974eb7b',
   'js/app-21-localizacao.js?v=bb28de16',
