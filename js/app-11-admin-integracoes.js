@@ -26,7 +26,8 @@ async function mudarStatusMesa(id, novoStatus){
 }
 async function excluirMesaConfirm(id){
   if(!await confirmarTxt_('Excluir esta mesa?')) return;
-  try{ const r = await apiCall('excluirMesa', { id }); if(r.ok){ mesas = r.mesas || mesas; salvarCache(); renderMesas(); renderMesasPickerCaixa(); } else showMsg('mesaMsg', r.message, 'warn'); }
+  const senhaAdminConfirmacao = await pedirSenha_(); if(!senhaAdminConfirmacao) return;
+  try{ const r = await apiCall('excluirMesa', { id, senhaAdminConfirmacao }); if(r.ok){ mesas = r.mesas || mesas; salvarCache(); renderMesas(); renderMesasPickerCaixa(); } else showMsg('mesaMsg', r.message, 'warn'); }
   catch(e){ showMsg('mesaMsg','Não foi possível excluir.','warn'); }
 }
 
@@ -320,7 +321,7 @@ function salvarChaveIaUI_(){
 window.INTEG_ = window.INTEG_ || { ifood:false, nfce:false, mp:false, nfceModo:'homologacao', impostoPct:0, impostoPadrao:0, impostoMeses:{} };
 async function carregarIntegFlags_(){
   try{ const r = await apiCall('integracoesFlags', {}); if(r && r.ok){
-    window.INTEG_ = { ifood:!!r.ifood, nfce:!!r.nfce, mp:!!r.mercadopago, nfceModo:r.nfceModo||'homologacao', impostoPct:Number(r.impostoPct)||0, impostoPadrao:Number(r.impostoPadrao)||0, impostoMeses:(r.impostoMeses && typeof r.impostoMeses==='object') ? r.impostoMeses : {} };
+    window.INTEG_ = { ifood:!!r.ifood, nfce:!!r.nfce, mp:!!r.mercadopago, ip:!!r.infinitepay, nfceModo:r.nfceModo||'homologacao', impostoPct:Number(r.impostoPct)||0, impostoPadrao:Number(r.impostoPadrao)||0, impostoMeses:(r.impostoMeses && typeof r.impostoMeses==='object') ? r.impostoMeses : {} };
     try{ atualizarCpfBox_(); }catch(e){}
     try{ mpFaixaAtualizar_(true); }catch(e){}
     try{ ifLacunaVerificar_(); }catch(e){}
@@ -345,7 +346,7 @@ const INTEG_INFO_ = {
       '7) A homologação é pedida no portal, em Suporte > Tickets > Homologação. O iFood manda um formulário e marca uma reunião. Quando aprovar, marque o passo no checklist e troque pelas chaves do aplicativo de produção.',
       '8) Na aba Itens do iFood (quando ligado), ligue cada item do iFood ao seu produto.',
       '⚠️ Esta parte ainda não foi testada com o iFood de verdade: os detalhes podem pedir ajuste na primeira ligação.'],
-    opcoes:[['confirmacaoAutomatica','Confirmar pedidos do iFood automaticamente (o iFood cancela sozinho se demorar mais de ~8 min)'],['abrirFecharComCaixa','Abrir e fechar a loja no iFood junto com o caixa'],['pausarSemEstoque','Pausar no iFood o item que acabar no estoque'],['enviarPrecos','Permitir enviar nossos preços ao iFood (com trava de variação e histórico)'],['conferirRepasse','EXTRA · Conferir os repasses do iFood com as vendas do sistema e mostrar a diferença (só mostra, não muda nada)'],['avaliacaoAlerta','EXTRA · Avisar também quando chegar avaliação nota 3 no iFood (sem isso, só avisa nota 1 e 2)'],['avaliacaoSugestao','EXTRA · Mostrar o botão "Sugerir resposta" nas avaliações do iFood (escreve um rascunho; você revisa antes de enviar)'],['acompanharEntrega','EXTRA · Mostrar no pedido a etapa da entrega feita pelo iFood (entregador alocado, a caminho da loja, pegou o pedido, chegou ao cliente)'],['modoHomologacao','Modo homologação: marque SÓ durante os testes de homologação do iFood (envia o cabeçalho que o iFood pede nos testes). Desmarque depois de aprovado.']] },
+    opcoes:[['confirmacaoAutomatica','Confirmar pedidos do iFood automaticamente (o iFood cancela sozinho se demorar mais de ~8 min)'],['abrirFecharComCaixa','Abrir e fechar a loja no iFood junto com o caixa'],['pausarSemEstoque','Pausar no iFood o item que acabar no estoque'],['enviarPrecos','Permitir enviar nossos preços ao iFood (com trava de variação e histórico)'],['conferirRepasse','EXTRA · Conferir os repasses do iFood com as vendas do sistema e mostrar a diferença (só mostra, não muda nada)'],['avaliacaoAlerta','EXTRA · Avisar também quando chegar avaliação nota 3 no iFood (sem isso, só avisa nota 1 e 2)'],['avaliacaoSugestao','EXTRA · Mostrar o botão "Sugerir resposta" nas avaliações do iFood (escreve um rascunho; você revisa antes de enviar)'],['acompanharEntrega','EXTRA · Mostrar no pedido a etapa da entrega feita pelo iFood (entregador alocado, a caminho da loja, pegou o pedido, chegou ao cliente)'],['modoHomologacao','Modo homologação: marque SÓ durante os testes de homologação do iFood (envia o cabeçalho que o iFood pede nos testes). Desmarque depois de aprovado.'],['comissaoFinanceiro','EXTRA · Usar a comissão e as taxas REAIS do iFood (vindas do Financeiro do iFood) nas vendas do sistema, para os relatórios e o DRE']] },
   nfce: { nome:'Nota fiscal (NFC-e)', icone:'🧾',
     segredos:[['nfce_token_homologacao','Token da Focus NFe — TESTE (homologação)'],['nfce_token_producao','Token da Focus NFe — PRODUÇÃO'],['nfce_csc','CSC — código de segurança secreto (Sefaz)']],
     guia:[
@@ -372,9 +373,9 @@ const INTEG_INFO_ = {
     opcoes:[] }
 };
 let integStatus_ = [];
-function integMsgId_(){ const a = (typeof _abaInterna_ !== 'undefined' && _abaInterna_['tab-contas']) || ''; return 'integMsg_' + (['ifood','nfce','mercadopago'].includes(a) ? a : 'ifood'); }
+function integMsgId_(){ const a = (typeof _abaInterna_ !== 'undefined' && _abaInterna_['tab-contas']) || ''; return 'integMsg_' + (['ifood','nfce','mercadopago','infinitepay'].includes(a) ? a : 'ifood'); }
 async function carregarIntegracoes_(){
-  const caixas = ['ifood','nfce','mercadopago'].map(p=>document.getElementById('integLista_'+p)).filter(Boolean); if(!caixas.length) return;
+  const caixas = ['ifood','nfce','mercadopago','infinitepay'].map(p=>document.getElementById('integLista_'+p)).filter(Boolean); if(!caixas.length) return;
   const erro = t=>{ caixas.forEach(b=>{ b.innerHTML = '<div class="notif-empty">' + escH(t) + '</div>'; }); };
   try{
     const r = await apiCall('integracoesStatus', {});
@@ -430,10 +431,11 @@ function integCardHtml_(it, inf){
 function renderIntegracoes_(){
   (integStatus_||[]).forEach(it=>{
     const inf = INTEG_INFO_[it.provedor], box = document.getElementById('integLista_' + it.provedor); if(!inf || !box) return;
-    box.innerHTML = it.provedor === 'mercadopago' ? mpCardHtml_(it, inf) : integCardHtml_(it, inf);
+    box.innerHTML = it.provedor === 'mercadopago' ? mpCardHtml_(it, inf) : (it.provedor === 'infinitepay' && typeof window.ipCardHtml_ === 'function') ? window.ipCardHtml_(it, inf) : integCardHtml_(it, inf);
   });
   if(document.getElementById('mpRecentes')) carregarMpRecentes_();
   if(document.getElementById('mpPendenciasDecisaoBox')) mpCarregarPendenciasDecisao_();
+  if(document.getElementById('ipPagamentos') && typeof window.ipCarregarPagamentos_ === 'function') window.ipCarregarPagamentos_();
 }
 async function marcarIntegPasso_(prov, item, feito){
   try{ const r = await apiCall('integracoesMarcar', { provedor:prov, item, feito:!!feito }); if(r && r.ok){ integStatus_ = r.integracoes||integStatus_; } else showMsg(integMsgId_(), (r&&r.message)||'Não foi possível salvar.', 'warn'); }catch(e){ showMsg(integMsgId_(),'Sem conexão.','warn'); }
@@ -561,7 +563,7 @@ function mpCardHtml_(it, inf){
     return c.auto ? `<li>${ic}<span>${escH(c.titulo)}</span></li>`
       : `<li><label style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;"><input type="checkbox" ${c.feito?'checked':''} onchange="marcarIntegPasso_('mercadopago','${c.id}',this.checked)" style="position:absolute;opacity:0;width:1px;height:1px;">${ic}<span>${escH(c.titulo)} <small class="txt-muted">(toque para marcar)</small></span></label></li>`;
   }).join('');
-  const formasOn = (it.formas||[]).filter(f=>f.aceitaOnline && f.tipoOnline).map(f=>mpRotuloTipo_(f.tipoOnline));
+  const formasOn = (it.formas||[]).filter(f=>f.aceitaOnline && f.tipoOnline && f.provedorOnline !== 'infinitepay').map(f=>mpRotuloTipo_(f.tipoOnline));
   const min = Number((it.config||{}).pixValidadeMin) || 15;
   const estado = it.ligado ? 'LIGADO · ' + (it.modo==='producao' ? 'PRODUÇÃO' : 'TESTE') : 'DESLIGADO';
   const trocaModo = it.ligado ? (it.modo==='producao'
@@ -607,8 +609,7 @@ function mpExtraHtml_(it){
     const tp = f.aceitaOnline ? (f.tipoOnline||mpTipoDoNome_(f.nome)) : mpTipoDoNome_(f.nome), on = !!f.aceitaOnline;
     if(!tp) return `<div class="obs-line d-flex gap-2 ai-centro fx-wrap"><span style="min-width:120px;">${escH(f.nome)}</span><span style="opacity:.75;">Só na entrega (não há pagamento online para esta forma)</span></div>`;
     return `<div class="obs-line d-flex gap-2 ai-centro fx-wrap"><span style="min-width:120px;">${escH(f.nome)}</span>
-      <select class="largura-auto" onchange="mpFormaOnline_('${f.id}', this.value==='on')" aria-label="Pagar online com ${escH(f.nome)}">
-        <option value="off" ${on?'':'selected'}>Só na entrega</option><option value="on" ${on?'selected':''}>Também online (${mpRotuloTipo_(tp)})</option></select></div>`;
+      ${pagFormaSelect_(f, tp)}</div>`;
   }).join('') || '<div class="obs-line">Nenhuma forma de pagamento ativa no cardápio.</div>';
   const emails = Array.isArray(cfg.emailsTeste) ? cfg.emailsTeste.join(', ') : '';
   return `<div class="mt-3">
@@ -656,14 +657,14 @@ let _mpFaixaEm_ = 0;
 function mpFaixaMostrar_(n){
   const card = document.getElementById('mpPendenciasCaixaCard'); if(!card) return;
   const txt = document.getElementById('mpFaixaTxt'), box = document.getElementById('mpPendenciasDecisaoCaixaBox');
-  if(!n || !(window.INTEG_ && INTEG_.mp)){ card.style.display = 'none'; if(box){ box.hidden = true; box.innerHTML = ''; } return; }
+  if(!n || !(window.INTEG_ && (INTEG_.mp || INTEG_.ip))){ card.style.display = 'none'; if(box){ box.hidden = true; box.innerHTML = ''; } return; }
   card.style.display = '';
   if(txt) txt.textContent = n === 1 ? '1 pagamento online aguardando decisão' : n + ' pagamentos online aguardando decisão';
 }
 async function mpFaixaAtualizar_(forcar){
   const card = document.getElementById('mpPendenciasCaixaCard'); if(!card) return;
   const nivel = currentUser && currentUser.nivel;
-  if(!(window.INTEG_ && INTEG_.mp) || !(nivel === 'Admin' || nivel === 'Operador' || nivel === 'Desenvolvedor') || (currentUser && currentUser.emergencia)){ mpFaixaMostrar_(0); return; }
+  if(!(window.INTEG_ && (INTEG_.mp || INTEG_.ip)) || !(nivel === 'Admin' || nivel === 'Operador' || nivel === 'Desenvolvedor') || (currentUser && currentUser.emergencia)){ mpFaixaMostrar_(0); return; }
   if(!forcar && Date.now() - _mpFaixaEm_ < 60000) return;
   _mpFaixaEm_ = Date.now();
   try{
@@ -689,27 +690,30 @@ async function mpCarregarPendenciasDecisao_(){
     mpFaixaMostrar_(itens.length);
     if(!itens.length){ boxes.forEach(box=>box.innerHTML = '<div class="obs-line">Nenhum pagamento aguardando decisão.</div>'); return; }
     const html = itens.map(x=>`<div class="notif-card mt-2">
-      <b>${escH(x.metodo==='pix'?'Pix':x.metodo==='debito'?'Cartão de débito':'Cartão de crédito')} · ${formatarMoeda(Number(x.valor)||0)}</b>
+      <b>${escH(x.metodo==='pix'?'Pix':x.metodo==='debito'?'Cartão de débito':'Cartão de crédito')} · ${formatarMoeda(Number(x.valor)||0)}${x.provedor==='infinitepay'?' · InfinitePay':''}</b>
       <div class="obs-line">${escH(x.clienteNome||'Cliente sem nome')} · ${escH(x.telefone||'sem telefone')}</div>
       <div class="obs-line">${escH(x.criadoEm||'')} · ${escH(x.modo==='producao'?'Produção':'Teste')}</div>
       <div class="obs-line">Motivo: ${escH(x.motivo||'Pagamento aprovado sem pedido confirmado.')}</div>
-      <div class="btnrow"><button class="primary" onclick="mpDecidirPagamento_('${escH(x.pagamentoId)}','seguir')">Liberar pedido</button><button class="ghost" onclick="mpDecidirPagamento_('${escH(x.pagamentoId)}','reembolsar')">Reembolsar</button></div>
+      <div class="btnrow"><button class="primary" onclick="mpDecidirPagamento_('${escH(x.pagamentoId)}','seguir')">Liberar pedido</button><button class="ghost" onclick="mpDecidirPagamento_('${escH(x.pagamentoId)}','reembolsar','${escH(x.provedor||'mercadopago')}',${Number(x.valor)||0})">Reembolsar</button></div>
     </div>`).join('');
     boxes.forEach(box=>box.innerHTML=html);
   }catch(e){ boxes.forEach(box=>box.innerHTML = '<div class="obs-line">Sem conexão. Tente novamente.</div>'); }
 }
-async function mpDecidirPagamento_(pagamentoId, decisao){
+async function mpDecidirPagamento_(pagamentoId, decisao, provedor, valor){
   if(!pagamentoId || !['seguir','reembolsar'].includes(decisao)) return;
   const aviso = decisao==='seguir'
     ? 'Liberar este pedido para a cozinha? Confirme que há caixa aberto e que a equipe consegue preparar.'
-    : 'Registrar a decisão de reembolsar e solicitar a devolução integral ao Mercado Pago?';
+    : provedor==='infinitepay' ? 'Registrar a decisão de reembolsar? A devolução é feita por você no app da InfinitePay; depois registre o valor devolvido.' : 'Registrar a decisão de reembolsar e solicitar a devolução integral ao Mercado Pago?';
   if(!await confirmarTxt_(aviso)) return;
   const box = document.getElementById('mpPendenciasDecisaoBox');
   if(box) box.insertAdjacentHTML('afterbegin','<div class="obs-line">Registrando decisão…</div>');
   try{
     const r = await apiCall('mpDecidirPagamento', { pagamentoId, decisao });
     if(!r || !r.ok){ showMsg(integMsgId_(),(r&&r.message)||'Não foi possível registrar a decisão.','warn'); await mpCarregarPendenciasDecisao_(); return; }
-    if(decisao==='reembolsar'){
+    if(decisao==='reembolsar' && provedor==='infinitepay'){
+      showMsg(integMsgId_(),'Decisão registrada. Devolva o dinheiro no app da InfinitePay e registre o reembolso.','ok');
+      if(typeof window.ipReembolsoForm_ === 'function') await window.ipReembolsoForm_(pagamentoId, Number(valor)||0);
+    } else if(decisao==='reembolsar'){
       const rr = await sb410Edge_('mp-reembolsar', { pagamentoId }, 60000);
       if(!rr || !rr.ok){ showMsg(integMsgId_(),'A decisão foi registrada, mas a devolução não foi confirmada: '+((rr&&rr.message)||'sem resposta')+'. Confira o painel do Mercado Pago antes de repetir.','warn'); }
       else showMsg(integMsgId_(),'Reembolso confirmado pelo Mercado Pago: '+(rr.message||'devolução registrada.'),'ok');
@@ -738,10 +742,40 @@ function salvarMpEmails_(txt){
   salvarMpConfig_({ emailsTeste: lista });
 }
 function mpTestesHtml_(r){
-  const mp = (integStatus_||[]).find(x=>x.provedor==='mercadopago') || {}, tipos = [...new Set((mp.formas||[]).filter(f=>f.aceitaOnline && f.tipoOnline).map(f=>f.tipoOnline))];
+  const mp = (integStatus_||[]).find(x=>x.provedor==='mercadopago') || {}, tipos = [...new Set((mp.formas||[]).filter(f=>f.aceitaOnline && f.tipoOnline && f.provedorOnline !== 'infinitepay').map(f=>f.tipoOnline))];
   if(!tipos.length) return '⬜ Ligue pelo menos uma forma online acima para poder testar';
   const ok = { pix:r.testePix, credito:r.testeCredito, debito:r.testeDebito };
   return tipos.map(t=>`${ok[t]?'✅':'⬜'} ${mpRotuloTipo_(t)} aprovado em TESTE`).join(' · ');
+}
+/* v1.15: cada forma paga pelo site escolhe QUEM recebe (Mercado Pago ou InfinitePay). A mesma escolha aparece nos dois cartões. */
+function pagFormaSelect_(f, tp){
+  const on = !!f.aceitaOnline, prov = f.provedorOnline || 'mercadopago', rot = mpRotuloTipo_(tp);
+  const ipOk = tp === 'pix' || tp === 'credito';
+  const v = !on ? 'off' : prov;
+  return `<select class="largura-auto" onchange="pagFormaEscolher_('${f.id}', this.value, this)" aria-label="Quem recebe ${escH(f.nome)} pelo site">
+    <option value="off" ${v==='off'?'selected':''}>Só na entrega</option>
+    <option value="mercadopago" ${v==='mercadopago'?'selected':''}>Online · Mercado Pago (${rot})</option>
+    ${ipOk ? `<option value="infinitepay" ${v==='infinitepay'?'selected':''}>Online · InfinitePay (${rot})</option>` : ''}</select>`;
+}
+async function pagFormaEscolher_(formaId, valor, sel){
+  if(valor !== 'off'){   // quem recebe o dinheiro: senha sempre
+    const senha = await new Promise(res => { abrirModalSenhaAdmin(s => res(s)); const m = document.getElementById('senhaAdminModal'); const obs = new MutationObserver(() => { if(!m.classList.contains('open')){ obs.disconnect(); setTimeout(() => res(null), 50); } }); if(m) obs.observe(m, { attributes:true, attributeFilter:['class'] }); });
+    if(!senha){ renderIntegracoes_(); return; }
+    return pagFormaEscolherComSenha_(formaId, valor, sel, senha);
+  }
+  return pagFormaEscolherComSenha_(formaId, valor, sel, '');
+}
+async function pagFormaEscolherComSenha_(formaId, valor, sel, senha){
+  if(sel) sel.disabled = true;
+  try{
+    if(valor === 'off'){ await mpFormaOnline_(formaId, false); return; }
+    const r = await apiCall('pagFormaProvedor', { formaId, provedor: valor, senha });
+    if(!r || !r.ok){ showMsg(integMsgId_(), (r&&r.message)||'Não foi possível salvar.', 'warn'); renderIntegracoes_(); return; }
+    integStatus_ = r.integracoes || integStatus_;
+    const f = ((integStatus_.find(x=>x.provedor==='mercadopago')||{}).formas||[]).find(x=>x.id===formaId);
+    if(!f || !f.aceitaOnline) await mpFormaOnline_(formaId, true);
+    else { showMsg(integMsgId_(), r.message || 'Salvo.', 'ok'); renderIntegracoes_(); carregarIntegFlags_(); }
+  }catch(e){ showMsg(integMsgId_(),'Sem conexão. Nada foi mudado.','warn'); renderIntegracoes_(); }
 }
 async function mpFormaOnline_(formaId, ligar){
   try{ const r = await apiCall('mpFormaOnline', { formaId, aceitaOnline: !!ligar, tipoOnline: '' }); if(r && r.ok){ integStatus_ = r.integracoes||integStatus_; showMsg(integMsgId_(), r.message||'Salvo.', 'ok'); carregarIntegFlags_(); } else showMsg(integMsgId_(), (r&&r.message)||'Não foi possível salvar.', 'warn'); }catch(e){ showMsg(integMsgId_(),'Sem conexão.','warn'); }
@@ -831,7 +865,8 @@ async function salvarFiscalPerfil_(){
 }
 async function excluirFiscalPerfil_(id){
   if(!await confirmarTxt_('Excluir este perfil fiscal?')) return;
-  try{ const r = await apiCall('fiscalPerfilExcluir', { id }); if(r && r.ok){ fiscalPerfisCache_ = r; renderFiscalPerfis_(); carregarIntegracoes_(); } else avisar((r&&r.message)||'Não foi possível excluir.'); }catch(e){ avisar('Sem conexão.'); }
+  const senhaAdminConfirmacao = await pedirSenha_(); if(!senhaAdminConfirmacao) return;
+  try{ const r = await apiCall('fiscalPerfilExcluir', { id, senhaAdminConfirmacao }); if(r && r.ok){ fiscalPerfisCache_ = r; renderFiscalPerfis_(); carregarIntegracoes_(); } else avisar((r&&r.message)||'Não foi possível excluir.'); }catch(e){ avisar('Sem conexão.'); }
 }
 async function atribuirFiscal_(alvo, id, perfilId){
   try{ const r = await apiCall('fiscalAtribuir', { alvo, id, perfilId: perfilId||null });
@@ -1127,7 +1162,8 @@ async function enviarPrecosIfood_(){
 }
 async function desfazerPrecoIfood_(id){
   if(!await confirmarTxt_('Reenviar o preço anterior ao iFood?')) return;
-  try{ const r = await apiCall('ifoodPrecosDesfazer', { id }); showMsg(integMsgId_(),(r&&r.message)||'Não foi possível.', r&&r.ok?'ok':'warn'); carregarIfoodPrecos_(); }catch(e){ showMsg(integMsgId_(),'Sem conexão.','warn'); }
+  const senhaAdminConfirmacao = await pedirSenha_(); if(!senhaAdminConfirmacao) return;
+  try{ const r = await apiCall('ifoodPrecosDesfazer', { id, senhaAdminConfirmacao }); showMsg(integMsgId_(),(r&&r.message)||'Não foi possível.', r&&r.ok?'ok':'warn'); carregarIfoodPrecos_(); }catch(e){ showMsg(integMsgId_(),'Sem conexão.','warn'); }
 }
 async function carregarIfoodFin_(){
   const box = document.getElementById('ifoodFin'); if(!box) return;
@@ -1192,19 +1228,28 @@ function renderIfoodItens_(){
   const box = document.getElementById('ifoodItens'); const r = ifoodItensDados_; if(!box || !r) return;
   const op = (tipo, lista)=> (lista||[]).map(x=>`<option value="${tipo}:${escH(x.id)}">${escH(x.nome)}</option>`).join('');
   const nSug = (r.itens||[]).filter(i=>!i.ligado && !i.ignorar && i.sugestao).length;
+  const nIgn = (r.itens||[]).filter(i=>i.ignorar && !i.ligado).length;
+  const fl = (on, txt)=> on ? '<span class="badge erro" style="margin:2px 4px 0 0;">' + txt + '</span>' : '';
+  const blocoPre = (r.preCadastros||[]).length ? '<div class="notif-card" style="border-left:4px solid #e0a800;"><b>📝 Pré-cadastros do iFood (rascunhos fora do cardápio)</b><div class="obs-line">Complete em Cadastros → Produtos e ative quando estiver pronto. Enquanto for rascunho, nada é enviado ao iFood.</div>'
+    + r.preCadastros.map(x=>'<div class="obs-line mt-1"><b>' + escH(x.nome) + '</b> ' + fl(x.semFicha,'sem ficha técnica') + fl(x.semPreco,'sem preço') + fl(x.semFoto,'sem foto') + fl(x.semCategoria,'sem categoria') + (!x.semFicha && !x.semPreco && !x.semFoto && !x.semCategoria ? '<span class="badge ok">pronto para ativar</span>' : '') + '</div>').join('') + '</div>' : '';
+  const blocoDesc = (r.descartados||[]).length ? '<details class="mt-2"><summary class="fs-sm">🗑️ Itens excluídos de vez (' + r.descartados.length + ')</summary>'
+    + r.descartados.map(d=>'<div class="obs-line">' + escH(d.nome || d.chave) + ' <span class="txt-muted">(' + escH(d.chave) + (d.por ? ' · por ' + escH(d.por) : '') + ')</span> <button class="ghost" style="width:auto;padding:2px 8px;min-height:28px;" onclick="restaurarIfoodItem_(\'' + escH(d.chave) + '\')">Restaurar</button></div>').join('') + '</details>' : '';
+  const blocoTeste = '<details class="mt-2"><summary class="fs-sm">🧪 Marcar um pedido do iFood como teste</summary><div class="obs-line">O pedido sai dos alertas e dos relatórios do iFood. A venda continua no caixa (se não devia existir, cancele a venda normalmente).</div><div class="btnrow mt-1"><input id="ifTesteNum" placeholder="Número do iFood (ex.: 6628)" inputmode="numeric" style="flex:1 1 50%;"><button class="ghost" style="flex:1 1 40%;" onclick="marcarIfoodTeste_(true)">Marcar como teste</button><button class="ghost" style="flex:1 1 40%;" onclick="marcarIfoodTeste_(false)">Desfazer</button></div></details>';
   box.innerHTML = '<p class="sub mt-2">Cada item do iFood precisa estar ligado a um produto do sistema para baixar os ingredientes e calcular o custo. Itens aparecem aqui quando chegam em pedidos.</p>' +
     (nSug ? `<div class="btnrow"><button class="small-gold" onclick="ligarIfoodItem_(0,'todas')">🔗 Ligar todos os itens com nome igual (${nSug})</button></div>` : '') +
+    (nIgn ? `<div class="btnrow"><button class="ghost" onclick="excluirIfoodItens_(null)">🗑️ Excluir de vez todos os ignorados (${nIgn})</button></div>` : '') +
+    blocoPre +
     ((r.itens||[]).map((i,ix)=>{
       const pend = !i.ligado && !i.ignorar;
       return `<div class="notif-card" style="border-left:4px solid ${pend?'#e0a800':'#2e9e5b'};">
         <b>${escH(i.nome)}</b> <span class="obs-line" style="display:inline;">(${i.tipo==='opcao'?'opção/adicional':'item'} · código ${escH(i.chave)})</span>
-        ${i.ligado?`<div class="obs-line">✅ Ligado a: ${escH(i.ligadoNome||'—')} (${escH(i.ligado)}) <button class="ghost" style="width:auto;padding:2px 8px;min-height:28px;" onclick="ligarIfoodItem_(${ix},'desligar')">Desfazer</button></div>`:''}
-        ${i.ignorar?`<div class="obs-line">🚫 Ignorado (não baixa estoque) <button class="ghost" style="width:auto;padding:2px 8px;min-height:28px;" onclick="ligarIfoodItem_(${ix},'desligar')">Desfazer</button></div>`:''}
+        ${i.ligado?`<div class="obs-line">✅ Ligado a: ${escH(i.ligadoNome||'—')} (${escH(i.ligado)})${i.preCadastro?' <span class="badge neutro">📝 pré-cadastro (rascunho)</span>':''} <button class="ghost" style="width:auto;padding:2px 8px;min-height:28px;" onclick="ligarIfoodItem_(${ix},'desligar')">Desfazer</button></div>`:''}
+        ${i.ignorar?`<div class="obs-line">🚫 Ignorado (não baixa estoque) <button class="ghost" style="width:auto;padding:2px 8px;min-height:28px;" onclick="ligarIfoodItem_(${ix},'desligar')">Desfazer</button> <button class="ghost" style="width:auto;padding:2px 8px;min-height:28px;" onclick="excluirIfoodItens_(${ix})">🗑️ Excluir de vez</button></div>`:''}
         ${pend?`<div class="obs-line">⚠️ Sem ligação.</div>
           ${i.sugestao?`<div class="obs-line">Sugestão: <b>${escH(i.sugestao.nome)}</b> <button class="small-gold" onclick="ligarIfoodItem_(${ix},'sugestao')">Usar sugestão</button></div>`:''}
           <select id="ifSel_${ix}"><option value="">Escolher no sistema…</option>${i.tipo==='opcao'?'<optgroup label="Adicionais">'+op('adicional',r.adicionais)+'</optgroup>':''}<optgroup label="Produtos">${op('produto',r.produtos)}</optgroup><optgroup label="Combos">${op('combo',r.combos)}</optgroup></select>
-          <div class="btnrow mt-2"><button class="ghost" onclick="ligarIfoodItem_(${ix},'escolha')">Ligar</button><button class="ghost" onclick="ligarIfoodItem_(${ix},'ignorar')">Ignorar este item</button></div>`:''}
-      </div>`; }).join('') || '<div class="obs-line">Nenhum item do iFood conhecido ainda.</div>');
+          <div class="btnrow mt-2"><button class="ghost" onclick="ligarIfoodItem_(${ix},'escolha')">Ligar</button><button class="small-gold" onclick="abrirPreCadastroIfood_(${ix})">➕ Cadastrar no sistema</button><button class="ghost" onclick="ligarIfoodItem_(${ix},'ignorar')">Ignorar este item</button><button class="ghost" onclick="excluirIfoodItens_(${ix})">🗑️ Excluir de vez</button></div>`:''}
+      </div>`; }).join('') || '<div class="obs-line">Nenhum item do iFood conhecido ainda.</div>') + blocoDesc + blocoTeste;
 }
 async function ligarIfoodItem_(ix, modo){
   const r0 = ifoodItensDados_; const i = r0 && r0.itens[ix]; if(!i && modo!=='todas') return;
@@ -1228,6 +1273,90 @@ async function ligarIfoodItem_(ix, modo){
     if(r && r.ok){ ifoodItensDados_ = r; renderIfoodItens_(); showMsg(integMsgId_(),'Salvo. Pedidos antigos sem ligação podem ser refeitos com "Refazer pedidos sem ligação".','ok'); }
     else showMsg(integMsgId_(),(r&&r.message)||'Não foi possível salvar.','warn');
   }catch(e){ showMsg(integMsgId_(),'Sem conexão.','warn'); }
+}
+/* P-11 — excluir de vez (com senha). ix = null: todos os ignorados */
+async function excluirIfoodItens_(ix){
+  const r0 = ifoodItensDados_; if(!r0) return;
+  const it = ix === null ? null : r0.itens[ix];
+  const n = ix === null ? (r0.itens||[]).filter(i=>i.ignorar && !i.ligado).length : 1;
+  const txt = it ? 'Excluir de vez "' + it.nome + '" (código ' + it.chave + ')?\n\nEle some da lista, para de gerar alerta e, se voltar num pedido, não aparece de novo. Use só para itens de TESTE.'
+                 : 'Excluir de vez os ' + n + ' itens ignorados?\n\nEles somem da lista, param de gerar alerta e não voltam mesmo que apareçam num pedido. Use só para itens de TESTE.';
+  if(!await confirmarTxt_(txt, 'Excluir de vez', true)) return;
+  abrirModalSenhaAdmin(async (senha)=>{
+    try{
+      const r = await apiCall('ifoodItensExcluir', it ? { senha, chaves:[it.chave] } : { senha, todosIgnorados:true });
+      if(r && r.ok){ ifoodItensDados_ = r; renderIfoodItens_(); showMsg(integMsgId_(), r.message || 'Excluído.', 'ok'); }
+      else showMsg(integMsgId_(), '⚠️ ' + ((r && r.message) || 'Não foi possível excluir.'), 'warn');
+    }catch(e){ showMsg(integMsgId_(), '📡 Sem conexão: nada foi excluído.', 'warn'); }
+  });
+}
+async function restaurarIfoodItem_(chave){
+  if(!await confirmarTxt_('Restaurar "' + chave + '"? Ele volta a aparecer quando vier num pedido.', 'Restaurar', false)) return;
+  abrirModalSenhaAdmin(async (senha)=>{
+    try{
+      const r = await apiCall('ifoodItensExcluir', { senha, restaurar: chave });
+      if(r && r.ok){ ifoodItensDados_ = r; renderIfoodItens_(); showMsg(integMsgId_(), r.message || 'Restaurado.', 'ok'); }
+      else showMsg(integMsgId_(), '⚠️ ' + ((r && r.message) || 'Não foi possível restaurar.'), 'warn');
+    }catch(e){ showMsg(integMsgId_(), '📡 Sem conexão.', 'warn'); }
+  });
+}
+async function marcarIfoodTeste_(teste){
+  const num = String((document.getElementById('ifTesteNum')||{}).value || '').replace(/[^0-9A-Za-z-]/g, '');
+  if(!num) return showMsg(integMsgId_(), 'Digite o número do pedido do iFood (o que aparece como "iFood #...").', 'warn');
+  if(!await confirmarTxt_((teste ? 'Marcar o pedido iFood #' + num + ' como TESTE?' : 'Fazer o pedido iFood #' + num + ' voltar a contar?'), teste ? 'Marcar como teste' : 'Desfazer', !!teste)) return;
+  abrirModalSenhaAdmin(async (senha)=>{
+    try{
+      const r = await apiCall('ifoodMarcarTeste', { senha, numero:num, teste:!!teste });
+      if(r && r.ok){ showMsg(integMsgId_(), r.message, 'ok'); carregarIfoodItens_(); }
+      else showMsg(integMsgId_(), '⚠️ ' + ((r && r.message) || 'Não foi possível.'), 'warn');
+    }catch(e){ showMsg(integMsgId_(), '📡 Sem conexão.', 'warn'); }
+  });
+}
+/* P-10 — pré-cadastro: prévia editável com o que veio do iFood */
+function abrirPreCadastroIfood_(ix){
+  const r0 = ifoodItensDados_; const it = r0 && r0.itens[ix]; if(!it) return;
+  let m = document.getElementById('ifPreModal');
+  if(!m){ m = document.createElement('div'); m.id = 'ifPreModal'; m.className = 'modal-overlay'; document.body.appendChild(m); }
+  const ehOp = it.tipo === 'opcao';
+  const cats = (r0.categorias||[]);
+  const catIgual = cats.find(c=>String(c.nome||'').trim().toLowerCase() === String(it.categoria||'').trim().toLowerCase());
+  m.innerHTML = `<div class="modal-box"><div class="modal-header"><h2>➕ Cadastrar no sistema</h2><button class="close-btn" onclick="fecharFormModal('ifPreModal')">✕</button></div>
+    <p class="sub">Vai criar ${ehOp ? 'um <b>adicional INATIVO</b>' : 'um <b>produto RASCUNHO</b> (fora do cardápio e da contingência)'} já ligado a este item do iFood. Confira os dados:</p>
+    <label>Nome</label><input id="ifPreNome" value="${escH(it.nome||'')}" maxlength="120">
+    <label>Preço${ehOp ? '' : ' no iFood'} (R$)</label><input id="ifPrePreco" type="number" step="0.01" min="0" value="${it.precoIfood!=null ? Number(it.precoIfood).toFixed(2) : ''}">
+    ${ehOp ? '' : `<label>Categoria</label><select id="ifPreCat"><option value="">Sem categoria (revisar depois)</option>${cats.map(c=>`<option value="${escH(c.id)}"${catIgual && catIgual.id===c.id ? ' selected' : ''}>${escH(c.nome)}</option>`).join('')}${it.categoria && !catIgual ? `<option value="nova">➕ Criar categoria "${escH(it.categoria)}"</option>` : ''}</select>
+    <label>Descrição</label><textarea id="ifPreDesc" rows="2" placeholder="Descrição e foto não vêm do iFood agora (o acesso ao cardápio do iFood está bloqueado). Complete depois em Produtos."></textarea>`}
+    <p class="obs-line">Depois, em Cadastros → Produtos: ficha técnica (ingredientes), preços das outras formas de pagamento e foto. Ative quando estiver pronto.</p>
+    <div class="btnrow mt-2"><button class="primary" onclick="salvarPreCadastroIfood_(${ix}, false)">Criar e ligar</button><button class="ghost" onclick="fecharFormModal('ifPreModal')">Voltar</button></div>
+    <div class="msg" id="ifPreMsg"></div></div>`;
+  abrirFormModal('ifPreModal');
+}
+async function salvarPreCadastroIfood_(ix, forcar){
+  const r0 = ifoodItensDados_; const it = r0 && r0.itens[ix]; if(!it) return;
+  const v = id => (document.getElementById(id)||{}).value;
+  const cat = v('ifPreCat') || '';
+  const corpo = { chave: it.chave, nome: String(v('ifPreNome')||'').trim(), preco: v('ifPrePreco'), descricao: v('ifPreDesc') || '', forcar: !!forcar,
+    categoriaId: cat && cat !== 'nova' ? cat : '', categoriaNova: cat === 'nova' ? (it.categoria||'') : '' };
+  if(!corpo.nome) return showMsg('ifPreMsg', 'Informe o nome.', 'warn');
+  try{
+    const r = await apiCall('ifoodPreCadastro', corpo);
+    if(r && r.duplicado){
+      const ex = r.existente || {};
+      const ligar = await confirmarTxt_((r.message || 'Já existe um item parecido.') + '\n\nLigar este item do iFood ao que já existe?', 'Ligar ao existente', false, 'Já existe parecido', 'Não');
+      if(!ligar){
+        if(await confirmarTxt_('Criar um cadastro NOVO mesmo assim (vão ficar dois parecidos)?', 'Criar novo', false, 'Criar mesmo assim?', 'Voltar')) return salvarPreCadastroIfood_(ix, true);
+        return;
+      }
+      {
+        const rl = await apiCall('ifoodLigarItem', { chave: it.chave, tipo: ex.tipo, id: ex.id });
+        if(rl && rl.ok){ ifoodItensDados_ = rl; renderIfoodItens_(); fecharFormModal('ifPreModal'); showMsg(integMsgId_(), 'Ligado a "' + (ex.nome||'') + '".', 'ok'); }
+        else showMsg('ifPreMsg', '⚠️ ' + ((rl && rl.message) || 'Não foi possível ligar.'), 'warn');
+      }
+      return;
+    }
+    if(r && r.ok){ ifoodItensDados_ = r; renderIfoodItens_(); fecharFormModal('ifPreModal'); showMsg(integMsgId_(), r.message || 'Criado.', 'ok'); try{ if(typeof sincronizarEmSegundoPlano === 'function') sincronizarEmSegundoPlano(); }catch(e){} }
+    else showMsg('ifPreMsg', '⚠️ ' + ((r && r.message) || 'Não foi possível criar.'), 'warn');
+  }catch(e){ showMsg('ifPreMsg', '📡 Sem conexão: nada foi criado.', 'warn'); }
 }
 async function reprocessarIfood_(){
   if(!await confirmarTxt_('Refazer os pedidos do iFood que ficaram sem ligação, com as ligações atuais? (corrige custo e estoque)')) return;

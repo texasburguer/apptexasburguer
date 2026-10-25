@@ -756,7 +756,7 @@ async function cfAjustarPrecosAplicar(){
     const r = await apiCall('ajustarPrecosProdutosLote', { percentual: pct, categoria: cat });
     if(r && r.ok){
       if(r.produtos) produtos = r.produtos; if(r.produtoPrecos) produtoPrecos = r.produtoPrecos; if(r.comboPrecos) comboPrecos = r.comboPrecos; salvarCache();
-      fecharFormModal('ajustePrecosModal'); try{ renderProdutos(); }catch(e){} showMsg('pMsgLista', r.message, 'ok');
+      fecharFormModal('ajustePrecosModal'); try{ renderProdutos(); }catch(e){ if(window.erroTela_) erroTela_(e); } showMsg('pMsgLista', r.message, 'ok');
     } else showMsg('apMsg', (r && r.message) || 'Não foi possível ajustar.', 'warn');
   }catch(e){ showMsg('apMsg', 'Não foi possível ajustar agora. Tente de novo.', 'warn'); }
   finally { b.disabled = false; }
@@ -793,7 +793,7 @@ async function cfVisLoteAplicar(ativo){
   if(!await confirmarTxt_((ativo ? 'Mostrar ' : 'Esconder ') + ids.length + ' produto(s) no cardápio?', ativo ? 'Mostrar' : 'Esconder', !ativo)) return;
   try{
     const r = await apiCall('visibilidadeLoteProdutos', { ids, ativo });
-    if(r && r.ok){ if(r.produtos) produtos = r.produtos; salvarCache(); fecharFormModal('visLoteModal'); try{ renderProdutos(); renderProdutoCuradoria(); }catch(e){} showMsg('pMsgLista', r.message, 'ok'); }
+    if(r && r.ok){ if(r.produtos) produtos = r.produtos; salvarCache(); fecharFormModal('visLoteModal'); try{ renderProdutos(); renderProdutoCuradoria(); }catch(e){ if(window.erroTela_) erroTela_(e); } showMsg('pMsgLista', r.message, 'ok'); }
     else showMsg('vlMsg', (r && r.message) || 'Não foi possível alterar.', 'warn');
   }catch(e){ showMsg('vlMsg', 'Não foi possível alterar agora. Tente de novo.', 'warn'); }
 }

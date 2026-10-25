@@ -39,32 +39,32 @@ const IC_SVG_ = {
 function icSvg_(k){ return '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="' + (IC_SVG_[k] || IC_SVG_.sistema) + '"/></svg>'; }
 const ADMIN_GRUPOS = [
   { nome:'Hoje',               ico:'painel',     subs:['visaogeral', 'ocorrencias', 'feedbacks'] },
-  { nome:'Dinheiro',           ico:'financeiro', subs:['financeiro', 'historico', 'ajustes', 'analise', 'relatorios'] },
+  { nome:'Dinheiro',           ico:'financeiro', subs:['financeiro', 'historico', 'ajustes', 'analise', 'relatorios', 'ifoodfin'] },
   { nome:'Produtos',           ico:'catalogo',   subs:['produtos', 'estoque', 'compras', 'custosprecificacao'] },
   { nome:'Vendas e cardápio',  ico:'campanhas',  subs:['cardapiodigital', 'pagamentos', 'promocoes', 'eventos'] },
   { nome:'Loja e equipe',      ico:'operacao',   subs:['restaurante', 'taxasentregas', 'equipe', 'escala', 'ponto', 'usuarios', 'notifadmin'] },
-  { nome:'Sistema',            ico:'sistema',    subs:['contas', 'armazenamento', 'integridade', 'auditoria'] }
+  { nome:'Sistema',            ico:'sistema',    subs:['contas', 'armazenamento', 'arquivo', 'integridade', 'auditoria'] }
 ];
 const ADMIN_SUBABAS = ADMIN_GRUPOS.reduce((a,g)=>a.concat(g.subs), []);
 /* a barra do Administrador existia copiada em 13 telas. Agora há UMA definição, desenhada em todas. */
 const ADMIN_SUBABAS_ROTULOS = {
   visaogeral:'Visão Geral', ocorrencias:'Ocorrências', feedbacks:'Feedbacks',
-  financeiro:'Contas a pagar e despesas', historico:'Histórico', ajustes:'Reembolsos e ajustes', analise:'Previsto e metas', relatorios:'Relatórios e DRE',
+  financeiro:'Contas a pagar e despesas', historico:'Histórico', ajustes:'Reembolsos e ajustes', analise:'Previsto e metas', relatorios:'Relatórios e DRE', ifoodfin:'iFood: vendas e repasses',
   produtos:'Produtos, combos e adicionais', estoque:'Estoque', compras:'Compras e fornecedores', custosprecificacao:'Custos e precificação',
   cardapiodigital:'Cardápio Digital', pagamentos:'Formas de pagamento', promocoes:'Promoções e cupons', eventos:'Eventos',
   restaurante:'Mesas e QR Codes', taxasentregas:'Entregadores e taxas', equipe:'Equipe e pagamentos', escala:'Escala da equipe', ponto:'Ponto', usuarios:'Usuários e permissões', notifadmin:'Configurar avisos',
-  contas:'Integrações e contas', armazenamento:'Backup e espaço', integridade:'Sincronização e contingência', auditoria:'Auditoria'
+  contas:'Integrações e contas', armazenamento:'Backup e espaço', arquivo:'Armazenamento', integridade:'Sincronização e contingência', auditoria:'Auditoria'
 };
 const ADMIN_GRUPOS_OPERADOR_ = [ { nome:'Atendimento', ico:'atendimento', subs:['ocorrencias', 'feedbacks'] } ];
 function gruposAdmin_(){ return (currentUser && currentUser.nivel==='Operador') ? ADMIN_GRUPOS_OPERADOR_ : ADMIN_GRUPOS; }
 /* Uma linha explicando cada tela, mostrada embaixo do nome no menu (celular e PC). Ao criar tela nova, acrescentar aqui. */
 const ADMIN_SUBABAS_DESCRICOES = {
   visaogeral:'Resumo do dia e saúde do sistema', ocorrencias:'Problemas registrados e como tratar', feedbacks:'O que os clientes escreveram; responder',
-  financeiro:'Boletos, aluguel e despesas fixas', historico:'Vendas, despesas e caixas já feitos', ajustes:'Devolver dinheiro, dar crédito ou cortesia', analise:'Quanto entra e sai nos próximos 30 dias, e metas', relatorios:'DRE, imposto, mais vendidos e Excel',
+  financeiro:'Boletos, aluguel e despesas fixas', historico:'Vendas, despesas e caixas já feitos', ajustes:'Devolver dinheiro, dar crédito ou cortesia', analise:'Quanto entra e sai nos próximos 30 dias, e metas', relatorios:'DRE, imposto, mais vendidos e Excel', ifoodfin:'Comissões, taxas, repasses, antecipações e arquivo mensal do iFood',
   produtos:'Cadastro de produtos, combos e adicionais', estoque:'Ingredientes, bebidas e movimentações', compras:'Registrar compras e fornecedores', custosprecificacao:'Simular custo e preço de venda',
   cardapiodigital:'O que o cliente vê no cardápio: dados, visual, ordem e destaques', pagamentos:'Taxas, prazos, troco e o que aparece no cardápio', promocoes:'Cupons e cupons automáticos', eventos:'Custos e recebimentos por evento',
   restaurante:'Mesas do salão e QR Codes', taxasentregas:'Taxa, ajuda diária e fechamento dos entregadores', equipe:'Funcionários, salários, pagamentos, encargos e recibos', escala:'Quem trabalha em cada dia e horário', ponto:'Entradas e saídas, horas feitas e horas extras', usuarios:'Quem acessa o sistema, o que pode fazer e a privacidade (LGPD) das contas', notifadmin:'Quais avisos ligam, para quem, e os alertas automáticos',
-  contas:'iFood, Nota fiscal, Mercado Pago, chaves das IAs e contas do sistema', armazenamento:'Backups, fotos e espaço do Google Drive', integridade:'Planilha de contingência e sincronização', auditoria:'Ações sensíveis registradas'
+  contas:'iFood, Nota fiscal, Mercado Pago, chaves das IAs e contas do sistema', armazenamento:'Backups, fotos e espaço do Google Drive', arquivo:'Banco, Storage e planilha: quanto falta para encher e o que foi arquivado', integridade:'Planilha de contingência e sincronização', auditoria:'Ações sensíveis registradas'
 };
 function adminBtnTxt_(id){
   const d = ADMIN_SUBABAS_DESCRICOES[id];
@@ -74,12 +74,12 @@ function adminBtnTxt_(id){
 const ADMIN_BUSCA_PALAVRAS_ = {
   visaogeral:'resumo painel inicio hoje vendas dia saude', ocorrencias:'problema reclamacao erro incidente', feedbacks:'avaliacao opiniao elogio cliente responder',
   financeiro:'despesa conta pagar boleto aluguel mensal gasto', historico:'vendas passadas caixa sessoes arquivo', ajustes:'reembolso estorno devolucao credito cortesia desconto pos venda',
-  analise:'meta previsto fluxo categoria', relatorios:'dre imposto lucro excel mercado pago resumo mensal produtos mais vendidos',
+  analise:'meta previsto fluxo categoria', ifoodfin:'ifood financeiro repasse liquidacao antecipacao comissao taxa conciliacao arquivo csv boleto recebiveis lancamento venda', relatorios:'dre imposto lucro excel mercado pago resumo mensal produtos mais vendidos',
   produtos:'combo categoria adicional receita foto preco cardapio item lanche', estoque:'ingrediente bebida inventario entrada perda minimo', compras:'fornecedor nota compra comprei',
   custosprecificacao:'calculadora margem custo preco simulador', cardapiodigital:'cardapio online cliente qr logo banner horario fechamento dados do restaurante razao social cnpj', pagamentos:'pix cartao credito debito dinheiro taxa troco prazo online ifood',
   promocoes:'cupom desconto indicacao fidelidade brinde', eventos:'evento festa',
   restaurante:'mesa qr code salao', taxasentregas:'entregador motoboy frete taxa ajuda diaria fechamento', ponto:'ponto bater entrada saida horas extras banco de horas atraso esqueceu', escala:'troca de turno trocar escala turno horario folga ferias falta atestado quem trabalha semana padrao escalar', equipe:'funcionario funcionarios salario pagamento folha pagar recibo encargos fgts inss ferias decimo terceiro adiantamento vale diaria comissao equipe', usuarios:'usuario login senha acesso perfil garcom cozinha operador permissao lgpd privacidade anonimizar aviso', notifadmin:'aviso notificacao alerta push pedido parado vencimento repetir',
-  contas:'ifood nota fiscal nfce mercado pago ia chave gemini groq senha conta email supabase github integracao', armazenamento:'backup drive foto espaco restaurar', integridade:'sincronizar sincronizacao contingencia planilha espelho saude',
+  contas:'ifood nota fiscal nfce mercado pago ia chave gemini groq senha conta email supabase github integracao', armazenamento:'backup drive foto espaco restaurar', arquivo:'armazenamento storage arquivo arquivar espaco cheio banco planilha celulas compactacao vacuum previsao', integridade:'sincronizar sincronizacao contingencia planilha espelho saude',
   auditoria:'log registro historico acao'
 };
 function adminNorm_(t){ return String(t==null?'':t).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim(); }
@@ -128,7 +128,7 @@ function abrirAdminGrupo_(i){
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
   const bt = document.querySelector('[data-tab="administrador"]'); if(bt) bt.classList.add('active');
   ativarApenasSecao_('tab-admininicio');
-  try{ renderAdminInicio_(); }catch(e){}
+  try{ renderAdminInicio_(); }catch(e){ if(window.erroTela_) erroTela_(e); }
 }
 function abrirAdminInicio_(){ abrirAdminGrupo_(null); }
 montarBarrasAdmin_('visaogeral');
@@ -160,7 +160,7 @@ function abaInterna_(tabId, q){
 /* Do Cardápio Digital (o que aparece) para o cadastro em Produtos → Produtos, combos e adicionais, já na aba certa. */
 function abrirCadastro_(aba){ _abaInterna_['tab-produtos'] = aba; abrirAdministrador('produtos'); }
 function abrirAdministrador(sub){
-  if(['ias','ifood','nfce','mercadopago'].includes(sub)){ _abaInterna_['tab-contas'] = sub; sub = 'contas'; }   // atalho direto para o sub-menu
+  if(['ias','ifood','nfce','mercadopago','infinitepay'].includes(sub)){ _abaInterna_['tab-contas'] = sub; sub = 'contas'; }   // atalho direto para o sub-menu
   if(sub === 'drive') sub = 'armazenamento';   // "Espaço e fotos" virou parte de "Backup e espaço"
   const permitidos = gruposAdmin_().reduce((a,g)=>a.concat(g.subs), []);
   const alvo = (ADMIN_SUBABAS.includes(sub) && permitidos.includes(sub)) ? sub : permitidos[0];
@@ -169,6 +169,8 @@ function abrirAdministrador(sub){
   document.querySelector('[data-tab="administrador"]').classList.add('active');
   ativarApenasSecao_('tab-'+alvo);
   if(alvo==='armazenamento' && apiConfigurada()){ carregarArmazenamento(); }
+  if(alvo==='arquivo' && apiConfigurada() && typeof carregarArmazenamentoArquivo_ === 'function') carregarArmazenamentoArquivo_();
+  if(alvo==='ifoodfin' && apiConfigurada() && typeof carregarIfoodFin_ === 'function') carregarIfoodFin_();   // v1.15: financeiro do iFood   // v1.15: tela Armazenamento
   if(_abaInterna_['tab-'+alvo]) abaInterna_('tab-'+alvo, _abaInterna_['tab-'+alvo]);
   if((alvo==='visaogeral' || alvo==='relatorios') && apiConfigurada()) sincronizarEmSegundoPlano(); // ITEM 92: atualiza ao entrar, sem refresh periódico
   if(alvo==='taxasentregas'){ renderEntregasFinanceiro(); if(apiConfigurada()) atualizarAoEntrar_(); }
@@ -195,8 +197,8 @@ document.querySelectorAll('.tab-btn').forEach(btn=>{
     document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
     btn.classList.add('active');
     ativarApenasSecao_('tab-'+btn.dataset.tab);
-    if(btn.dataset.tab==='inicio') { try{ renderInicio(); }catch(e){} }
-    if(btn.dataset.tab==='meusganhos') { try{ renderMeusGanhos(); }catch(e){} }
+    if(btn.dataset.tab==='inicio') { try{ renderInicio(); }catch(e){ if(window.erroTela_) erroTela_(e); } }
+    if(btn.dataset.tab==='meusganhos') { try{ renderMeusGanhos(); }catch(e){ if(window.erroTela_) erroTela_(e); } }
     if(btn.dataset.tab==='caixa') { try{ mpFaixaAtualizar_(); }catch(e){} }
   });
 });
@@ -285,12 +287,12 @@ function ultimaVendaPorTel_(){
   const chave = vendas.length+'|'+(vendas.length? (vendas[0].id||'')+(vendas[vendas.length-1].id||'') : '');
   if(_cacheUltVendaTel && _cacheUltVendaChave===chave) return _cacheUltVendaTel;
   const m = {};
-  vendas.forEach(v=>{ const t = normTel(v.clienteTelefone); if(!t || !v.timestamp) return; if(!m[t] || v.timestamp>m[t]) m[t] = v.timestamp; });
+  vendas.forEach(v=>{ const t = chaveVendaCliente_(v); if(!t || !v.timestamp) return; if(!m[t] || v.timestamp>m[t]) m[t] = v.timestamp; });
   _cacheUltVendaTel = m; _cacheUltVendaChave = chave;
   return m;
 }
 function ultimaAtividadeCliente(cliente){
-  const tel = normTel(cliente.telefone);
+  const tel = chaveCliente_(cliente);
   const candidatos = [];
   if(cliente.primeiroContato) candidatos.push(parseDataBR(cliente.primeiroContato));
   const fid = fidelidadeClientes.find(f=>normTel(f.telefone)===tel);
@@ -328,13 +330,15 @@ function cupBeneficio_(c){ return c.tipo==='percentual'?c.valor+'%':c.tipo==='fi
 function cupClienteNome_(id){ const c=(clientes||[]).find(x=>x.id===id); return c ? (c.nome||'Sem nome') : 'cliente'; }
 function renderCuponsUI(){
   const box=document.getElementById('cupLista'); if(!box) return;
-  const arr=cupons||[], comuns=arr.filter(c=>!c.automatico), autos=arr.filter(c=>c.automatico);
+  const arr=(cupons||[]).filter(c=>!c.excluido), excluidos=(cupons||[]).filter(c=>c.excluido), comuns=arr.filter(c=>!c.automatico), autos=arr.filter(c=>c.automatico);
   const ab=document.getElementById('cupAutoLista');
   if(ab) ab.innerHTML=Object.keys(CUP_AUTO_).map(k=>{ const c=autos.find(x=>x.automatico===k); if(!c) return `<div class="notif-card"><b>${CUP_AUTO_[k].t}</b><div class="obs-line">Ainda não configurado no banco.</div></div>`;
     return `<div class="notif-card"><b>${CUP_AUTO_[k].t}</b> · ${c.ativa?'<b>LIGADO</b>':'desligado'}<div class="obs-line">${escH(CUP_AUTO_[k].d)}</div><div class="obs-line">Benefício: ${escH(cupBeneficio_(c))}${c.valorMinimo?' · pedido mínimo R$ '+Number(c.valorMinimo).toFixed(2).replace('.',','):''} · vale ${c.validadeDias} dias${c.mensagem?' · “'+escH(c.mensagem)+'”':''}</div><button class="small-gold" onclick="abrirCupomUI('${c.id}')">Editar</button> <button class="ghost" onclick="alternarCupomUI('${c.id}',${!c.ativa})">${c.ativa?'Desligar':'Ligar'}</button></div>`; }).join('');
   box.innerHTML=comuns.length?comuns.map(c=>{
     const tags=[c.somenteConta?'🔐 só com conta':'',c.clienteId?'👤 só para '+escH(cupClienteNome_(c.clienteId)):'',c.visivelConta?'👁 visível na conta':''].filter(Boolean).join(' · ');
-    return `<div class="notif-card"><b>${escH(c.codigo)}</b> — ${escH(c.nome)} · ${escH(cupBeneficio_(c))} · ${c.ativa?'ATIVO':'INATIVO'}<div class="obs-line">Uso: ${c.limiteTotal?c.limiteTotal:'ilimitado'} · por cliente: ${c.limitePorCliente?c.limitePorCliente:'ilimitado'} · mínimo: R$ ${Number(c.valorMinimo).toFixed(2)}${tags?' · '+tags:''}</div><button class="small-gold" onclick="abrirCupomUI('${c.id}')">Editar</button> <button class="ghost" onclick="alternarCupomUI('${c.id}',${!c.ativa})">${c.ativa?'Desativar':'Ativar'}</button></div>`; }).join(''):'<div class="notif-empty">Nenhum cupom cadastrado.</div>';
+    return `<div class="notif-card"><b>${escH(c.codigo)}</b> — ${escH(c.nome)} · ${escH(cupBeneficio_(c))} · ${c.ativa?'ATIVO':'INATIVO'}<div class="obs-line">Uso: ${c.limiteTotal?c.limiteTotal:'ilimitado'} · por cliente: ${c.limitePorCliente?c.limitePorCliente:'ilimitado'} · mínimo: R$ ${Number(c.valorMinimo).toFixed(2)}${tags?' · '+tags:''}</div><button class="small-gold" onclick="abrirCupomUI('${c.id}')">Editar</button> <button class="ghost" onclick="alternarCupomUI('${c.id}',${!c.ativa})">${c.ativa?'Desativar':'Ativar'}</button> <button class="ghost" onclick="excluirCupomUI('${c.id}')">🗑️ Excluir</button></div>`; }).join(''):'<div class="notif-empty">Nenhum cupom cadastrado.</div>';
+  if(excluidos.length) box.insertAdjacentHTML('beforeend', '<details class="mt-2"><summary class="fs-sm">🗑️ Cupons excluídos ('+excluidos.length+') — arquivados porque já tinham sido usados</summary>'
+    + excluidos.map(c=>'<div class="obs-line"><b>'+escH(c.codigoOriginal||c.codigo)+'</b> — '+escH(c.nome)+' <button class="ghost" style="width:auto;padding:2px 8px;min-height:28px;" onclick="restaurarCupomUI(\''+c.id+'\')">Restaurar</button></div>').join('') + '</details>');
 }
 function cupClienteLabel_(c){ return (c.nome||'Sem nome')+' — '+(c.telefone||'sem telefone'); }
 function abrirCupomUI(id){
@@ -379,6 +383,29 @@ async function lgpdCarregarUI_(){
 async function lgpdEnviar_(p){ try{ const r=await apiCall('lgpdConfig',p); showMsg('lgpdMsg',r.message||'Pronto.',r.ok?'ok':'warn'); if(r.ok) lgpdPintar_(r); }catch(e){ showMsg('lgpdMsg','Não foi possível salvar agora.','warn'); } }
 function lgpdSalvarAnos_(){ lgpdEnviar_({anos:document.getElementById('lgpdAnos').value}); }
 async function lgpdNovaVersao_(){ if(!await confirmarTxt_('Todos os clientes com conta vão precisar aceitar o Aviso de novo. Publicar nova versão?', 'Publicar nova versão', false, 'Nova versão do Aviso')) return; lgpdEnviar_({novaVersaoAviso:true}); }
+/* P-05 — excluir cupom (pede a senha). Nunca usado: apaga. Já usado: arquiva (histórico fica certo). */
+async function excluirCupomUI(id){
+  const c=(cupons||[]).find(x=>x.id===id); if(!c) return;
+  const extra = c.tipo==='combo' ? '\n\nAtenção: é um cupom de COMBO (preço especial para um conjunto de produtos).' : '';
+  if(!await confirmarTxt_('Excluir o cupom '+c.codigo+'? Essa ação não pode ser desfeita.\n\nSe ele já foi usado em pedidos, ele é arquivado (some da lista, da conta dos clientes e do cardápio) e os pedidos antigos continuam certos.'+extra,'Excluir cupom',true)) return;
+  abrirModalSenhaAdmin(async (senha)=>{
+    try{
+      const r=await apiCall('excluirCupom',{id,senha});
+      if(r && r.ok){ avisar(r.message||'Cupom excluído.','ok'); try{ await sincronizarEmSegundoPlano(); }catch(e){} cupons=(cupons||[]).filter(x=>x.id!==id || r.arquivado); if(r.arquivado){ const k=cupons.find(x=>x.id===id); if(k){ k.excluido=true; k.codigoOriginal=k.codigoOriginal||k.codigo; k.ativa=false; } } renderCuponsUI(); }
+      else mostrarErro_('⚠️ '+((r&&r.message)||'Não foi possível excluir o cupom.'),{forcar:true});
+    }catch(e){ mostrarErro_('📡 Sem conexão: o cupom não foi excluído.',{forcar:true}); }
+  });
+}
+async function restaurarCupomUI(id){
+  if(!await confirmarTxt_('Restaurar este cupom? Ele volta DESATIVADO.','Restaurar',false)) return;
+  abrirModalSenhaAdmin(async (senha)=>{
+    try{
+      const r=await apiCall('excluirCupom',{id,senha,restaurar:true});
+      if(r && r.ok){ avisar(r.message||'Restaurado.','ok'); const k=(cupons||[]).find(x=>x.id===id); if(k){ k.excluido=false; k.codigo=k.codigoOriginal||k.codigo; } try{ await sincronizarEmSegundoPlano(); }catch(e){} renderCuponsUI(); }
+      else mostrarErro_('⚠️ '+((r&&r.message)||'Não foi possível restaurar.'),{forcar:true});
+    }catch(e){ mostrarErro_('📡 Sem conexão: nada foi restaurado.',{forcar:true}); }
+  });
+}
 async function alternarCupomUI(id,ativo){try{const r=await apiCall('alternarCupom',{id,ativo});if(r.ok){cupons=r.cupons||[];renderCuponsUI();}else avisar(r.message);}catch(e){avisar('Não foi possível alterar o cupom.');}}
 function evPreencherFormas_(){ const sel=document.getElementById('evRecForma'); if(!sel) return; const atual=sel.value; sel.innerHTML=(formasPagamento||[]).filter(f=>f.ativa!==false).map(f=>`<option value="${escH(f.nome)}">${escH(f.nome)}</option>`).join(''); if(atual) sel.value=atual; }
 function calcTrocarProduto_(){ const e=document.getElementById('calcPrecoSimulado'); if(e) e.value=''; calcularCustoUI(); }
@@ -406,7 +433,7 @@ async function carregarArquivoCliente_(tel, clienteId, forcar){
   if(atual && !forcar && (atual.estado==='carregando' || atual.estado==='ok')) return;
   _arqCli_[tel] = { estado:'carregando', pedidos: atual ? atual.pedidos : [] };
   try{
-    const j = await rpcArq_('api_historico_cliente_arquivo', { p_telefone: tel, p_cliente_id: clienteId || null });
+    const j = await rpcArq_('api_historico_cliente_arquivo', { p_telefone: /^ifood:/.test(tel) ? '' : tel, p_cliente_id: clienteId || null });
     if(!j || !j.ok) throw new Error((j && j.message) || 'falha');
     _arqCli_[tel] = { estado:'ok', pedidos:(j.pedidos||[]).map(arqLinhaParaVenda_) };
   }catch(e){ _arqCli_[tel] = { estado:'erro', pedidos: [] }; }
@@ -436,7 +463,7 @@ async function carregarSegmentosClientes_(forcar){
   try{
     const j = await rpcArq_('api_clientes_segmentos', { p_dias_risco: SEG_DIAS_RISCO_ });
     if(j && j.ok){
-      const m = {}; (j.clientes||[]).forEach(c=>{ m[normTel(c.telefone)] = c; });
+      const m = {}; (j.clientes||[]).forEach(c=>{ m[chaveNorm_(c.telefone)] = c; });
       const era = _segTel_; _segTel_ = m; _segQuando_ = Date.now();
       if(!era && document.getElementById('cTable')) renderClientes();
     }
@@ -444,7 +471,7 @@ async function carregarSegmentosClientes_(forcar){
   finally{ _segCarregando_ = false; }
 }
 function seloSegmento_(tel){
-  const s = _segTel_ && _segTel_[normTel(tel)];
+  const s = _segTel_ && _segTel_[chaveNorm_(tel)];
   if(!s || !SEG_CLASSE_[s.segmento]) return '';
   return ` <span class="badge ${SEG_CLASSE_[s.segmento]}">${escH(s.segmento)}</span>`;
 }
@@ -465,11 +492,11 @@ function renderClientes(){
   if(segAlvo){
     if(!arqPodeLer_()){ tbody.innerHTML = '<tr class="empty-row"><td colspan="3">' + estadoVazio_('Os segmentos precisam do servidor principal (Supabase) e de um perfil de gestão. Agora ele não está disponível.') + '</td></tr>'; return; }
     if(!_segTel_){ tbody.innerHTML = '<tr class="empty-row"><td colspan="3">' + estadoVazio_('⏳ Calculando os segmentos…') + '</td></tr>'; return; }
-    lista = lista.filter(c=>{ const s = _segTel_[normTel(c.telefone)]; return s && s.segmento===segAlvo; });
+    lista = lista.filter(c=>{ const s = _segTel_[chaveCliente_(c)]; return s && s.segmento===segAlvo; });
   }
   lista = lista.slice().reverse();
   if(lista.length===0){ tbody.innerHTML = '<tr class="empty-row"><td colspan="3">' + ((filtro || modo!=='todos') ? estadoVazio_(segAlvo ? 'Nenhum cliente '+segAlvo+' agora ('+SEG_REGRAS_[segAlvo]+').' : 'Nenhum cliente encontrado.') : estadoVazio_('Nenhum cliente ainda. Eles entram na lista quando fazem um pedido.')) + '</td></tr>'; return; }
-  tbody.innerHTML = lista.map(c=>`<tr><td>${c.nome?escH(c.nome):'<em class="txt-muted">(sem nome)</em>'}${seloSegmento_(c.telefone)}</td><td>${escH(c.telefone)}</td><td><button class="small-gold" onclick="abrirPerfilCliente('${c.id}')">abrir</button></td></tr>`).join('');
+  tbody.innerHTML = lista.map(c=>`<tr><td>${c.nome?escH(c.nome):'<em class="txt-muted">(sem nome)</em>'}${seloSegmento_(chaveCliente_(c))}${c.ifoodId?' <span class="selo-ifood" title="Cliente que pediu pelo iFood">iFood</span>':''}</td><td>${c.ifoodId && !c.telefone ? '<span class="txt-muted">iFood (sem telefone)</span>' : escH(c.telefone)}</td><td><button class="small-gold" onclick="abrirPerfilCliente('${c.id}')">abrir</button></td></tr>`).join('');
 }
 /* ---------- PERFIL 360 (Fase 4): ficha do cliente no topo do perfil ---------- */
 const _p360_ = {};   // telefone -> { quando, dados }
@@ -502,12 +529,12 @@ async function renderPerfil360_(cliente, forcar){
   const box = document.getElementById('mPerfil360Section');
   if(!box) return;
   if(!cliente || !arqPodeLer_()){ box.innerHTML = ''; return; }
-  const tel = normTel(cliente.telefone), id = cliente.id;
+  const tel = chaveCliente_(cliente), id = cliente.id;
   const cache = _p360_[tel];
   if(cache && !forcar && Date.now()-cache.quando < 60000){ box.innerHTML = htmlPerfil360_(cache.dados); return; }
   box.innerHTML = '<div class="modal-section"><h3>Perfil 360</h3><div class="obs-line">⏳ Calculando…</div></div>';
   try{
-    const j = await rpcArq_('api_cliente_360', { p_telefone: tel, p_cliente_id: id || null, p_dias_risco: SEG_DIAS_RISCO_ });
+    const j = await rpcArq_('api_cliente_360', { p_telefone: /^ifood:/.test(tel) ? '' : tel, p_cliente_id: id || null, p_dias_risco: SEG_DIAS_RISCO_ });
     if(!j || !j.ok) throw new Error((j && j.message) || 'falha');
     _p360_[tel] = { quando: Date.now(), dados: j };
     if(modalClienteId===id) box.innerHTML = htmlPerfil360_(j);
@@ -523,13 +550,13 @@ function histFiltroMudou_(){
 function renderHistoricoCliente(telefone, manterFiltro){
   const box = document.getElementById('mHistoricoSection');
   if(!box) return;
-  const tel = normTel(telefone);
+  const tel = chaveNorm_(telefone);
   if(!manterFiltro || _histFiltro_.tel !== tel) _histFiltro_ = { tel: tel, per:'todos', tipo:'todos', pag:'todos' };
-  const cadastro = clientes.find(c=>normTel(c.telefone)===tel);
+  const cadastro = clientes.find(c=>chaveCliente_(c)===tel);
   carregarArquivoCliente_(tel, cadastro ? cadastro.id : null);
   const arq = _arqCli_[tel] || { estado:'carregando', pedidos:[] };
   const idsAtivos = new Set(vendas.map(v=>v.id));
-  const todos = vendas.filter(v=>normTel(v.clienteTelefone)===tel && v.status==='Confirmada')
+  const todos = vendas.filter(v=>chaveVendaCliente_(v)===tel && v.status==='Confirmada')
     .concat(arq.pedidos.filter(v=>v.status==='Confirmada' && !idsAtivos.has(v.id))).sort((a,b)=>b.timestamp-a.timestamp);
   const F = _histFiltro_, limite = F.per==='todos' ? 0 : Date.now() - Number(F.per)*86400000;
   const pedidos = todos.filter(v=> (!limite || v.timestamp >= limite) && (F.tipo==='todos' || v.tipoEntrega===F.tipo) && (F.pag==='todos' || (F.pag==='receber' ? v.statusPagamento==='A Receber' : v.statusPagamento!=='A Receber')));
@@ -590,9 +617,13 @@ function abrirPerfilCliente(clienteId){
   document.getElementById('mExcluirBtn').style.display = cliente ? 'block' : 'none';
   document.getElementById('mMsg').className = 'msg';
   renderPerfil360_(cliente);
-  if(cliente) renderHistoricoCliente(cliente.telefone); else document.getElementById('mHistoricoSection').innerHTML = '';
+  if(cliente) renderHistoricoCliente(chaveCliente_(cliente)); else document.getElementById('mHistoricoSection').innerHTML = '';
   const box = document.getElementById('mPromoSections');
+  const soIfood_ = !!(cliente && cliente.ifoodId && !normTel(cliente.telefone));
   if(!cliente){ box.innerHTML = ''; }
+  else if(soIfood_){
+    box.innerHTML = '<div class="modal-section"><h3>🛵 Cliente do iFood</h3><div class="obs-line">Cadastrado sozinho por um pedido do iFood. O iFood não envia o telefone do cliente (manda um 0800 com código localizador, que aparece no pedido), por isso cartão fidelidade e indicação não se aplicam. Os pedidos dele aparecem no histórico abaixo.</div></div>';
+  }
   else {
     const tel = normTel(cliente.telefone);
     const fid = fidelidadeClientes.find(f=>normTel(f.telefone)===tel);
@@ -623,7 +654,7 @@ function abrirPerfilCliente(clienteId){
   }
   const boxFeedback = document.getElementById('mFeedbackSection');
   if(boxFeedback){
-    if(!cliente){ boxFeedback.innerHTML = ''; }
+    if(!cliente || soIfood_){ boxFeedback.innerHTML = ''; }
     else {
       const tel = normTel(cliente.telefone);
       const feedbacksDoCliente = feedbacks.filter(f=>normTel(f.telefone)===tel).sort((a,b)=>(b.data||'').localeCompare(a.data||''));

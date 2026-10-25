@@ -6,63 +6,77 @@
    - BACKEND: NADA de Apps Script (script.google.com) nem de Supabase (*.supabase.co) é guardado aqui.
      Dados, pedidos, login e RPCs nunca passam pelo cache do service worker — sempre vão direto para a rede.
    - O único cache de dados é o de fotos (FOTOS) e o da casca/ícones (SHELL/ASSETS). Não adicionar outros. */
-const SHELL = 'texas-shell-v114';
-const ASSETS = 'texas-assets-v7';   // trocou ícone/logo/manifest/leaflet? suba para v5
+const SHELL = 'texas-shell-v115';
+const ASSETS = 'texas-assets-v8';   // trocou ícone/logo/manifest/leaflet? suba para v5
 const FOTOS = 'texas-fotos-v1';
 /* Código do app dividido em arquivos (app-*.js e estilo-*.css). Cada arquivo tem ?v=<impressão digital> na página; o cache guarda
    pela endereço COMPLETO, então uma página antiga sempre acha os arquivos antigos dela e a nova acha os novos (nunca mistura versões).
    A lista abaixo é gerada pelo script de selagem (selar.py) a cada entrega. */
 const CODIGO = 'texas-codigo-v3';   // trocou o nome = todo aparelho descarta o cache de código antigo (inclusive cópia vazia)
 const LISTA = [/*LISTA-INICIO*/
-  'css/estilo-base.css?v=ac9770f7',
-  'js/app-01-base-e-api.js?v=d4f6d685',
-  'js/app-02-abas.js?v=6ceee0e2',
-  'js/app-03-cadastros.js?v=16f83394',
-  'js/app-04-pedidos-entrega.js?v=58e9add7',
-  'js/app-05-avisos-push.js?v=b139d0ad',
-  'js/app-06-caixa.js?v=053d29ee',
+  'css/estilo-base.css?v=966ad513',
+  'js/app-01-base-e-api.js?v=b8c174cf',
+  'js/app-02-abas.js?v=d2406404',
+  'js/app-03-cadastros.js?v=46167420',
+  'js/app-04-pedidos-entrega.js?v=04c0dcf4',
+  'js/app-05-avisos-push.js?v=5ff06049',
+  'js/app-06-caixa.js?v=d8657313',
   'js/app-07-impressao.js?v=5c9f0484',
-  'js/app-08-vendas-despesas.js?v=de541e9c',
-  'js/app-09-ajuda.js?v=acbf074b',
-  'js/app-10-backup-financeiro.js?v=3b7d8cd1',
-  'js/app-11-admin-integracoes.js?v=b2467276',
-  'js/app-12-gestao-ia.js?v=c93c8f19',
+  'js/app-08-vendas-despesas.js?v=0b8d9a34',
+  'js/app-09-ajuda.js?v=b5fcd6f3',
+  'js/app-10-backup-financeiro.js?v=e0ab3939',
+  'js/app-11-admin-integracoes.js?v=2c9c65a1',
+  'js/app-12-gestao-ia.js?v=98d70713',
   'js/app-13-conexao-sync.js?v=4169baef',
-  'js/app-14-relatorios.js?v=1e3c69a3',
-  'js/app-15-cardapio-cliente.js?v=d16db04d',
+  'js/app-14-relatorios.js?v=89a1208a',
+  'js/app-15-cardapio-cliente.js?v=b3549f0c',
   'js/app-16-sessao-final.js?v=ef1da8ab',
-  'js/app-17-sessao-supabase.js?v=3fdfeb13',
+  'js/app-17-sessao-supabase.js?v=8d95f924',
   'js/app-18-queda-supabase.js?v=c3cdfe49',
   'css/estilo-ia-cardapio.css?v=22645202',
   'js/app-19-ia.js?v=37d36dbd',
-  'js/app-20-balao-interno.js?v=3dbb18df',
+  'js/app-20-balao-interno.js?v=c974eb7b',
   'js/app-21-localizacao.js?v=bb28de16',
-  'css/estilo-equipe.css?v=99519ca0',
+  'css/estilo-equipe.css?v=10e8510c',
   'js/app-22-navegacao-inferior.js?v=9c0835e7',
   'js/app-23-janelas-popup.js?v=6f031891',
   'js/app-24-acessibilidade.js?v=1567f2c1',
-  'js/app-25-cadastro-facil.js?v=ba581fbe',
+  'js/app-25-cadastro-facil.js?v=ad9fdcff',
   'js/app-26-visual.js?v=3c963d27',
   'css/estilo-conta-pagamento.css?v=c8bbf776',
   'js/app-28-dialogos.js?v=58e2325f',
-  'js/app-27-conta-cliente.js?v=d9bcbf53',
+  'js/app-27-conta-cliente.js?v=2991e6df',
   'js/app-29-usabilidade.js?v=8c6dd0c8',
   'js/app-30-teclado-pc.js?v=6ada025e',
   'js/app-31-alertas.js?v=cc24a649',
   'js/app-33-escala.js?v=345a54d7',
-  'js/app-34-eventos.js?v=e0698031',
+  'js/app-34-eventos.js?v=69bb2d23',
   'js/app-35-equipe-extras.js?v=650e4df1',
   'js/app-36-gestao.js?v=bb125f4f',
   'js/app-37-ponto-rapido.js?v=2dcb25e1',
-  'js/app-38-ponto-rosto.js?v=11d93b24',
+  'js/app-38-ponto-rosto.js?v=d58fe8fd',
   'js/app-39-fotos-registros.js?v=b24b7995',
   'js/app-40-etiquetas.js?v=5ac4487f',
   'js/app-41-ifood-extras.js?v=ac925d68',
-  'js/app-42-ifood-catalogo.js?v=7b63e35f',
-  'js/app-32-equipe.js?v=94d12e93',
+  'js/app-42-ifood-catalogo.js?v=1a99df4e',
+  'js/app-43-erros-visiveis.js?v=bcc87052',
+  'js/app-44-ifood-vinheta.js?v=de438ee2',
+  'js/app-45-ver-cardapio.js?v=a75737b8',
+  'js/app-46-cardapio-hoje.js?v=06c1114e',
+  'js/app-47-cardapio-facil.js?v=0c7e14a5',
+  'js/app-51-infinitepay.js?v=a3fdd917',
+  'js/app-52-ifood-financeiro.js?v=bf3223c9',
+  'js/app-50-ifood-homologacao.js?v=fc1546ba',
+  'js/app-49-jogos.js?v=b34e542f',
+  'js/jogo-burger.js?v=d67a1a42',
+  'js/jogo-chuva.js?v=c0a88274',
+  'js/jogo-memoria.js?v=5246b144',
+  'js/jogo-cobra.js?v=651a89f6',
+  'js/app-48-armazenamento.js?v=d42e1c2a',
+  'js/app-32-equipe.js?v=5f1d4bd8',
 /*LISTA-FIM*/];
 const FOTOS_MAX = 150;
-const PRE = ['manifest.webmanifest', 'img/icon-192.png', 'img/badge-96.png', 'img/apple-touch-icon.png', 'img/logo-texas-burger.webp', 'img/logo-impressao-cor.png'];
+const PRE = ['manifest.webmanifest', 'img/icon-192.png', 'img/badge-96.png', 'img/apple-touch-icon.png', 'img/logo-texas-burger.webp', 'img/logo-impressao-cor.png', 'sons/ifood-novo-pedido.mp3'];
 const HOSTS_FOTO = ['drive.google.com', 'lh3.googleusercontent.com'];
 
 self.addEventListener('install', e => e.waitUntil((async () => {
@@ -160,7 +174,7 @@ self.addEventListener('fetch', e => {
   }
   if (url.origin === self.location.origin) {
     if (/\/(app|estilo)-[^/]+\.(js|css)$/.test(url.pathname)) { e.respondWith(codigoCache_(r)); return; }
-    if (PRE.some(p => url.pathname.endsWith('/' + p)) || /\.(png|webp|jpe?g|svg|woff2?)$/i.test(url.pathname) || url.pathname.indexOf('/vendor/leaflet/') !== -1) e.respondWith(cacheDepoisRede_(r, ASSETS));
+    if (PRE.some(p => url.pathname.endsWith('/' + p)) || /\.(png|webp|jpe?g|svg|woff2?|mp3)$/i.test(url.pathname) || url.pathname.indexOf('/vendor/leaflet/') !== -1) e.respondWith(cacheDepoisRede_(r, ASSETS));
     return;
   }
   /* foto do Drive: só intercepta quando o app pediu em modo "cors" (com crossorigin="anonymous"); no modo normal o navegador cuida */

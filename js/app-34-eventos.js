@@ -212,8 +212,9 @@ async function cancelarEventoUI(id){
   id = id || document.getElementById('evId').value; if(!id) return;
   const f = await vsForm({ titulo:'Cancelar evento', texto:'O evento fica na lista como Cancelado (nada é apagado).', campos:[{ id:'motivo', rotulo:'Motivo do cancelamento (opcional)', tipo:'texto' }], ok:'Cancelar evento', perigo:true });
   if(!f) return;
+  const senhaAdminConfirmacao = await pedirSenha_(); if(!senhaAdminConfirmacao) return;
   try{
-    const r = await apiCall('cancelarEvento', { id, motivo:f.motivo });
+    const r = await apiCall('cancelarEvento', { id, motivo:f.motivo, senhaAdminConfirmacao });
     if(r.ok){ eventos = r.eventos || eventos; renderEventosUI(); fecharFormModal('eventoModal'); avisar('Evento cancelado.'); } else avisar(r.message);
   }catch(err){ avisar('Erro ao cancelar.'); }
 }

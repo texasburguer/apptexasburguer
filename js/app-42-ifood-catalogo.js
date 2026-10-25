@@ -145,7 +145,8 @@
   window.ifCatEsconder_ = async function(id){
     const x = acha_(id); if(!x) return;
     if(!await confirmarTxt_('Tirar "' + x.nome + '" desta lista? No iFood nada é apagado.')) return;
-    try{ const r = await apiCall('ifoodCatExcluir', { id }); if(r && r.ok){ dados_ = r.itens || []; render_(); } else msg_((r && r.message) || 'Não foi possível.', 'warn'); }catch(e){ msg_('Sem conexão.', 'warn'); }
+    const senhaAdminConfirmacao = await pedirSenha_(); if(!senhaAdminConfirmacao) return;
+    try{ const r = await apiCall('ifoodCatExcluir', { id, senhaAdminConfirmacao }); if(r && r.ok){ dados_ = r.itens || []; render_(); } else msg_((r && r.message) || 'Não foi possível.', 'warn'); }catch(e){ msg_('Sem conexão.', 'warn'); }
   };
 
   /* ---------- preço / status em massa ---------- */

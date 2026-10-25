@@ -243,7 +243,8 @@ async function pontoAprovar(id){
 async function pontoRostoApagar(fid){
   const p = ((pontoDados_ && pontoDados_.pessoas) || []).find(x => x.funcionarioId === fid);
   if(!await confirmarTxt_('Apagar o rosto de ' + (p ? p.nome : 'este funcionário') + '? Na próxima batida ele cadastra de novo (vale também se o cadastro foi feito por outra pessoa).', 'Apagar rosto', true, 'Apagar')) return;
-  try{ const r = await apiCall('pontoRostoApagar', { funcionarioId: fid }); showMsg('pontoMsg', (r && r.message) || 'Não foi possível.', r && r.ok ? 'ok' : 'warn'); if(r && r.ok) carregarPonto_(); }
+  const senhaAdminConfirmacao = await pedirSenha_(); if(!senhaAdminConfirmacao) return;
+  try{ const r = await apiCall('pontoRostoApagar', { funcionarioId: fid, senhaAdminConfirmacao }); showMsg('pontoMsg', (r && r.message) || 'Não foi possível.', r && r.ok ? 'ok' : 'warn'); if(r && r.ok) carregarPonto_(); }
   catch(e){ showMsg('pontoMsg', 'Não foi possível agora.', 'warn'); }
 }
 async function pontoFotoVer(id, lado){

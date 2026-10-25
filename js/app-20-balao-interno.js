@@ -371,7 +371,7 @@
     const av = $('biAvisos'); if(av) av.hidden = IN.vista !== 'avisos';
     c.querySelectorAll('#biSeg button').forEach(b => b.classList.toggle('on', b.getAttribute('data-v') === IN.vista));
     const sn = $('biSegN'); if(sn){ sn.hidden = !IN.avTotal; sn.textContent = String(IN.avTotal); }
-    if(IN.vista === 'avisos'){ try{ renderNotificacoes(); }catch(e){} desenharAvisos_(true); }
+    if(IN.vista === 'avisos'){ try{ renderNotificacoes(); }catch(e){ if(window.erroTela_) erroTela_(e); } desenharAvisos_(true); }
     else setTimeout(() => { const t = $('biTexto'); if(t) t.focus(); }, 60);
   }
   document.addEventListener('toggle', ev => {

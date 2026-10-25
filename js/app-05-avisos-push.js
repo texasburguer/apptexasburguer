@@ -72,10 +72,22 @@ try{ if('serviceWorker' in navigator && location.protocol==='https:') navigator.
 try{ if('serviceWorker' in navigator){ navigator.serviceWorker.addEventListener('message', ev=>{ if(ev.data && ev.data.tipo === 'nova-versao') mostrarAvisoNovaVersao_(); }); } }catch(e){}
 function mostrarAvisoNovaVersao_(){
   if(document.getElementById('avisoNovaVersao')) return;
+  /* v1.15 — cliente no cardápio (sem login), sem janela aberta e sem pedido em andamento: atualiza sozinho (uma vez),
+     para não ficar com a versão velha guardada no celular. O carrinho fica guardado no aparelho. */
+  try{
+    const semLogin = (typeof currentUser === 'undefined' || !currentUser) && !localStorage.getItem(SESSAO_KEY);
+    const janela = document.querySelector('.modal-overlay.open');
+    const pedindo = (typeof cdPedidoConcluido !== 'undefined' && cdPedidoConcluido) || (typeof _idFilaContingencia !== 'undefined' && _idFilaContingencia);
+    if(semLogin && !janela && !pedindo && !sessionStorage.getItem('txbAtualizouSozinho')){
+      sessionStorage.setItem('txbAtualizouSozinho', '1');
+      try{ if(typeof cdSalvarCarrinho_ === 'function') cdSalvarCarrinho_(); }catch(e){}
+      location.reload(); return;
+    }
+  }catch(e){}
   const b = document.createElement('div');
   b.id = 'avisoNovaVersao'; b.setAttribute('role','status');
   b.style.cssText = 'position:fixed;left:12px;right:12px;bottom:12px;z-index:99999;background:#1b1b1b;color:#fff;border:1px solid var(--gold,#d9a21b);border-radius:12px;padding:12px 14px;font:600 14px system-ui,sans-serif;display:flex;gap:10px;align-items:center;justify-content:space-between;box-shadow:0 6px 24px rgba(0,0,0,.45)';
-  b.innerHTML = '<span>🍔 Nova versão disponível</span><button type="button" style="background:var(--gold,#d9a21b);color:#111;border:0;border-radius:8px;padding:8px 12px;font-weight:700;cursor:pointer">Atualizar</button>';
+  b.innerHTML = '<span>🍔 Nova versão disponível' + ((typeof currentUser === 'undefined' || !currentUser) ? ' — toque em Atualizar (seu carrinho fica guardado)' : '') + '</span><button type="button" style="background:var(--gold,#d9a21b);color:#111;border:0;border-radius:8px;padding:8px 12px;font-weight:700;cursor:pointer">Atualizar</button>';
   b.querySelector('button').onclick = ()=> location.reload();
   document.body.appendChild(b);
 }
@@ -125,8 +137,15 @@ async function detectarNovosCozinha_(manual){
     }
     cozinhaUltimaChecagem = new Date(); _czLacuna = null;
     if(souCozinha_()){ const naTela_ = new Set((vendas || []).map(v=>v.id)); if(atuais.some(id=>!naTela_.has(id))) cozinhaSyncPendente = true; }   /* pedido existe no servidor mas não na tela: baixa agora */
-    if(souCozinha_()){ if(novos.length){ avisarNovoPedido_(novos.length); cozinhaSyncPendente = true; } }
-    else if(novosCaixa.length){ avisarNovoPedido_(novosCaixa.length); cozinhaSyncPendente = true; }
+    /* v1.15 — pedido do iFood toca a vinheta do iFood (app-44); os outros seguem com o aviso de sempre */
+    const ifoodSet_ = new Set(Array.isArray(r.ifood) ? r.ifood : []);
+    const avisarSeparado_ = lista => {
+      const ifd = lista.filter(id=>ifoodSet_.has(id)), outros = lista.filter(id=>!ifoodSet_.has(id));
+      if(outros.length) avisarNovoPedido_(outros.length);
+      if(ifd.length){ if(typeof avisarNovoPedidoIfood_ === 'function') avisarNovoPedidoIfood_(ifd.length); else avisarNovoPedido_(ifd.length); }
+    };
+    if(souCozinha_()){ if(novos.length){ avisarSeparado_(novos); cozinhaSyncPendente = true; } }
+    else if(novosCaixa.length){ avisarSeparado_(novosCaixa); cozinhaSyncPendente = true; }
     if(cozinhaSyncPendente || (manual && souCozinha_())){
       if(seguroParaSincronizar()){ cozinhaSyncPendente = false; await sincronizarEmSegundoPlano(); }
     }
@@ -267,7 +286,8 @@ function renderEntregas(){
       const obs = v.observacoesEntrega ? `<div class="obs-line">Obs: ${escH(v.observacoesEntrega)}</div>` : '';
       const aReceber = v.statusPagamento==='A Receber' ? `<div class="obs-line" style="color:#f0d78c;">💰 A receber (${v.formaPagamento}) — ${(souEntregador||souGarcom_())?'':`<button class="ghost" style="padding:2px 8px;font-size:12px;" onclick="confirmarRecebimento('${v.id}')">marcar como recebido</button>`}</div>` : `<div class="obs-line">Pago (${v.formaPagamento})</div>`;
       const linkMaps = v.endereco ? `<a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(v.endereco+' '+(v.complemento||''))}" target="_blank" class="obs-line txt-ouro">📍 Ver no Maps</a>` : '';
-      const telefoneCliente = v.clienteTelefone ? `<div class="obs-line">📞 ${v.clienteTelefone}</div>` : '';
+      const ic_ = ifoodContato_(v);
+      const telefoneCliente = ic_ ? `<div class="obs-line">📞 iFood ${escH(ic_.telefone||'0800')}${ic_.codigo ? ' · código <b>'+escH(ic_.codigo)+'</b>'+(ic_.vencido?' (vencido)':'') : ''}</div>` : (v.clienteTelefone ? `<div class="obs-line">📞 ${escH(v.clienteTelefone)}</div>` : '');
       const entregadorBox = (souEntregador || entregaPeloIfood_(v))
         ? (entregaPeloIfood_(v) ? '<div class="obs-line">🛵 Entrega feita pelo iFood — não precisa de entregador.</div><span data-rast="'+v.id+'"></span>' : '')
         : `<div class="mt-2"><label class="fs-2xs">Entregador</label>${popularSelectEntregadoresHtml(v.id, v.entregador)}</div>`;
@@ -549,7 +569,7 @@ function renderInicio(){
   // 4) Cardápio hoje (visitas) | Mesas (com a conta das mesas junto)
   if(staff){
     const vh = window._visitasCd_;
-    blocos.push(`<div class="resumo-box"><span class="rot">Cardápio hoje</span><b>${vh && vh.n != null ? vh.n : '—'}</b><small>visita(s) de clientes</small></div>`);
+    blocos.push(`<div class="resumo-box" ${clique("abrirCardapioHoje_()")} title="Ver funil e mapa do cardápio"><span class="rot">Cardápio hoje</span><b>${vh && vh.n != null ? vh.n : '—'}</b><small>visita(s) · toque para ver o funil e o mapa</small></div>`);
     if(!currentUser.emergencia && (!vh || Date.now() - vh.t > 60000)) inicioCarregarVisitas_();
   }
   if(nivel==='Admin' || nivel==='Operador' || nivel==='Garçom'){
@@ -736,7 +756,7 @@ async function confirmarFecharCaixa_(){
       sessaoCaixa = null;
       if(r.vendas){ vendas = r.vendas; fechamentosEntrega = r.fechamentosEntrega || fechamentosEntrega; entregasFechadas = r.entregasFechadas || entregasFechadas; }
       salvarCache(); renderStatusCaixa(); await recarregarHistoricoCaixa();
-      try{ renderEntregas(); renderNotificacoes(); }catch(e){}
+      try{ renderEntregas(); renderNotificacoes(); }catch(e){ if(window.erroTela_) erroTela_(e); }
       mostrarRelatorioFechamento(r.relatorio, r.relatorio.valorContado, r.entregasAuto);
     } else { document.getElementById('fcSenha').value = ''; showMsg('cxConfirmarMsg', r.message, 'warn'); btn.disabled = false; }
   } catch(e){ showMsg('cxConfirmarMsg','Não foi possível fechar o caixa. Tente de novo.','warn'); btn.disabled = false; }
@@ -749,7 +769,7 @@ async function recarregarHistoricoCaixa(){
     historicoCaixa = r.historicoCaixa || historicoCaixa;
     salvarCache();
     renderHistoricoCaixa();
-    try{ renderizarTudo(); }catch(e){} // redesenha tudo (Entregas, Pedidos, Início) com os dados frescos
+    try{ renderizarTudo(); }catch(e){ if(window.erroTela_) erroTela_(e); } // redesenha tudo (Entregas, Pedidos, Início) com os dados frescos
   }catch(e){ /* se falhar, mantém o que já estava na tela */ }
 }
 function mostrarRelatorioFechamento(r, contado, entregasAuto){
@@ -841,7 +861,7 @@ async function caixaRegraAbrir_(){
   Object.keys(v).forEach(k=>{ if(typeof v[k] === 'number') v[k] = Math.round(v[k]); });
   const r = await apiCall('caixaSalvarConfig', v);
   avisar((r && r.message) || 'Não foi possível salvar.', r && r.ok ? 'ok' : 'erro');
-  if(r && r.ok){ await recarregarHistoricoCaixa(); try{ renderStatusCaixa(); renderInicio(); }catch(e){} }
+  if(r && r.ok){ await recarregarHistoricoCaixa(); try{ renderStatusCaixa(); renderInicio(); }catch(e){ if(window.erroTela_) erroTela_(e); } }
 }
 function caixaFaixaAtualizar_(){
   const alvo = document.getElementById('inicioResumo'); if(!alvo || !alvo.parentNode) return;

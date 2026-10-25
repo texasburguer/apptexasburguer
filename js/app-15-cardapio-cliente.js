@@ -285,6 +285,11 @@ function cdMpTipoForma_(id){
   const fs = Array.isArray(cdMpConfig_.formas) ? cdMpConfig_.formas : [];
   const f = fs.find(x=>String(x.id)===String(id)); return f ? String(f.tipo||'') : '';
 }
+/* v1.15: quem recebe a forma online (Mercado Pago ou InfinitePay) */
+function cdPagProvedor_(id){
+  const fs = (cdMpConfig_ && cdMpConfig_.ligado && Array.isArray(cdMpConfig_.formas)) ? cdMpConfig_.formas : [];
+  const f = fs.find(x=>String(x.id)===String(id)); return f ? String(f.provedor||'mercadopago') : '';
+}
 function cdMpAtivo_(){ return !!(cdMpConfig_ && cdMpConfig_.ligado && cdDados && (cdDados.formasPagamento||[]).some(f=>cdMpTipoForma_(f.id))); }
 
 /* ---------- escolha da forma de pagamento (botões agrupados, como na prévia) ---------- */
@@ -301,7 +306,7 @@ function cdRenderFormas_(){
   if(!usar){ box.innerHTML = ''; return; }
   const fs = cdDados.formasPagamento || [], atual = sel.value;
   const online = fs.filter(f=>cdMpTipoForma_(f.id)), entrega = fs.filter(f=>!cdMpTipoForma_(f.id));
-  const btn = (f, on)=>`<button type="button" class="mp-forma" data-id="${escH(f.id)}" aria-pressed="${String(f.id)===String(atual)}" onclick="cdEscolherForma_(this.dataset.id)"><span class="mp-ico" aria-hidden="true">${cdFormaIcone_(f,on)}</span><span class="mp-txt">${escH(f.nome)}<small>${on ? (cdMpTipoForma_(f.id)==='pix' ? 'Pague agora pelo site' : 'Digite o cartão aqui no site') : 'Pague ao receber'}</small></span><span class="mp-tag${on?'':' off'}">${on?'Online':'Na entrega'}</span></button>`;
+  const btn = (f, on)=>`<button type="button" class="mp-forma" data-id="${escH(f.id)}" aria-pressed="${String(f.id)===String(atual)}" onclick="cdEscolherForma_(this.dataset.id)"><span class="mp-ico" aria-hidden="true">${cdFormaIcone_(f,on)}</span><span class="mp-txt">${escH(f.nome)}<small>${on ? (cdPagProvedor_(f.id)==='infinitepay' ? 'Pague no site da InfinitePay' : cdMpTipoForma_(f.id)==='pix' ? 'Pague agora pelo site' : 'Digite o cartão aqui no site') : 'Pague ao receber'}</small></span><span class="mp-tag${on?'':' off'}">${on?'Online':'Na entrega'}</span></button>`;
   box.innerHTML = '<p class="mp-grupo">Pagar agora, pelo site</p>' + online.map(f=>btn(f,true)).join('')
     + (entrega.length ? '<p class="mp-grupo">Pagar na entrega</p>' + entrega.map(f=>btn(f,false)).join('') : '');
 }
@@ -431,8 +436,9 @@ function cdMpAcompanhar_(reservaId, expiraEm){
   const fim = Date.parse(expiraEm || '') || 0;
   const passo = async ()=>{
     if(meu !== cdMpPollId_) return;
-    let r = null; try{ r = await cdMpConsultar_(reservaId); }catch(e){}
+    let r = null; try{ r = await cdMpConsultar_(reservaId); passo.falhas = 0; }catch(e){ passo.falhas = (passo.falhas || 0) + 1; }
     if(meu !== cdMpPollId_) return;      // a janela foi fechada enquanto esperávamos a resposta
+    if(passo.falhas >= 3){ const t = document.getElementById('cdMpStatusTxt'); if(t) t.textContent = '📡 Sem conexão para conferir o pagamento agora. Continuamos tentando — não pague de novo.'; }
     if(r){
       if(r.estado === 'aprovado'){ await cdMpAprovar_(r); return; }
       if(r.estado === 'conferindo'){ cdMpTelaConferindo_(); return; }
@@ -467,7 +473,7 @@ async function cdMpAprovar_(st){
   const msgHtml = wa ? escH(wa.msg).replace(/(PAGO via[^\n]*\nNão cobrar na entrega)/, '<b>✅ $1</b>').replace(/\n/g, '<br>') : '';
   cdMpMostrarModal_('<div class="mp-ok">' + CD_MP_SVG_OK_ + '</div><h2 class="mp-topo mp-centro">Pagamento aprovado</h2>'
     + '<p class="mp-sub mp-centro">' + (numero ? 'Pedido #' + escH(numero) + ' registrado. ' : 'Pedido registrado. ') + 'Agora é só enviar para o WhatsApp do restaurante.</p>'
-    + '<div class="mp-resumo mp-num"><div><span>Forma</span><span>' + (metodo==='pix' ? 'Pix' : metodo==='debito' ? 'Cartão de débito' : 'Cartão de crédito') + ' · Mercado Pago</span></div><div><span>Pago</span><span>' + cdMpR_(total) + '</span></div>' + (tempo ? '<div><span>Previsão</span><span>' + escH(tempo) + '</span></div>' : '') + '</div>'
+    + '<div class="mp-resumo mp-num"><div><span>Forma</span><span>' + (metodo==='pix' ? 'Pix' : metodo==='debito' ? 'Cartão de débito' : 'Cartão de crédito') + ' · ' + (cdPagProvedor_(cdFormaAtualId_())==='infinitepay' ? 'InfinitePay' : 'Mercado Pago') + '</span></div><div><span>Pago</span><span>' + cdMpR_(total) + '</span></div>' + (tempo ? '<div><span>Previsão</span><span>' + escH(tempo) + '</span></div>' : '') + '</div>'
     + (wa ? '<p class="mp-grupo">Mensagem que vai para o WhatsApp</p><div class="mp-zap">' + msgHtml + '</div><a class="mp-btn mp-zapbtn" href="' + escH(wa.url) + '" target="_blank" rel="noopener">Enviar pedido no WhatsApp</a>' : '')
     + '<p class="mp-rod">Você pode acompanhar o pedido em "Acompanhe seu pedido".</p><button type="button" class="mp-btn mp-sec" onclick="cdMpFinalizar_()">Fechar</button>', 'cdMpFinalizar_()');
 }
@@ -480,6 +486,10 @@ async function cdMpIniciarPagamento_(dados, tipoOnline){
     return;
   }
   if(modoContingenciaAtivo) return showMsg('cdCheckoutMsg','Pagamento online indisponível durante a instabilidade. Escolha pagar na entrega.','warn');
+  if(cdPagProvedor_(cdFormaAtualId_())==='infinitepay'){   // v1.15: esta forma é paga no checkout da InfinitePay (app-51)
+    if(typeof window.cdIpIniciar_ === 'function') return window.cdIpIniciar_(dados, tipoOnline);
+    return showMsg('cdCheckoutMsg','O pagamento pela InfinitePay não carregou. Atualize a página ou escolha pagar na entrega.','warn');
+  }
   const btn = document.getElementById('cdEnviarPedidoBtn'); btn.disabled = true; btn.textContent = 'Preparando pagamento…';
   try{
     const cfg = await cdMpConfigPublica_();
@@ -991,7 +1001,9 @@ async function onDigitarCep_(inp, idEnd, idAviso){
     }
     if(idEnd==='cdEndereco' && j.localidade){ const cc = document.getElementById('cdCidade'); if(cc) cc.value = [j.localidade, j.uf].filter(Boolean).join(' - '); }
     if(aviso){ aviso.style.display = 'block'; aviso.textContent = '📍 ' + [j.localidade, j.uf].filter(Boolean).join(' - ') + (txt ? ' — confira e digite o número da casa.' : ' — este CEP não tem rua; digite o endereço.'); }
-  }catch(e){ /* sem internet ou ViaCEP fora do ar: o cliente digita normalmente */ }
+  }catch(e){ /* sem internet ou ViaCEP fora do ar: avisa e o cliente digita normalmente */
+    try{ if(aviso){ aviso.style.display = 'block'; aviso.textContent = '⚠️ Não conseguimos consultar o CEP agora. Digite a rua, o bairro e a cidade.'; } }catch(_){}
+  }
 }
 var cdEndAuto_ = false, cdEndTentou_ = false;
 
@@ -1010,7 +1022,7 @@ async function cdPreencherEnderecoPorLocal_(){
     const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 8000);
     const r = await fetch('https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=17&addressdetails=1&accept-language=pt-BR&lat=' + encodeURIComponent(pos.lat) + '&lon=' + encodeURIComponent(pos.lng), { signal: ctl.signal });
     clearTimeout(t);
-    if(!r.ok) return;
+    if(!r.ok){ cdAvisoEndLocal_(); return; }
     const j = await r.json(); const a = (j && j.address) || {};
     const rua = a.road || a.pedestrian || a.residential || '';
     const bairro = a.suburb || a.neighbourhood || a.quarter || a.city_district || '';
@@ -1022,9 +1034,22 @@ async function cdPreencherEnderecoPorLocal_(){
     campo.value = txt; cdEndAuto_ = true;
     if(aviso){ aviso.style.display = 'block'; aviso.textContent = '📍 Preenchemos rua, bairro e cidade pela sua localização. Confira e digite o NÚMERO da casa.'; }
     try{ const n = document.getElementById('cdNumero'); if(n && !n.value.trim()) n.focus({ preventScroll:true }); }catch(e){}
-  }catch(e){ /* silencioso: o cliente digita normalmente */ }
+  }catch(e){ cdAvisoEndLocal_(); }
+}
+/* a busca do endereço pela localização falhou: diz ao cliente para digitar (antes ficava calado) */
+function cdAvisoEndLocal_(){
+  try{ const aviso = document.getElementById('cdEnderecoAviso'), campo = document.getElementById('cdEndereco');
+    if(aviso && campo && !campo.value.trim()){ aviso.style.display = 'block'; aviso.textContent = '📍 Não conseguimos achar o seu endereço pela localização agora. Digite a rua, o bairro, o número e a cidade.'; } }catch(e){}
 }
 function onMudarTipoCdEntrega(){
+  try{ return onMudarTipoCdEntregaBase_(); }
+  catch(e){
+    /* nunca deixa a troca de Retirada/Entrega "não ir" calada: mostra o endereço e avisa */
+    try{ const t = document.getElementById('cdTipoEntrega'), b = document.getElementById('cdEnderecoBox'); if(t && b) b.style.display = t.value==='Entrega' ? 'block' : 'none'; }catch(_){}
+    try{ mostrarErro_(msgErroPrograma_(e && e.message), { origem:'onMudarTipoCdEntrega' }); }catch(_){}
+  }
+}
+function onMudarTipoCdEntregaBase_(){
   const tipo = document.getElementById('cdTipoEntrega').value;
   if(tipo==='Entrega'){ try{ cdPreencherEnderecoPorLocal_(); }catch(e){} }
   document.getElementById('cdEnderecoBox').style.display = tipo==='Entrega' ? 'block':'none';
@@ -1044,6 +1069,24 @@ function onMudarFormaPagamentoCd(){
 function onTogglePrecisaTroco(){
   document.getElementById('cdTrocoParaBox').style.display = document.getElementById('cdPrecisaTroco').checked ? 'block' : 'none';
 }
+/* Campo obrigatório faltando: deixa o campo vermelho, escreve o motivo logo abaixo dele, rola até ele e repete a mensagem perto do botão.
+   (Antes a mensagem aparecia só embaixo do botão e sumia em 6 s: no celular, o cliente não via o que faltava.) */
+function cdErroCampo_(id, msg){
+  try{ showMsg('cdCheckoutMsg', msg, 'warn'); }catch(e){}
+  const el = document.getElementById(id);
+  if(!el){ try{ mostrarErro_(msg, { registrar:false }); }catch(e){} return false; }
+  try{
+    el.classList.add('campo-erro'); el.setAttribute('aria-invalid', 'true');
+    let d = document.getElementById(id + 'Erro');
+    if(!d){ d = document.createElement('div'); d.id = id + 'Erro'; d.className = 'campo-erro-msg'; d.setAttribute('role', 'alert'); el.insertAdjacentElement('afterend', d); }
+    d.textContent = '⚠️ ' + msg;
+    const limpar = ()=>{ el.classList.remove('campo-erro'); el.removeAttribute('aria-invalid'); try{ d.remove(); }catch(e){} el.removeEventListener('input', limpar); el.removeEventListener('change', limpar); };
+    el.addEventListener('input', limpar); el.addEventListener('change', limpar);
+    setTimeout(()=>{ try{ el.scrollIntoView({ block:'center', behavior:'smooth' }); }catch(e){} }, 60);
+    setTimeout(()=>{ try{ el.focus({ preventScroll:true }); }catch(e){} }, 450);
+  }catch(e){}
+  return false;
+}
 async function finalizarPedidoPublico(){
   if(mesaQr) return finalizarPedidoMesa_();
   if(cdDados && cdDados.cardapioBloqueio) return showMsg('cdCheckoutMsg', cdDados.cardapioBloqueio, 'warn'); // cardápio fechado pelo restaurante
@@ -1051,7 +1094,9 @@ async function finalizarPedidoPublico(){
   const telefone = document.getElementById('cdTelefone').value.trim();
   const tipoEntrega = document.getElementById('cdTipoEntrega').value;
   const formaPagamentoId = document.getElementById('cdFormaPagamento').value;
-  if(!nome || !telefone) return showMsg('cdCheckoutMsg','Informe nome e telefone.','warn');
+  if(!nome) return cdErroCampo_('cdNome', 'Informe o seu nome para enviar o pedido.');
+  if(!telefone && !mesaQr) return cdErroCampo_('cdTelefone', 'Informe o seu telefone (WhatsApp) para enviar o pedido.');
+  if(!telefone) return showMsg('cdCheckoutMsg','Informe nome e telefone.','warn');
   const brindes = cdBrindes_();
   if(!cdCarrinho.length && !brindes.length) return showMsg('cdCheckoutMsg','Seu carrinho está vazio.','warn');
   cdGuardarContato_(nome, telefone);
@@ -1062,15 +1107,15 @@ async function finalizarPedidoPublico(){
     complemento: document.getElementById('cdComplemento').value.trim(),
     referencia: document.getElementById('cdReferencia').value.trim(), observacoes: (document.getElementById('cdObservacoes')||{}).value.trim()
   } : null;
-  if(tipoEntrega==='Entrega' && !dadosEntrega.endereco) return showMsg('cdCheckoutMsg','Informe o endereço de entrega.','warn');
-  if(tipoEntrega==='Entrega' && !dadosEntrega.numero){ try{ document.getElementById('cdNumero').focus(); }catch(e){} return showMsg('cdCheckoutMsg','Informe o NÚMERO da casa (ou "s/n" se não tiver). Sem o número o pedido não é enviado.','warn'); }
-  if(tipoEntrega==='Entrega' && !dadosEntrega.cidade){ try{ document.getElementById('cdCidade').focus(); }catch(e){} return showMsg('cdCheckoutMsg','Informe a cidade da entrega.','warn'); }
+  if(tipoEntrega==='Entrega' && !dadosEntrega.endereco) return cdErroCampo_('cdEndereco', 'Informe a rua e o bairro da entrega.');
+  if(tipoEntrega==='Entrega' && !dadosEntrega.numero) return cdErroCampo_('cdNumero', 'Informe o NÚMERO da casa (ou "s/n" se não tiver). Sem o número o pedido não é enviado.');
+  if(tipoEntrega==='Entrega' && !dadosEntrega.cidade) return cdErroCampo_('cdCidade', 'Informe a cidade da entrega.');
   const formaEscolhida = (cdDados.formasPagamento||[]).find(f=>f.id===formaPagamentoId);
   const precisaTrocoBox = document.getElementById('cdPrecisaTroco');
   const ehDinheiro = formaEscolhida && formaEscolhida.nome.toLowerCase()==='dinheiro';
   if(ehDinheiro && precisaTrocoBox && precisaTrocoBox.checked){
     const trocoPara = Number(document.getElementById('cdTrocoPara').value)||0;
-    if(trocoPara <= totalCarrinhoCd()) return showMsg('cdCheckoutMsg','O valor pro troco precisa ser maior que o total do pedido.','warn');
+    if(trocoPara <= totalCarrinhoCd()) return cdErroCampo_('cdTrocoPara', 'O valor pro troco precisa ser maior que o total do pedido.');
   }
   const trocoParaObs = (ehDinheiro && precisaTrocoBox && precisaTrocoBox.checked) ? ('Troco para R$ '+Number(document.getElementById('cdTrocoPara').value).toFixed(2)) : '';
 
@@ -1145,8 +1190,8 @@ async function finalizarPedidoPublico(){
       if(tipoEntrega==='Entrega' && window.cdEnviarLocalDoPedido_) window.cdEnviarLocalDoPedido_(r.id);
       cdPedidoConcluido = true;
       btn.disabled=true; btn.textContent='Pedido enviado';
-    } else { showMsg('cdCheckoutMsg', r.message, 'warn'); btn.disabled=false; btn.textContent = cdRotuloEnviar_(); }
-  } catch(e){ showMsg('cdCheckoutMsg','Não foi possível enviar o pedido. Tente novamente.','warn'); btn.disabled=false; btn.textContent = cdRotuloEnviar_(); }
+    } else { showMsg('cdCheckoutMsg', '⚠️ ' + ((r && r.message) || 'O pedido NÃO foi enviado. Tente de novo.'), 'warn'); btn.disabled=false; btn.textContent = cdRotuloEnviar_(); }
+  } catch(e){ showMsg('cdCheckoutMsg','⚠️ O pedido NÃO foi enviado (sem conexão ou o sistema demorou para responder). Confira a internet e toque em "Enviar pedido" de novo. Se continuar, peça pelo WhatsApp (17) 98832-3473.','warn'); btn.disabled=false; btn.textContent = cdRotuloEnviar_(); }
 }
 
 
@@ -1172,7 +1217,7 @@ function cdWaPedido_(r){
   const frete=r.freteGratis?'\nFrete: GRÁTIS':'';
   const taxaVal=(r.taxaEntrega!=null)?Number(r.taxaEntrega):(Number(total)-Number(r.valorOriginal||0)+Number(r.valorDesconto||0));   // pedido pago pelo site manda a taxa pronta
   const taxa=(tipo==='Entrega' && !r.freteGratis && taxaVal>0)?`\nTaxa de entrega: R$ ${taxaVal.toFixed(2).replace('.',',')}`:'';
-  const linhaPagamento=r.pagamentoOnline ? `PAGO via ${String(r.pagamentoOnline)==='pix'?'Pix':'Cartão'} (Mercado Pago).\nNão cobrar na entrega` : `Pagamento: ${forma||'Não informado'}`;
+  const linhaPagamento=r.pagamentoOnline ? `PAGO via ${String(r.pagamentoOnline)==='pix'?'Pix':'Cartão'} (${cdPagProvedor_(cdFormaAtualId_())==='infinitepay'?'InfinitePay':'Mercado Pago'}).\nNão cobrar na entrega` : `Pagamento: ${forma||'Não informado'}`;
   const msg=`🍔 TEXAS BURGER\nPedido #${numero}\nCliente: ${nome}\nWhatsApp: ${tel}\n${linhaPagamento}\n\n${itens}\n\nModalidade: ${tipo}\n${endereco}${obs?'\nObservações: '+obs:''}\nTotal: R$ ${total.toFixed(2).replace('.',',')}${taxa}${cup}${frete}`;
   return { msg, url:'https://wa.me/5517988323473?text='+encodeURIComponent(msg), numero };
 }

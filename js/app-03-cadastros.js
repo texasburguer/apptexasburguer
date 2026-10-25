@@ -206,7 +206,7 @@ async function salvarAdEdit_(){
   _adEditOcupado = true; document.getElementById('aeBtn').disabled = true;
   try{
     const r = await apiCall('editarAdicional', { id: _adEditId, nome, preco, ativo: document.getElementById('aeAtivo').checked, ingredienteId, quantidadeDesconto });
-    if(r && r.ok){ adicionais = r.adicionais || adicionais; salvarCache(); renderAdicionais(); try{ renderAdicionaisChecklist('pAdicionaisLista', []); }catch(e){} fecharAdEdit_(); showMsg('adMsg','Adicional atualizado.','ok'); }
+    if(r && r.ok){ adicionais = r.adicionais || adicionais; salvarCache(); renderAdicionais(); try{ renderAdicionaisChecklist('pAdicionaisLista', []); }catch(e){ if(window.erroTela_) erroTela_(e); } fecharAdEdit_(); showMsg('adMsg','Adicional atualizado.','ok'); }
     else showMsg('aeMsg', (r && r.message) || 'Não foi possível salvar.', 'warn');
   }catch(e){ showMsg('aeMsg','Não foi possível salvar agora. Confira a conexão.','warn'); }
   _adEditOcupado = false; document.getElementById('aeBtn').disabled = false;
@@ -327,7 +327,8 @@ async function toggleAdicionalAtivo(id, novoAtivo){
 }
 async function excluirAdicionalConfirm(id){
   if(!await confirmarTxt_('Excluir este adicional? Ele será removido de todos os produtos vinculados.')) return;
-  try{ const r = await apiCall('excluirAdicional', { id }); adicionais = r.adicionais || adicionais; produtoAdicionais = r.produtoAdicionais || produtoAdicionais; salvarCache(); renderAdicionais(); }
+  const senhaAdminConfirmacao = await pedirSenha_(); if(!senhaAdminConfirmacao) return;
+  try{ const r = await apiCall('excluirAdicional', { id, senhaAdminConfirmacao }); if(!r || !r.ok){ showMsg('adMsg', (r && r.message) || 'Não foi possível excluir.', 'warn'); return; } adicionais = r.adicionais || adicionais; produtoAdicionais = r.produtoAdicionais || produtoAdicionais; salvarCache(); renderAdicionais(); }
   catch(e){ showMsg('adMsg','Não foi possível excluir.','warn'); }
 }
 function popularCategoriaSelects(){
@@ -352,8 +353,9 @@ async function toggleCategoriaAtiva(id, novoAtivo){
 }
 async function excluirCategoriaConfirm(id){
   if(!await confirmarTxt_('Excluir esta categoria?')) return;
+  const senhaAdminConfirmacao = await pedirSenha_(); if(!senhaAdminConfirmacao) return;
   try{
-    const r = await apiCall('excluirCategoria', { id });
+    const r = await apiCall('excluirCategoria', { id, senhaAdminConfirmacao });
     if(r.ok){ categorias = r.categorias || categorias; renderCategorias(); popularCategoriaSelects(); salvarCache(); }
     else showMsg('catMsg', r.message, 'warn');
   } catch(e){ showMsg('catMsg','Não foi possível excluir.','warn'); }
@@ -443,7 +445,8 @@ async function registrarProduto(){
           const { base64, mimeType } = await comprimirImagem(arquivoFoto, 900, 0.75);
           const rf = await apiCall('uploadFotoProduto', { produtoId: r.id, nomeBase: nome, base64Data: base64, mimeType });
           if(rf.ok){ produtos = rf.produtos || produtos; salvarCache(); }
-        } catch(e){ /* produto já foi salvo; a foto pode ser adicionada depois na edição */ }
+          else mostrarErro_('⚠️ Produto salvo, mas a FOTO não foi enviada: ' + (rf.message || 'erro no envio') + '. Abra o produto em Editar e envie a foto de novo.', { forcar:true });
+        } catch(e){ mostrarErro_('⚠️ Produto salvo, mas a FOTO não foi enviada (sem conexão ou arquivo inválido). Abra o produto em Editar e envie a foto de novo.', { forcar:true }); }
       }
       fecharFormModal('produtoNovoModal'); showMsg('pMsgLista', r.message, 'ok');
       ['pNome','pDescricao','pPreco','pCusto','pEstoqueQtd','pEstoqueMin','pPrValor','pPrQtd'].forEach(id=>{ const el = document.getElementById(id); if(el) el.value=''; });
@@ -551,13 +554,14 @@ async function salvarEdicaoProduto(){
       if(rs && rs.ok){ produtos = rs.produtos || produtos; if(rs.combos) combos = rs.combos; salvarCache(); }
       else { showMsg('ppMsg', 'Produto salvo, mas a marca "sem desconto" não foi atualizada: ' + ((rs && rs.message) || 'tente de novo.'), 'warn'); renderProdutos(); return; }
     }
-    if(r.ok){ showMsg('ppMsg', r.message, 'ok'); renderProdutos(); renderProdutoCuradoria(); renderEstoque(); popularSelectProdutos(); try{ renderCombos(); }catch(e){} setTimeout(fecharModalProduto, 700); }
+    if(r.ok){ showMsg('ppMsg', r.message, 'ok'); renderProdutos(); renderProdutoCuradoria(); renderEstoque(); popularSelectProdutos(); try{ renderCombos(); }catch(e){ if(window.erroTela_) erroTela_(e); } setTimeout(fecharModalProduto, 700); }
     else showMsg('ppMsg', r.message, 'warn');
   } catch(e){ showMsg('ppMsg','Não foi possível salvar.','warn'); }
 }
 async function excluirProdutoConfirm(id){
   if(!await confirmarTxt_('Excluir este produto?')) return;
-  try{ const r = await apiCall('excluirProduto', { id }); produtos = r.produtos || produtos; produtoPrecos = r.produtoPrecos || produtoPrecos; produtoIngredientes = r.produtoIngredientes || produtoIngredientes; salvarCache(); renderProdutos(); renderProdutoCuradoria(); popularSelectProdutos(); }
+  const senhaAdminConfirmacao = await pedirSenha_(); if(!senhaAdminConfirmacao) return;
+  try{ const r = await apiCall('excluirProduto', { id, senhaAdminConfirmacao }); if(!r || !r.ok){ showMsg('pMsg', (r && r.message) || 'Não foi possível excluir.', 'warn'); return; } produtos = r.produtos || produtos; produtoPrecos = r.produtoPrecos || produtoPrecos; produtoIngredientes = r.produtoIngredientes || produtoIngredientes; salvarCache(); renderProdutos(); renderProdutoCuradoria(); popularSelectProdutos(); }
   catch(e){ showMsg('pMsg','Não foi possível excluir.','warn'); }
 }
 function renderProdutos(){
@@ -573,7 +577,7 @@ function renderProdutos(){
     const ingredientesDoProduto = produtoIngredientes.filter(v=>v.produtoId===p.id);
     const ingredientesTxt = ingredientesDoProduto.filter(v=>v.ingredienteId!==p.estoqueProprioIngredienteId).map(v=>{ const e = estoque.find(x=>x.id===v.ingredienteId)||{}; const u = e.unidade||'un'; const f = (u==='kg'||u==='l')?1000:1; return (Math.round(Number(v.quantidadePorUnidade)*f*1000)/1000).toLocaleString('pt-BR')+' '+(u==='kg'?'g':(u==='l'?'ml':u))+' '+v.ingredienteNome; }).join(', ');
     const thumb = p.fotoUrl ? `<img src="${fotoSrc_(p.fotoUrl, 100)}" onerror="fotoFalhou_(this)" style="width:34px;height:34px;border-radius:6px;object-fit:cover;vertical-align:middle;margin-right:6px;">` : '';
-    return `<tr class="vs-linha" onclick="abrirEditarProduto('${p.id}')"><td>${thumb}${escH(p.nome)}<span class="obs-line">${nomeCategoria(p.categoria)}${p.semDesconto?' · 🏷️ sem desconto/cupom':''}${ingredientesTxt?' · '+ingredientesTxt:''}</span></td><td>${formatarMoeda(preco)}</td><td>${custo>0 ? (margem<0 ? '<span class="cf-perda">PREJUÍZO '+formatarMoeda(-margem)+'</span>' : formatarMoeda(margem))+'<span class="obs-line">'+pct.toFixed(0)+'%</span>' : '<span class="cf-sem">custo não informado</span>'}</td>
+    return `<tr class="vs-linha" onclick="abrirEditarProduto('${p.id}')"><td>${thumb}${escH(p.nome)}${p.preCadastro?' <span class="badge neutro" title="Criado a partir de um item do iFood. Complete e ative.">📝 pré-cadastro iFood</span>':''}<span class="obs-line">${nomeCategoria(p.categoria)}${p.semDesconto?' · 🏷️ sem desconto/cupom':''}${ingredientesTxt?' · '+ingredientesTxt:''}</span></td><td>${formatarMoeda(preco)}</td><td>${custo>0 ? (margem<0 ? '<span class="cf-perda">PREJUÍZO '+formatarMoeda(-margem)+'</span>' : formatarMoeda(margem))+'<span class="obs-line">'+pct.toFixed(0)+'%</span>' : '<span class="cf-sem">custo não informado</span>'}</td>
       <td><button type="button" class="ghost vs-mais" aria-label="Ações de ${escH(p.nome)}" onclick="event.stopPropagation();vsAcoesProduto('${p.id}')">⋯</button></td></tr>`;
   }).join('');
 }
@@ -640,7 +644,8 @@ async function registrarCombo(){
           const { base64, mimeType } = await comprimirImagem(arquivoFoto, 900, 0.75);
           const rf = await apiCall('uploadFotoCombo', { comboId: r.id, nomeBase: nome, base64Data: base64, mimeType });
           if(rf.ok){ combos = rf.combos || combos; salvarCache(); }
-        } catch(e){ /* combo já foi salvo; a foto pode ser adicionada depois na edição */ }
+          else mostrarErro_('⚠️ Combo salvo, mas a FOTO não foi enviada: ' + (rf.message || 'erro no envio') + '. Abra o combo em Editar e envie a foto de novo.', { forcar:true });
+        } catch(e){ mostrarErro_('⚠️ Combo salvo, mas a FOTO não foi enviada (sem conexão ou arquivo inválido). Abra o combo em Editar e envie a foto de novo.', { forcar:true }); }
       }
       fecharFormModal('comboNovoModal'); showMsg('koMsgLista', r.message, 'ok');
       ['koNome','koPreco','koCusto'].forEach(id=>document.getElementById(id).value='');
@@ -727,7 +732,8 @@ async function salvarEdicaoCombo(){
 }
 async function excluirComboConfirm(id){
   if(!await confirmarTxt_('Excluir este combo?')) return;
-  try{ const r = await apiCall('excluirCombo', { id }); combos = r.combos || combos; comboPrecos = r.comboPrecos || comboPrecos; comboItens = r.comboItens || comboItens; salvarCache(); renderCombos(); renderComboCuradoria(); popularSelectCombos(); }
+  const senhaAdminConfirmacao = await pedirSenha_(); if(!senhaAdminConfirmacao) return;
+  try{ const r = await apiCall('excluirCombo', { id, senhaAdminConfirmacao }); if(!r || !r.ok){ showMsg('koMsg', (r && r.message) || 'Não foi possível excluir.', 'warn'); return; } combos = r.combos || combos; comboPrecos = r.comboPrecos || comboPrecos; comboItens = r.comboItens || comboItens; salvarCache(); renderCombos(); renderComboCuradoria(); popularSelectCombos(); }
   catch(e){ showMsg('koMsg','Não foi possível excluir.','warn'); }
 }
 function renderCombos(){
@@ -823,14 +829,15 @@ async function salvarEdicaoIngrediente(){
     estoque = r.estoque || estoque; movimentacoesEstoque = r.movimentacoesEstoque || movimentacoesEstoque; if(r.produtoPrecos) produtoPrecos = r.produtoPrecos; if(r.comboPrecos) comboPrecos = r.comboPrecos; if(r.produtoIngredientes) produtoIngredientes = r.produtoIngredientes; salvarCache();
     if(r.ok){
       fecharFormModal('ingredienteEditModal'); showMsg('eMsgLista', r.message || 'Ingrediente atualizado.', 'ok');
-      renderEstoque(); renderMovimentacoesEstoque(); renderNotificacoes(); try{ renderProdutos(); renderCombos(); }catch(e){} popularSelectIngredientes('pIngredienteSelect'); popularSelectIngredientes('ppIngredienteSelect'); popularSelectAdicionalIngrediente();
+      renderEstoque(); renderMovimentacoesEstoque(); renderNotificacoes(); try{ renderProdutos(); renderCombos(); }catch(e){ if(window.erroTela_) erroTela_(e); } popularSelectIngredientes('pIngredienteSelect'); popularSelectIngredientes('ppIngredienteSelect'); popularSelectAdicionalIngrediente();
     } else { showMsg('eeMsg', r.message || 'Não foi possível salvar.', 'warn'); }
   }catch(e){ showMsg('eeMsg','Não foi possível salvar.','warn'); }
   finally{ setBotoesOcupados(false); }
 }
 async function excluirEstoqueConfirm(id){
   if(!await confirmarTxt_('Excluir este ingrediente do estoque?')) return;
-  try{ const r = await apiCall('excluirIngrediente', { id }); if(!r || !r.ok){ showMsg('eMsg', (r && r.message ? r.message : 'Não foi possível excluir.') + ' Se ele já foi usado, deixe-o inativo em vez de excluir.', 'warn'); return; } estoque = r.estoque || estoque; salvarCache(); renderEstoque(); popularSelectIngredientes('pIngredienteSelect'); popularSelectIngredientes('ppIngredienteSelect'); }
+  const senhaAdminConfirmacao = await pedirSenha_(); if(!senhaAdminConfirmacao) return;
+  try{ const r = await apiCall('excluirIngrediente', { id, senhaAdminConfirmacao }); if(!r || !r.ok){ showMsg('eMsg', (r && r.message ? r.message : 'Não foi possível excluir.') + ' Se ele já foi usado, deixe-o inativo em vez de excluir.', 'warn'); return; } estoque = r.estoque || estoque; salvarCache(); renderEstoque(); popularSelectIngredientes('pIngredienteSelect'); popularSelectIngredientes('ppIngredienteSelect'); }
   catch(e){ showMsg('eMsg','Não foi possível excluir.','warn'); }
 }
 async function salvarBloqueioEstoque(ligado){

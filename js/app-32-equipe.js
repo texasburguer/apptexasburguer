@@ -92,7 +92,7 @@ async function eqPagar(id, confirmado, anterior){
     const res = await apiCall('pagarFuncionario', { funcionarioId:id, competencia:mes, tipo:r.tipo, valor:r.valor, saiuDoCaixa: r.saiuDoCaixa === 'true', lancarEncargos: r.lancarEncargos === 'true', observacao:r.observacao || '', confirmado: confirmado ? 'true' : '' });
     if(res && res.confirmar){ finalizarOperacaoUnica('pagarFuncionario'); if(await confirmarTxt_(res.message, 'Confirmar pagamento', false)) return eqPagar(id, true, r); return; }
     if(res && res.ok){
-      if(res.despesas){ despesas = res.despesas; salvarCache(); try{ renderContasPagar(); renderDespesas(); }catch(e){} }
+      if(res.despesas){ despesas = res.despesas; salvarCache(); try{ renderContasPagar(); renderDespesas(); }catch(e){ if(window.erroTela_) erroTela_(e); } }
       showMsg('eqMsg', res.message, 'ok'); await carregarEquipe_();
     } else avisar((res && res.message) || 'Não foi possível registrar o pagamento.');
   }catch(e){ avisar('Não foi possível registrar o pagamento agora.'); }
@@ -109,7 +109,7 @@ async function eqCancelar(id){
     try{
       const r = await apiCall('cancelarPagamentoFuncionario', { id, motivo:f.motivo, senhaAdminConfirmacao: senha || '' });
       if(r && r.ok){
-        if(r.despesas){ despesas = r.despesas; salvarCache(); try{ renderContasPagar(); renderDespesas(); }catch(e){} }
+        if(r.despesas){ despesas = r.despesas; salvarCache(); try{ renderContasPagar(); renderDespesas(); }catch(e){ if(window.erroTela_) erroTela_(e); } }
         showMsg('eqMsg', r.message, 'ok'); carregarEquipe_();
       } else avisar((r && r.message) || 'Não foi possível cancelar.');
     }catch(e){ avisar('Não foi possível cancelar agora.'); }

@@ -195,6 +195,79 @@ Admin:{ nome:'Administrador', secoes:[
     'Desenvolvedor: o botão "🧪 Simular queda (treino)" em "Conexão e servidores" finge a queda só neste aparelho, para treinar a equipe. "Encerrar simulação" volta ao normal.' ],
     comuns:['O Guia de operação tem o passo a passo de queda, volta e restauração.'] },
 
+  { t:'🛵 iFood: cancelar, códigos e estado dos módulos', prints:[{id:'adm-ifood-cancelar',alt:'Cancelar lançamento de um pedido do iFood com a lista de motivos oficiais',leg:'Pedido do iFood: escolha o motivo oficial na lista com borda dourada (1).'},{id:'adm-ifood-codigo',alt:'Aviso O iFood precisa de um código, no topo de Pedidos',leg:'Digite o código que o entregador ou o cliente informar (1) e toque em Enviar.'},{id:'adm-ifood-modulos',alt:'Estado dos módulos do iFood',leg:'Cada módulo com OK ou recusado (1); 403 quer dizer que o iFood ainda não liberou.'}], itens:[
+    'Cancelar um pedido do iFood: no "Cancelar lançamento" aparece uma lista com borda dourada com os motivos OFICIAIS do iFood. Escolha um (é obrigatório quando a lista aparece). Se o iFood não devolver a lista, dá para cancelar assim mesmo: o sistema usa o motivo do iFood mais parecido.',
+    'Código do entregador do iFood (coleta): quando o iFood manda o entregador dele, aparece no topo de Pedidos e Entregas o aviso "🔐 O iFood precisa de um código". Peça o código ao entregador, digite e toque em Enviar ANTES de entregar o pedido.',
+    'Código de entrega: quando o iFood pede o código na entrega feita pelo seu entregador, o mesmo aviso aparece. O cliente informa o código; digite e envie. A resposta do iFood chega em até 30 segundos; se recusar, aparece em vermelho para digitar de novo.',
+    'Na tela do pedido e na comanda agora aparecem: o cartão (crédito/débito/vale, bandeira e se foi pago no app ou se é para levar a maquininha), quem pagou o cupom (iFood ou a loja) e o horário da retirada agendada.',
+    'Integrações → iFood → "🩺 Estado dos módulos": mostra cada parte do iFood (pedidos, eventos, loja, cardápio, avaliações, financeiro) com 🟢 OK ou 🔴 recusado. "Não liberado para o app (403)" quer dizer que o iFood ainda não liberou: peça no Portal do Desenvolvedor. Também mostra se a loja configurada pertence ao app.' ],
+    comuns:['Quando um módulo passa a ser recusado, chega um aviso no celular do Admin (no máximo 1 a cada 6 horas por módulo).', 'Horário que passa da meia-noite (ex.: 18h às 2h) agora vai certo para o iFood: o sistema divide em dois turnos.'] },
+
+  { t:'🛵 iFood no dia a dia', itens:[
+    'Telefone do cliente do iFood: o iFood manda um 0800 (igual para muitos clientes) e um CÓDIGO LOCALIZADOR. No pedido aparece "📞 iFood 0800… · Código: XXXXXXXX (vale até HH:MM)". Ligue no 0800 e digite o código. O código também sai na comanda e na mensagem do entregador. Depois do horário, aparece "código vencido".',
+    'Clientes do iFood: cada cliente do iFood vira um cadastro em Clientes com o selo "iFood", separado pelo ID do iFood (nunca pelo 0800). Sem telefone, ele não tem cartão fidelidade nem indicação, mas tem histórico, Perfil 360 e Novo/Fiel/VIP.',
+    'Som do iFood: pedido do iFood esperando aceite toca a vinheta do iFood (Admin, Operador e Cozinha), de 30 em 30 segundos, até alguém aceitar, recusar ou o iFood cancelar, por até 10 minutos. A faixa vermelha embaixo tem "Ver" (abre Pedidos) e "🔇 Silenciar" (só neste aparelho). Com o app aberto na tela, a notificação fica sem som para não tocar dois sons. Com o app fechado ou a tela apagada, toca o som padrão do celular (o navegador não deixa trocar). Teste em Alertas de pedido → "🛵 Testar som do iFood". O botão "Som: desligado" também cala a vinheta.',
+    'Itens do iFood → "➕ Cadastrar no sistema": para item do iFood que ainda não existe no sistema. Confira nome, preço e categoria e toque em "Criar e ligar". O produto nasce como RASCUNHO (fora do cardápio e da contingência) e já ligado. Se já existir um parecido, o sistema pergunta se quer ligar a ele. Opção do iFood vira adicional inativo.',
+    '"📝 Pré-cadastros do iFood" mostra o que falta em cada rascunho: ficha técnica, preço, foto e categoria. Complete em Cadastros → Produtos (o produto tem a marca "📝 pré-cadastro iFood") e ative: a marca some sozinha. Enquanto for rascunho, nada é enviado ao iFood.',
+    '"🗑️ Excluir de vez" (pede a sua senha): só para itens de TESTE (ignorados ou sem ligação). Eles somem da lista, o alerta de "item sem ligação" cai na hora e, se voltarem num pedido, não aparecem de novo. "Excluir de vez todos os ignorados" faz todos de uma vez. Item ligado a produto não pode ser excluído (desfaça a ligação antes). Na lista "Itens excluídos de vez" dá para Restaurar.',
+    '"🧪 Marcar um pedido do iFood como teste" (pede a senha): o pedido sai dos alertas e dos relatórios do iFood. A venda continua no caixa: se ela não devia existir, cancele a venda normalmente.',
+    'Fechar o caixa já fecha os entregadores sozinho, com TODAS as entregas daquele caixa, inclusive as concluídas depois da meia-noite. O resultado aparece no relatório do fechamento.' ],
+    comuns:['Pedido do iFood sem código localizador: alguns pedidos (retirada, teste) não trazem. Use o chat do pedido no portal do iFood.','Não ouvi a vinheta: toque uma vez na tela depois de abrir o app (o celular só libera som depois de um toque) e confira se o "Som" está ligado.'] },
+
+  { t:'📊 Cardápio hoje (funil e mapa)', itens:[
+    'No Início, toque no quadro "Cardápio hoje" (Admin e Operador): abre o pop-up CARDÁPIO HOJE.',
+    'O funil conta, desde a abertura do caixa (ou nas últimas 24 horas com o caixa fechado), quantos aparelhos entraram no cardápio, abriram um item, puseram no carrinho, abriram o finalizar e enviaram o pedido, com a porcentagem e quantos pararam em cada etapa. Cada aparelho conta uma vez; aparelhos da equipe não contam.',
+    'O mapa mostra de onde estão acessando (círculos dourados; o número é a quantidade de aparelhos) e os pedidos com local de entrega (pontos vermelhos). O quadrado branco é o restaurante (o mesmo local cadastrado para o ponto).',
+    'A localização é APROXIMADA (cerca de 500 m), só de quem já permitiu a localização no celular, e é apagada ao fechar o caixa e sempre depois de 24 horas. O cliente é avisado em "Privacidade" no cardápio.' ] },
+
+  { t:'🛒 Ver o cardápio sem sair', itens:[
+    'No topo da área de funcionários, toque em "🛒 Cardápio": o cardápio digital aparece como o cliente vê. Você continua logado.',
+    'A faixa no alto da tela diz "Você está vendo como cliente". Toque em "↩ Voltar à área de funcionários" para voltar exatamente para a tela onde estava, sem senha.',
+    'Enquanto isso, a busca de pedidos, o som e a vinheta do iFood continuam funcionando. Se chegar pedido, a faixa mostra "🔔 pedido novo!".',
+    'Se atualizar a página dentro do cardápio, o app volta sozinho para a área de funcionários, já logado. "Sair" continua saindo de verdade.' ] },
+
+  { t:'🎟️ Excluir cupom', itens:[
+    'Em Promoções e cupons, cada cupom tem "🗑️ Excluir". Pede confirmação e a sua senha.',
+    'Cupom que nunca foi usado é apagado de vez. Cupom que já foi usado em pedidos é ARQUIVADO: some da lista, da conta dos clientes e do cardápio, mas os pedidos antigos continuam com o desconto certo. O código fica livre para um cupom novo.',
+    'Em "🗑️ Cupons excluídos" (no fim da lista) dá para Restaurar um arquivado: ele volta desativado.',
+    'Cupons automáticos (boas-vindas, aniversário, indicação) não se excluem: use Desligar.',
+    'Cliente que estava com o cupom no carrinho vê "Esse cupom não está mais disponível" e o total sem o desconto.' ] },
+
+  { t:'🧹 Limpar fotos sem uso do Google Drive', itens:[
+    'Administrador → Backup e espaço → card Google Drive → "🔍 Analisar fotos sem uso". Nada é apagado nesta etapa.',
+    'Aparecem dois blocos: Drive principal e Drive da contingência, com quantas fotos estão sem uso, quanto espaço libera e o motivo (sem produto/combo, duplicada, cópia que não é mais usada).',
+    'Desmarque o que quiser manter e toque em "Mandar as marcadas para a lixeira do Drive" (pede a senha). O sistema confere de novo, na hora, que nenhuma está em uso. Até 200 fotos por vez: repita se precisar.',
+    'Nunca entram: fotos de produtos e combos, as do histórico de fotos, as que o Espelho da contingência ainda usa, as com menos de 7 dias, comprovantes de nota e fotos do ponto.',
+    'Arrependeu? "↩ Desfazer a última limpeza" tira da lixeira. O espaço do Drive só volta de verdade quando você esvazia a lixeira no próprio Google Drive (drive.google.com → Lixeira).',
+    'Não roda durante um backup (o sistema avisa e não apaga nada).' ] },
+
+  { t:'📦 Armazenamento (banco, Storage e planilha)', prints:[{id:'adm-armazenamento',alt:'Tela Armazenamento com as barras do banco, do Storage e da planilha',leg:'Cada barra mostra o uso, quanto cresce por dia e a previsão de quando chega a 95% (1).'}], itens:[
+    'Onde: Administrador → Sistema → "Armazenamento". Mostra três barras: banco do Supabase, Storage (arquivos) e planilha principal, com quanto cresce por dia e quanto tempo falta para chegar a 95%.',
+    'Pedidos e caixas fechados antigos saem do banco e vão para o Storage, comprimidos. Antes de sair, o arquivo é lido de volta e a contagem tem de bater; se não bater, nada sai.',
+    'Se o Storage chegar a 95%, o arquivo mais antigo vai para a planilha (um por hora) até voltar a 80%. Fica num arquivo por ano, "Texas Burger - Arquivo AAAA", para a planilha principal não encher. Avisos no celular em 70% e 85%.',
+    'Às 05:30 a compactação devolve o espaço ao Supabase. Às 06:00 o sistema mede quanto liberou; na lista "Últimas execuções" aparece o que cada arquivamento liberou, ou "não diminuiu" (com aviso no celular).',
+    'Relatórios de meses antigos e o histórico do cliente juntam tudo sozinhos: banco, Storage e planilha.',
+    '"🧪 Testar o caminho agora" faz uma ida e volta com dados de TESTE (nada real é mexido). Ele também roda sozinho todo dia 1º. Todo dia 1º, o resumo do mês anterior é copiado para a aba "Resumo_Mensal" da planilha.',
+    'Limite do Storage: informe o do seu plano (grátis: 1024 MB). Salvar o limite, testar e mandar arquivo para a planilha pedem a senha.',
+    'A compactação só refaz as tabelas que cabem no espaço livre do banco (ela precisa de espaço do tamanho da tabela enquanto roda). Se alguma não couber, ela fica de fora, aparece um aviso amarelo na parte "Compactação" e chega aviso no celular. Para resolver: arquive mais pedidos antigos ou aumente o plano do Supabase.' ],
+    comuns:['"Previsão aparece depois de 5 dias de medição": o sistema precisa de alguns dias de medição para calcular o ritmo.', 'Arquivar não deixa o relatório incompleto: se uma parte não abrir, aparece um aviso vermelho em vez de números errados.'] },
+
+  { t:'🔐 Senha nas ações sensíveis (sempre, inclusive do Admin)', itens:[
+    'Cancelar, recusar, excluir, dar desconto, editar venda, estornar nota, registrar ou cancelar ajuste pós-venda: o sistema SEMPRE pede a senha antes, inclusive para o Administrador.',
+    'Quem é Administrador digita a própria senha. Operador ou outro perfil digita a senha de um Administrador.',
+    'Vale também para excluir produto, combo, adicional, categoria, ingrediente, mesa, perfil fiscal, item do cardápio do iFood, apagar o rosto do ponto, cancelar evento ou pedido de compra e desfazer preço enviado ao iFood.',
+    'Fechou a janela da senha sem digitar: nada é feito. Senha errada: aparece em vermelho e nada é feito. Muitas tentativas erradas bloqueiam por alguns minutos.' ],
+    comuns:['"Digite a sua senha para confirmar": a ação foi recusada porque veio sem senha (ex.: tela antiga aberta). Atualize o app e faça de novo.'] },
+
+  { t:'🐞 Erros do sistema (nada falha calado)', itens:[
+    'Quando algo dá errado (sem internet, servidor com problema, botão que travou, foto que não subiu), aparece um aviso vermelho dizendo o que aconteceu e o que fazer. Isso vale para a equipe e para o cliente no cardápio.',
+    'Mensagens de erro ficam 15 segundos na tela; se estiverem fora da vista, a tela rola até elas. No carrinho do cardápio, o campo que falta fica vermelho com o motivo logo abaixo.',
+    'Para ver tudo o que deu errado: toque na bolinha colorida do topo → "Conexão e servidores" → "🐞 Erros do sistema". Filtre por cardápio (clientes) ou equipe e pelo período (até 14 dias).',
+    'Cada cartão mostra a mensagem, quantas vezes aconteceu, quantas pessoas/aparelhos, a tela e a versão do app. "Detalhes técnicos" ajuda quem for corrigir.',
+    'Depois de corrigir, toque em "✓ Resolvido". Se o erro acontecer de novo, ele volta para a lista.',
+    'Do cliente não é guardado nome, telefone nem IP: só a mensagem, a tela e a versão.' ],
+    comuns:['Vermelho = erro de programa (algo travou). Amarelo = aviso de falha que apareceu na tela (ex.: sem conexão).'] },
+
   { t:'⏰ Pedidos parados (alertas)', itens:[
     'O sistema confere de minuto em minuto se algum pedido ficou parado: novo sem aceite, em preparo há muito tempo, pronto esperando retirada, saída para entrega, entrega ou serviço da mesa, entregue sem confirmação e "A receber" já concluído.',
     'Com o app aberto aparece a faixa "⏰ Pedidos parados" na parte de baixo da tela, com som, e uma bolinha vermelha na aba Pedidos. Com o app fechado chega a notificação no celular (se os avisos estiverem ligados em 🔔).',
@@ -325,6 +398,32 @@ Admin:{ nome:'Administrador', secoes:[
     'Informe o valor pago e a forma: Dinheiro (sai da gaveta do caixa) ou Pix (não sai da gaveta). Se o valor pago for diferente do devido, a observação é obrigatória.',
     'Toque em “Fechar período”. Os fechamentos aparecem em “Fechamentos anteriores” e não mudam mais.' ],
     comuns:['A ajuda diária conta uma vez por dia e só se houve entrega.','O valor pago ao entregador entra nas despesas (Entregadores) no DRE.','Se a conexão cair ao fechar, confira “Fechamentos anteriores” antes de tentar de novo, para não fechar duas vezes.'] },
+
+  { t:'💠 InfinitePay (pagamento online no checkout)', prints:[{id:'adm-infinitepay',alt:'Cartão da InfinitePay em Integrações e contas',leg:'Digite a InfiniteTag, escolha quem recebe cada forma e ligue pela chave (1), que pede a senha.'}], itens:[
+    'Onde: Administrador → Sistema → Integrações e contas → InfinitePay. O cartão tem o mesmo desenho do Mercado Pago: estado, lista de conferência, chaves, ajustes, guia passo a passo e teste guiado.',
+    'Diferença principal: na InfinitePay o cliente SAI do cardápio para pagar no site seguro da InfinitePay (Pix ou crédito) e volta. Débito não existe na InfinitePay.',
+    'Quem recebe cada forma: para Pix e Cartão de crédito escolha "Só na entrega", "Online · Mercado Pago" ou "Online · InfinitePay". Dá para usar os dois juntos (ex.: Pix pela InfinitePay e crédito pelo Mercado Pago). A mesma escolha aparece nos dois cartões.',
+    'Chaves: InfiniteTag (o seu nome de usuário, sem o $) e, só se a conta mostrar, a chave do Checkout (inchk_…). O "Segredo do aviso" é gerado pelo sistema (botão Gerar, pede a senha).',
+    'SIMULAÇÃO: ligue em SIMULAÇÃO e coloque o e-mail da sua conta do cardápio. No cardápio, a forma da InfinitePay mostra os botões Pagar, Recusar e Expirar (nada é cobrado). Os três funcionando marcam o passo da lista. "Pagar" simulado só funciona para os e-mails da lista e cria um pedido marcado como TESTE: cancele depois.',
+    'Teste real: ligue em PRODUÇÃO com "mostrar SÓ para os e-mails acima" marcado, pague um Pix e um crédito de valor pequeno, confira no app da InfinitePay, devolva e registre o reembolso. Depois desmarque a opção para liberar a todos os clientes.',
+    'Segurança: o aviso da InfinitePay não é assinado. Por isso o sistema só aprova o pedido depois de CONSULTAR a InfinitePay e conferir o valor pago. Pagou menos do que o pedido: vai para "Pagamentos que precisam de decisão".',
+    'Reembolso: devolva o dinheiro no app da InfinitePay e depois toque em "Registrar reembolso" no cartão (valor, motivo e senha). A venda continua ativa: decida depois se cancela.',
+    'Enquanto ninguém fizer o teste real (Pix e crédito de valor pequeno), o cartão mostra o aviso "Integração ainda não validada com conta real".' ],
+    comuns:['O cliente fechou a página da InfinitePay sem voltar: o pedido continua sendo conferido. Quando ele abrir o cardápio de novo (mesmo aparelho), a tela de pagamento volta sozinha.', 'Sem a InfiniteTag em PRODUÇÃO, a forma não aparece como online no cardápio (o cardápio não quebra).'] },
+
+  { t:'💰 iFood: vendas e repasses (financeiro do iFood)', prints:[{id:'adm-ifood-financeiro',alt:'Tela iFood: vendas e repasses com a conferência das semanas',leg:'A conferência da semana (1) compara os lançamentos com o repasse do iFood; as abas (2) mostram vendas, lançamentos, repasses, antecipações e o arquivo mensal.'}], itens:[
+    'Onde: Administrador → Dinheiro → "iFood: vendas e repasses" (ou no cartão do iFood, botão "💰 Vendas e repasses"). Só mostra: não muda vendas, caixa nem o iFood.',
+    'Precisa do módulo Financeiro liberado pelo iFood. Ele é homologado num chamado SEPARADO no Portal do Desenvolvedor (Suporte → Chamados → Homologação), com conta CNPJ. Antes disso a tela mostra o aviso 🔒 403 e fica vazia.',
+    'O sistema busca sozinho a cada 6 horas (últimas semanas). Para outro período, escolha as datas e toque em "🔄 Buscar no iFood" (até 3 meses por vez); a barra mostra o andamento.',
+    'Semana: o iFood fecha cada semana (segunda a domingo) na segunda seguinte. A conferência compara a soma dos lançamentos COM impacto no repasse com o repasse do iFood: ✅ confere, ⚠️ diferença (com aviso no celular se passar de 1%) ou ⏳ semana aberta.',
+    'Vendas: cada pedido do iFood com bruto, comissão, taxas, promoções pagas pelo iFood/rede e o líquido; toque no pedido para ver os lançamentos e a forma de pagamento (quem recebe: iFood ou a loja).',
+    'Lançamentos: créditos (+) e débitos (−) com a data prevista do repasse. Só os COM impacto mudam o que você recebe; os SEM impacto são informativos (ex.: vale ou dinheiro pago direto à loja, promoção da loja).',
+    'Repasses: os títulos de cada semana (Repasse, Boleto quando a loja deve, Retido para banco em empréstimo com recebíveis, Renegociado), com status (previsto, pago, falhou), data e o banco (conta mascarada). Título com falha avisa no celular.',
+    'Antecipações (D+1 ou D+7, se contratadas na Conta Digital iFood): valor original, taxa em R$ e %, valor recebido e quantos dias antes chegou.',
+    'Arquivo mensal: o registro oficial do mês em CSV (abre no Excel). Toque em "📄 Gerar arquivo"; o iFood leva alguns minutos (até 30). Pronto, aparece o resumo (a receber com impacto, sem impacto, por tipo) e "⬇️ Baixar CSV". O mesmo mês só pode ser gerado de novo 6 horas depois.',
+    'Opção EXTRA no cartão do iFood (desligada): "Usar a comissão e as taxas REAIS do iFood nas vendas do sistema" passa a comissão real de cada pedido para os relatórios e o DRE.',
+    'Modo homologação (no cartão do iFood): marque só durante os testes da homologação; as buscas vão com o aviso de teste que o iFood pede.' ],
+    comuns:['🔒 "Módulo Financeiro ainda não liberado (403)": normal antes da homologação do Financeiro.', '"Nada encontrado (404)" em Repasses: não houve repasse no período. Em Antecipações: a loja não tem plano de antecipação.', '⚠️ Diferença numa semana: busque de novo o período da semana; lançamentos podem cair em outra semana (cancelamento depois da venda) ou ainda estar pendentes. Se continuar, baixe o Arquivo mensal.'] },
 
   { t:'Mercado Pago (pagamento online)', itens:[
     'Onde: Administrador → Sistema → Integrações e contas → 💳 Mercado Pago. O quadro “👉 Próximo passo” mostra o que falta fazer.',
@@ -795,13 +894,14 @@ const MANUAL_AJUDA_CLIENTE_ = {
       'Brindes: com o cartão fidelidade completo ou com um brinde de indicação, escolha o prêmio na própria conta ("Cartão fidelidade" ou "Indique") ou no carrinho. O brinde pode ir junto com outros itens ou sozinho: ele sai por R$ 0,00 e a entrega, se for entrega, é cobrada. Se o pedido for cancelado, o brinde volta para você.',
       'Em "🔒 Meus dados" você pode ler o Aviso de Privacidade e sair da conta.' ]},
 
-    { t:'💳 Formas de pagamento e troco', prints:[{id:'cliente-carrinho',alt:'Carrinho do cliente com o campo de cupom e o botão Enviar pedido',leg:'Na tela do carrinho você escolhe a forma de pagamento; o botão Enviar pedido (2) conclui.'}], itens:[
+    { t:'💳 Formas de pagamento e troco', prints:[{id:'cliente-carrinho',alt:'Carrinho do cliente com o campo de cupom e o botão Enviar pedido',leg:'Na tela do carrinho você escolhe a forma de pagamento; o botão Enviar pedido (2) conclui.'},{id:'cliente-infinitepay',alt:'Tela de pagamento da InfinitePay no cardápio',leg:'Formas pagas pela InfinitePay: toque em Abrir o pagamento (1), pague e volte; a tela confere sozinha.'}], itens:[
       'Escolha a forma de pagamento no carrinho, antes de enviar.',
       'Se escolher Dinheiro, aparece a opção "Preciso de troco". Marque e informe para quanto (ex.: "troco para R$ 50").',
       'Dinheiro e cartão na máquina: o pagamento é combinado na entrega ou na retirada.',
       'Se o restaurante ligou o pagamento pelo site, aparece “Pagar agora, pelo site” com Pix e/ou cartão. Para pagar pelo site é preciso entrar com a sua conta; na entrega não precisa.',
       'Pix: aparece o QR Code (e o código para copiar) com um cronômetro. Cartão: preencha número, nome, validade, código e CPF do titular. Quando o pagamento é aprovado, aparece “Pagamento aprovado”.',
-      'Se o tempo do Pix terminar, o pedido é cancelado; se você chegou a pagar, o restaurante entra em contato. Escolha uma forma de pagamento e refaça o pedido.' ],
+      'Se o tempo do Pix terminar, o pedido é cancelado; se você chegou a pagar, o restaurante entra em contato. Escolha uma forma de pagamento e refaça o pedido.',
+      'Algumas formas são pagas no site da InfinitePay: toque em "Abrir o pagamento da InfinitePay", pague (Pix ou crédito) e volte ao cardápio. A tela confere sozinha; se demorar, toque em "Já paguei". Não pague duas vezes.' ],
       comuns:['O pedido pago pelo site só vai para a cozinha depois da confirmação do pagamento.'] },
 
     { t:'📦 Acompanhar seu pedido', passos:[
@@ -811,6 +911,12 @@ const MANUAL_AJUDA_CLIENTE_ = {
       'Logo depois de enviar, o cartão “Pedido enviado” tem o botão “📦 Acompanhar agora”, que abre o status na hora.',
       'Com vários pedidos, depois de abrir um, toque em “← Todos os pedidos” para voltar à lista sem fechar a janela.',
 'O status fica salvo no seu navegador. Se você limpar o histórico do navegador, perde a lista (o restaurante continua com o pedido).' ]},
+
+    { t:'🎮 Jogar enquanto espera', prints:[{id:'cliente-jogos',alt:'Tela dos mini jogos com a barra do pedido no topo',leg:'Escolha um jogo (1). A barra de cima mostra o seu pedido o tempo todo.'},{id:'cliente-jogo-aviso',alt:'Aviso de que o pedido mudou de etapa, com o jogo pausado',leg:'Quando o pedido muda de etapa, o jogo pausa e aparece o aviso (1).'}], itens:[
+      'No acompanhamento do pedido, enquanto ele não foi entregue, aparece o botão "🎮 Jogar enquanto espera".',
+      '4 joguinhos rápidos: Monte o Burger, Chuva de Ingredientes, Memória Texas e Cobra Smash. Alguns usam as fotos dos lanches do cardápio.',
+      'A barra de cima mostra o seu pedido o tempo todo. Quando ele muda de etapa (por exemplo, saiu para entrega), o jogo pausa e aparece o aviso. Toque em "Ver o pedido" ou "Continuar jogando".',
+      'O som começa desligado (botão 🔇/🔊). O seu recorde fica guardado só neste aparelho.' ]},
 
     { t:'✖ Cancelar um pedido', itens:[
       'Você pode cancelar nos PRIMEIROS 3 MINUTOS, e só enquanto o pedido está "aguardando aceite".',

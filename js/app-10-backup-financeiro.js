@@ -819,3 +819,60 @@ async function excluirUsuarioPrompt(login){
     }).catch(()=>avisar('Não foi possível excluir.'));
   });
 }
+
+/* ---------- P-12 (v1.15): fotos sem uso no Drive principal e no da contingência ---------- */
+let _fotosSemUso_ = null;
+async function analisarFotosSemUso_(){
+  const box = document.getElementById('fotosSemUsoBox'); if(!box) return;
+  box.innerHTML = '<div class="obs-line">⏳ Analisando os dois Drives… pode levar até 2 minutos. Nada é apagado nesta etapa.</div>';
+  try{
+    const r = await sb410Edge_('planilha-admin', { acao:'fotosAnalisar' }, 150000);
+    if(!r || !r.ok){ box.innerHTML = '<div class="msg warn" role="alert" style="display:block;">⚠️ ' + escBk_((r && r.message) || 'Não foi possível analisar agora.') + '</div>'; return; }
+    _fotosSemUso_ = r; renderFotosSemUso_();
+  }catch(e){ box.innerHTML = '<div class="msg warn" role="alert" style="display:block;">📡 Sem conexão com o servidor: análise não feita. Nada foi apagado.</div>'; }
+}
+function renderFotosSemUso_(){
+  const box = document.getElementById('fotosSemUsoBox'), r = _fotosSemUso_; if(!box || !r) return;
+  const bloco = (titulo, d, chave)=>{
+    if(!d || d.ok === false) return `<div class="notif-card" style="border-left:4px solid #e5534b;"><b>${titulo}</b><div class="obs-line" role="alert">⚠️ ${escBk_((d && d.message) || 'Não respondeu.')} (este Drive não será limpo)</div></div>`;
+    const lista = d.semUso || [];
+    if(!lista.length) return `<div class="notif-card" style="border-left:4px solid #7cc46a;"><b>${titulo}</b><div class="obs-line">✅ Nenhuma foto sem uso (${d.total || 0} arquivo(s) conferido(s)${d.recentesIgnoradas ? ', ' + d.recentesIgnoradas + ' recente(s) ignorada(s)' : ''}).</div></div>`;
+    return `<div class="notif-card" style="border-left:4px solid #e0b53a;"><b>${titulo}</b>
+      <div class="obs-line">${d.qtdSemUso} foto(s) sem uso · libera ${formatarBytes_(d.bytesSemUso)} (de ${d.total} arquivo(s))${d.qtdSemUso > lista.length ? ' · mostrando ' + lista.length : ''}</div>
+      <label class="d-flex ai-centro gap-2 mt-1"><input type="checkbox" class="largura-auto" checked onchange="document.querySelectorAll('[data-fsu=${chave}]').forEach(c=>c.checked=this.checked)"> Marcar / desmarcar todas</label>
+      <div style="max-height:220px;overflow:auto;margin-top:4px;">${lista.map(x=>`<label class="d-flex ai-centro gap-2 fs-xs" style="margin:3px 0;"><input type="checkbox" class="largura-auto" data-fsu="${chave}" value="${escBk_(x.id)}" checked> <span>${escBk_(x.nome || x.id)} · ${formatarBytes_(x.tamanho)} · <i>${escBk_(x.motivo || '')}</i></span></label>`).join('')}</div></div>`;
+  };
+  const nada = !(r.principal && (r.principal.semUso||[]).length) && !(r.contingencia && r.contingencia.ok !== false && (r.contingencia.semUso||[]).length);
+  box.innerHTML = bloco('Drive principal', r.principal, 'p') + bloco('Drive da contingência', r.contingencia, 'c')
+    + (nada ? '' : `<div class="btnrow mt-2"><button class="primary" onclick="limparFotosSemUso_()">🗑️ Mandar as marcadas para a lixeira do Drive</button></div>
+       <p class="obs-line">Vão para a LIXEIRA do Google Drive: dá para desfazer por cerca de 30 dias ("Desfazer a última limpeza"). O espaço só volta de verdade quando você esvaziar a lixeira no próprio Google Drive (drive.google.com → Lixeira).</p>`);
+}
+async function limparFotosSemUso_(){
+  const ids = Array.from(document.querySelectorAll('[data-fsu=p]:checked')).map(c=>c.value);
+  const idsCont = Array.from(document.querySelectorAll('[data-fsu=c]:checked')).map(c=>c.value);
+  if(!ids.length && !idsCont.length) return mostrarErro_('Marque ao menos uma foto para limpar.', { forcar:true, registrar:false });
+  if(!await confirmarTxt_('Mandar para a lixeira do Drive ' + ids.length + ' foto(s) do principal e ' + idsCont.length + ' da contingência?\n\nO sistema confere de novo, na hora, que nenhuma delas está em uso. Dá para desfazer.', 'Mandar para a lixeira', true)) return;
+  abrirModalSenhaAdmin(async (senha)=>{
+    const box = document.getElementById('fotosSemUsoBox');
+    if(box) box.insertAdjacentHTML('afterbegin', '<div class="obs-line" id="fsuAndamento">⏳ Limpando… não feche o app.</div>');
+    try{
+      const r = await sb410Edge_('planilha-admin', { acao:'fotosLimpar', senha, ids, idsCont }, 150000);
+      const and = document.getElementById('fsuAndamento'); if(and) and.remove();
+      if(!r || !r.ok){ mostrarErro_('⚠️ ' + ((r && r.message) || 'Não foi possível limpar.'), { forcar:true }); return; }
+      const p = r.principal || {}, c = r.contingencia || {};
+      avisar('Limpeza feita: ' + (p.removidas||0) + ' foto(s) do principal (' + formatarBytes_(p.bytes) + ') e ' + (c.removidas||0) + ' da contingência (' + formatarBytes_(c.bytes) + ') foram para a lixeira do Drive.', 'ok', 9000);
+      if(c.erro) mostrarErro_('⚠️ Contingência: ' + c.erro, { forcar:true });
+      _fotosSemUso_ = null; analisarFotosSemUso_(); carregarArmazenamento();
+    }catch(e){ const and = document.getElementById('fsuAndamento'); if(and) and.remove(); mostrarErro_('📡 Sem conexão durante a limpeza. Toque em "Analisar" de novo para ver o que ficou.', { forcar:true }); }
+  });
+}
+async function restaurarFotosLimpeza_(){
+  if(!await confirmarTxt_('Tirar da lixeira do Drive todas as fotos da última limpeza?', 'Desfazer limpeza', false)) return;
+  abrirModalSenhaAdmin(async (senha)=>{
+    try{
+      const r = await sb410Edge_('planilha-admin', { acao:'fotosRestaurar', senha }, 150000);
+      if(r && r.ok){ avisar(r.message || 'Restaurado.', 'ok', 8000); carregarArmazenamento(); }
+      else mostrarErro_('⚠️ ' + ((r && r.message) || 'Não foi possível desfazer.'), { forcar:true });
+    }catch(e){ mostrarErro_('📡 Sem conexão: nada foi desfeito.', { forcar:true }); }
+  });
+}

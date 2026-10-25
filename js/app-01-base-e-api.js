@@ -6,8 +6,8 @@ const API_URL = "https://script.google.com/macros/s/AKfycbwCftUm-1pxhA8XLNqMB7dM
 const CONTINGENCIA_API_URL = "https://script.google.com/macros/s/AKfycby3WljBnr7gpJrHdkbTvBCh5uIXqS4KCS6wkBYB5idxf5gI04efoDumQj264kR_smoW/exec";
 
 /* ===================== VERSÃO DO APP ===================== */
-const APP_VERSAO = '1.14';
-const APP_ATUALIZADO_EM = '21/10/2026';
+const APP_VERSAO = '1.15';
+const APP_ATUALIZADO_EM = '25/10/2026';
 window.APP_VERSAO = APP_VERSAO;
 
 /* ===================== NOVIDADES POR PERFIL =====================
@@ -18,6 +18,26 @@ window.APP_VERSAO = APP_VERSAO;
    A seção "🆕 O que mudou" do manual é gerada daqui. */
 const APP_NOVIDADES = {
   Admin: [
+    { v:'1.15', em:'25/10/2026', itens:[
+      'Compactação das 05:30: antes de agendar, confere se há espaço livre; tabela que não cabe fica de fora e aparece aviso em Armazenamento (e no celular).',
+      'Senha SEMPRE, inclusive do Admin, também ao excluir produto, combo, adicional, categoria, ingrediente, mesa e perfil fiscal, ao estornar nota, ao registrar ou cancelar ajuste pós-venda, ao cancelar evento ou pedido de compra e ao desfazer preço do iFood. O banco também recusa sem senha.',
+      'iFood: vendas e repasses (Administrador → Dinheiro): o financeiro oficial do iFood — vendas com comissão e taxas, lançamentos, repasses com status e banco, antecipações D+1/D+7, conferência da semana (lançamentos × repasse) e o arquivo mensal de conciliação em CSV. Funciona depois que o iFood liberar o módulo Financeiro (homologação).',
+      'Nova integração: InfinitePay (Sistema → Integrações e contas → InfinitePay). Pix e crédito pagos no site da InfinitePay, junto ou no lugar do Mercado Pago: cada forma escolhe quem recebe. Tem SIMULAÇÃO (Pagar/Recusar/Expirar sem cobrar), confere cada pagamento com a InfinitePay antes de aprovar e permite registrar o reembolso feito no app dela. Vem DESLIGADA.',
+      'iFood (preparação para a homologação): ao cancelar um pedido do iFood você escolhe o motivo oficial do iFood; aviso "🔐 O iFood precisa de um código" em Pedidos e Entregas para o código do entregador e o de entrega; a comanda mostra bandeira do cartão, quem pagou o cupom e retirada agendada; novo "🩺 Estado dos módulos" no cartão do iFood.',
+      'Nova tela em Sistema: "📦 Armazenamento". Mostra o banco, o Storage e as planilhas, quanto cresce por dia e quanto tempo falta para encher. Os pedidos antigos agora vão para o Storage (comprimidos e conferidos antes de sair do banco); se o Storage encher, o mais antigo vai para a planilha, num arquivo por ano. Cada arquivamento mostra quanto espaço liberou de verdade (medido às 06:00, depois da compactação das 05:30). Ações dessa tela pedem a senha.',
+      'Cardápio do cliente mais fácil: busca também no celular; o "+" de item simples já põe no carrinho; carrinho com − e + e resumo (subtotal, entrega, cupom, total); "Como quer receber?" em dois botões grandes com taxa e tempo; botão "📍 Usar minha localização"; foto do item no topo também no celular; taxa e tempo à vista no topo. A rolagem para o lado continua igual.',
+      'Início → "Cardápio hoje" agora abre o pop-up CARDÁPIO HOJE: o funil do turno (entraram no cardápio → abriram um item → puseram no carrinho → abriram o finalizar → enviaram o pedido, com quantos pararam em cada etapa) e um mapa de onde estão acessando (localização aproximada de quem permitiu, ~500 m) e dos pedidos com local de entrega. A localização é apagada ao fechar o caixa e sempre depois de 24 horas. Aparelho da equipe não conta.',
+      'Backup e espaço → Google Drive → "🧹 Fotos sem uso": analisa o Drive principal e o da contingência e lista as fotos que nenhum produto ou combo usa (e as duplicadas), com quanto espaço libera. Marque e mande para a lixeira do Drive (pede a senha). "Desfazer a última limpeza" tira tudo da lixeira. Fotos com menos de 7 dias nunca entram.',
+      'Novo botão "🛒 Cardápio" no topo: mostra o cardápio digital como o cliente vê, SEM sair da área de funcionários. Faixa no topo: "Voltar à área de funcionários" (sem senha), com aviso se chegar pedido novo. Pedidos, som e vinheta continuam funcionando por trás.',
+      'Cupons: botão "🗑️ Excluir" (pede a senha). Cupom nunca usado é apagado de vez; cupom já usado é ARQUIVADO (some da lista, da conta dos clientes e do cardápio, e os pedidos antigos continuam certos) e o código fica livre. "Cupons excluídos" lista os arquivados, com Restaurar. Quem estiver com ele no carrinho vê "Esse cupom não está mais disponível".',
+      'Fechar o caixa: o fechamento automático do entregador agora pega TODAS as entregas do caixa, inclusive as concluídas depois da meia-noite (antes ficavam de fora). E o selo "iFood" nos pedidos voltou a aparecer.',
+      'iFood → Itens do iFood: "➕ Cadastrar no sistema" cria o produto como RASCUNHO (fora do cardápio), já ligado, com o nome e o preço do iFood; a lista "Pré-cadastros do iFood" mostra o que falta (ficha técnica, preço, foto, categoria). "🗑️ Excluir de vez" (pede a senha) tira itens de TESTE: param de gerar alerta e não voltam. Também dá para marcar um pedido do iFood como teste.',
+      'iFood: pedido do iFood esperando aceite toca a VINHETA DO iFOOD (Admin, Operador e Cozinha), de 30 em 30 segundos até alguém aceitar, por até 10 minutos. Aparece uma faixa vermelha com "Ver" e "🔇 Silenciar". Teste em Alertas de pedido → "🛵 Testar som do iFood".',
+      'iFood: cada cliente do iFood vira cadastro em Clientes (selo "iFood"), separado pelo ID do iFood — nunca pelo 0800, que é igual para todos. Os pedidos antigos do iFood já foram ligados aos clientes. Histórico, Perfil 360 e Novo/Fiel/VIP funcionam para eles.',
+      'iFood: o pedido mostra o telefone 0800 do iFood junto com o CÓDIGO LOCALIZADOR do cliente (e até que horas ele vale). O código também sai na comanda e na mensagem para o entregador.',
+      'Novo: Conexão e servidores → "🐞 Erros do sistema". Mostra tudo o que deu errado para a equipe E para os clientes do cardápio (antes, só a equipe logada), quantas vezes e em qual tela. Toque em "Resolvido" depois de corrigir; se acontecer de novo, volta para a lista.',
+      'Nenhum erro fica escondido: quando algo dá errado (sem internet, servidor com problema, botão que travou, foto que não subiu), aparece um aviso vermelho dizendo o que aconteceu e o que fazer. Mensagens de erro ficam 15 segundos na tela e, se estiverem fora da vista, a tela rola até elas.'
+    ]},
     { v:'1.14', em:'21/10/2026', itens:[
       'Combo com escolha: no cadastro do combo (Editar), marque em cada produto "opção de escolha do cliente" e diga quantos itens o cliente escolhe (ex.: 3 Smash entre Cheddar, Tasty e Catupiry, podendo repetir). No cardápio e no Caixa o cliente/atendente escolhe os sabores antes de adicionar; o preço do combo continua fixo e o estoque baixa conforme o que foi escolhido. O combo "3 Smash + Guaraná 1L" já está assim.'
     ]},
@@ -158,6 +178,14 @@ const APP_NOVIDADES = {
     ]}
   ],
   Operador: [
+    { v:'1.15', em:'25/10/2026', itens:[
+      'Ações sensíveis (cancelar, excluir, desconto, estorno, ajuste pós-venda) pedem sempre a senha de um Administrador.',
+      'iFood: ao cancelar um pedido do iFood, escolha o motivo oficial na lista com borda dourada. Quando aparecer "🔐 O iFood precisa de um código" em Pedidos/Entregas, peça o código ao entregador (ou ao cliente) e envie.',
+      'Início → "Cardápio hoje": toque para ver o funil do turno (quantos entraram, abriram item, puseram no carrinho e pediram) e o mapa de onde estão acessando.',
+      'Novo botão "🛒 Cardápio" no topo: vê o cardápio digital como o cliente, sem sair. "Voltar à área de funcionários" volta na mesma tela, sem senha.',
+      'iFood: o pedido mostra o 0800 do iFood com o CÓDIGO LOCALIZADOR do cliente (para ligar), também na comanda. Pedido do iFood esperando aceite toca a vinheta do iFood a cada 30 s até ser aceito, com botão "🔇 Silenciar".',
+      'Nenhum erro fica escondido: quando algo dá errado (sem internet, servidor com problema, botão que travou, foto que não subiu), aparece um aviso vermelho dizendo o que aconteceu e o que fazer. Mensagens de erro ficam 15 segundos na tela e, se estiverem fora da vista, a tela rola até elas.'
+    ]},
     { v:'1.11', em:'18/10/2026', itens:[
       'Os botões do topo ficaram mais fáceis de acertar com o dedo (a aparência continua a mesma). A Ajuda ganhou prints de Abrir e Fechar caixa e de Clientes.'
     ]},
@@ -199,6 +227,9 @@ const APP_NOVIDADES = {
     ]}
   ],
   'Garçom': [
+    { v:'1.15', em:'25/10/2026', itens:[
+      'Quando algo dá errado (sem internet, servidor com problema, botão que travou), aparece um aviso vermelho dizendo o que aconteceu e o que fazer. Nada falha calado.'
+    ]},
     { v:'1.10', em:'18/10/2026', itens:[
       'Novo: aviso de pedido parado. Aparece a faixa "⏰ Pedidos parados" (com som) quando um pedido do seu perfil fica sem avançar. Toque em Ver pedido, Adiar 10 min ou Silenciar este pedido. Você recebe os avisos de mesa pronta esperando ser servida, e pode ligar os avisos com o app fechado.',
       'O "hoje" dos pedidos agora segue o turno do caixa (do abrir ao fechar, mesmo passando da meia-noite).',
@@ -212,6 +243,10 @@ const APP_NOVIDADES = {
     ]}
   ],
   Cozinha: [
+    { v:'1.15', em:'25/10/2026', itens:[
+      'Pedido do iFood esperando aceite toca a vinheta do iFood a cada 30 s até ser aceito, com botão "🔇 Silenciar" neste aparelho. Os outros pedidos continuam com o som de sempre.',
+      'Quando algo dá errado (sem internet, servidor com problema, botão que travou), aparece um aviso vermelho dizendo o que aconteceu e o que fazer. Nada falha calado.'
+    ]},
     { v:'1.10', em:'18/10/2026', itens:[
       'Novo: aviso de pedido parado. Aparece a faixa "⏰ Pedidos parados" (com som) quando um pedido do seu perfil fica sem avançar. Toque em Ver pedido, Adiar 10 min ou Silenciar este pedido. Você recebe os avisos de pedido novo sem aceite e de preparo demorado, e pode ligar os avisos com o app fechado.',
       'O "hoje" dos pedidos agora segue o turno do caixa (do abrir ao fechar, mesmo passando da meia-noite).',
@@ -226,6 +261,11 @@ const APP_NOVIDADES = {
     ]}
   ],
   Entregador: [
+    { v:'1.15', em:'25/10/2026', itens:[
+      'iFood: quando o iFood pedir o código de entrega, aparece "🔐 O iFood precisa de um código" no topo de Entregas. Peça o código ao cliente, digite e toque em Enviar.',
+      'Na entrega do iFood, a mensagem e a comanda trazem o telefone 0800 do iFood com o CÓDIGO LOCALIZADOR do cliente, para você ligar se precisar.',
+      'Quando algo dá errado (sem internet, servidor com problema, botão que travou), aparece um aviso vermelho dizendo o que aconteceu e o que fazer. Nada falha calado.'
+    ]},
     { v:'1.10', em:'18/10/2026', itens:[
       '"Meu dia" e as entregas concluídas agora contam pelo turno do caixa (do abrir ao fechar), sem zerar na meia-noite.',
       'A Ajuda ganhou campo de busca e prints reais com a marcação de onde clicar, em versão para celular e para computador.'
@@ -238,6 +278,14 @@ const APP_NOVIDADES = {
     ]}
   ],
   Cliente: [
+    { v:'1.15', em:'25/10/2026', itens:[
+      'Algumas formas de pagamento pelo site podem abrir a página segura da InfinitePay: pague lá e volte ao cardápio; a tela confere sozinha.',
+      'Novo: enquanto espera o pedido, toque em "🎮 Jogar enquanto espera" no acompanhamento. São 4 joguinhos com os lanches do cardápio, e o jogo pausa e avisa quando o seu pedido muda de etapa.',
+      'Privacidade: usamos sua localização aproximada só para saber de onde vêm os pedidos. Ela é apagada ao fim do turno.',
+      'Ficou mais fácil pedir: busca no celular, o "+" de item simples já coloca no carrinho, dá para mudar a quantidade no carrinho com − e +, o resumo mostra subtotal, entrega e cupom, e "Como quer receber?" virou dois botões com a taxa e o tempo. Na entrega, "📍 Usar minha localização" preenche rua e bairro.',
+      'Se algo der errado (sem internet, sistema do restaurante com problema), aparece um aviso dizendo o que aconteceu e que o pedido NÃO foi enviado, com o WhatsApp para pedir.',
+      'No carrinho, se faltar algum dado da entrega (rua, número, cidade) ou do troco, o campo fica vermelho, a tela vai até ele e o motivo aparece logo abaixo.'
+    ]},
     { v:'1.6', em:'16/10/2026', itens:[
       'Ajuda atualizada: pagamento pelo site (Pix e cartão), botão “Acompanhar agora”, voltar para “Todos os pedidos” e convite para instalar o app no cartão “Pedido enviado”.'
     ]},
@@ -304,6 +352,21 @@ let itensEdicaoVenda = [];
 let senhaAdminCallback = null;
 
 function normTel(t){ return (t===undefined||t===null?'':t).toString().replace(/\D/g,''); }
+/* v1.15 — chave do cliente. Cliente do iFood não tem telefone (o iFood manda um 0800 igual para todos):
+   ele é identificado pelo cadastro ("ifood:<id do cliente>"). Os demais continuam pelo telefone. */
+function chaveCliente_(c){ return c && c.ifoodId ? 'ifood:' + c.id : normTel(c && c.telefone); }
+function chaveVendaCliente_(v){
+  if(v && v.canal === 'iFood') return v.clienteId ? 'ifood:' + v.clienteId : '';
+  return normTel(v && v.clienteTelefone);
+}
+function chaveNorm_(k){ k = String(k == null ? '' : k); return /^ifood:/.test(k) ? k : normTel(k); }
+/* telefone para ligar num pedido do iFood: 0800 + código localizador (com validade) */
+function ifoodContato_(v){
+  if(!v || v.canal !== 'iFood') return null;
+  const vencido = !!(v.ifoodLocalizadorAte && Date.now() > v.ifoodLocalizadorAte);
+  const ate = v.ifoodLocalizadorAte ? new Date(v.ifoodLocalizadorAte).toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' }) : '';
+  return { telefone: v.clienteTelefone || '', codigo: v.ifoodLocalizador || '', vencido, ate };
+}
 /* Busca de cliente por nome (sem diferenciar maiúscula/acento) OU por telefone. O telefone só entra na comparação quando o termo tem dígitos:
    antes, um nome digitado virava texto vazio no telefone e "casava" com todos os clientes. */
 function semAcento_(t){ return (t===undefined||t===null?'':t).toString().normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim(); }
@@ -568,7 +631,9 @@ async function sbSelecionar_(tabela, consulta, sessao){
     let r = await sbJson_(url, { headers: cab }, 30000, 2);
     if(r.status === 401 && sessao){ if(!(await sbRenovar_())) throw new SbSessaoExpirada_(); s = sbSessaoLer_(); cab.Authorization = 'Bearer ' + s.access_token; r = await sbJson_(url, { headers: cab }, 30000, 2); if(r.status === 401) throw new SbSessaoExpirada_(); }
     if(!r.ok && r.status !== 206) throw new Error('Falha ao ler ' + tabela + ' (' + r.status + ')');
-    const pag = await r.json(); itens.push.apply(itens, pag);
+    const pag = await r.json();
+    if(!Array.isArray(pag)) throw new Error('Resposta inesperada do servidor ao ler ' + tabela + '.');   // v1.15: antes, uma resposta que não fosse lista repetia a leitura sem parar
+    itens.push.apply(itens, pag);
     if(pag.length < TAM) break; de += TAM;
   }
   return itens;
@@ -631,7 +696,7 @@ async function sbMontarDados_(nivel, chaves){
     formasPagamento: (formas.length ? formas : formasOp).map((f,i)=>({ id:f.id, nome:f.nome, ativa:f.ativa !== false, visivelCardapio:f.visivel_cardapio !== false, taxaPct:Number(f.taxa_percentual)||0, taxaFixa:Number(f.taxa_fixa)||0, prazoDias:Number(f.prazo_dias)||0, permiteTroco:f.permite_troco, acrescimoPct:Number(f.acrescimo_percentual)||0, acrescimoFixo:Number(f.acrescimo_fixo)||0, precoProprio:f.preco_proprio===true, ordem:Number(f.ordem)||(i+1) })).sort((a,b)=>a.ordem-b.ordem)
       .map(f=> operacional ? { id:f.id, nome:f.nome, ativa:f.ativa, permiteTroco:f.permiteTroco, acrescimoPct:f.acrescimoPct, acrescimoFixo:f.acrescimoFixo, ordem:f.ordem } : f),
     categorias: cats.map(c=>({ id:c.id, nome:c.nome, ativa:c.ativa, ordem:Number(c.ordem)||0 })).sort((a,b)=>a.ordem-b.ordem),
-    produtos: prods.map(p=>({ id:p.id, nome:p.nome, descricao:p.descricao||'', categoria:p.categoria_id||'', ativo:p.ativo, fotoId:p.foto_id_principal||'', fotoUrl:sbFotoUrl_(p.foto_id_principal), destaque:p.destaque, premioFidelidade:!!p.premio_fidelidade, premioIndicacao:!!p.premio_indicacao, semDesconto:!!p.sem_desconto, estoqueProprioIngredienteId:p.estoque_proprio_ingrediente_id||'', ordemCardapio:Number(p.ordem_cardapio)||0 })),
+    produtos: prods.map(p=>({ id:p.id, nome:p.nome, descricao:p.descricao||'', categoria:p.categoria_id||'', ativo:p.ativo, fotoId:p.foto_id_principal||'', fotoUrl:sbFotoUrl_(p.foto_id_principal), destaque:p.destaque, premioFidelidade:!!p.premio_fidelidade, premioIndicacao:!!p.premio_indicacao, semDesconto:!!p.sem_desconto, estoqueProprioIngredienteId:p.estoque_proprio_ingrediente_id||'', ordemCardapio:Number(p.ordem_cardapio)||0, preCadastro:!!p.pre_cadastro, origemCadastro:p.origem||'' })),
     produtoPrecos: pprec.map(x=>semCusto({ id:x.id, produtoId:x.produto_id, formaPagamentoId:x.forma_pagamento_id, preco:Number(x.preco), custo:Number(x.custo) })),
     produtoIngredientes: ping.map(x=>({ id:x.id, produtoId:x.produto_id, ingredienteId:x.ingrediente_id, ingredienteNome:nomeIng[x.ingrediente_id]||'', quantidadePorUnidade:Number(x.quantidade_por_unidade) })),
     combos: combos.map(c=>({ id:c.id, nome:c.nome, categoria:c.categoria_id||'', ativo:c.ativo, fotoId:c.foto_id_principal||'', fotoUrl:sbFotoUrl_(c.foto_id_principal), destaque:c.destaque, semDesconto:!!c.sem_desconto, escolhaQtd:Number(c.escolha_qtd)||0, ordemCardapio:Number(c.ordem_cardapio)||0 })),
@@ -649,8 +714,8 @@ async function sbMontarDados_(nivel, chaves){
   };
   const din = {
     usuarios: usuarios.map(u=>({ login:u.login, nivel:u.nivel, ativo:u.ativo, criadoEm:sbDataBr_(u.criado_em), nome:u.nome||'', telefone:u.telefone||'', id:u.id })),
-    logRecentes: [], clientes: clientes.map(x=>{ const y = { id:x.id, nome:x.nome, telefone:x.telefone||'', dataNascimento:x.data_nascimento||'', endereco:x.endereco||'', comoConheceu:x.como_conheceu||'', primeiroContato:sbDataBr_(x.primeiro_contato), observacao:x.observacoes||'', preferencias:x.preferencias||'' }; if(nivel==='Garçom') delete y.observacao; return y; }), promocoes: nivel==='Garçom' ? [] : promos.map(p=>({ nome:p.nome, tipo:p.tipo, regra:p.regra_duplicidade, beneficio:p.beneficio, ativa:p.ativa })),
-    cupons: cupDb.map(c=>({ id:c.id, codigo:String(c.codigo||'').toUpperCase(), nome:c.nome||'', tipo:c.tipo||'percentual', valor:Number(c.valor)||0, faixas:Array.isArray(c.faixas)?c.faixas:[], regra:(c.regra&&typeof c.regra==='object')?c.regra:null, freteGratis:!!c.frete_gratis, dataInicio:c.data_inicio||'', dataFim:c.data_fim||'', horaInicio:String(c.hora_inicio||'').slice(0,5), horaFim:String(c.hora_fim||'').slice(0,5), limiteTotal:Number(c.limite_total)||0, limitePorCliente:Number(c.limite_por_cliente)||0, valorMinimo:Number(c.valor_minimo)||0, ativa:c.ativa!==false, acumula:!!c.acumula, somenteConta:!!c.somente_conta, clienteId:c.cliente_id||'', mensagem:c.mensagem||'', visivelConta:!!c.visivel_conta, automatico:c.automatico||'', validadeDias:Number(c.validade_dias)||30, criadoEm:sbDataBr_(c.criado_em) })),
+    logRecentes: [], clientes: clientes.map(x=>{ const y = { id:x.id, nome:x.nome, telefone:x.telefone||'', dataNascimento:x.data_nascimento||'', endereco:x.endereco||'', comoConheceu:x.como_conheceu||'', primeiroContato:sbDataBr_(x.primeiro_contato), observacao:x.observacoes||'', preferencias:x.preferencias||'', ifoodId:x.ifood_id||'', origemCadastro:x.origem||'' }; if(nivel==='Garçom') delete y.observacao; return y; }), promocoes: nivel==='Garçom' ? [] : promos.map(p=>({ nome:p.nome, tipo:p.tipo, regra:p.regra_duplicidade, beneficio:p.beneficio, ativa:p.ativa })),
+    cupons: cupDb.map(c=>({ id:c.id, codigo:String(c.codigo||'').toUpperCase(), nome:c.nome||'', tipo:c.tipo||'percentual', valor:Number(c.valor)||0, faixas:Array.isArray(c.faixas)?c.faixas:[], regra:(c.regra&&typeof c.regra==='object')?c.regra:null, freteGratis:!!c.frete_gratis, dataInicio:c.data_inicio||'', dataFim:c.data_fim||'', horaInicio:String(c.hora_inicio||'').slice(0,5), horaFim:String(c.hora_fim||'').slice(0,5), limiteTotal:Number(c.limite_total)||0, limitePorCliente:Number(c.limite_por_cliente)||0, valorMinimo:Number(c.valor_minimo)||0, ativa:c.ativa!==false, acumula:!!c.acumula, somenteConta:!!c.somente_conta, clienteId:c.cliente_id||'', mensagem:c.mensagem||'', visivelConta:!!c.visivel_conta, automatico:c.automatico||'', validadeDias:Number(c.validade_dias)||30, criadoEm:sbDataBr_(c.criado_em), excluido:!!c.excluido_em, codigoOriginal:c.codigo_original||'' })),
     eventos: evDb.map(e=>({ id:e.id, nome:e.nome||'', tipo:e.tipo||'', data:e.data||'', horaInicio:String(e.hora_inicio||'').slice(0,5), horaFim:String(e.hora_fim||'').slice(0,5), local:e.local||'', contratante:e.contratante||'', telefone:e.telefone||'', status:e.status||'Orçamento', valorContratado:Number(e.valor_contratado)||0, valorRecebido:Number(e.valor_recebido)||0, valorAReceber:Number(e.valor_a_receber)||0, custoTotal:Number(e.custo_total)||0, resultado:Number(e.resultado)||0, observacoes:e.observacoes||'' })),
     indicacoes: indDb.map(i=>({ nomeIndicador:i.nome_indicador||'', telIndicador:i.telefone_indicador||'', nomeIndicado:i.nome_indicado||'', telIndicado:i.telefone_indicado||'', data:sbDataBr_(i.data), resgatado:i.status==='Resgatado', observacao:i.observacoes||'', idIndicador:i.indicador_id||'', idIndicado:i.indicado_id||'' })),
     fidelidade: fidDb.map(f=>({ nome:f.nome||'', telefone:f.telefone||'', carimbos:Number(f.carimbos)||0, premios:Number(f.premios)||0, atualizado:f.atualizado||'', observacao:f.observacao||'', clienteId:f.cliente_id||'' })),
@@ -667,7 +732,8 @@ async function sbMontarDados_(nivel, chaves){
       statusPagamento:v.status_pagamento||'Pago', timestampRecebimento:v.recebido_em?Date.parse(v.recebido_em):null,
       valorOriginal:Number(v.valor_original)||Number(v.valor_total)||0, valorDesconto:Number(v.valor_desconto)||0, acrescimoForma:Number(v.acrescimo_forma)||0, descontoDetalhe:v.desconto_detalhe||'', entregador:v.entregador||'',
       timestampSaiu:v.saiu_em?Date.parse(v.saiu_em):null, origem:v.origem||'Balcão', canal:v.canal||'', mesaId:v.mesa_id||'', mesaNumero:(v.mesa_numero!=null?String(v.mesa_numero):''), taxaEntrega:Number(v.taxa_entrega)||0, fechamentoEntregaId:v.fechamento_entrega_id||'',
-      registradoPor:v.registrado_por||'', numero:Number(v.numero)||0, timestampInicioPreparo:v.inicio_preparo_em?Date.parse(v.inicio_preparo_em):null }))
+      registradoPor:v.registrado_por||'', numero:Number(v.numero)||0, timestampInicioPreparo:v.inicio_preparo_em?Date.parse(v.inicio_preparo_em):null,
+      clienteId:v.cliente_id||'', ifoodLocalizador:v.ifood_localizador||'', ifoodLocalizadorAte:v.ifood_localizador_ate?Date.parse(v.ifood_localizador_ate):null }))
       .map(v=>{ if(nivel==='Entregador'||nivel==='Garçom'||nivel==='Cozinha') delete v.custoTotal; if(nivel==='Cozinha'){ delete v.clienteTelefone; delete v.endereco; delete v.complemento; delete v.referencia; } return v; }),
     itensVenda: itensDb.map(i=>{ const y = { id:i.id, vendaId:i.venda_id, produtoId:i.produto_id||'', comboId:i.combo_id||'', descricao:i.descricao||'', quantidade:Number(i.quantidade), valorUnitario:Number(i.valor_unitario), custoUnitario:Number(i.custo_unitario)||0, valorTotalItem:Number(i.valor_total_item), adicionaisIds:i.adicionais_ids||[] }; if(!gestor) delete y.custoUnitario; return y; }),
     pagamentosVenda: pagDb.map(p=>({ id:p.id, vendaId:p.venda_id, forma:p.forma_pagamento, valor:Number(p.valor), taxa:Number(p.taxa_aplicada)||0 })),
@@ -777,7 +843,7 @@ const SB_ESCRITAS_ = {
   aplicarPrecoCalculadora:['produtoPrecos']
 };
 /* chamadas que só pedem ao banco e devolvem a resposta dele como está (sem reler as listas) */
-const SB_RPC_DIRETO_ = ['ifoodTestar','ifoodConferencia','ifoodRastreios','marcarAparelhoEquipe','margemSugestao','margemIgnorar','precoHistorico','margemAlerta','margemConfigSalvar','estoqueSugestao','eventoHorasSalvar','eventoRendimento','escalaAvisar','trocaSolicitar','trocaResponder','trocaDecidir','trocasLista','pontoEstado','pontoLocal','pontoRostoConfig','pontoRostoApagar','pontoAprovar','evidenciasLista','etiquetasLista','etiquetaSalvar','etiquetaImportarEstoque','etiquetaRegistrar','pontoBater','pontoRelatorio','pontoAjustar','equipePesoMaoObra','equipeReserva','espacoHistorico','eventoMovimentos','cancelarMovimentoEvento','escalaSemana','salvarTurno','escalaPadraoSalvar','escalaAplicarPadrao','escalaCopiarSemana','equipeImportarAcessos','minhaEscala','equipeFolha','salvarFuncionario','editarCompraInfo','lgpdConfig','listarReembolsos','confirmarReembolso','listarChavesIa','verChaveIa','salvarChaveIa','salvarIaExtras','integracoesFlags','integracoesStatus','integracoesMarcar','integracoesConfig','integracoesSalvarSegredo','integracoesVerSegredo','integracoesLigar','integracoesDesligar','integracoesLog','mpFormaOnline','mpPagamentosRecentes','mpPendenciasDecisao','mpResumoOperacional','mpDecidirPagamento','fiscalEmpresaLer','fiscalEmpresaSalvar','fiscalPerfis','fiscalPerfilSalvar','fiscalPerfilExcluir','fiscalAtribuir','fiscalSemPerfil','fiscalExportar','fiscalImportar','nfceLista','nfceReemitir','nfceEmitirVenda','nfceCpf','nfceSimular','nfceConferencia','nfceInutilizar','nfcePacote','ifoodPedidos','ifoodItens','ifoodPrecos','ifoodPrecosPedirCatalogo','ifoodPrecosAplicar','ifoodPrecosEnviar','ifoodPrecosDesfazer','ifoodFinanceiro','ifoodAvaliacoes','ifoodAvaliacaoResponder','ifoodRelatorio','ifoodLoja','ifoodLojaAcao','ifoodNegociacoes','ifoodNegociacaoResponder','ifoodLigarItem','ifoodHorario','ifoodHorarioSalvar','ifoodHorarioLer','ifoodCat','ifoodCatSalvar','ifoodCatExcluir','ifoodCatEnviar','ifoodCatLote','ifoodLacunas','ifoodReprocessar','ifoodSimular','listarContas','salvarConta','excluirConta','verSenhaConta','saudeSistema','pushInscrever','pushCancelar','listarAuditoria','listarCompras','salvarFornecedor','cancelarCompra','listarSessoes','encerrarSessaoRemota','verificarSenhaAdmin','trocarMinhaSenha','fecharCaixa','caixaLiberar','caixaSalvarConfig','caixaConfig','previewFechamentoEntrega','getQrMesas','gerarNovoCodigoMesa','detectarNovosPedidos','simularPrecificacao','salvarAliquotaMes','visitasCardapioHoje'];
+const SB_RPC_DIRETO_ = ['ifoodFinDados','ifoodFinAcao','ipPagamentos','ipReembolso','ipGerarSegredo','pagFormaProvedor','ifoodModulos','ifoodMotivos','ifoodMotivoEscolher','ifoodCodigosPendentes','ifoodCodigo','armazenamentoPainel','cardapioHoje','excluirCupom','errosSistema','ifoodItensExcluir','ifoodMarcarTeste','ifoodPreCadastro','ifoodTestar','ifoodConferencia','ifoodRastreios','marcarAparelhoEquipe','margemSugestao','margemIgnorar','precoHistorico','margemAlerta','margemConfigSalvar','estoqueSugestao','eventoHorasSalvar','eventoRendimento','escalaAvisar','trocaSolicitar','trocaResponder','trocaDecidir','trocasLista','pontoEstado','pontoLocal','pontoRostoConfig','pontoRostoApagar','pontoAprovar','evidenciasLista','etiquetasLista','etiquetaSalvar','etiquetaImportarEstoque','etiquetaRegistrar','pontoBater','pontoRelatorio','pontoAjustar','equipePesoMaoObra','equipeReserva','espacoHistorico','eventoMovimentos','cancelarMovimentoEvento','escalaSemana','salvarTurno','escalaPadraoSalvar','escalaAplicarPadrao','escalaCopiarSemana','equipeImportarAcessos','minhaEscala','equipeFolha','salvarFuncionario','editarCompraInfo','lgpdConfig','listarReembolsos','confirmarReembolso','listarChavesIa','verChaveIa','salvarChaveIa','salvarIaExtras','integracoesFlags','integracoesStatus','integracoesMarcar','integracoesConfig','integracoesSalvarSegredo','integracoesVerSegredo','integracoesLigar','integracoesDesligar','integracoesLog','mpFormaOnline','mpPagamentosRecentes','mpPendenciasDecisao','mpResumoOperacional','mpDecidirPagamento','fiscalEmpresaLer','fiscalEmpresaSalvar','fiscalPerfis','fiscalPerfilSalvar','fiscalPerfilExcluir','fiscalAtribuir','fiscalSemPerfil','fiscalExportar','fiscalImportar','nfceLista','nfceReemitir','nfceEmitirVenda','nfceCpf','nfceSimular','nfceConferencia','nfceInutilizar','nfcePacote','ifoodPedidos','ifoodItens','ifoodPrecos','ifoodPrecosPedirCatalogo','ifoodPrecosAplicar','ifoodPrecosEnviar','ifoodPrecosDesfazer','ifoodFinanceiro','ifoodAvaliacoes','ifoodAvaliacaoResponder','ifoodRelatorio','ifoodLoja','ifoodLojaAcao','ifoodNegociacoes','ifoodNegociacaoResponder','ifoodLigarItem','ifoodHorario','ifoodHorarioSalvar','ifoodHorarioLer','ifoodCat','ifoodCatSalvar','ifoodCatExcluir','ifoodCatEnviar','ifoodCatLote','ifoodLacunas','ifoodReprocessar','ifoodSimular','listarContas','salvarConta','excluirConta','verSenhaConta','saudeSistema','pushInscrever','pushCancelar','listarAuditoria','listarCompras','salvarFornecedor','cancelarCompra','listarSessoes','encerrarSessaoRemota','verificarSenhaAdmin','trocarMinhaSenha','fecharCaixa','caixaLiberar','caixaSalvarConfig','caixaConfig','previewFechamentoEntrega','getQrMesas','gerarNovoCodigoMesa','detectarNovosPedidos','simularPrecificacao','salvarAliquotaMes','visitasCardapioHoje'];
 function sbNomeFuncao_(action){ return 'api_' + action.replace(/[A-Z]/g, m=>'_' + m.toLowerCase()); }
 async function sbRpc_(fn, corpo){
   let s = sbSessaoLer_(); if(!s) throw new SbSessaoExpirada_();
@@ -924,8 +990,8 @@ function mostrarManutencao_(msg){
   }
 }
 /* MODO RESERVA: funções que só existem no Supabase (sem equivalente na planilha). Com o Supabase fora, respondem NA HORA, sem esperar tempo esgotar. */
-const RESERVA_INDISPONIVEL_ = { editarSemDesconto:'Marcar item sem desconto', salvarIaExtras:'Integrações e contas', visitasCardapioHoje:'Visitas ao cardápio', salvarAliquotaMes:'Imposto sobre vendas', integracoesFlags:'Integrações', integracoesStatus:'Integrações', integracoesMarcar:'Integrações', integracoesConfig:'Integrações', integracoesSalvarSegredo:'Integrações', integracoesVerSegredo:'Integrações', integracoesLigar:'Integrações', integracoesDesligar:'Integrações', integracoesLog:'Integrações', mpFormaOnline:'Integrações', mpPagamentosRecentes:'Integrações', mpPendenciasDecisao:'Caixa e pagamentos online', mpResumoOperacional:'Relatórios de pagamentos online', mpDecidirPagamento:'Caixa e pagamentos online', fiscalEmpresaLer:'Integrações', fiscalEmpresaSalvar:'Integrações', fiscalPerfis:'Integrações', fiscalPerfilSalvar:'Integrações', fiscalPerfilExcluir:'Integrações', fiscalAtribuir:'Integrações', fiscalSemPerfil:'Integrações', fiscalExportar:'Integrações', fiscalImportar:'Integrações', nfceLista:'Integrações', nfceReemitir:'Integrações', nfceEmitirVenda:'Integrações', nfceCpf:'Integrações', nfceSimular:'Integrações', nfceConferencia:'Integrações', nfceInutilizar:'Integrações', nfcePacote:'Integrações', ifoodPedidos:'Integrações', ifoodPrecos:'Integrações', ifoodPrecosPedirCatalogo:'Integrações', ifoodPrecosAplicar:'Integrações', ifoodPrecosEnviar:'Integrações', ifoodPrecosDesfazer:'Integrações', ifoodFinanceiro:'Integrações', ifoodAvaliacoes:'Integrações', ifoodAvaliacaoResponder:'Integrações', ifoodRelatorio:'Integrações', ifoodLoja:'Integrações', ifoodLojaAcao:'Integrações', ifoodNegociacoes:'Integrações', ifoodNegociacaoResponder:'Integrações', ifoodItens:'Integrações', ifoodLigarItem:'Integrações', ifoodHorario:'Integrações', ifoodHorarioSalvar:'Integrações', ifoodHorarioLer:'Integrações', ifoodCat:'Integrações', ifoodCatSalvar:'Integrações', ifoodCatExcluir:'Integrações', ifoodCatEnviar:'Integrações', ifoodCatLote:'Integrações', ifoodLacunas:'Aviso de queda do iFood', ifoodReprocessar:'Integrações', ifoodSimular:'Integrações', listarChavesIa:'Contas e acessos', verChaveIa:'Contas e acessos', salvarChaveIa:'Contas e acessos', listarContas:'Contas e acessos', salvarConta:'Contas e acessos', excluirConta:'Contas e acessos', verSenhaConta:'Contas e acessos', saudeSistema:'Saúde do sistema', salvarCardapioFechamento:'Abrir ou fechar o cardápio', listarCompras:'Compras e fornecedores', registrarCompra:'Compras e fornecedores', receberCompra:'Compras e fornecedores', cancelarCompra:'Compras e fornecedores', estornarCompra:'Compras e fornecedores', editarCompraInfo:'Compras e fornecedores', salvarFornecedor:'Compras e fornecedores',
-  ifoodTestar:'Teste de conexão do iFood', ifoodConferencia:'Conferência dos repasses do iFood', ifoodRastreios:'Entregador do iFood', marcarAparelhoEquipe:'Aparelho da equipe', listarReembolsos:'Reembolsos', confirmarReembolso:'Reembolsos', salvarPrecosLote:'Preços em lote', ajustarPrecosProdutosLote:'Ajuste de preços em lote', precoHistorico:'Histórico de preços', margemAlerta:'Margem baixa', margemConfigSalvar:'Margem baixa', margemIgnorar:'Margem baixa', margemSugestao:'Margem baixa', estoqueSugestao:'Compra sugerida', eventoHorasSalvar:'Eventos', eventoRendimento:'Eventos', equipeFolha:'Equipe e pagamentos', escalaSemana:'Escala', salvarTurno:'Escala', escalaPadraoSalvar:'Escala', escalaAplicarPadrao:'Escala', escalaCopiarSemana:'Escala', equipeImportarAcessos:'Equipe e pagamentos', minhaEscala:'Escala', salvarFuncionario:'Equipe e pagamentos', pagarFuncionario:'Equipe e pagamentos', eventoMovimentos:'Central de Eventos', cancelarMovimentoEvento:'Central de Eventos', escalaAvisar:'Escala da equipe', trocaSolicitar:'Escala da equipe', trocaResponder:'Escala da equipe', trocaDecidir:'Escala da equipe', trocasLista:'Escala da equipe', pontoEstado:'Ponto', pontoBater:'Ponto', pontoLocal:'Ponto', pontoRostoConfig:'Ponto', pontoRostoApagar:'Ponto', pontoAprovar:'Ponto', evidenciasLista:'Fotos dos lançamentos', etiquetasLista:'Etiquetas', etiquetaSalvar:'Etiquetas', etiquetaImportarEstoque:'Etiquetas', etiquetaRegistrar:'Etiquetas', pontoRelatorio:'Ponto', pontoAjustar:'Ponto', equipePesoMaoObra:'Equipe e pagamentos', equipeReserva:'Equipe e pagamentos', espacoHistorico:'Backup e espaço', cancelarPagamentoFuncionario:'Equipe e pagamentos', visibilidadeLoteProdutos:'Cardápio em lote', pushInscrever:'Avisos com o app fechado', pushCancelar:'Avisos com o app fechado', listarAuditoria:'Auditoria', listarSessoes:'Sessões abertas', encerrarSessaoRemota:'Sessões abertas', simularPrecificacao:'Calculadora de preço', salvarCupom:'Cupons', salvarEvento:'Eventos' };
+const RESERVA_INDISPONIVEL_ = { ifoodFinDados:'iFood: vendas e repasses', ifoodFinAcao:'iFood: vendas e repasses', ipPagamentos:'InfinitePay', ipReembolso:'InfinitePay', ipGerarSegredo:'InfinitePay', pagFormaProvedor:'Pagamentos online', ifoodModulos:'Integrações', ifoodMotivos:'Cancelar pedido do iFood', ifoodMotivoEscolher:'Cancelar pedido do iFood', ifoodCodigosPendentes:'Códigos do iFood', ifoodCodigo:'Códigos do iFood', armazenamentoPainel:'Armazenamento', cardapioHoje:'Cardápio hoje', excluirCupom:'Cupons', errosSistema:'Erros do sistema', ifoodItensExcluir:'Integrações', ifoodMarcarTeste:'Integrações', ifoodPreCadastro:'Integrações', editarSemDesconto:'Marcar item sem desconto', salvarIaExtras:'Integrações e contas', visitasCardapioHoje:'Visitas ao cardápio', salvarAliquotaMes:'Imposto sobre vendas', integracoesFlags:'Integrações', integracoesStatus:'Integrações', integracoesMarcar:'Integrações', integracoesConfig:'Integrações', integracoesSalvarSegredo:'Integrações', integracoesVerSegredo:'Integrações', integracoesLigar:'Integrações', integracoesDesligar:'Integrações', integracoesLog:'Integrações', mpFormaOnline:'Integrações', mpPagamentosRecentes:'Integrações', mpPendenciasDecisao:'Caixa e pagamentos online', mpResumoOperacional:'Relatórios de pagamentos online', mpDecidirPagamento:'Caixa e pagamentos online', fiscalEmpresaLer:'Integrações', fiscalEmpresaSalvar:'Integrações', fiscalPerfis:'Integrações', fiscalPerfilSalvar:'Integrações', fiscalPerfilExcluir:'Integrações', fiscalAtribuir:'Integrações', fiscalSemPerfil:'Integrações', fiscalExportar:'Integrações', fiscalImportar:'Integrações', nfceLista:'Integrações', nfceReemitir:'Integrações', nfceEmitirVenda:'Integrações', nfceCpf:'Integrações', nfceSimular:'Integrações', nfceConferencia:'Integrações', nfceInutilizar:'Integrações', nfcePacote:'Integrações', ifoodPedidos:'Integrações', ifoodPrecos:'Integrações', ifoodPrecosPedirCatalogo:'Integrações', ifoodPrecosAplicar:'Integrações', ifoodPrecosEnviar:'Integrações', ifoodPrecosDesfazer:'Integrações', ifoodFinanceiro:'Integrações', ifoodAvaliacoes:'Integrações', ifoodAvaliacaoResponder:'Integrações', ifoodRelatorio:'Integrações', ifoodLoja:'Integrações', ifoodLojaAcao:'Integrações', ifoodNegociacoes:'Integrações', ifoodNegociacaoResponder:'Integrações', ifoodItens:'Integrações', ifoodLigarItem:'Integrações', ifoodHorario:'Integrações', ifoodHorarioSalvar:'Integrações', ifoodHorarioLer:'Integrações', ifoodCat:'Integrações', ifoodCatSalvar:'Integrações', ifoodCatExcluir:'Integrações', ifoodCatEnviar:'Integrações', ifoodCatLote:'Integrações', ifoodLacunas:'Aviso de queda do iFood', ifoodReprocessar:'Integrações', ifoodSimular:'Integrações', listarChavesIa:'Contas e acessos', verChaveIa:'Contas e acessos', salvarChaveIa:'Contas e acessos', listarContas:'Contas e acessos', salvarConta:'Contas e acessos', excluirConta:'Contas e acessos', verSenhaConta:'Contas e acessos', saudeSistema:'Saúde do sistema', salvarCardapioFechamento:'Abrir ou fechar o cardápio', listarCompras:'Compras e fornecedores', registrarCompra:'Compras e fornecedores', receberCompra:'Compras e fornecedores', cancelarCompra:'Compras e fornecedores', estornarCompra:'Compras e fornecedores', editarCompraInfo:'Compras e fornecedores', salvarFornecedor:'Compras e fornecedores',
+  ifoodTestar:'Teste de conexão do iFood', ifoodConferencia:'Conferência dos repasses do iFood', ifoodRastreios:'Entregador do iFood', marcarAparelhoEquipe:'Aparelho da equipe', listarReembolsos:'Reembolsos', confirmarReembolso:'Reembolsos', salvarPrecosLote:'Preços em lote', ajustarPrecosProdutosLote:'Ajuste de preços em lote', precoHistorico:'Histórico de preços', margemAlerta:'Margem baixa', margemConfigSalvar:'Margem baixa', margemIgnorar:'Margem baixa', margemSugestao:'Margem baixa', estoqueSugestao:'Compra sugerida', eventoHorasSalvar:'Eventos', eventoRendimento:'Eventos', equipeFolha:'Equipe e pagamentos', escalaSemana:'Escala', salvarTurno:'Escala', escalaPadraoSalvar:'Escala', escalaAplicarPadrao:'Escala', escalaCopiarSemana:'Escala', equipeImportarAcessos:'Equipe e pagamentos', minhaEscala:'Escala', salvarFuncionario:'Equipe e pagamentos', pagarFuncionario:'Equipe e pagamentos', eventoMovimentos:'Central de Eventos', cancelarMovimentoEvento:'Central de Eventos', escalaAvisar:'Escala da equipe', trocaSolicitar:'Escala da equipe', trocaResponder:'Escala da equipe', trocaDecidir:'Escala da equipe', trocasLista:'Escala da equipe', pontoEstado:'Ponto', pontoBater:'Ponto', pontoLocal:'Ponto', pontoRostoConfig:'Ponto', pontoRostoApagar:'Ponto', pontoAprovar:'Ponto', evidenciasLista:'Fotos dos lançamentos', etiquetasLista:'Etiquetas', etiquetaSalvar:'Etiquetas', etiquetaImportarEstoque:'Etiquetas', etiquetaRegistrar:'Etiquetas', pontoRelatorio:'Ponto', pontoAjustar:'Ponto', equipePesoMaoObra:'Equipe e pagamentos', equipeReserva:'Equipe e pagamentos', espacoHistorico:'Backup e espaço', armazenamentoPainel:'Armazenamento', cancelarPagamentoFuncionario:'Equipe e pagamentos', visibilidadeLoteProdutos:'Cardápio em lote', pushInscrever:'Avisos com o app fechado', pushCancelar:'Avisos com o app fechado', listarAuditoria:'Auditoria', listarSessoes:'Sessões abertas', encerrarSessaoRemota:'Sessões abertas', simularPrecificacao:'Calculadora de preço', salvarCupom:'Cupons', salvarEvento:'Eventos' };
 async function _apiCallRaw(action, payload, _tentativa, _idemChave){
   if(RESERVA_INDISPONIVEL_[action] && typeof _sb5Reserva_ !== 'undefined' && _sb5Reserva_) return { ok:false, reserva:true, message:'Modo reserva: "' + RESERVA_INDISPONIVEL_[action] + '" fica indisponível até o Supabase voltar. Nada foi gravado.' };
   if(currentUser && currentUser.emergencia) throw new Error('Modo emergência: este aparelho não fala com a planilha principal'); // BLOCO 1.3 (age como falha de rede: nada é gravado nem apagado)
@@ -1273,7 +1339,7 @@ function devMudarVisao(valor){
   currentUser.nivel = nivel; currentUser.verComo = quem;
   document.getElementById('userbarTexto').textContent = rotuloBarraUsuario_();
   aplicarPermissoesNivel();
-  try{ renderizarTudo(); }catch(e){}
+  try{ renderizarTudo(); }catch(e){ if(window.erroTela_) erroTela_(e); }
   const primeiro = document.querySelector('.tab-btn:not(.hidden-tab)');
   if(primeiro) primeiro.click();
 }
@@ -1356,6 +1422,17 @@ function abrirModalSenhaAdmin(callback){
   document.getElementById('senhaAdminInput').value = '';
   document.getElementById('senhaAdminMsg').className = 'msg';
   document.getElementById('senhaAdminModal').classList.add('open');
+}
+/* Pede a senha (confere no servidor pelo próprio modal) e devolve a senha, ou null se a pessoa fechou. Senha SEMPRE, inclusive do Admin. */
+function pedirSenha_(){
+  return new Promise(res => {
+    let feito = false; const fim = v => { if(!feito){ feito = true; res(v); } };
+    abrirModalSenhaAdmin(s => fim(s));
+    const m = document.getElementById('senhaAdminModal');
+    if(!m){ fim(null); return; }
+    const obs = new MutationObserver(() => { if(!m.classList.contains('open')){ obs.disconnect(); setTimeout(() => fim(null), 50); } });
+    obs.observe(m, { attributes:true, attributeFilter:['class'] });
+  });
 }
 function fecharModalSenhaAdmin(){ document.getElementById('senhaAdminModal').classList.remove('open'); senhaAdminCallback = null; }
 async function confirmarSenhaAdminGenerica(){

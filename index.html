@@ -25,7 +25,11 @@
   var fila = [], vistos = {}, tentativas = 0, agendado = null;
   var cfg = { primeiro:3000, atrasoBase:30000, max:20, janela:600000 };
   function cortar(s, n){ return String(s == null ? '' : s).slice(0, n); }
-  function tela(){ try{ var s = document.querySelector('section.tab:not([hidden])'); return s ? s.id : ''; }catch(e){ return ''; } }
+  function tela(){ try{
+    var m = document.querySelector('.modal-overlay.open'), c = document.getElementById('cardapioPublico');
+    if(c && c.style.display !== 'none' && c.offsetParent !== null) return 'cardapio' + (m ? '-' + m.id : '');
+    var s = document.querySelector('section.tab:not([hidden])'); return (s ? s.id : '') + (m ? '-' + m.id : '');
+  }catch(e){ return ''; } }
   function agendar(ms){ if(agendado || !fila.length) return; agendado = setTimeout(enviar, ms); }
   function registrar(tipo, msg, origem, pilha){
     try{
@@ -43,10 +47,16 @@
     agendado = null; if(!fila.length) return;
     try{
       if(typeof sbSessaoLer_ !== 'function' || typeof SUPABASE_URL_ === 'undefined') throw 'sem_sessao';
-      var s = sbSessaoLer_(); if(!s) throw 'sem_sessao';            // sem login: fica na fila (sem contar como falha)
-      if(Date.now() > s.expira){ if(typeof sbRenovar_ !== 'function' || !(await sbRenovar_())) throw 'sem_sessao'; s = sbSessaoLer_(); }
-      var r = await fetch(SUPABASE_URL_ + '/rest/v1/rpc/registrar_erro_cliente', { method:'POST',
-        headers:{ apikey:SUPABASE_CHAVE_, Authorization:'Bearer ' + s.access_token, 'Content-Type':'application/json' }, body:JSON.stringify({ p:fila[0] }) });
+      var s = sbSessaoLer_(), r;
+      if(s && Date.now() > s.expira){ if(typeof sbRenovar_ !== 'function' || !(await sbRenovar_())) s = null; else s = sbSessaoLer_(); }
+      if(s){
+        r = await fetch(SUPABASE_URL_ + '/rest/v1/rpc/registrar_erro_cliente', { method:'POST',
+          headers:{ apikey:SUPABASE_CHAVE_, Authorization:'Bearer ' + s.access_token, 'Content-Type':'application/json' }, body:JSON.stringify({ p:fila[0] }) });
+      } else {
+        /* sem login (cliente no cardápio ou tela de entrar): vai como visitante, sem nome nem telefone (52-erros-visiveis.sql) */
+        r = await fetch(SUPABASE_URL_ + '/rest/v1/rpc/registrar_erro_publico', { method:'POST',
+          headers:{ apikey:SUPABASE_CHAVE_, Authorization:'Bearer ' + SUPABASE_CHAVE_, 'Content-Type':'application/json' }, body:JSON.stringify({ p:fila[0] }) });
+      }
       if(!r.ok) throw 0;
       fila.shift(); tentativas = 0;
     }catch(e){
@@ -68,7 +78,10 @@
     var o = window.entrarNoApp; if(typeof o !== 'function' || o.__err) return;
     var n = function(){ var r = o.apply(this, arguments); setTimeout(enviar, 2000); return r; }; n.__err = true; window.entrarNoApp = n;
   });
-  window.ErrosCliente = { cfg:cfg, pendentes:function(){ return fila.length; }, enviarAgora:enviar };
+  window.ErrosCliente = { cfg:cfg, pendentes:function(){ return fila.length; }, enviarAgora:enviar,
+    /* aviso de falha que a tela mostrou para a pessoa (app-43-erros-visiveis.js) */
+    aviso:function(msg, origem){ registrar('aviso', msg, origem || '', ''); },
+    erro:function(e, origem){ try{ registrar('error', (e && e.message) || String(e), origem || '', e && e.stack); }catch(_){} } };
 })();
 </script>
 
@@ -87,7 +100,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alfa+Slab+One&display=swap">
 <title>Texas Burger — Sistema Completo</title>
-<link rel="stylesheet" href="css/estilo-base.css?v=ac9770f7">
+<link rel="stylesheet" href="css/estilo-base.css?v=966ad513">
 </head>
 <body>
 
@@ -365,6 +378,7 @@
       <button id="avisosBtnTopo" onclick="abrirModalAvisos_()" title="Alertas de pedido" aria-label="Alertas de pedido"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9a6 6 0 0 1 12 0c0 6 2 7 2 7H4s2-1 2-7zM10 20a2 2 0 0 0 4 0"/></svg></button>
       <button onclick="abrirAjuda()" title="Ajuda" aria-label="Ajuda"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1 .9-1 1.7M12 17h.01"/></svg><span class="rot"> Ajuda</span></button>
       <button onclick="abrirModalTrocarSenha()" title="Senha" aria-label="Senha"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 10a4 4 0 1 1-1.2-2.8L21 15v3h-3v-2h-2v-2h-2l-1.8-1.8"/></svg><span class="rot"> Senha</span></button>
+      <button onclick="verCardapioComoCliente_()" title="Ver o cardápio digital como o cliente vê, sem sair" aria-label="Ver cardápio"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2l2.4 11.2a2 2 0 0 0 2 1.6h7.8a2 2 0 0 0 2-1.5L21 8H6M10 21h.01M17 21h.01"/></svg><span class="rot"> Cardápio</span></button>
       <button onclick="sair()">Sair</button>
     </div>
   </header>
@@ -1568,8 +1582,32 @@
       <div id="driveResumo" class="fs-sm">Carregando...</div>
       <div id="driveArquivos" style="overflow-x:auto;font-size:12.5px;margin-top:10px;"></div>
       <button class="ghost" style="width:100%;padding:10px;margin-top:8px;" onclick="carregarArmazenamento()">Atualizar</button>
+      <div class="mt-3" style="border-top:1px solid var(--line,#3a2d1d);padding-top:10px;">
+        <b>🧹 Fotos sem uso</b>
+        <p class="sub fs-xs" style="margin:4px 0 8px;">Procura, no Drive principal e no da contingência, fotos que nenhum produto ou combo usa (inclusive duplicadas). Só olha a pasta de fotos do cardápio; comprovantes e fotos do ponto ficam de fora. Fotos com menos de 7 dias nunca entram.</p>
+        <div class="btnrow"><button class="ghost" style="flex:1 1 60%;" onclick="analisarFotosSemUso_()">🔍 Analisar fotos sem uso</button><button class="ghost" style="flex:1 1 35%;" onclick="restaurarFotosLimpeza_()">↩ Desfazer a última limpeza</button></div>
+        <div id="fotosSemUsoBox" class="mt-2"></div>
+      </div>
     </div>
 
+  </section>
+
+  <section class="tab" id="tab-ifoodfin">
+    <div class="admin-subnav" data-admin-nav="1"></div>
+    <div class="card">
+      <h2>💰 iFood: vendas e repasses</h2>
+      <p class="sub" style="margin:0 0 6px;">O financeiro oficial do iFood: cada venda com comissão e taxas, os lançamentos, os repasses (quando e quanto cai na conta), as antecipações e o arquivo mensal de conciliação. Só mostra: não muda nada no caixa nem no iFood.</p>
+      <div id="ifinCorpo"><div class="obs-line">Abra esta tela com internet.</div></div>
+    </div>
+  </section>
+
+  <section class="tab" id="tab-arquivo">
+    <div class="admin-subnav" data-admin-nav="1"></div>
+    <div class="card">
+      <h2>📦 Armazenamento</h2>
+      <p class="sub" style="margin:0 0 6px;">Banco do Supabase, Storage e planilhas do Google: quanto está usado, quanto cresce e quanto tempo falta para encher. E o que já foi arquivado, onde está e quanto espaço cada arquivamento liberou de verdade.</p>
+      <div id="armArqCorpo"><div class="obs-line">Abra esta tela com internet para medir.</div></div>
+    </div>
   </section>
 
   <section class="tab" id="tab-integridade">
@@ -1601,6 +1639,7 @@
       <button type="button" data-aba="ifood" onclick="abaInterna_('tab-contas','ifood')"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 16h2a2 2 0 0 0 4 0h6a2 2 0 0 0 4 0h2v-4l-3-4h-5v8M3 16V8h8"/></svg>iFood</button>
       <button type="button" data-aba="nfce" onclick="abaInterna_('tab-contas','nfce')"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v18H6zM9 8h6M9 12h6M9 16h4"/></svg>Nota fiscal</button>
       <button type="button" data-aba="mercadopago" onclick="abaInterna_('tab-contas','mercadopago')"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18v12H3zM3 10h18M7 15h3"/></svg>Mercado Pago</button>
+      <button type="button" data-aba="infinitepay" onclick="abaInterna_('tab-contas','infinitepay')"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a4 4 0 0 1 8 0 4 4 0 0 0 8 0M4 12a4 4 0 0 0 8 0 4 4 0 0 1 8 0"/></svg>InfinitePay</button>
     </div>
     <div class="card" data-painel="contas">
       <h2><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 11h12v10H6zM8 11V8a4 4 0 0 1 8 0v3"/></svg>Integrações e contas</h2>
@@ -1633,6 +1672,12 @@
       <p class="sub">Pix e cartão de crédito direto no cardápio. Já vem pronto, mas DESLIGADO: desligado, o cardápio só aceita pagar na entrega.</p>
       <div id="integLista_mercadopago"><div class="notif-empty">Carregando…</div></div>
       <div class="msg" id="integMsg_mercadopago"></div>
+    </div>
+    <div class="card" data-painel="infinitepay" id="integCard_infinitepay">
+      <h2><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a4 4 0 0 1 8 0 4 4 0 0 0 8 0M4 12a4 4 0 0 0 8 0 4 4 0 0 1 8 0"/></svg>InfinitePay</h2>
+      <p class="sub">Pix e cartão de crédito no checkout da InfinitePay (o cliente sai do cardápio para pagar e volta). Já vem pronto, mas DESLIGADO. Pode usar junto com o Mercado Pago: cada forma escolhe quem recebe.</p>
+      <div id="integLista_infinitepay"><div class="notif-empty">Carregando…</div></div>
+      <div class="msg" id="integMsg_infinitepay"></div>
     </div>
   </section>
 
@@ -1950,6 +1995,7 @@
     <div class="btnrow fx-wrap mt-3">
       <button class="primary" id="avisosAtivarBtn" onclick="ativarAvisos_()" style="flex:1 1 100%;min-height:48px;"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9a6 6 0 0 1 12 0c0 6 2 7 2 7H4s2-1 2-7zM10 20a2 2 0 0 0 4 0"/></svg> Ativar avisos</button>
       <button class="ghost" onclick="testarSomAviso_()" style="flex:1 1 100%;min-height:48px;">🔊 Testar som</button>
+      <button class="ghost" onclick="testarVinhetaIfood_()" style="flex:1 1 100%;min-height:48px;">🛵 Testar som do iFood</button>
       <button class="ghost" onclick="testarVibracao_()" style="flex:1 1 100%;min-height:48px;">📳 Testar vibração</button>
     </div>
     <div id="pushBox" style="display:none;margin-top:14px;padding-top:12px;border-top:1px solid var(--border,#3a2d1d);">
@@ -1968,6 +2014,15 @@
       <h3 style="display:flex;align-items:center;gap:8px;margin:0 0 4px;"><span id="saudeDotModal" style="width:14px;height:14px;border-radius:50%;background:#888;display:inline-block;"></span> Saúde do sistema</h3>
       <div class="obs-line" id="saudeResumoModal">Verificando…</div>
       <div id="saudeLista" class="mt-2"></div>
+      <div id="errosSistemaBox" class="mt-2">
+        <h3 style="margin:10px 0 4px;">🐞 Erros do sistema</h3>
+        <p class="sub fs-xs" style="margin:0 0 6px;">Tudo o que deu errado para a equipe e para os clientes do cardápio nos últimos dias (inclusive os avisos de falha que apareceram na tela). Toque em "Resolvido" quando corrigir.</p>
+        <div class="btnrow"><select id="errosOnde" onchange="carregarErrosSistema_()" style="flex:1 1 40%;"><option value="todos">Todos</option><option value="cardapio">Só cardápio (clientes)</option><option value="equipe">Só equipe</option></select>
+          <select id="errosDias" onchange="carregarErrosSistema_()" style="flex:1 1 30%;"><option value="1">Hoje e ontem</option><option value="7" selected>7 dias</option><option value="14">14 dias</option></select>
+          <button class="ghost" type="button" onclick="carregarErrosSistema_()" style="flex:1 1 20%;">Atualizar</button></div>
+        <div class="obs-line" id="errosResumo"></div>
+        <div id="errosLista" class="mt-1"></div>
+      </div>
       <div id="integracoesSaude"></div>
       <div class="btnrow mt-2"><button class="ghost" type="button" id="reservaSimBtn" style="display:none;" onclick="sb5Simulacao_()"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6M10 3v6L5 19a1 1 0 0 0 1 2h12a1 1 0 0 0 1-2l-5-10V3"/></svg>Simular queda (treino)</button></div>
     </div>
@@ -2539,26 +2594,26 @@
   </div>
 </div>
 
-<script src="js/app-01-base-e-api.js?v=d4f6d685" charset="utf-8" data-origem="__big0__"></script>
-<script src="js/app-02-abas.js?v=6ceee0e2" charset="utf-8" data-origem="__big1__"></script>
-<script src="js/app-03-cadastros.js?v=16f83394" charset="utf-8" data-origem="__big2__"></script>
-<script src="js/app-04-pedidos-entrega.js?v=58e9add7" charset="utf-8" data-origem="__big3__"></script>
-<script src="js/app-05-avisos-push.js?v=b139d0ad" charset="utf-8" data-origem="__big4__"></script>
-<script src="js/app-06-caixa.js?v=053d29ee" charset="utf-8" data-origem="__big5__"></script>
+<script src="js/app-01-base-e-api.js?v=b8c174cf" charset="utf-8" data-origem="__big0__"></script>
+<script src="js/app-02-abas.js?v=d2406404" charset="utf-8" data-origem="__big1__"></script>
+<script src="js/app-03-cadastros.js?v=46167420" charset="utf-8" data-origem="__big2__"></script>
+<script src="js/app-04-pedidos-entrega.js?v=04c0dcf4" charset="utf-8" data-origem="__big3__"></script>
+<script src="js/app-05-avisos-push.js?v=5ff06049" charset="utf-8" data-origem="__big4__"></script>
+<script src="js/app-06-caixa.js?v=d8657313" charset="utf-8" data-origem="__big5__"></script>
 <script src="js/app-07-impressao.js?v=5c9f0484" charset="utf-8" data-origem="__big6__"></script>
-<script src="js/app-08-vendas-despesas.js?v=de541e9c" charset="utf-8" data-origem="__big7__"></script>
-<script src="js/app-09-ajuda.js?v=acbf074b" charset="utf-8" data-origem="__big8__"></script>
-<script src="js/app-10-backup-financeiro.js?v=3b7d8cd1" charset="utf-8" data-origem="__big9__"></script>
-<script src="js/app-11-admin-integracoes.js?v=b2467276" charset="utf-8" data-origem="__big10__"></script>
-<script src="js/app-12-gestao-ia.js?v=c93c8f19" charset="utf-8" data-origem="__big11__"></script>
+<script src="js/app-08-vendas-despesas.js?v=0b8d9a34" charset="utf-8" data-origem="__big7__"></script>
+<script src="js/app-09-ajuda.js?v=b5fcd6f3" charset="utf-8" data-origem="__big8__"></script>
+<script src="js/app-10-backup-financeiro.js?v=e0ab3939" charset="utf-8" data-origem="__big9__"></script>
+<script src="js/app-11-admin-integracoes.js?v=2c9c65a1" charset="utf-8" data-origem="__big10__"></script>
+<script src="js/app-12-gestao-ia.js?v=98d70713" charset="utf-8" data-origem="__big11__"></script>
 <script src="js/app-13-conexao-sync.js?v=4169baef" charset="utf-8" data-origem="__big12__"></script>
-<script src="js/app-14-relatorios.js?v=1e3c69a3" charset="utf-8" data-origem="__big13__"></script>
-<script src="js/app-15-cardapio-cliente.js?v=d16db04d" charset="utf-8" data-origem="__big14__"></script>
+<script src="js/app-14-relatorios.js?v=89a1208a" charset="utf-8" data-origem="__big13__"></script>
+<script src="js/app-15-cardapio-cliente.js?v=b3549f0c" charset="utf-8" data-origem="__big14__"></script>
 <script src="js/app-16-sessao-final.js?v=ef1da8ab" charset="utf-8" data-origem="__big15__"></script>
 <!-- ═══════════ SINCRONIZAÇÃO, BACKUP, ESPAÇO E INTEGRIDADE ═══════════
      app-17 cria cartões (ids sb410*) nas telas Backup e espaço e Sincronização e contingência. -->
 
-<script src="js/app-17-sessao-supabase.js?v=3fdfeb13" charset="utf-8" data-origem=""></script>
+<script src="js/app-17-sessao-supabase.js?v=8d95f924" charset="utf-8" data-origem=""></script>
 
 <!-- ═══════════ MODO RESERVA (queda do Supabase) ═══════════
      Detecta a queda do Supabase, avisa com faixa laranja e reenvia a fila do aparelho sozinha na volta.
@@ -2580,7 +2635,7 @@
    BALÃO ÚNICO — parte da EQUIPE (Fase 3/4): só texto. O roteador do ai-gateway escolhe o robô; a fila de clientes aparece como aviso.
    Reaproveita IA.chamar, sbRpc_, sbSessaoLer_, sbJson_. Nenhum botão de função: tudo é texto (exceto Assumir/Encerrar/Sair da conversa).
    ===================================================================== -->
-<script src="js/app-20-balao-interno.js?v=3dbb18df" charset="utf-8" data-origem="balaoInterno"></script>
+<script src="js/app-20-balao-interno.js?v=c974eb7b" charset="utf-8" data-origem="balaoInterno"></script>
 
 <!-- =====================================================================
    FASE 5 — Localização do entregador (plano V3 §49–§59). Aditivo.
@@ -2590,7 +2645,7 @@
    ===================================================================== -->
 <script src="js/app-21-localizacao.js?v=bb28de16" charset="utf-8" data-origem="fase5Localizacao"></script>
 
-<link rel="stylesheet" href="css/estilo-equipe.css?v=99519ca0">
+<link rel="stylesheet" href="css/estilo-equipe.css?v=10e8510c">
 <nav id="navInf" aria-label="Navegação principal"></nav>
 <div id="navInfMais" onclick="if(event.target===this)navInfFechar_()"><div class="nm-box" id="navInfMaisBox"></div></div>
 <script src="js/app-22-navegacao-inferior.js?v=9c0835e7" charset="utf-8" data-origem="navInfJs"></script>
@@ -2599,25 +2654,35 @@
   </div>
 <script src="js/app-23-janelas-popup.js?v=6f031891" charset="utf-8" data-origem=""></script>
 <script src="js/app-24-acessibilidade.js?v=1567f2c1" charset="utf-8" data-origem=""></script>
-<script src="js/app-25-cadastro-facil.js?v=ba581fbe" charset="utf-8" data-origem=""></script>
+<script src="js/app-25-cadastro-facil.js?v=ad9fdcff" charset="utf-8" data-origem=""></script>
 <script src="js/app-26-visual.js?v=3c963d27" charset="utf-8" data-origem=""></script>
 <link rel="stylesheet" href="css/estilo-conta-pagamento.css?v=c8bbf776">
 <script src="js/app-28-dialogos.js?v=58e2325f" charset="utf-8" data-origem=""></script>
-<script src="js/app-27-conta-cliente.js?v=d9bcbf53" charset="utf-8" data-origem=""></script>
+<script src="js/app-27-conta-cliente.js?v=2991e6df" charset="utf-8" data-origem=""></script>
 <script src="js/app-29-usabilidade.js?v=8c6dd0c8" charset="utf-8" data-origem=""></script>
 <script src="js/app-30-teclado-pc.js?v=6ada025e" charset="utf-8" data-origem=""></script>
 <script src="js/app-31-alertas.js?v=cc24a649" charset="utf-8" data-origem=""></script>
-<script src="js/app-32-equipe.js?v=94d12e93" charset="utf-8" data-origem=""></script>
+<script src="js/app-32-equipe.js?v=5f1d4bd8" charset="utf-8" data-origem=""></script>
 <script src="js/app-33-escala.js?v=345a54d7" charset="utf-8" data-origem=""></script>
-<script src="js/app-34-eventos.js?v=e0698031" charset="utf-8" data-origem=""></script>
+<script src="js/app-34-eventos.js?v=69bb2d23" charset="utf-8" data-origem=""></script>
 <script src="js/app-35-equipe-extras.js?v=650e4df1" charset="utf-8" data-origem=""></script>
 <script src="js/app-36-gestao.js?v=bb125f4f" charset="utf-8" data-origem=""></script>
 <script src="js/app-37-ponto-rapido.js?v=2dcb25e1" charset="utf-8" data-origem=""></script>
-<script src="js/app-38-ponto-rosto.js?v=11d93b24" charset="utf-8" data-origem=""></script>
+<script src="js/app-38-ponto-rosto.js?v=d58fe8fd" charset="utf-8" data-origem=""></script>
 <script src="js/app-39-fotos-registros.js?v=b24b7995" charset="utf-8" data-origem=""></script>
 <script src="js/app-40-etiquetas.js?v=5ac4487f" charset="utf-8" data-origem=""></script>
 <script src="js/app-41-ifood-extras.js?v=ac925d68" charset="utf-8" data-origem=""></script>
-<script src="js/app-42-ifood-catalogo.js?v=7b63e35f" charset="utf-8" data-origem=""></script>
+<script src="js/app-42-ifood-catalogo.js?v=1a99df4e" charset="utf-8" data-origem=""></script>
+<script src="js/app-43-erros-visiveis.js?v=bcc87052" charset="utf-8" data-origem=""></script>
+<script src="js/app-44-ifood-vinheta.js?v=de438ee2" charset="utf-8" data-origem=""></script>
+<script src="js/app-45-ver-cardapio.js?v=a75737b8" charset="utf-8" data-origem=""></script>
+<script src="js/app-46-cardapio-hoje.js?v=06c1114e" charset="utf-8" data-origem=""></script>
+<script src="js/app-47-cardapio-facil.js?v=0c7e14a5" charset="utf-8" data-origem=""></script>
+<script src="js/app-51-infinitepay.js?v=a3fdd917" charset="utf-8" data-origem=""></script>
+<script src="js/app-52-ifood-financeiro.js?v=bf3223c9" charset="utf-8" data-origem=""></script>
+<script src="js/app-50-ifood-homologacao.js?v=fc1546ba" charset="utf-8" data-origem=""></script>
+<script src="js/app-49-jogos.js?v=b34e542f" charset="utf-8" data-origem=""></script>
+<script src="js/app-48-armazenamento.js?v=d42e1c2a" charset="utf-8" data-origem=""></script>
 <script id="autoCura">
 /* Se o arquivo principal do app não carregou (cópia vazia/velha guardada no aparelho), limpa os guardados e recarrega sozinho, uma vez. */
 (function(){
@@ -2630,7 +2695,7 @@
     var tudo=[];
     try{ if(window.caches) tudo.push(caches.keys().then(function(ks){ return Promise.all(ks.map(function(k){ return caches.delete(k); })); })); }catch(e){}
     try{ if(navigator.serviceWorker) tudo.push(navigator.serviceWorker.getRegistrations().then(function(rs){ return Promise.all(rs.map(function(r){ return r.unregister(); })); })); }catch(e){}
-    try{ document.querySelectorAll('script[src^="app-"]').forEach(function(sc){ tudo.push(fetch(sc.getAttribute('src'),{cache:'reload'}).catch(function(){})); }); }catch(e){}
+    try{ document.querySelectorAll('script[src*="app-"]').forEach(function(sc){ tudo.push(fetch(sc.getAttribute('src'),{cache:'reload'}).catch(function(){})); }); }catch(e){}
     Promise.all(tudo).then(fim,fim);
     setTimeout(fim,6000);
   }catch(e){}

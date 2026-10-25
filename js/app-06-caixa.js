@@ -543,7 +543,7 @@ function contaDaMesa_(mesaId){
   return { pedidos, total: arred2(pedidos.reduce((s,v)=>s+Number(v.valorTotal||0),0)), desde: pedidos.length ? Math.min.apply(null, pedidos.map(v=>v.timestamp||Date.now())) : 0 };
 }
 function renderMesasPopup_(){
-  try{ renderMesasPainel_(); }catch(e){}
+  try{ renderMesasPainel_(); }catch(e){ if(window.erroTela_) erroTela_(e); }
   const box = document.getElementById('mesasLista'); if(!box || !podeVerMesas_()) return;
   const staff = souStaffCaixa_();
   const vis = mesasVisiveis_();

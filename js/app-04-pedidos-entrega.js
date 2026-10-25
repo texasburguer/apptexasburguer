@@ -12,7 +12,12 @@ function pdClienteHtml_(v){
   const linha = (k, val)=>L.push('<div class="pd-row"><span class="pd-k">'+k+'</span><span class="pd-v">'+val+'</span></div>');
   if(v.tipoEntrega==='Mesa') linha('🍽️ Mesa', escH(nomeMesa(v.mesaId)));
   else linha('👤 Cliente', escH(v.clienteNome||'Sem cadastro'));
-  if(v.clienteTelefone) linha('📞 Telefone', '<a href="tel:'+escH(normTel(v.clienteTelefone))+'">'+escH(v.clienteTelefone)+'</a>');
+  const ic_ = ifoodContato_(v);
+  if(ic_){
+    linha('📞 iFood', (ic_.telefone ? '<a href="tel:'+escH(normTel(ic_.telefone))+'">'+escH(ic_.telefone)+'</a>' : '0800 do iFood')
+      + (ic_.codigo ? ' · Código: <b style="font-size:1.15em;letter-spacing:1px;">'+escH(ic_.codigo)+'</b>' + (ic_.vencido ? ' <span style="color:var(--erro-texto);font-weight:700;">(código vencido'+(ic_.ate?' às '+escH(ic_.ate):'')+')</span>' : (ic_.ate ? ' <span class="txt-muted">(vale até '+escH(ic_.ate)+')</span>' : '')) : ' <span class="txt-muted">(sem código localizador)</span>'));
+  }
+  else if(v.clienteTelefone) linha('📞 Telefone', '<a href="tel:'+escH(normTel(v.clienteTelefone))+'">'+escH(v.clienteTelefone)+'</a>');
   if(v.tipoEntrega==='Entrega'){
     const end = [v.endereco, v.complemento].filter(Boolean).join(', ');
     const maps = pdMapsUrl_(v);
@@ -228,7 +233,9 @@ function mensagemEntregador_(v){
   L.push('Olá'+(primeiro?', '+primeiro:'')+'! Você tem uma entrega:');
   L.push('');
   L.push('👤 *Cliente:* '+waLimpo_(v.clienteNome||'Sem cadastro'));
-  if(v.clienteTelefone) L.push('📞 *Telefone:* '+waLimpo_(v.clienteTelefone));
+  { const ic_ = ifoodContato_(v);
+    if(ic_) L.push('📞 *Telefone (iFood):* '+waLimpo_(ic_.telefone||'0800 do iFood')+(ic_.codigo && !ic_.vencido ? ' · *Código:* '+waLimpo_(ic_.codigo) : ''));
+    else if(v.clienteTelefone) L.push('📞 *Telefone:* '+waLimpo_(v.clienteTelefone)); }
   if(end) L.push('📍 *Endereço:* '+waLimpo_(end));
   if(v.referencia) L.push('🧭 *Referência:* '+waLimpo_(v.referencia));
   if(end) L.push('🗺️ *Mapa:* https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(end));
@@ -316,7 +323,7 @@ function renderPedidos(){
     }).join('') : '<div class="notif-empty">Nenhuma retirada concluída ainda neste turno do caixa.</div>';
   }
   _alertaPed_.pedidos = pendentes.length>0; _atualizarAlertaPedidos_();
-  try{ renderMesasPainel_(); }catch(e){}
+  try{ renderMesasPainel_(); }catch(e){ if(window.erroTela_) erroTela_(e); }
 }
 function popularSelectEntregadoresHtml(vendaId, atual){
   const ativos = usuarios.filter(u=>u.nivel==='Entregador' && u.ativo);
@@ -462,7 +469,9 @@ function comandaHtml_(v){
   if(!ehMesa){
     h += `<div class="sec">${ehEnt?'ENTREGAR PARA':'CLIENTE'}</div>`;
     h += `<div class="cli">${escR(v.clienteNome||'Sem cadastro')}</div>`;
-    if(v.clienteTelefone) h += `<div class="tel">Tel: ${escR(v.clienteTelefone)}</div>`;
+    { const ic_ = ifoodContato_(v);
+      if(ic_) h += `<div class="tel">Tel iFood: ${escR(ic_.telefone||'0800')}${ic_.codigo ? (ic_.vencido ? ` · código ${escR(ic_.codigo)} VENCIDO` : `<br><b class="big">CÓDIGO: ${escR(ic_.codigo)}</b>${ic_.ate ? ` (até ${escR(ic_.ate)})` : ''}`) : ''}</div>`;
+      else if(v.clienteTelefone) h += `<div class="tel">Tel: ${escR(v.clienteTelefone)}</div>`; }
     if(ehEnt){
       h += `<div class="end">${escR(v.endereco||'(endereço não informado)')}</div>`;
       if(v.complemento) h += `<div class="end2">Compl.: ${escR(v.complemento)}</div>`;
@@ -615,11 +624,12 @@ function souDetector_(){ return !!(currentUser && ['Cozinha','Admin','Operador',
 /* ITEM 3.1 — Garçom e Entregador usam o mesmo detector, mas só veem o que é deles e podem checar com a aba em segundo plano. */
 function souDetectorLeve_(){ return !!(currentUser && (currentUser.nivel==='Garçom' || currentUser.nivel==='Entregador')); }
 function avisosSuportado_(){ return 'Notification' in window; }
-function mostrarNotificacao_(titulo, corpo){
+function mostrarNotificacao_(titulo, corpo, extra){
   try{
     _ultimaNotifEm_ = Date.now();
     if(!avisosSuportado_() || Notification.permission!=='granted') return;
-    const opts = { body: corpo, tag: 'texas-novo-pedido', renotify: true, vibrate: [300,150,300], requireInteraction: true };
+    const opts = { body: corpo, tag: (extra && extra.tag) || 'texas-novo-pedido', renotify: true, vibrate: [300,150,300], requireInteraction: true };
+    if(extra && extra.silencioso) opts.silent = true;   /* v1.15: app na tela com a vinheta do iFood tocando — a notificação não toca um segundo som */
     const direto = ()=>{ try{ const n = new Notification(titulo, opts); n.onclick = ()=>{ try{ window.focus(); n.close(); }catch(e){} }; }catch(e){} };
     if(navigator.serviceWorker && navigator.serviceWorker.getRegistration){
       navigator.serviceWorker.getRegistration().then(reg=>{ if(reg && reg.showNotification) reg.showNotification(titulo, opts); else direto(); }).catch(direto);

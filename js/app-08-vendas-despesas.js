@@ -66,11 +66,11 @@ async function salvarEdicaoVenda(){
       vendas = r.vendas || vendas; itensVenda = r.itensVenda || itensVenda; salvarCache();
       showMsg('evMsg', r.message, r.aviso ? 'warn' : 'ok');
       renderVendas();
-      try{ renderPedidos(); renderEntregas(); }catch(e){}
+      try{ renderPedidos(); renderEntregas(); }catch(e){ if(window.erroTela_) erroTela_(e); }
       setTimeout(fecharModalEditarVenda, r.aviso ? 6500 : 1200);
     } else {
       showMsg('evMsg', r.message, 'warn');
-      if(r.conflito){ try{ renderVendas(); renderPedidos(); renderEntregas(); }catch(e){} setTimeout(fecharModalEditarVenda, 3500); } // ITEM 2.3: outra pessoa mexeu — reabra para ver os dados atuais
+      if(r.conflito){ try{ renderVendas(); renderPedidos(); renderEntregas(); }catch(e){ if(window.erroTela_) erroTela_(e); } setTimeout(fecharModalEditarVenda, 3500); } // ITEM 2.3: outra pessoa mexeu — reabra para ver os dados atuais
     }
   } catch(e){ showMsg('evMsg','Não foi possível salvar a edição.','warn'); }
 }
@@ -379,9 +379,10 @@ async function registrarAjusteUI(){
   const v = vendas.find(x=>x.id===vendaId);
   if(v && valor > Number(v.valorTotal) + 0.001){ showMsg('ajMsg','O ajuste não pode ser maior que o valor da venda ('+formatarMoeda(v.valorTotal)+').','warn'); return; }
   if(!await confirmarTxt_('Registrar '+tipo+' de '+formatarMoeda(valor)+'?'+(AJ_TIPOS_COM_SAIDA_.indexOf(tipo)!==-1?'\n\nSaída: '+saida+'.':''))) return;
+  const senhaAdminConfirmacao = await pedirSenha_(); if(!senhaAdminConfirmacao){ showMsg('ajMsg','Ajuste não registrado: a senha é pedida sempre.','warn'); return; }
   _ajOcupado_ = true; const btn = document.getElementById('ajBtn'); btn.disabled = true;
   try{
-    const r = await apiCall('registrarAjustePosVenda', { vendaId, tipo, valor, motivo, detalhe, saida });
+    const r = await apiCall('registrarAjustePosVenda', { vendaId, tipo, valor, motivo, detalhe, saida, senhaAdminConfirmacao });
     if(r && r.ok){
       ajustesPosVenda = r.ajustesPosVenda || ajustesPosVenda; despesas = r.despesas || despesas; salvarCache();
       document.getElementById('ajValor').value = ''; document.getElementById('ajDetalhe').value = '';
@@ -395,8 +396,9 @@ async function cancelarAjusteUI(id){
   const f = await vsForm({ titulo:'Cancelar ajuste', ok:'Cancelar ajuste', perigo:true,
     campos:[ { id:'motivo', rotulo:'Motivo do cancelamento', tipo:'texto', obrigatorio:true, sugestoes:['Lançado errado','Lançado em dobro'] } ] });
   if(!f) return; const motivo = f.motivo;
+  const senhaAdminConfirmacao = await pedirSenha_(); if(!senhaAdminConfirmacao) return;
   try{
-    const r = await apiCall('cancelarAjustePosVenda', { id, motivo });
+    const r = await apiCall('cancelarAjustePosVenda', { id, motivo, senhaAdminConfirmacao });
     if(r && r.ok){ ajustesPosVenda = r.ajustesPosVenda || ajustesPosVenda; despesas = r.despesas || despesas; salvarCache(); renderAjustes(); renderDespesas(); atualizarResumoHoje(); renderStatusCaixa(); if(((document.querySelector('section.tab.active')||{}).id||'')==='tab-relatorios') gerarRelatorio(); showMsg('ajMsg', r.message, 'ok'); }
     else showMsg('ajMsg', (r && r.message) || 'Não foi possível cancelar.', 'warn');
   } catch(e){ showMsg('ajMsg','Sem conexão com o servidor.','warn'); }

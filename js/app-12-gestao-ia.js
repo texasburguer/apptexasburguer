@@ -85,8 +85,8 @@ async function confirmarOcorrencia(){
       if(r.ocorrencias){ ocorrencias = r.ocorrencias; salvarCache(); }
       msg.textContent = r.message || 'Registrada.';
       renderOcorrencias(); renderNotificacoes();
-      if(typeof renderPedidos === 'function') try{ renderPedidos(); }catch(e){}
-      if(typeof renderEntregas === 'function') try{ renderEntregas(); }catch(e){}
+      if(typeof renderPedidos === 'function') try{ renderPedidos(); }catch(e){ if(window.erroTela_) erroTela_(e); }
+      if(typeof renderEntregas === 'function') try{ renderEntregas(); }catch(e){ if(window.erroTela_) erroTela_(e); }
       setTimeout(fecharModalOcorrencia, 700);
     } else { msg.textContent = (r && r.message) || 'Não foi possível registrar.'; btn.disabled = false; }
   }catch(e){ msg.textContent = 'Erro ao registrar. Tente de novo.'; btn.disabled = false; }
@@ -437,7 +437,7 @@ function cpMontarPayload_(){
 }
 function cpDepoisDeGravar_(r){
   if(r.estoque) estoque = r.estoque; if(r.movimentacoesEstoque) movimentacoesEstoque = r.movimentacoesEstoque; if(r.despesas) despesas = r.despesas; if(r.produtoPrecos) produtoPrecos = r.produtoPrecos; if(r.comboPrecos) comboPrecos = r.comboPrecos;
-  salvarCache(); try{ renderEstoque(); renderProdutos(); renderCombos(); renderDespesas(); }catch(e){}
+  salvarCache(); try{ renderEstoque(); renderProdutos(); renderCombos(); renderDespesas(); }catch(e){ if(window.erroTela_) erroTela_(e); }
   if(r.prejuizo && r.prejuizo.length) setTimeout(()=>avisar('Atenção: com o custo novo, estes itens passaram a dar PREJUÍZO (preço abaixo do custo):\n' + r.prejuizo.map(x=>'• ' + x.produto + ' (' + x.forma + '): preço ' + formatarMoeda(x.preco) + ', custo ' + formatarMoeda(x.custo)).join('\n') + '\n\nAjuste o preço em Produtos.'), 300);
 }
 function cpLimparForm_(){
@@ -498,16 +498,18 @@ async function cancelarCompraUI(id){
   const f = await vsForm({ titulo:'Cancelar pedido de compra', ok:'Cancelar pedido', perigo:true,
     campos:[ { id:'motivo', rotulo:'Motivo do cancelamento', tipo:'texto', obrigatorio:true, sugestoes:['Fornecedor não entregou','Pedido feito errado'] } ] });
   if(!f) return; const motivo = f.motivo;
-  try{ const r = await apiCall('cancelarCompra', { id, motivo }); showMsg('cpListaMsg', r.message, r.ok?'ok':'warn'); if(r.ok) await carregarCompras_(); }
+  const senhaAdminConfirmacao = await pedirSenha_(); if(!senhaAdminConfirmacao) return;
+  try{ const r = await apiCall('cancelarCompra', { id, motivo, senhaAdminConfirmacao }); showMsg('cpListaMsg', r.message, r.ok?'ok':'warn'); if(r.ok) await carregarCompras_(); }
   catch(e){ showMsg('cpListaMsg','Não foi possível cancelar agora.','warn'); }
 }
 /* estorno: devolve o estoque, cancela as despesas (o que saiu do caixa aberto volta para a gaveta) e volta o custo se esta nota era a fonte */
 async function cpEstornar_(id, motivo){
-  let r = await apiCall('estornarCompra', { id, motivo });
+  const senhaAdminConfirmacao = await pedirSenha_(); if(!senhaAdminConfirmacao) return { ok:false, message:'Estorno não feito: a senha é pedida sempre.' };
+  let r = await apiCall('estornarCompra', { id, motivo, senhaAdminConfirmacao });
   if(r && r.precisaConfirmar){
     const det = (r.negativos||[]).map(n=>'• ' + n.ingrediente + ': tem ' + n.atual + ' ' + n.unidade + ', o estorno tira ' + n.tirar + ' → fica ' + n.fica).join('\n');
     if(!await confirmarTxt_(r.message + '\n\n' + det, 'Estornar mesmo assim', true, 'Estoque já usado')) return { ok:false, message:'Estorno não feito.' };
-    r = await apiCall('estornarCompra', { id, motivo, confirmarNegativo:true });
+    r = await apiCall('estornarCompra', { id, motivo, confirmarNegativo:true, senhaAdminConfirmacao });
   }
   return r;
 }
@@ -678,11 +680,11 @@ const IA_ACOES_ = {
       o.linhas.push('Pagamento: ' + escH(p.pagamento) + (p.vencimento ? ' (vence ' + escH(iaDataBR_(p.vencimento)) + ')' : '') + ' · entra no estoque agora');
       if(p.pagamento==='A pagar' && !p.vencimento) o.pend.push('Falta a data de vencimento.'); },
     async exec(p, o){ const pags = await cpPerguntarPagamento_(o.compra.total, p.pagamento, p.vencimento); if(!pags) return { ok:false, message:'Nada foi gravado (pagamento não informado).' }; return apiCall('receberCompra', { id:o.compra.id, pagamentos:pags }); } },
-  cancelar_compra: { titulo:'Cancelar pedido de compra', admin:true,
+  cancelar_compra: { titulo:'Cancelar pedido de compra', admin:true, senha:true,
     async prep(p, o){ await iaCarregarCompras_();
       const r = iaAchar2_(_compras_.compras.filter(c=>c.status==='Pedido'), p.fornecedor, 'fornecedor', 'pedidos de compra pendentes'); if(r.erro){ o.pend.push(r.erro); return; }
       o.compra = r.item; o.linhas.push('Pedido de ' + escH(r.item.fornecedor) + ' · ' + formatarMoeda(r.item.total) + ' · ' + escH(iaDataBR_(r.item.data))); o.linhas.push('Motivo: ' + escH(p.motivo)); },
-    exec(p, o){ return apiCall('cancelarCompra', { id:o.compra.id, motivo:p.motivo }); } },
+    exec(p, o, senha){ return apiCall('cancelarCompra', { id:o.compra.id, motivo:p.motivo, senhaAdminConfirmacao:senha }); } },
   lancar_despesa: { titulo:'Lançar despesa',
     async prep(p, o){
       const cats = (typeof CATEGORIAS_DESPESA_PADRAO!=='undefined' ? CATEGORIAS_DESPESA_PADRAO : []);

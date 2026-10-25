@@ -299,11 +299,13 @@ async function sb410SimularArquivo(){
 }
 async function sb410ArquivarAgora(){
   const dias = Number((document.getElementById('sb410ArqDias')||{}).value) || 90;
-  if(!await confirmarTxt_('Mandar para a planilha as vendas e caixas fechados com mais de ' + dias + ' dias e tirá-los do Supabase? Eles continuam guardados nas abas Arquivo_* da planilha. Pode levar alguns minutos; não feche a página.')) return;
+  if(!await confirmarTxt_('Arquivar as vendas e caixas fechados com mais de ' + dias + ' dias? Eles vão para o Storage (arquivo comprimido; se o Storage falhar, para a planilha) e só saem do banco depois de conferidos. Os relatórios de meses antigos continuam mostrando tudo. Pode levar alguns minutos; não feche a página.')) return;
+  const senha = await new Promise(res => abrirModalSenhaAdmin(s => res(s)));   // v1.15: senha sempre
+  if(!senha) return;
   const m = document.getElementById('sb410ArqMsg'); if(m) m.textContent = 'Arquivando…';
   try{
-    const j = await sb410Edge_('arquivar-antigos', { dias: dias, manual: true }, 280000);
-    if(m) m.textContent = j.ok ? ('Pronto: ' + (j.vendas||0) + ' venda(s) e ' + (j.caixas||0) + ' caixa(s) arquivados.') : ('Parou: ' + (j.message || j.erro || 'falha') + ' (' + (j.vendas||0) + ' venda(s) e ' + (j.caixas||0) + ' caixa(s) já arquivados).');
+    const j = await sb410Edge_('arquivar-antigos', { dias: dias, manual: true, senha }, 280000);
+    if(m) m.textContent = j.ok ? ('Pronto: ' + (j.vendas||0) + ' venda(s) e ' + (j.caixas||0) + ' caixa(s) arquivados' + (j.destino ? ' (' + (j.destino === 'storage' ? 'no Storage' : 'na planilha') + ')' : '') + '. O espaço do banco volta depois da compactação das 05:30.' + (j.avisoStorage ? ' ⚠️ Storage: ' + j.avisoStorage : '')) : ('Parou: ' + (j.message || j.erro || 'falha') + ' (' + (j.vendas||0) + ' venda(s) e ' + (j.caixas||0) + ' caixa(s) já arquivados).');
   }catch(e){ if(m) m.textContent = 'Sem conexão. Confira o resultado antes de repetir.'; }
   sb410Espaco();
 }

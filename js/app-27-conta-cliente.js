@@ -280,11 +280,13 @@ function textoAviso(d){
     '<h3>9. Crianças e adolescentes</h3><p>A conta é para maiores de 18 anos. Menores devem pedir com o acompanhamento de um responsável.</p>' +
     '<h3>10. Mudanças neste aviso</h3><p>Se algo importante mudar, você verá a nova versão e será convidado(a) a aceitar de novo.</p></div>';
 }
+/* v1.15 — funil e mapa do cardápio: aviso só aqui, dentro de "Privacidade" (decisão do dono) */
+var AVISO_LOCAL_ = '<div class="ct-chamada" style="margin-top:10px;"><span>📍 <b>Localização:</b> Usamos sua localização aproximada só para saber de onde vêm os pedidos. Ela é apagada ao fim do turno.</span></div>';
 window.abrirAvisoPrivacidade = async function(){
   janela('contaAvisoModal', cab('Aviso de Privacidade', 'contaAvisoModal') + '<p class="sub">Carregando...</p>');
   var d = await rpcPublico('api_aviso_privacidade', {});
-  if(!d || !d.ok){ janela('contaAvisoModal', cab('Aviso de Privacidade', 'contaAvisoModal') + '<p class="sub">Não foi possível carregar agora. Tente novamente em instantes.</p>'); return; }
-  janela('contaAvisoModal', cab('Aviso de Privacidade', 'contaAvisoModal') + textoAviso(d) + '<button type="button" class="ghost" style="width:100%;margin-top:10px;" onclick="contaFechar_(\'contaAvisoModal\')">Fechar</button>');
+  if(!d || !d.ok){ janela('contaAvisoModal', cab('Aviso de Privacidade', 'contaAvisoModal') + '<p class="sub" role="alert">⚠️ Não foi possível carregar o aviso completo agora. Tente novamente em instantes.</p>' + AVISO_LOCAL_); return; }
+  janela('contaAvisoModal', cab('Aviso de Privacidade', 'contaAvisoModal') + textoAviso(d) + AVISO_LOCAL_ + '<button type="button" class="ghost" style="width:100%;margin-top:10px;" onclick="contaFechar_(\'contaAvisoModal\')">Fechar</button>');
 };
 
 /* ---------- Minha conta ---------- */
