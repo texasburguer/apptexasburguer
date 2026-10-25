@@ -280,6 +280,7 @@ const APP_NOVIDADES = {
   ],
   Cliente: [
     { v:'1.15', em:'25/10/2026', itens:[
+      'Novo em Minha conta: a aba "🎮 Jogos" com os 4 joguinhos, para jogar quando quiser (o recorde fica guardado no seu aparelho).',
       'Algumas formas de pagamento pelo site podem abrir a página segura da InfinitePay: pague lá e volte ao cardápio; a tela confere sozinha.',
       'Novo: enquanto espera o pedido, toque em "🎮 Jogar enquanto espera" no acompanhamento. São 4 joguinhos com os lanches do cardápio, e o jogo pausa e avisa quando o seu pedido muda de etapa.',
       'Privacidade: usamos sua localização aproximada só para saber de onde vêm os pedidos. Ela é apagada ao fim do turno.',

@@ -87,6 +87,7 @@
   function etapas_(){ try{ return ETAPAS_PEDIDO; }catch(e){ return ['Recebido', 'Em preparo', 'Pronto / saiu', 'Entregue']; } }
 
   /* ---------- tela dos jogos ---------- */
+  let livre = false;   // true = aberto por Minha conta → Jogos (sem pedido sendo acompanhado)
   let atual = null, atualId = '', pedido = { codigo:'', etapa:-1, nome:'', numero:'' };
   function tela_(){
     let m = document.getElementById('jogosTela');
@@ -106,6 +107,8 @@
 
   function barra_(aviso){
     const b = document.getElementById('jgBarra'); if(!b) return;
+    if(livre){ b.innerHTML = ''; b.style.display = 'none'; return; }
+    b.style.display = '';
     const nomes = etapas_();
     const et = pedido.etapa;
     const passos = nomes.map((n, i) => '<span class="jg-passo' + (i <= et ? ' ok' : '') + (i === et ? ' agora' : '') + '">' + (i <= et ? '●' : '○') + '</span>').join('');
@@ -114,10 +117,26 @@
   }
 
   J.abrir = function(){
+    livre = false;
     tela_(); somBtn_(); barra_();
     document.getElementById('jogosTela').classList.add('open');
     try{ document.body.classList.add('jg-aberto'); }catch(e){}
     J.fotos(); J.menu();
+  };
+  // Minha conta → Jogos: abre direto no jogo escolhido (ou na lista), sem a barra do pedido
+  J.abrirLivre = function(id){
+    livre = true;
+    tela_(); somBtn_(); barra_();
+    document.getElementById('jogosTela').classList.add('open');
+    try{ document.body.classList.add('jg-aberto'); }catch(e){}
+    J.fotos();
+    if(id && LISTA.some(g => g.id === id)) J.jogar(id); else J.menu();
+  };
+  // conteúdo da aba "🎮 Jogos" de Minha conta: o sub menu com os jogos
+  J.abaHtml = function(){
+    return '<h3 class="ct-h3">Jogos</h3><p class="sub" style="margin:0 0 10px;">Escolha um joguinho para se distrair enquanto o pedido não chega. O recorde fica guardado neste aparelho.</p>'
+      + '<div class="jg-lista">' + LISTA.map(g => '<button type="button" class="jg-card" onclick="Jogos.abrirLivre(\'' + g.id + '\')"><span class="jg-ico">' + g.ico + '</span><b>' + g.nome + '</b><small>' + g.dica + '</small>'
+        + (J.recorde(g.id) ? '<small class="jg-rec">🏆 Seu recorde: ' + J.recorde(g.id) + (g.id === 'memoria' ? ' jogadas' : ' pts') + '</small>' : '') + '</button>').join('') + '</div>';
   };
   J.fechar = function(){
     parar_();
@@ -131,7 +150,7 @@
     const c = document.getElementById('jgCorpo'); if(!c) return;
     document.getElementById('jgTitulo').textContent = '🎮 Jogue enquanto espera';
     document.getElementById('jgVoltarMenu').style.visibility = 'hidden';
-    c.innerHTML = '<p class="sub" style="margin:4px 0 10px;text-align:center;">Seu pedido continua sendo acompanhado aqui em cima. Quando ele mudar de etapa, o jogo pausa e avisa.</p>'
+    c.innerHTML = '<p class="sub" style="margin:4px 0 10px;text-align:center;">' + (livre ? 'Escolha um joguinho e divirta-se enquanto espera.' : 'Seu pedido continua sendo acompanhado aqui em cima. Quando ele mudar de etapa, o jogo pausa e avisa.') + '</p>'
       + '<div class="jg-lista">' + LISTA.map(g => '<button type="button" class="jg-card" onclick="Jogos.jogar(\'' + g.id + '\')"><span class="jg-ico">' + g.ico + '</span><b>' + g.nome + '</b><small>' + g.dica + '</small>'
         + (J.recorde(g.id) ? '<small class="jg-rec">🏆 Seu recorde: ' + J.recorde(g.id) + (g.id === 'memoria' ? ' jogadas' : ' pts') + '</small>' : '') + '</button>').join('') + '</div>';
   };
@@ -217,7 +236,7 @@
     const antes = pedido.etapa, mesmo = pedido.codigo === codigo;
     pedido = { codigo, etapa: et, numero: r.numero || '', nome: r.clienteNome || '' };
     const aberta = (document.getElementById('jogosTela') || {}).classList && document.getElementById('jogosTela').classList.contains('open');
-    if(!aberta) return;
+    if(!aberta || livre) return;
     if(mesmo && antes !== -1 && antes !== et){
       const nomes = etapas_();
       const txt = et === -2 ? '❌ Seu pedido foi cancelado. Veja o motivo no acompanhamento.' : '🔔 Seu pedido agora está: <b>' + escH(nomes[et] || '') + '</b>' + (et >= 3 ? ' — bom apetite!' : '');

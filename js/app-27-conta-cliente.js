@@ -290,7 +290,7 @@ window.abrirAvisoPrivacidade = async function(){
 };
 
 /* ---------- Minha conta ---------- */
-var ABAS = [['pedidos', '📦 Pedidos'], ['cupons', '🎟️ Cupons'], ['fidelidade', '⭐ Fidelidade'], ['enderecos', '📍 Endereços'], ['indique', '🎁 Indique'], ['dados', '🔒 Meus dados']];
+var ABAS = [['pedidos', '📦 Pedidos'], ['cupons', '🎟️ Cupons'], ['fidelidade', '⭐ Fidelidade'], ['enderecos', '📍 Endereços'], ['indique', '🎁 Indique'], ['jogos', '🎮 Jogos'], ['dados', '🔒 Meus dados']];
 function abrirConta(aba){
   if(!estado.conta) return;
   if(aba) estado.aba = aba;
@@ -317,6 +317,7 @@ async function desenharAba(){
   else if(a === 'fidelidade') html = await abaFidelidade();
   else if(a === 'enderecos') html = await abaEnderecos();
   else if(a === 'indique') html = await abaIndique();
+  else if(a === 'jogos') html = (window.Jogos && Jogos.abaHtml) ? Jogos.abaHtml() : '<p class="sub">Os jogos não estão disponíveis agora. Feche e abra o app de novo.</p>';
   else { var pr = await rpc('api_conta_preferencias', { p:{} }); estado.pref = pr.ok ? (pr.preferencias || '') : null; html = abaDados(); }
   if(estado.aba === ab) corpo(html);
 }
