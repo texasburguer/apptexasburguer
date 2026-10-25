@@ -30,12 +30,12 @@ function renderFeedbacks(){
 async function responderFeedback(id){
   const f = feedbacks.find(x=>x.id===id); if(!f) return;
   const v = await vsForm({ titulo: f.resposta ? 'Editar resposta' : 'Responder feedback',
-    texto: (f.origem==='iFood' ? 'Avaliação do iFood: a resposta é enviada ao iFood (só o Administrador envia; até 600 letras) e fica registrada aqui.' : f.userId ? 'O cliente vai ver a resposta em Minha conta › Pedidos.' : 'Este cliente não tem conta, então não vê a resposta no app. A resposta fica registrada aqui; para falar com ele use o botão WhatsApp.') + (f.comentario ? ' Ele escreveu: “' + f.comentario + '”' : ''),
-    ok:'Salvar resposta', campos:[{ id:'resposta', rotulo:'Sua resposta', tipo:'longo', max:(f.origem==='iFood'?600:1000), valor:f.resposta||'', obrigatorio:true }] });
+    texto: (f.origem==='iFood' ? 'Avaliação do iFood: a resposta é enviada ao iFood (só o Administrador envia; de 10 a 300 letras; o iFood ainda valida e pode recusar, e então você é avisado) e fica registrada aqui.' : f.userId ? 'O cliente vai ver a resposta em Minha conta › Pedidos.' : 'Este cliente não tem conta, então não vê a resposta no app. A resposta fica registrada aqui; para falar com ele use o botão WhatsApp.') + (f.comentario ? ' Ele escreveu: “' + f.comentario + '”' : ''),
+    ok:'Salvar resposta', campos:[{ id:'resposta', rotulo:'Sua resposta', tipo:'longo', max:(f.origem==='iFood'?300:1000), valor:f.resposta||'', obrigatorio:true }] });
   if(!v) return;
   try{
     const r = await apiCall('responderFeedback', { id, resposta: v.resposta });
-    if(r && r.ok){ feedbacks = r.feedbacks || feedbacks; salvarCache(); renderFeedbacks(); avisar(r.ifood==='enviada' ? 'Resposta enviada ao iFood.' : r.ifood==='so_admin' ? 'Resposta registrada aqui. Só o Administrador envia ao iFood.' : r.ifood==='desligado' ? 'Resposta registrada aqui. A integração do iFood está desligada, então não foi ao iFood.' : r.ifood==='tamanho' ? 'Resposta registrada aqui, mas o iFood aceita de 3 a 600 letras: não foi enviada.' : (r.comConta ? 'Resposta enviada. O cliente vê em Minha conta.' : 'Resposta registrada (cliente sem conta).')); }
+    if(r && r.ok){ feedbacks = r.feedbacks || feedbacks; salvarCache(); renderFeedbacks(); avisar(r.ifood==='enviada' ? 'Resposta enviada ao iFood.' : r.ifood==='so_admin' ? 'Resposta registrada aqui. Só o Administrador envia ao iFood.' : r.ifood==='desligado' ? 'Resposta registrada aqui. A integração do iFood está desligada, então não foi ao iFood.' : r.ifood==='prazo' ? 'Resposta registrada aqui, mas o prazo de 5 dias do iFood já passou: não foi enviada.' : r.ifood==='aguardando' ? 'Resposta registrada aqui. A resposta anterior ainda está em validação no iFood: esta não foi enviada.' : r.ifood==='tamanho' ? 'Resposta registrada aqui, mas o iFood aceita de 10 a 300 letras: NÃO foi enviada ao iFood.' : (r.comConta ? 'Resposta enviada. O cliente vê em Minha conta.' : 'Resposta registrada (cliente sem conta).')); }
     else avisar((r && r.message) || 'Não foi possível salvar a resposta.');
   }catch(e){ avisar('Não foi possível salvar a resposta agora. Tente de novo.'); }
 }

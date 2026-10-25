@@ -42,7 +42,7 @@
   window.ifoodSugerirResposta_ = function(id){
     const inp = document.getElementById('avR_' + id); if(!inp) return;
     const card = inp.closest('.notif-card'); const m = card && /⭐\s*(\d)/.exec(card.textContent || '');
-    inp.value = rascunho_(m ? Number(m[1]) : 5).slice(0, 600); inp.focus();
+    inp.value = rascunho_(m ? Number(m[1]) : 5).slice(0, 300); inp.focus();
   };
   const avalOrig_ = window.carregarIfoodAval_;
   if(typeof avalOrig_ === 'function'){

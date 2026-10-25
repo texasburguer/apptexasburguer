@@ -334,7 +334,7 @@ async function carregarIntegFlags_(){
 }
 const INTEG_INFO_ = {
   ifood: { nome:'iFood', icone:'🛵',
-    segredos:[['ifood_client_id','Client ID'],['ifood_client_secret','Client Secret'],['ifood_merchant_id','Código da loja (Merchant ID)']],
+    segredos:[['ifood_client_id','Client ID'],['ifood_client_secret','Client Secret'],['ifood_merchant_id','Código da loja (Merchant ID)'],['ifood_bi_client_id','Client ID do aplicativo BI (só para Indicadores/Analytics)'],['ifood_bi_client_secret','Client Secret do aplicativo BI (só para Indicadores/Analytics)']],
     guia:[
       'Quem faz: o DONO do restaurante (precisa do CNPJ e do acesso ao Portal do Parceiro do iFood).',
       '1) Entre em developer.ifood.com.br e crie a conta de desenvolvedor com o CNPJ do restaurante (conta de CPF é recusada). O login do Portal do Desenvolvedor NÃO é o mesmo do Portal do Parceiro.',
@@ -346,7 +346,7 @@ const INTEG_INFO_ = {
       '7) A homologação é pedida no portal, em Suporte > Tickets > Homologação. O iFood manda um formulário e marca uma reunião. Quando aprovar, marque o passo no checklist e troque pelas chaves do aplicativo de produção.',
       '8) Na aba Itens do iFood (quando ligado), ligue cada item do iFood ao seu produto.',
       '⚠️ Esta parte ainda não foi testada com o iFood de verdade: os detalhes podem pedir ajuste na primeira ligação.'],
-    opcoes:[['confirmacaoAutomatica','Confirmar pedidos do iFood automaticamente (o iFood cancela sozinho se demorar mais de ~8 min)'],['abrirFecharComCaixa','Abrir e fechar a loja no iFood junto com o caixa'],['pausarSemEstoque','Pausar no iFood o item que acabar no estoque'],['enviarPrecos','Permitir enviar nossos preços ao iFood (com trava de variação e histórico)'],['conferirRepasse','EXTRA · Conferir os repasses do iFood com as vendas do sistema e mostrar a diferença (só mostra, não muda nada)'],['avaliacaoAlerta','EXTRA · Avisar também quando chegar avaliação nota 3 no iFood (sem isso, só avisa nota 1 e 2)'],['avaliacaoSugestao','EXTRA · Mostrar o botão "Sugerir resposta" nas avaliações do iFood (escreve um rascunho; você revisa antes de enviar)'],['acompanharEntrega','EXTRA · Mostrar no pedido a etapa da entrega feita pelo iFood (entregador alocado, a caminho da loja, pegou o pedido, chegou ao cliente)'],['modoHomologacao','Modo homologação: marque SÓ durante os testes de homologação do iFood (envia o cabeçalho que o iFood pede nos testes). Desmarque depois de aprovado.'],['comissaoFinanceiro','EXTRA · Usar a comissão e as taxas REAIS do iFood (vindas do Financeiro do iFood) nas vendas do sistema, para os relatórios e o DRE']] },
+    opcoes:[['confirmacaoAutomatica','Confirmar pedidos do iFood automaticamente (o iFood cancela sozinho se demorar mais de ~8 min)'],['abrirFecharComCaixa','Abrir e fechar a loja no iFood junto com o caixa'],['pausarSemEstoque','Pausar no iFood o item que acabar no estoque'],['enviarPrecos','Permitir enviar nossos preços ao iFood (com trava de variação e histórico)'],['conferirRepasse','EXTRA · Conferir os repasses do iFood com as vendas do sistema e mostrar a diferença (só mostra, não muda nada)'],['avaliacaoAlerta','EXTRA · Avisar também quando chegar avaliação nota 3 no iFood (sem isso, só avisa nota 1 e 2)'],['avaliacaoSugestao','EXTRA · Mostrar o botão "Sugerir resposta" nas avaliações do iFood (escreve um rascunho; você revisa antes de enviar)'],['acompanharEntrega','EXTRA · Mostrar no pedido a etapa da entrega feita pelo iFood (entregador alocado, a caminho da loja, pegou o pedido, chegou ao cliente)'],['modoHomologacao','Modo homologação: marque SÓ durante os testes de homologação do iFood (envia o cabeçalho que o iFood pede nos testes). Desmarque depois de aprovado.'],['biHomologacao','Indicadores (Analytics) em modo teste de homologação: usa a loja de teste do iFood. Ligue só durante a homologação do Analytics'],['comissaoFinanceiro','EXTRA · Usar a comissão e as taxas REAIS do iFood (vindas do Financeiro do iFood) nas vendas do sistema, para os relatórios e o DRE']] },
   nfce: { nome:'Nota fiscal (NFC-e)', icone:'🧾',
     segredos:[['nfce_token_homologacao','Token da Focus NFe — TESTE (homologação)'],['nfce_token_producao','Token da Focus NFe — PRODUÇÃO'],['nfce_csc','CSC — código de segurança secreto (Sefaz)']],
     guia:[
@@ -1036,17 +1036,20 @@ function ifoodExtraHtml_(it, parte){
   return `<div>
     <div class="btnrow">
       <button class="ghost" onclick="carregarIfoodLoja_()">Loja no iFood</button>
+      <button class="ghost" onclick="carregarIfoodAvisos_()">Avisos</button>
       <button class="ghost" onclick="carregarIfoodNeg_()">Negociações</button>
       <button class="ghost" onclick="carregarIfoodPedidos_()">Pedidos do iFood</button>
+      <button class="ghost" onclick="carregarIfoodShip_()">Entregador do iFood</button>
       <button class="ghost" onclick="carregarIfoodHorario_()">Horário da loja</button>
       <button class="ghost" onclick="carregarIfoodCat_()">Cardápio no iFood</button>
       <button class="ghost" onclick="carregarIfoodPrecos_()">Preços</button>
       <button class="ghost" onclick="carregarIfoodFin_()">Financeiro</button>
       <button class="ghost" onclick="carregarIfoodAval_()">Avaliações</button>
+      <button class="ghost" onclick="carregarIfoodBI_()">Indicadores (até ontem)</button>
       <button class="ghost" onclick="carregarIfoodRel_()">Relatório por canal</button>
       ${dev?'<button class="ghost" onclick="simularIfood_()">🧪 Simular pedido do iFood (treino)</button>':''}
     </div>
-    <div id="ifoodLoja"></div><div id="ifoodHorario"></div><div id="ifoodCat"></div><div id="ifoodNeg"></div><div id="ifoodPedidos"></div><div id="ifoodPrecos"></div><div id="ifoodFin"></div><div id="ifoodAval"></div><div id="ifoodRel"></div></div>`;
+    <div id="ifoodLoja"></div><div id="ifoodHorario"></div><div id="ifoodCat"></div><div id="ifoodAvisos"></div><div id="ifoodShip"></div><div id="ifoodNeg"></div><div id="ifoodPedidos"></div><div id="ifoodPrecos"></div><div id="ifoodFin"></div><div id="ifoodAval"></div><div id="ifoodBI"></div><div id="ifoodRel"></div></div>`;
 }
 const IFOOD_ESTADO_ROT_ = { novo:'aguardando confirmação', confirmado:'confirmado', em_preparo:'em preparo', pronto:'pronto', despachado:'saiu para entrega', concluido:'concluído', cancelado:'cancelado' };
 
@@ -1113,24 +1116,71 @@ async function lerIfoodHorario_(){
 async function lojaIfoodAcao_(acao, minutos){
   try{ const r = await apiCall('ifoodLojaAcao', { acao, minutos }); showMsg(integMsgId_(), (r && r.message) || 'Não foi possível.', r && r.ok ? 'ok' : 'warn'); setTimeout(carregarIfoodLoja_, 4000); carregarIfoodLoja_(); }catch(e){ showMsg(integMsgId_(),'Sem conexão.','warn'); }
 }
+const NEG_MOT_RECUSA_ = { CUSTOMER_SATISFACTION:'Satisfação do cliente', INVENTORY_CHECK:'Verificação de disponibilidade', PRODUCT_QUALITY:'Qualidade do produto', WRONG_ORDER:'Pedido incorreto', LATE_DELIVERY:'Entrega atrasada', HIGH_STORE_DEMAND:'Loja em capacidade máxima', SYSTEM_ISSUE:'Problema técnico', UNKNOWN_ISSUE:'Problema não especificado' };
+const NEG_TIPO_ = { AFTER_DELIVERY:'Cliente já recebeu e pede cancelamento', DELAY:'Cancelamento por atraso na entrega', PREPARATION_TIME:'Cancelamento durante o preparo', AFTER_DELIVERY_PARTIALLY:'Cancelamento parcial (itens) após a entrega' };
+const NEG_RES_ = { ACCEPTED:'Aceita', REJECTED:'Recusada', EXPIRED:'Prazo acabou: o iFood aplicou a ação automática', ALTERNATIVE_REPLIED:'Contraproposta enviada' };
+const NEG_AUTO_ = { ACCEPT_CANCELLATION:'o iFood CANCELA o pedido', REJECT_CANCELLATION:'o iFood recusa o pedido do cliente', VOID:'o iFood decide' };
+async function carregarIfoodAvisos_(){
+  const box = document.getElementById('ifoodAvisos'); if(!box) return;
+  try{
+    const r = await apiCall('ifoodAvisos', {});
+    if(!r || !r.ok){ box.innerHTML = '<div class="obs-line">' + escH((r && r.message) || 'Não foi possível carregar os avisos.') + '</div>'; return; }
+    const it = r.itens||[];
+    box.innerHTML = '<div class="obs-line"><b>Avisos do iFood (7 dias)</b> · ' + (r.abertos||0) + ' sem leitura ' + (r.abertos ? '<button class="ghost" onclick="ifoodAvisoVisto_(0,true)">Marcar todos como vistos</button>' : '') + '</div>' +
+      (it.length ? it.map(a=>`<div class="obs-line" style="${a.visto?'opacity:.6':'border-left:4px solid #e67e22;padding-left:8px'}"><b>${escH(a.titulo)}</b>${a.pedido?' · pedido #'+escH(a.pedido):''}<br>${escH(a.mensagem||'')}<br><small>${escH(new Date(a.em).toLocaleString('pt-BR'))}${a.visto?' · visto'+(a.vistoPor?' por '+escH(a.vistoPor):''):''}</small> ${a.visto?'':`<button class="ghost" onclick="ifoodAvisoVisto_(${Number(a.id)})">Visto</button>`}</div>`).join('') : '<div class="obs-line">Nenhum aviso.</div>');
+  }catch(e){ box.innerHTML = '<div class="obs-line">Sem conexão. Confira a internet e tente de novo.</div>'; }
+}
+async function ifoodAvisoVisto_(id, todos){
+  try{ await apiCall('ifoodAvisoVisto', todos ? {todos:true} : {id}); }catch(e){ showMsg(integMsgId_(),'Sem conexão. Tente de novo.','warn'); }
+  carregarIfoodAvisos_();
+}
+let negTimer_ = null;
+function negOpts_(m){ return Object.keys(m).map(k=>`<option value="${escH(k)}">${escH(m[k])}</option>`).join(''); }
+function negCents_(c){ return formatarMoeda(Number(c||0)/100); }
 async function carregarIfoodNeg_(){
   const box = document.getElementById('ifoodNeg'); if(!box) return;
   try{
     const r = await apiCall('ifoodNegociacoes', {});
     if(!r || !r.ok){ box.innerHTML = '<div class="obs-line">' + escH((r && r.message) || 'Não foi possível carregar.') + '</div>'; return; }
-    box.innerHTML = (r.itens||[]).map(n=>{ const aberta = n.estado==='aberta' && n.segundos>0;
+    box.innerHTML = (r.itens||[]).map(n=>{ const aberta = n.estado==='aberta' && n.segundos>0; const id = escH(n.id);
+      const acaoAuto = NEG_AUTO_[String(n.seNaoResponder||'').toUpperCase()] || 'o iFood decide';
+      const aceiteOpts = (n.motivosAceite||[]).length ? (n.motivosAceite||[]).map(c=>`<option value="${escH(c)}">${escH(NEG_MOT_RECUSA_[c]||c)}</option>`).join('') : negOpts_(NEG_MOT_RECUSA_);
+      const precisaMotivoAceite = (n.motivosAceite||[]).length>0 || String(n.tipo||'').toUpperCase()==='DELAY';
+      const alts = (n.alternativas||[]).map(a=>{ const t=String(a.type||'').toUpperCase(); const md=a.metadata||{};
+        if(t==='REFUND'||t==='BENEFIT'){ const mx = md.maxAmount && (md.maxAmount.value!=null?md.maxAmount.value:md.maxAmount);
+          return `<div class="obs-line"><b>${t==='REFUND'?'Propor reembolso':'Propor benefício'}</b>${mx!=null?' (até '+negCents_(mx)+')':''}<div class="btnrow"><input id="negv_${id}_${escH(a.id)}" inputmode="decimal" placeholder="Valor em R$" style="max-width:130px;"><button class="ghost" onclick="negIfood_('${id}','alternativa','${escH(a.id)}')">Enviar proposta</button></div></div>`; }
+        if(t==='ADDITIONAL_TIME'){ const mins = md.allowedsAdditionalTimeInMinutes||[15,30,45];
+          return `<div class="obs-line"><b>Pedir mais tempo ao cliente</b><div class="btnrow"><select id="negm_${id}_${escH(a.id)}">${mins.map(x=>`<option value="${escH(x)}">${escH(x)} min</option>`).join('')}</select><button class="ghost" onclick="negIfood_('${id}','alternativa','${escH(a.id)}')">Enviar proposta</button></div></div>`; }
+        return ''; }).join('');
+      const fotos = (n.fotos||[]).map(f=>`<img src="${escH(f)}" style="max-width:96px;max-height:96px;border-radius:8px;margin:2px;" onclick="window.open(this.src)">`).join('');
+      const itens = (n.itens||[]).map(i=>escH((i.quantity||1)+'x '+(i.name||i.externalCode||'item'))).join(', ');
       return `<div class="notif-card" style="border-left:4px solid ${aberta?'#e0a800':'#888'};">
-        <b>Pedido iFood #${escH(n.pedido||'')}</b> — ${escH(n.tipo||'cancelamento')} · ${escH(n.estado)}
-        <div class="obs-line">${escH(n.motivo||'')}</div>
-        ${aberta?`<div class="obs-line">⏱ Responder em até ${Math.floor(n.segundos/60)} min ${n.segundos%60} s</div>
-          <div class="btnrow"><button class="primary" onclick="negIfood_('${escH(n.id)}','aceitar')">Aceitar</button><button class="ghost" onclick="negIfood_('${escH(n.id)}','recusar')">Recusar</button>
-          ${(n.alternativas||[]).map(a=>`<button class="ghost" onclick="negIfood_('${escH(n.id)}','alternativa','${escH(a.id||'')}')">${escH(a.type||a.id||'Alternativa')}</button>`).join('')}</div>`:''}
+        <b>Pedido iFood #${escH(n.pedido||'')}</b> — ${escH(NEG_TIPO_[String(n.tipo||'').toUpperCase()]||n.tipo||'cancelamento')} · ${escH(n.estado)}
+        ${n.mensagem?`<div class="obs-line">Cliente: “${escH(n.mensagem)}”</div>`:''}
+        ${itens?`<div class="obs-line">Itens: ${itens}</div>`:''}
+        ${fotos?`<div>${fotos}</div>`:''}
+        ${n.resultado?`<div class="obs-line">Resultado do iFood: <b>${escH(NEG_RES_[n.resultado]||n.resultado)}</b>${n.resultadoMotivo?' · '+escH(n.resultadoMotivo):''}${n.resultadoAlternativa?' · '+escH(n.resultadoAlternativa.type||''):''}</div>`:''}
+        ${n.erro?`<div class="obs-line" style="color:#c0392b;">⚠️ O iFood não aceitou a resposta: ${escH(n.erro)}</div>`:''}
+        ${aberta?`<div class="obs-line neg-tempo" data-fim="${Date.now()+n.segundos*1000}">⏱ Responder em até <span class="neg-cont">${Math.floor(n.segundos/60)} min ${n.segundos%60} s</span> · se ninguém responder, ${escH(acaoAuto)}.</div>
+          <div class="obs-line"><b>Aceitar o pedido do cliente</b>${precisaMotivoAceite?`<div class="btnrow"><select id="nega_${id}">${aceiteOpts}</select></div>`:''}<div class="btnrow"><button class="primary" onclick="negIfood_('${id}','aceitar')">Aceitar</button></div></div>
+          <div class="obs-line"><b>Recusar</b><div class="btnrow"><select id="negr_${id}">${negOpts_(NEG_MOT_RECUSA_)}</select><button class="ghost" onclick="negIfood_('${id}','recusar')">Recusar</button></div></div>
+          ${alts}`:''}
       </div>`; }).join('') || '<div class="obs-line">Nenhuma negociação.</div>';
+    clearInterval(negTimer_);
+    if(box.querySelector('.neg-tempo')) negTimer_ = setInterval(()=>{ const b = document.getElementById('ifoodNeg'); if(!b){ clearInterval(negTimer_); return; }
+      b.querySelectorAll('.neg-tempo').forEach(el=>{ const s = Math.max(0, Math.round((Number(el.dataset.fim)-Date.now())/1000)); if(s<=0){ clearInterval(negTimer_); carregarIfoodNeg_(); return; }
+        el.querySelector('.neg-cont').textContent = Math.floor(s/60)+' min '+(s%60)+' s'; }); }, 1000);
   }catch(e){ box.innerHTML = '<div class="obs-line">Sem conexão.</div>'; }
 }
 async function negIfood_(id, acao, alternativaId){
-  if(acao==='recusar' && !await confirmarTxt_('Recusar o pedido do cliente? O iFood pode decidir por ele depois.')) return;
-  try{ const r = await apiCall('ifoodNegociacaoResponder', { id, acao, alternativaId }); showMsg(integMsgId_(), (r && r.message) || 'Não foi possível.', r && r.ok ? 'ok' : 'warn'); carregarIfoodNeg_(); }catch(e){ showMsg(integMsgId_(),'Sem conexão.','warn'); }
+  const v = x => { const el = document.getElementById(x); return el ? el.value : ''; };
+  const dados = { id, acao, alternativaId };
+  if(acao==='aceitar') dados.motivo = v('nega_'+id);
+  if(acao==='recusar') dados.motivo = v('negr_'+id);
+  if(acao==='alternativa'){ dados.valor = v('negv_'+id+'_'+alternativaId); dados.minutos = v('negm_'+id+'_'+alternativaId); }
+  const txt = acao==='aceitar' ? 'Aceitar o pedido do cliente? Isso pode CANCELAR o pedido / devolver o dinheiro.' : acao==='recusar' ? 'Recusar o pedido do cliente? O iFood pode analisar e decidir depois.' : 'Enviar esta contraproposta ao cliente?';
+  if(!await confirmarTxt_(txt)) return;
+  try{ const r = await apiCall('ifoodNegociacaoResponder', dados); showMsg(integMsgId_(), (r && r.message) || 'Não foi possível.', r && r.ok ? 'ok' : 'warn'); carregarIfoodNeg_(); }catch(e){ showMsg(integMsgId_(),'Sem conexão. Confira a internet e tente de novo antes do prazo.','warn'); }
 }
 
 const R$_ = v => formatarMoeda(v);
@@ -1176,18 +1226,42 @@ async function carregarIfoodFin_(){
       ((r.repasses||[]).map(x=>`<div class="obs-line">${escH(x.pagoEm||'')} · ${R$_(x.valor)} · ${x.pedidos} pedido(s)</div>`).join(''));
   }catch(e){ box.innerHTML = '<div class="obs-line">Sem conexão.</div>'; }
 }
+const AVAL_ST_ = { NOT_REPLIED:'Sem resposta', REPLIED:'Respondida', PUBLISHED:'Publicada', CREATED:'Em análise do iFood' };
+let avalSo_ = false;
+function avalPrazo_(iso){ if(!iso) return ''; const ms = new Date(iso).getTime() - Date.now(); if(ms<=0) return 'prazo encerrado'; const d = Math.floor(ms/86400000), h = Math.floor((ms%86400000)/3600000); return 'faltam ' + (d>0 ? d + ' dia(s) e ' : '') + h + ' h para responder'; }
 async function carregarIfoodAval_(){
   const box = document.getElementById('ifoodAval'); if(!box) return;
   try{
-    const r = await apiCall('ifoodAvaliacoes', {});
+    const r = await apiCall('ifoodAvaliacoes', { semResposta: avalSo_ });
     if(!r || !r.ok){ box.innerHTML = '<div class="obs-line">' + escH((r && r.message) || 'Não foi possível carregar.') + '</div>'; return; }
-    box.innerHTML = `<div class="obs-line">Nota média (30 dias): ${r.media30d!=null?r.media30d:'—'}</div>` + ((r.itens||[]).map(a=>`<div class="notif-card" style="border-left:4px solid ${a.nota<=2?'#c0392b':'#2e9e5b'};">⭐ ${a.nota} ${a.pedido?'· pedido #'+escH(a.pedido):''} <div class="obs-line">${escH(a.comentario||'(sem comentário)')}</div>
-      ${a.resposta?`<div class="obs-line">↩ ${escH(a.resposta)}</div>`:`<input type="text" id="avR_${escH(a.id)}" maxlength="600" placeholder="Sua resposta"> <button class="ghost" onclick="responderAvalIfood_('${escH(a.id)}')">Responder</button>`}</div>`).join('') || '<div class="obs-line">Nenhuma avaliação ainda.</div>');
+    const of = r.oficial;
+    const cab = `<div class="notif-card" style="border-left:4px solid #888;"><b>Avaliações do iFood</b>
+      <div class="obs-line">${of && of.score!=null ? 'Nota oficial do iFood (últimos 3 meses): <b>' + escH(String(of.score)) + '</b> · ' + escH(String(of.totalReviewsCount||0)) + ' avaliações (' + escH(String(of.validReviewsCount||0)) + ' válidas)' : 'Nota oficial do iFood: ainda não disponível (loja nova ou de teste não tem nota).'}</div>
+      <div class="obs-line">Média nossa (30 dias): ${r.media30d!=null?r.media30d:'—'} · ${r.semResposta||0} aguardando resposta</div>
+      <div class="obs-line">Você tem 5 dias para responder; depois a avaliação é publicada sem a sua resposta. A resposta precisa ter de 10 a 300 letras e não pode ter links, telefones nem dados pessoais. O iFood leva alguns minutos para validar. Avaliação injusta ou ofensiva só se contesta no Portal do Parceiro (em até 7 dias). <a href="https://www.ifood.com.br/" target="_blank" rel="noopener">Política de Avaliações do iFood</a> (veja em Portal do Parceiro › Ajuda).</div>
+      <div class="btnrow mt-2"><button class="ghost" onclick="avalSo_=false;carregarIfoodAval_()">Todas</button><button class="ghost" onclick="avalSo_=true;carregarIfoodAval_()">Só sem resposta</button></div></div>`;
+    box.innerHTML = cab + ((r.itens||[]).map(a=>{
+      const cor = a.respostaEstado==='recusada' ? '#c0392b' : a.nota<=2 ? '#c0392b' : '#2e9e5b';
+      const selos = [a.visibilidade==='PRIVATE'?'🔒 Privada':'', a.descartada?'🚫 Descartada':'', a.moderada?'🛡 Moderada':'', AVAL_ST_[a.status]?('· ' + AVAL_ST_[a.status]):''].filter(Boolean).join(' · ');
+      const quest = Array.isArray(a.questionario) && a.questionario.length ? '<div class="obs-line">' + a.questionario.map(q=>escH(q.title||'') + ': ' + escH(((q.answers||[]).map(x=>x.title||'').filter(Boolean).join(', '))||'—')).join('<br>') + '</div>' : '';
+      let acao = '';
+      if(a.respostaEstado==='enviando') acao = '<div class="obs-line" style="color:#e67e22;">⏳ Resposta enviada: o iFood está validando. Se recusar, avisamos aqui e no celular.</div>';
+      else if(a.resposta) acao = '<div class="obs-line">↩ Sua resposta: ' + escH(a.resposta) + '</div>';
+      if(a.respostaEstado==='recusada') acao += '<div class="obs-line" style="color:#c0392b;"><b>O iFood não aceitou sua resposta:</b> ' + escH(a.respostaErro||'') + '</div>';
+      if(a.podeResponder) acao += `<input type="text" id="avR_${escH(a.id)}" maxlength="300" placeholder="Sua resposta (10 a 300 letras)" oninput="avalContar_('${escH(a.id)}')"> <span class="txt-muted" id="avC_${escH(a.id)}">0/300</span> <button class="ghost" onclick="responderAvalIfood_('${escH(a.id)}')">Responder</button>`;
+      else if(!a.resposta && a.status==='NOT_REPLIED') acao += '<div class="obs-line txt-muted">Não dá mais para responder (' + escH(avalPrazo_(a.prazoEm)) + ').</div>';
+      return `<div class="notif-card" style="border-left:4px solid ${cor};">⭐ ${a.nota} ${a.pedido?'· pedido #'+escH(a.pedido):''} ${a.cliente?'· '+escH(a.cliente):''} <span class="txt-muted">${escH(selos)}</span>
+        <div class="obs-line">${escH(a.comentario||'(sem comentário)')}</div>${quest}
+        ${a.respostaCliente?`<div class="obs-line">💬 O cliente respondeu: ${escH(a.respostaCliente)}</div>`:''}
+        ${a.podeResponder?`<div class="obs-line txt-muted">${escH(avalPrazo_(a.prazoEm))}</div>`:''}${acao}</div>`;
+    }).join('') || '<div class="obs-line">Nenhuma avaliação ainda.</div>');
   }catch(e){ box.innerHTML = '<div class="obs-line">Sem conexão.</div>'; }
 }
+function avalContar_(id){ const i = document.getElementById('avR_'+id), c = document.getElementById('avC_'+id); if(i&&c){ const n = i.value.trim().length; c.textContent = n + '/300'; c.style.color = (n<10||n>300)?'#c0392b':''; } }
 async function responderAvalIfood_(id){
-  const t = (document.getElementById('avR_'+id)||{}).value || '';
-  try{ const r = await apiCall('ifoodAvaliacaoResponder', { id, texto: t }); showMsg(integMsgId_(),(r&&r.message)||'Não foi possível.', r&&r.ok?'ok':'warn'); carregarIfoodAval_(); }catch(e){ showMsg(integMsgId_(),'Sem conexão.','warn'); }
+  const t = ((document.getElementById('avR_'+id)||{}).value || '').trim();
+  if(t.length < 10 || t.length > 300) return showMsg(integMsgId_(),'A resposta precisa ter de 10 a 300 letras (tem ' + t.length + ').','warn');
+  try{ const r = await apiCall('ifoodAvaliacaoResponder', { id, texto: t }); showMsg(integMsgId_(),(r&&r.message)||'Não foi possível.', r&&r.ok?'ok':'warn'); carregarIfoodAval_(); }catch(e){ showMsg(integMsgId_(),'Sem conexão. Confira a internet e tente de novo.','warn'); }
 }
 async function carregarIfoodRel_(){
   const box = document.getElementById('ifoodRel'); if(!box) return;

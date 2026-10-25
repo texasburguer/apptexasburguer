@@ -14,7 +14,7 @@
 
   /* ---------- 1) estado dos módulos ---------- */
   const NOMES = { authentication:'Acesso (token)', events:'Eventos (novos pedidos)', order:'Pedidos', merchant:'Loja (aberta/fechada, horário)', catalog:'Cardápio no iFood',
-    review:'Avaliações', financial:'Financeiro', shipping:'Entrega sob demanda', logistics:'Logística', outro:'Outros' };
+    review:'Avaliações', financial:'Financeiro', shipping:'Entrega sob demanda', analytics:'Indicadores (Analytics)', logistics:'Logística', outro:'Outros' };
   window.carregarIfoodModulos_ = async function(){
     const box = document.getElementById('ifoodModulos'); if(!box) return;
     box.innerHTML = '<div class="obs-line">⏳ Carregando…</div>';

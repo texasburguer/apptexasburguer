@@ -29,9 +29,9 @@
   function linha_(x){
     const d = x.dados || {};
     let info = '';
-    if(x.tipo==='item' || x.tipo==='opcao') info = reais_(d.preco) + ' · ' + stRot_(d.status);
+    if(x.tipo==='item' || x.tipo==='opcao') info = reais_(d.preco) + ' · ' + stRot_(d.status) + (d.combo?' · combo':'');
     else if(x.tipo==='categoria') info = stRot_(d.status);
-    else if(x.tipo==='grupo') info = ((d.opcoes||[]).map(o=>{ const c = acha_(o.id); return c ? c.nome : ''; }).filter(Boolean).join(', ')) || 'sem complementos';
+    else if(x.tipo==='grupo') info = ({OFFER_UNIT:'escolha',INGREDIENTS:'ingredientes',SPECIFICATION:'preparo',CUTLERY:'talheres'})[d.tipoGrupo||'OFFER_UNIT'] + ' · ' + ((d.opcoes||[]).map(o=>{ const c = acha_(o.id); return c ? c.nome : ''; }).filter(Boolean).join(', ')) || 'sem complementos';
     const enviavel = x.tipo==='categoria' || x.tipo==='item';
     return `<div class="notif-card" style="border-left:4px solid ${x.estado==='erro'?'#c0392b':x.estado==='enviado'?'#2e9e5b':'#888'};">
       <b>${escH(x.nome)}</b> <span class="obs-line" style="display:inline;">· ${escH(info)} · ${estRot_(x)}${d.foto?' · 📷':''}${d.temFotoPendente?' · 📷 nova foto aguardando envio':''}</span>
@@ -47,9 +47,9 @@
     box.innerHTML = `<div class="notif-card" style="border-left:4px solid #888;"><b>Cardápio no iFood</b>
       <div class="obs-line">Aqui você cria e edita o cardápio direto no iFood: crie a categoria, o item (com preço e foto), os complementos e os grupos, e toque em "Enviar ao iFood". Preço e pausa, depois de enviados, vão por chamadas próprias do iFood. Grupos e complementos seguem junto com o item.</div>
       <div class="btnrow mt-2"><button class="ghost" onclick="carregarIfoodCat_()">Atualizar</button></div></div>
-      <div id="ifCatForm"></div>${secoes}<div id="ifCatLote"></div>`;
+      <div id="ifCatForm"></div>${secoes}<div id="ifCatLote"></div><div id="ifCatDiag"></div>`;
     if(form_) abrirForm_(form_.tipo, form_.id, true);
-    renderLote_();
+    renderLote_(); carregarDiag_();
   }
 
   /* ---------- formulário ---------- */
@@ -59,22 +59,24 @@
     const alvo = document.getElementById('ifCatForm'); if(!alvo) return;
     const x = id ? acha_(id) : null; const d = (x && x.dados) || {};
     const campoFoto = `<label>Foto ${d.foto?'(já enviada; escolha outra só para trocar)':''}</label><input type="file" id="ifcFoto" accept="image/*" onchange="ifCatFoto_(this)"><div class="obs-line" id="ifcFotoInfo">${fotoNova_?'Foto escolhida.':''}</div>`;
-    let corpo = `<label>Nome *</label><input type="text" id="ifcNome" maxlength="120" value="${escH(x?x.nome:'')}">`;
+    let corpo = `<label>Nome *</label><input type="text" id="ifcNome" maxlength="100" value="${escH(x?x.nome:'')}">`;
     if(tipo==='categoria') corpo += `<label>Status</label><select id="ifcStatus">${opcoesStatus_(d.status)}</select>`;
     if(tipo==='item' || tipo==='opcao'){
-      corpo += `<label>Descrição</label><input type="text" id="ifcDesc" maxlength="300" value="${escH(d.descricao||'')}">
-        <label>Preço (R$) *</label><input type="number" id="ifcPreco" step="0.01" min="0" inputmode="decimal" value="${d.preco!==undefined?escH(String(d.preco)):''}">
+      corpo += `<label>Descrição</label><input type="text" id="ifcDesc" maxlength="500" value="${escH(d.descricao||'')}">
+        <label>Preço (R$) *${tipo==='item'?' (maior que zero)':''}</label><input type="number" id="ifcPreco" step="0.01" min="0" inputmode="decimal" value="${d.preco!==undefined?escH(String(d.preco)):''}">
         <label>Status</label><select id="ifcStatus">${opcoesStatus_(d.status)}</select>${campoFoto}`;
     }
     if(tipo==='item'){
       const cats = por_('categoria');
       corpo += `<label>Categoria *</label><select id="ifcCat"><option value="">Escolher…</option>${cats.map(c=>`<option value="${c.id}" ${d.categoriaId===c.id?'selected':''}>${escH(c.nome)}${(c.dados||{}).ifoodId?'':' (não enviada)'}</option>`).join('')}</select>
+        <div class="obs-line mt-2"><label style="display:inline;"><input type="checkbox" id="ifcCombo" ${d.combo?'checked':''}> É um combo (o iFood o trata como combo e o inclui nas campanhas automáticas; o PRIMEIRO grupo marcado abaixo é o principal)</label></div>
         <div class="obs-line mt-2"><b>Grupos de complementos deste item</b></div>` +
         (por_('grupo').map(g=>{ const at = (d.grupos||[]).find(z=>z.id===g.id); return `<div class="obs-line"><label style="display:inline;"><input type="checkbox" class="ifcG" value="${g.id}" ${at?'checked':''}> ${escH(g.nome)}</label> mín <input type="number" class="ifcGmin" data-g="${g.id}" min="0" value="${at?at.min:0}" style="width:60px;display:inline;"> máx <input type="number" class="ifcGmax" data-g="${g.id}" min="1" value="${at?at.max:1}" style="width:60px;display:inline;"></div>`; }).join('') || '<div class="obs-line txt-muted">Crie um grupo em "Grupos de complementos" para usar aqui.</div>');
     }
     if(tipo==='grupo'){
       const ops = por_('opcao');
-      corpo += `<div class="obs-line mt-2"><b>Complementos deste grupo</b></div>` + (ops.map(o=>`<div class="obs-line"><label style="display:inline;"><input type="checkbox" class="ifcO" value="${o.id}" ${(d.opcoes||[]).some(z=>z.id===o.id)?'checked':''}> ${escH(o.nome)} (${reais_((o.dados||{}).preco)})</label></div>`).join('') || '<div class="obs-line txt-muted">Crie complementos em "Complementos" para usar aqui.</div>');
+      const tg = d.tipoGrupo || 'OFFER_UNIT';
+      corpo += `<label>Tipo do grupo *</label><select id="ifcTipoGrupo">${[['OFFER_UNIT','Escolha ou adicional (ex.: escolha o refrigerante, adicionais)'],['INGREDIENTS','Retirar ou acrescentar ingrediente (ex.: sem cebola)'],['SPECIFICATION','Especificação de preparo (ex.: ponto da carne)'],['CUTLERY','Talheres e guardanapo']].map(([v,t])=>`<option value="${v}" ${tg===v?'selected':''}>${t}</option>`).join('')}</select>` + `<div class="obs-line mt-2"><b>Complementos deste grupo</b></div>` + (ops.map(o=>`<div class="obs-line"><label style="display:inline;"><input type="checkbox" class="ifcO" value="${o.id}" ${(d.opcoes||[]).some(z=>z.id===o.id)?'checked':''}> ${escH(o.nome)} (${reais_((o.dados||{}).preco)})</label></div>`).join('') || '<div class="obs-line txt-muted">Crie complementos em "Complementos" para usar aqui.</div>');
     }
     alvo.innerHTML = `<div class="notif-card" style="border-left:4px solid var(--gold);"><b>${x?'Editar':'Novo'} · ${escH(({categoria:'categoria',item:'item',grupo:'grupo de complementos',opcao:'complemento'})[tipo])}</b>
       ${corpo}
@@ -119,13 +121,14 @@
     if(tipo==='item'){
       dd.categoriaId = v('ifcCat') || '';
       if(!dd.categoriaId) return msg_('Escolha a categoria.', 'warn');
+      dd.combo = !!(document.getElementById('ifcCombo')||{}).checked;
       dd.grupos = [];
       document.querySelectorAll('.ifcG:checked').forEach(ch=>{
         const g = ch.value; const mn = document.querySelector('.ifcGmin[data-g="'+g+'"]'), mx = document.querySelector('.ifcGmax[data-g="'+g+'"]');
         dd.grupos.push({ id:g, min:Math.max(0, Number(mn&&mn.value)||0), max:Math.max(1, Number(mx&&mx.value)||1) });
       });
     }
-    if(tipo==='grupo'){ dd.opcoes = []; document.querySelectorAll('.ifcO:checked').forEach(ch=>dd.opcoes.push({ id:ch.value })); }
+    if(tipo==='grupo'){ dd.tipoGrupo = v('ifcTipoGrupo') || 'OFFER_UNIT'; dd.opcoes = []; document.querySelectorAll('.ifcO:checked').forEach(ch=>dd.opcoes.push({ id:ch.value })); }
     try{
       const r = await apiCall('ifoodCatSalvar', { id, tipo, nome:nome.trim(), dados:dd });
       if(r && r.ok){ dados_ = r.itens || []; form_ = null; fotoNova_ = null; render_(); msg_('Salvo no sistema. Toque em "Enviar ao iFood" quando estiver pronto.'); }
@@ -147,6 +150,26 @@
     if(!await confirmarTxt_('Tirar "' + x.nome + '" desta lista? No iFood nada é apagado.')) return;
     const senhaAdminConfirmacao = await pedirSenha_(); if(!senhaAdminConfirmacao) return;
     try{ const r = await apiCall('ifoodCatExcluir', { id, senhaAdminConfirmacao }); if(r && r.ok){ dados_ = r.itens || []; render_(); } else msg_((r && r.message) || 'Não foi possível.', 'warn'); }catch(e){ msg_('Sem conexão.', 'warn'); }
+  };
+
+  /* ---------- por que o item não aparece no app do iFood (unsellableItems) ---------- */
+  async function carregarDiag_(){
+    const box = document.getElementById('ifCatDiag'); if(!box) return;
+    let corpo = '<div class="obs-line txt-muted">Ainda sem diagnóstico. Toque em "Perguntar ao iFood".</div>';
+    try{
+      const r = await apiCall('ifoodCatDiag', {});
+      if(r && r.ok && !r.vazio){
+        const it = r.itens || [];
+        corpo = `<div class="obs-line">Último diagnóstico: ${escH(new Date(r.em).toLocaleString('pt-BR'))}</div>` + (it.length ? it.map(i=>`<div class="obs-line" style="border-left:4px solid #e67e22;padding-left:8px;"><b>${escH(i.nome||'')}</b><br>${escH(i.oQueFazer||'')}</div>`).join('') : '<div class="obs-line">✅ Nenhum item bloqueado: todos os itens enviados estão vendáveis.</div>');
+      } else if(r && !r.ok) corpo = '<div class="obs-line">' + escH(r.message||'Não foi possível carregar o diagnóstico.') + '</div>';
+    }catch(e){ corpo = '<div class="obs-line">Sem conexão ao carregar o diagnóstico.</div>'; }
+    box.innerHTML = `<div class="notif-card" style="border-left:4px solid #888;"><b>Por que um item não aparece no app do iFood?</b>
+      <div class="obs-line">O iFood diz quais itens estão bloqueados para venda (categoria ou item pausado, sem preço, grupo obrigatório sem complemento disponível).</div>
+      <div class="btnrow mt-2"><button class="ghost" onclick="ifCatDiagPedir_()">Perguntar ao iFood</button><button class="ghost" onclick="ifCatDiagAtualizar_()">Atualizar diagnóstico</button></div>${corpo}</div>`;
+  }
+  window.ifCatDiagAtualizar_ = carregarDiag_;
+  window.ifCatDiagPedir_ = async function(){
+    try{ const r = await apiCall('ifoodCatDiagPedir', {}); msg_((r&&r.message)||'Não foi possível.', r&&r.ok?'ok':'warn'); if(r&&r.ok){ setTimeout(carregarDiag_, 8000); setTimeout(carregarDiag_, 20000); } }catch(e){ msg_('Sem conexão.', 'warn'); }
   };
 
   /* ---------- preço / status em massa ---------- */
