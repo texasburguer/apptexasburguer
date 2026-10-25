@@ -1317,7 +1317,7 @@ function renderIfoodItens_(){
       const pend = !i.ligado && !i.ignorar;
       return `<div class="notif-card" style="border-left:4px solid ${pend?'#e0a800':'#2e9e5b'};">
         <b>${escH(i.nome)}</b> <span class="obs-line" style="display:inline;">(${i.tipo==='opcao'?'opção/adicional':'item'} · código ${escH(i.chave)})</span>
-        ${i.ligado?`<div class="obs-line">✅ Ligado a: ${escH(i.ligadoNome||'—')} (${escH(i.ligado)})${i.preCadastro?' <span class="badge neutro">📝 pré-cadastro (rascunho)</span>':''} <button class="ghost" style="width:auto;padding:2px 8px;min-height:28px;" onclick="ligarIfoodItem_(${ix},'desligar')">Desfazer</button></div>`:''}
+        ${i.ligado?`<div class="obs-line">✅ Ligado a: ${escH(i.ligadoNome||'—')} (${escH(i.ligado)})${i.auto?' <span class="badge neutro">🤖 ligado sozinho pelo nome igual — confira; se estiver errado, toque em Desfazer</span>':''}${i.preCadastro?' <span class="badge neutro">📝 pré-cadastro (rascunho)</span>':''} <button class="ghost" style="width:auto;padding:2px 8px;min-height:28px;" onclick="ligarIfoodItem_(${ix},'desligar')">Desfazer</button></div>`:''}
         ${i.ignorar?`<div class="obs-line">🚫 Ignorado (não baixa estoque) <button class="ghost" style="width:auto;padding:2px 8px;min-height:28px;" onclick="ligarIfoodItem_(${ix},'desligar')">Desfazer</button> <button class="ghost" style="width:auto;padding:2px 8px;min-height:28px;" onclick="excluirIfoodItens_(${ix})">🗑️ Excluir de vez</button></div>`:''}
         ${pend?`<div class="obs-line">⚠️ Sem ligação.</div>
           ${i.sugestao?`<div class="obs-line">Sugestão: <b>${escH(i.sugestao.nome)}</b> <button class="small-gold" onclick="ligarIfoodItem_(${ix},'sugestao')">Usar sugestão</button></div>`:''}
