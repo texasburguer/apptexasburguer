@@ -1151,8 +1151,24 @@ function abrirAjuda(){
   const nivel = (currentUser && currentUser.nivel) || 'Operador';
   const m = MANUAL_AJUDA_[nivel] || MANUAL_AJUDA_.Operador;
   document.getElementById('ajudaTitulo').textContent = 'Ajuda — '+m.nome;
-  document.getElementById('ajudaConteudo').innerHTML = ajudaHtml_(nivel);
+  document.getElementById('ajudaConteudo').innerHTML = '<div id="ajudaAppEquipe"></div>' + ajudaHtml_(nivel);
   document.getElementById('ajudaModal').classList.add('open');
+  appEquipeCartao_();
+}
+/* App da equipe (Android): só aparece para a equipe, no Android, e só se o arquivo downloads/texas-equipe.apk estiver publicado.
+   Nenhum link disso existe no cardápio do cliente. Dentro do próprio app da equipe o cartão não aparece. */
+async function appEquipeCartao_(){
+  try{
+    const box = document.getElementById('ajudaAppEquipe'); if(!box) return;
+    if(!/android/i.test(navigator.userAgent || '')) return;
+    if(String(document.referrer || '').indexOf('android-app://') === 0) return;
+    const r = await fetch('downloads/texas-equipe.apk', { method:'HEAD', cache:'no-store' });
+    if(!r || !r.ok) return;
+    box.innerHTML = '<div class="card" style="margin:0 0 12px;"><h3 style="margin:0 0 4px;">📲 App da equipe (Android)</h3>'
+      + '<p class="sub" style="margin:0 0 8px;">Instala como um app de verdade, com ícone e tela cheia. Só para a equipe.</p>'
+      + '<a class="small-gold" style="display:block;text-align:center;padding:10px;text-decoration:none;" href="downloads/texas-equipe.apk" download>Baixar o app da equipe</a>'
+      + '<p class="obs-line" style="margin:8px 0 0;">Depois de baixar, abra o arquivo e toque em Instalar. Se o Android pedir, permita instalar apps desta fonte.</p></div>';
+  }catch(e){}
 }
 function fecharAjuda(){ document.getElementById('ajudaModal').classList.remove('open'); }
 

@@ -19,6 +19,7 @@ window.APP_VERSAO = APP_VERSAO;
 const APP_NOVIDADES = {
   Admin: [
     { v:'1.15', em:'25/10/2026', itens:[
+      'Ajuda (no Android): quando o app da equipe estiver publicado, aparece o cartão "📲 App da equipe" com o botão para baixar e instalar. Só a equipe vê; o cliente continua usando a página.',
       'Administrador → Sistema reorganizado em 4 telas: Backup e cópias (backup, cópia na planilha, contingência e conferência), Espaço e arquivamento (abas Uso, Arquivamento e Drive e fotos), Integrações e contas e Auditoria. A Saúde do sistema virou um botão no topo do menu Sistema.',
       'Compactação das 05:30: antes de agendar, confere se há espaço livre; tabela que não cabe fica de fora e aparece aviso em Armazenamento (e no celular).',
       'Senha SEMPRE, inclusive do Admin, também ao excluir produto, combo, adicional, categoria, ingrediente, mesa e perfil fiscal, ao estornar nota, ao registrar ou cancelar ajuste pós-venda, ao cancelar evento ou pedido de compra e ao desfazer preço do iFood. O banco também recusa sem senha.',
