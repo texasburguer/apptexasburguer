@@ -6,7 +6,7 @@
    - BACKEND: NADA de Apps Script (script.google.com) nem de Supabase (*.supabase.co) é guardado aqui.
      Dados, pedidos, login e RPCs nunca passam pelo cache do service worker — sempre vão direto para a rede.
    - O único cache de dados é o de fotos (FOTOS) e o da casca/ícones (SHELL/ASSETS). Não adicionar outros. */
-const SHELL = 'texas-shell-v122';
+const SHELL = 'texas-shell-v123';
 const ASSETS = 'texas-assets-v8';   // trocou ícone/logo/manifest/leaflet? suba para v5
 const FOTOS = 'texas-fotos-v1';
 /* Código do app dividido em arquivos (app-*.js e estilo-*.css). Cada arquivo tem ?v=<impressão digital> na página; o cache guarda
@@ -24,14 +24,14 @@ const LISTA = [/*LISTA-INICIO*/
   'js/app-07-impressao.js?v=5c9f0484',
   'js/app-08-vendas-despesas.js?v=0b8d9a34',
   'js/app-09-ajuda.js?v=6c228ecc',
-  'js/app-10-backup-financeiro.js?v=2331265a',
+  'js/app-10-backup-financeiro.js?v=a9361edd',
   'js/app-11-admin-integracoes.js?v=32bb5e8a',
   'js/app-12-gestao-ia.js?v=0232103e',
   'js/app-13-conexao-sync.js?v=4169baef',
   'js/app-14-relatorios.js?v=89a1208a',
   'js/app-15-cardapio-cliente.js?v=b3549f0c',
   'js/app-16-sessao-final.js?v=ef1da8ab',
-  'js/app-17-sessao-supabase.js?v=85806f5e',
+  'js/app-17-sessao-supabase.js?v=6eb3d678',
   'js/app-18-queda-supabase.js?v=c3cdfe49',
   'css/estilo-ia-cardapio.css?v=b19ce938',
   'js/app-19-ia.js?v=37d36dbd',
@@ -75,7 +75,7 @@ const LISTA = [/*LISTA-INICIO*/
   'js/jogo-chuva.js?v=c0a88274',
   'js/jogo-memoria.js?v=5246b144',
   'js/jogo-cobra.js?v=651a89f6',
-  'js/app-48-armazenamento.js?v=bc743190',
+  'js/app-48-armazenamento.js?v=c4160c65',
   'js/app-32-equipe.js?v=5f1d4bd8',
 /*LISTA-FIM*/];
 const FOTOS_MAX = 150;

@@ -22,34 +22,48 @@ const sb410Gestor_ = () => !!currentUser && (currentUser.nivel === 'Admin' || cu
 /* ---------- cartões (criados uma vez; ficam na tela única Backup e espaço) ---------- */
 function sb410Montar_(){
   const aba = document.getElementById('tab-integridade');
-  if(!aba || !USAR_SUPABASE_ || document.getElementById('sb410Sync')) return;
+  if(!aba || !USAR_SUPABASE_ || document.getElementById('sb410Bk')) return;
   aba.insertAdjacentHTML('beforeend', `
-  <div class="card" id="sb410Sync"><h2>Cópia na planilha principal</h2><p class="sub">O cardápio, os clientes e as vendas são copiados para a planilha a cada 2 minutos, sozinhos.</p><div id="sb410SyncBox">Carregando…</div>
-    <button class="small-gold" style="width:100%;padding:10px;margin-top:8px;" onclick="sb410SyncAgora()">Sincronizar agora</button></div>
-  <div class="card" id="sb410Bk"><h2>Backup do Supabase</h2>
-    <div style="border:1px solid #3a2c1c;border-radius:10px;padding:10px;margin-bottom:10px;">
-      <label style="display:flex;gap:8px;align-items:center;font-weight:600;"><input type="checkbox" id="sb410BkAuto" class="largura-auto"> Backup automático diário</label>
-      <div class="obs-line" id="sb410BkAutoSt" style="margin:4px 0 8px;"></div>
-      <label for="sb410BkHora">Horário (Brasília)</label>
-      <select id="sb410BkHora" style="width:100%;margin-bottom:8px;"></select>
-      <label for="sb410BkRet">Guardar os backups automáticos por</label>
-      <select id="sb410BkRet" style="width:100%;margin-bottom:8px;"><option value="3">3 dias</option><option value="7">7 dias</option><option value="14">14 dias</option><option value="30">30 dias</option></select>
-      <button class="small-gold" style="width:100%;padding:10px;" onclick="sb410BkCfgSalvar()">Salvar configuração</button>
-      <div class="msg" id="sb410BkCfgMsg"></div>
-      <div class="obs-line">Backups manuais e os de antes de uma restauração nunca são apagados sozinhos.</div>
-    </div>
-    <div id="sb410BkBox">Carregando…</div>
-    <button class="small-gold" style="width:100%;padding:10px;margin-top:8px;" onclick="sb410BkAgora()">Fazer backup agora</button></div>
-  <div id="sb410Esp"><h3 style="font-size:16px;margin:10px 0 4px;">🗄️ Plano do Supabase e arquivamento</h3><div id="sb410EspBox">Carregando…</div></div>
-  <div class="card" id="sb410Integ"><h2>Conferência de integridade</h2>
-    <p class="sub">Compara as vendas de hoje no Supabase com a planilha (a conferência automática, às 6h10, confere o dia anterior).</p>
-    <button class="ghost" style="width:100%;padding:10px;" onclick="sb410Integ()">Conferir agora</button><div class="msg" id="sb410IntegMsg"></div></div>`);
-  // Ordem da tela: Uso do espaço, Backup, Cópia na planilha, Contingência, Conferência e, por último, Avançado (recolhido)
-  const sit = document.getElementById('bkSituacao'), cc = document.getElementById('contCard'), av = document.getElementById('bkAvancado');
-  const por = (id, ref) => { const e = document.getElementById(id); if(e && ref && ref.parentNode === aba) aba.insertBefore(e, ref); };
-  if(sit && sit.parentNode === aba) aba.insertBefore(sit, aba.querySelector('.card'));
-  por('sb410Bk', cc); por('sb410Sync', cc); por('sb410Integ', av);
+  <div class="card" id="sb410Bk"><h2>💾 Backup do Supabase</h2>
+    <div id="sb410BkResumo" class="fs-sm">Carregando…</div>
+    <div class="btnrow mt-2"><button class="small-gold" style="flex:1 1 45%;" onclick="sb410BkAgora()">Fazer backup agora</button><button class="ghost" style="flex:1 1 45%;" id="sb410BkMaisBtn" onclick="sb410BkMais_()">Ver backups e configurar</button></div>
+    <div id="sb410BkMais" style="display:none;margin-top:10px;">
+      <div style="border:1px solid #3a2c1c;border-radius:10px;padding:10px;margin-bottom:10px;">
+        <label style="display:flex;gap:8px;align-items:center;font-weight:600;"><input type="checkbox" id="sb410BkAuto" class="largura-auto"> Backup automático diário</label>
+        <div class="obs-line" id="sb410BkAutoSt" style="margin:4px 0 8px;"></div>
+        <div class="row2"><div><label for="sb410BkHora">Horário (Brasília)</label><select id="sb410BkHora" style="width:100%;"></select></div>
+        <div><label for="sb410BkRet">Guardar por</label><select id="sb410BkRet" style="width:100%;"><option value="3">3 dias</option><option value="7">7 dias</option><option value="14">14 dias</option><option value="30">30 dias</option></select></div></div>
+        <button class="small-gold" style="width:100%;padding:10px;margin-top:8px;" onclick="sb410BkCfgSalvar()">Salvar configuração</button>
+        <div class="msg" id="sb410BkCfgMsg"></div>
+        <div class="obs-line">Backups manuais e os de antes de uma restauração nunca são apagados sozinhos.</div>
+      </div>
+      <div id="sb410BkBox">Carregando…</div>
+    </div></div>
+  <div id="sb410Esp"><h3 style="font-size:16px;margin:10px 0 4px;">🗄️ Plano do Supabase e arquivamento</h3><div id="sb410EspBox">Carregando…</div></div>`);
+  // Ordem: Uso do espaço, Backup, Cópias de segurança e, por último, Avançado (recolhido)
+  const cop = document.getElementById('bkCopias'), bk = document.getElementById('sb410Bk');
+  if(bk && cop && cop.parentNode === aba) aba.insertBefore(bk, cop);
   { const e = document.getElementById('sb410Esp'), d = document.getElementById('bkAvancadoEsp'); if(e && d) d.appendChild(e); }
+}
+function sb410BkMais_(){
+  const m = document.getElementById('sb410BkMais'), b = document.getElementById('sb410BkMaisBtn'); if(!m) return;
+  const abrir = m.style.display === 'none'; m.style.display = abrir ? '' : 'none';
+  if(b) b.textContent = abrir ? 'Fechar backups' : 'Ver backups e configurar';
+}
+/* Uma linha: último backup (e se falhou) + como está o automático. Erro sempre em vermelho. */
+let _sb410BkUlt_ = null;
+function sb410BkResumo_(){
+  const r = document.getElementById('sb410BkResumo'); if(!r) return;
+  const l = _sb410BkUlt_; if(!l){ return; }
+  const ok = l.find(b=>b.status==='Sucesso'), ult = l[0];
+  const a = document.getElementById('sb410BkAuto'), h = document.getElementById('sb410BkHora'), rt = document.getElementById('sb410BkRet');
+  const auto = a && a.checked ? 'automático às ' + String(Number(h && h.value)||0).padStart(2,'0') + ':00, guarda ' + ((rt && rt.value) || '7') + ' dias' : '⚠️ automático DESLIGADO';
+  let t;
+  if(!ult) t = '<span style="color:#ffb3ab;">⚠️ Nenhum backup ainda. Toque em "Fazer backup agora".</span>';
+  else if(ult.status === 'Erro') t = '<span style="color:#ffb3ab;">⚠️ O último backup falhou (' + sb410Fmt_(ult.data_hora) + ')' + (ult.erro ? ': ' + escH(String(ult.erro).slice(0,120)) : '') + '.</span>' + (ok ? ' Último que deu certo: ' + sb410Fmt_(ok.data_hora) + '.' : '');
+  else if(ult.status === 'Em andamento') t = '⏳ Backup em andamento (' + sb410Fmt_(ult.data_hora) + ').';
+  else t = '✅ Último backup: <b>' + sb410Fmt_(ult.data_hora) + '</b> (' + escH(String(ult.tipo||'').toLowerCase()) + ')' + (ult.copia_drive_em ? ' · ☁️ cópia no Drive' : ' · <span style="color:#ffb3ab;">⚠️ sem cópia no Drive</span>');
+  r.innerHTML = t + '<div class="obs-line fs-xs">' + auto + '</div>';
 }
 function sb410Carregar_(){
   sb410Montar_();
@@ -64,7 +78,7 @@ function sb410Carregar_(){
   if(!sb410Gestor_()) return;
   sb410SyncStatus();
   const adm = sb410Admin_();
-  ['sb410Bk','sb410Esp','sb410Integ','bkSituacao','bkAvancado'].forEach(id=>{ const e=document.getElementById(id); if(e) e.style.display = adm ? '' : 'none'; });
+  ['sb410Bk','sb410Esp','bkSituacao','bkAvancado'].forEach(id=>{ const e=document.getElementById(id); if(e) e.style.display = adm ? '' : 'none'; });
   if(adm){ sb410VerificarAlertaBackup_(); sb410BkLista(); sb410BkCfgCarregar(); sb410Espaco(); }
 }
 
@@ -76,11 +90,12 @@ async function sb410SyncStatus(){
     if(!j || !j.ok){ box.textContent = 'Sem dados.'; return; }
     const horas = j.principal_ultimo_ok ? Math.round((Date.now()-new Date(j.principal_ultimo_ok).getTime())/3600000) : null;
     const travada = j.pendentes_principal > (j.alerta_itens||500) || (j.pendentes_principal>0 && (horas===null || horas > (j.alerta_horas||6)));
-    box.innerHTML = `<div class="stat-row">
-      <div class="stat-box"><b>${j.pendentes_principal}</b>Pendentes</div>
-      <div class="stat-box"><b>${j.erros_principal}</b>Com erro</div></div>
-      <span class="obs-line">Último envio para a planilha: ${sb410Fmt_(j.principal_ultimo_ok)}${(j.principal_ultimo_erro && (!j.principal_ultimo_ok || new Date(j.principal_ultimo_erro) > new Date(j.principal_ultimo_ok)))?' · <b>com erro agora</b>: '+escH(j.principal_ultimo_erro_msg||'sem detalhe'):''}</span>
-      ${travada?'<span class="obs-line" style="color:#ffb3ab;">⚠️ Fila parada — confira o acesso às planilhas e a cota do Apps Script.</span>':''}`;
+    const erroAgora = j.principal_ultimo_erro && (!j.principal_ultimo_ok || new Date(j.principal_ultimo_erro) > new Date(j.principal_ultimo_ok));
+    box.innerHTML = (j.erros_principal > 0 || erroAgora || travada ? '<span style="color:#ffb3ab;">⚠️ ' : '🟢 ')
+      + j.pendentes_principal + ' pendente(s) · ' + j.erros_principal + ' com erro · último envio ' + sb410Fmt_(j.principal_ultimo_ok)
+      + (erroAgora ? ' · com erro agora: ' + escH(j.principal_ultimo_erro_msg||'sem detalhe') : '')
+      + (travada ? ' · fila parada: confira o acesso às planilhas e a cota do Apps Script' : '')
+      + (j.erros_principal > 0 || erroAgora || travada ? '</span>' : '');
   }catch(e){ box.textContent = 'Não foi possível carregar.'; }
 }
 async function sb410SyncAgora(){
@@ -94,13 +109,14 @@ async function sb410BkLista(){
   const box = document.getElementById('sb410BkBox'); if(!box) return;
   try{
     const l = await sbSelecionar_('backups','order=data_hora.desc&limit=10',true);
+    _sb410BkUlt_ = l; sb410BkResumo_();
     box.innerHTML = l.length ? l.map(b=>`<div style="margin:6px 0;"><b>${sb410Fmt_(b.data_hora)}</b> · ${escH(b.tipo)} · <span class="badge ${b.status==='Sucesso'?'done':(b.status==='Erro'?'baixo':'pend')}">${escH(b.status)}</span>
       ${b.tamanho_bytes?`<span class="obs-line">${Math.round(b.tamanho_bytes/1024)} KB${b.erro?' · '+escH(b.erro):''}${b.status==='Sucesso'?(b.copia_drive_em?' · ☁️ cópia no Drive':(b.copia_drive_erro?' · ⚠️ sem cópia no Drive: '+escH(b.copia_drive_erro):' · sem cópia no Drive')):''}</span>`:(b.erro?`<span class="obs-line">${escH(b.erro)}</span>`:'')}
       ${b.status==='Sucesso'?`<button class="ghost" style="margin-top:4px;padding:4px 10px;font-size:12px;" onclick="sb410BkRestaurar('${escH(b.id)}')">Restaurar</button>`:''}
       ${b.status==='Sucesso'&&!b.copia_drive_em?`<button class="ghost" style="margin-top:4px;padding:4px 10px;font-size:12px;" onclick="sb410BkReenviarDrive('${escH(b.id)}')">Enviar ao Drive</button>`:''}
       ${b.status!=='Em andamento'?`<button class="ghost" style="margin-top:4px;padding:4px 10px;font-size:12px;color:#e0443a;border-color:#e0443a;" onclick="sb410BkExcluir('${escH(b.id)}')">Excluir</button>`:''}</div>`).join('')
       : '<span class="obs-line">Nenhum backup ainda.</span>';
-  }catch(e){ box.textContent = 'Não foi possível carregar.'; }
+  }catch(e){ box.textContent = 'Não foi possível carregar.'; const rs = document.getElementById('sb410BkResumo'); if(rs) rs.innerHTML = '<span style="color:#ffb3ab;">⚠️ Não foi possível ler os backups agora (sem conexão?).</span>'; }
 }
 /* ALERTA DE BACKUP (só Admin). Substitui o alerta antigo, que dependia do módulo removido.
    Avisa em Notificações → Sistema quando: o último backup deu erro; ou não há backup com sucesso dentro do prazo
@@ -141,6 +157,7 @@ async function sb410BkCfgCarregar(){
     if(h) h.value = String(v('BACKUP_HORA') ?? 4);
     if(r && bc[0]) r.value = String(bc[0].auto_retencao_dias);
     if(st) st.textContent = on ? 'Ligado: um backup por dia no horário escolhido.' : '⚠️ Desligado: nenhum backup é feito sozinho. Só os manuais.';
+    sb410BkResumo_();
   }catch(e){}
 }
 async function sb410BkCfgSalvar(){
@@ -162,6 +179,7 @@ let _sb410BkOcupado_ = false;
 async function sb410BkAgora(){
   if(_sb410BkOcupado_) return; _sb410BkOcupado_ = true;
   const box = document.getElementById('sb410BkBox'); if(box) box.insertAdjacentHTML('afterbegin', '<div class="obs-line" id="sb410BkFazendo">Fazendo backup… pode levar alguns segundos.</div>');
+  const rs = document.getElementById('sb410BkResumo'); if(rs) rs.innerHTML = '⏳ Fazendo backup… pode levar alguns segundos.';
   try{ const j = await sb410Edge_('criar-backup', { tipo:'Manual' }, 120000);
     avisar(j.ok ? 'Backup feito ('+Math.round((j.tamanho||0)/1024)+' KB).' + (j.drive ? ' Cópia no Drive: ok.' : ' ATENÇÃO: a cópia no Drive não foi feita' + (j.driveErro ? ' ('+j.driveErro+')' : '') + '.') : 'Erro: '+(j.message||'falha')); }catch(e){ avisar('Sem conexão.'); }
   _sb410BkOcupado_ = false; sb410BkLista(); setTimeout(sb410VerificarAlertaBackup_, 1500);

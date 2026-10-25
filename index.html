@@ -1580,24 +1580,38 @@
 
   <section class="tab" id="tab-integridade">
     <div class="admin-subnav" data-admin-nav="1"></div>
-    <!-- Backup e espaço: tela única. app-17 coloca aqui (nesta ordem) Backup do Supabase, Cópia na planilha, Contingência e Conferência; o "Avançado" fica por último, recolhido -->
+    <style>
+      #tab-integridade .bk-linha{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line,#3a2d1d);}
+      #tab-integridade .bk-linha:first-of-type{border-top:0;padding-top:2px;}
+      #tab-integridade .bk-txt{flex:1;min-width:0;}
+      #tab-integridade .bk-btns{display:flex;flex-direction:column;gap:6px;flex:0 0 auto;}
+      #tab-integridade .bk-btns button{width:auto;margin:0;padding:6px 12px;min-height:34px;font-size:13px;white-space:nowrap;}
+      #tab-integridade .bk-txt .msg{margin-top:6px;}
+    </style>
+    <!-- Backup e espaço: tela única e enxuta. app-17 coloca o cartão Backup logo depois de "Uso do espaço"; o "Avançado" fica por último, recolhido -->
     <div class="card" id="bkSituacao">
       <h2>📦 Uso do espaço</h2>
-      <p class="sub" style="margin:0 0 6px;">Quanto já está usado em cada lugar onde o sistema guarda dados e quanto tempo falta para encher.</p>
       <div id="armArqCorpo"><div class="obs-line">Abra esta tela com internet para medir.</div></div>
       <div id="armDrivePrin"></div>
       <div id="armDriveCont"></div>
-      <button class="ghost" type="button" style="width:100%;padding:10px;margin-top:4px;" onclick="bkAtualizarEspaco_()">🔄 Atualizar</button>
+      <div id="armResumoLinha" class="obs-line fs-xs"></div>
+      <button class="ghost" type="button" style="width:auto;padding:6px 14px;min-height:34px;font-size:13px;margin-top:6px;" onclick="bkAtualizarEspaco_()">🔄 Atualizar</button>
     </div>
 
-    <div class="card" id="contCard">
-      <h2>Contingência</h2>
-      <p class="sub">Uma segunda planilha, numa conta Google separada, que mantém o Cardápio Digital funcionando (cliente continua pedindo) se o Supabase e a planilha principal ficarem fora do ar. Ela guarda uma cópia dos produtos/preços/clientes e enfileira as vendas feitas nesse meio tempo.</p>
-      <div id="contingenciaStatus" class="fs-sm mb-3">Carregando status...</div>
-      <button class="small-gold" style="width:100%;padding:10px;" onclick="sincronizarContingenciaUI()"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7M21 4v5h-5"/></svg>Sincronizar espelho agora</button>
-      <div class="obs-line mt-2">O espelho se atualiza sozinho a cada 10 minutos (e por completo todo dia às 3h). O botão acima é só para quando você quiser na hora.</div>
-      <button class="ghost" style="width:100%;padding:10px;margin-top:8px;" onclick="reconciliarContingenciaUI()">⬇️ Trazer vendas pendentes da contingência</button>
-      <div class="msg" id="contingenciaMsg"></div>
+    <div class="card" id="bkCopias">
+      <h2>🔁 Cópias de segurança</h2>
+      <div class="bk-linha">
+        <div class="bk-txt"><b>📗 Planilha principal</b><div id="sb410SyncBox" class="fs-xs">Carregando…</div></div>
+        <div class="bk-btns"><button class="ghost" type="button" onclick="sb410SyncAgora()">Sincronizar</button></div>
+      </div>
+      <div class="bk-linha" id="contCard">
+        <div class="bk-txt"><b>🛟 Contingência</b><div id="contingenciaStatus" class="fs-xs">Carregando…</div><div class="msg" id="contingenciaMsg"></div></div>
+        <div class="bk-btns"><button class="ghost" type="button" onclick="sincronizarContingenciaUI()">Sincronizar</button><button class="ghost" type="button" onclick="reconciliarContingenciaUI()">Trazer vendas</button></div>
+      </div>
+      <div class="bk-linha">
+        <div class="bk-txt"><b>🔎 Conferência do dia</b><div class="fs-xs obs-line">Vendas de hoje no Supabase × planilha (a automática roda às 6h10).</div><div class="msg" id="sb410IntegMsg"></div></div>
+        <div class="bk-btns"><button class="ghost" type="button" onclick="sb410Integ()">Conferir</button></div>
+      </div>
     </div>
 
     <details class="card" id="bkAvancado">
@@ -2586,7 +2600,7 @@
 <script src="js/app-07-impressao.js?v=5c9f0484" charset="utf-8" data-origem="__big6__"></script>
 <script src="js/app-08-vendas-despesas.js?v=0b8d9a34" charset="utf-8" data-origem="__big7__"></script>
 <script src="js/app-09-ajuda.js?v=6c228ecc" charset="utf-8" data-origem="__big8__"></script>
-<script src="js/app-10-backup-financeiro.js?v=2331265a" charset="utf-8" data-origem="__big9__"></script>
+<script src="js/app-10-backup-financeiro.js?v=a9361edd" charset="utf-8" data-origem="__big9__"></script>
 <script src="js/app-11-admin-integracoes.js?v=32bb5e8a" charset="utf-8" data-origem="__big10__"></script>
 <script src="js/app-12-gestao-ia.js?v=0232103e" charset="utf-8" data-origem="__big11__"></script>
 <script src="js/app-13-conexao-sync.js?v=4169baef" charset="utf-8" data-origem="__big12__"></script>
@@ -2596,7 +2610,7 @@
 <!-- ═══════════ SINCRONIZAÇÃO, BACKUP, ESPAÇO E INTEGRIDADE ═══════════
      app-17 cria cartões (ids sb410*) na tela Backup e espaço. -->
 
-<script src="js/app-17-sessao-supabase.js?v=85806f5e" charset="utf-8" data-origem=""></script>
+<script src="js/app-17-sessao-supabase.js?v=6eb3d678" charset="utf-8" data-origem=""></script>
 
 <!-- ═══════════ MODO RESERVA (queda do Supabase) ═══════════
      Detecta a queda do Supabase, avisa com faixa laranja e reenvia a fila do aparelho sozinha na volta.
@@ -2668,7 +2682,7 @@
 <script src="js/app-55-ifood-roteiro.js?v=7de45218" charset="utf-8" data-origem=""></script>
 <script src="js/app-50-ifood-homologacao.js?v=72eb9915" charset="utf-8" data-origem=""></script>
 <script src="js/app-49-jogos.js?v=792e66dd" charset="utf-8" data-origem=""></script>
-<script src="js/app-48-armazenamento.js?v=bc743190" charset="utf-8" data-origem=""></script>
+<script src="js/app-48-armazenamento.js?v=c4160c65" charset="utf-8" data-origem=""></script>
 <script id="autoCura">
 /* Se o arquivo principal do app não carregou (cópia vazia/velha guardada no aparelho), limpa os guardados e recarrega sozinho, uma vez. */
 (function(){

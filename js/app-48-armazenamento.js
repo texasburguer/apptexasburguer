@@ -34,9 +34,9 @@
   }
   function barra_(titulo, usadoTxt, limiteTxt, pct, extra){
     const p = Math.max(0, Math.min(100, Number(pct) || 0));
-    return '<div class="arm-bloco" style="margin:10px 0 14px;">'
-      + '<div class="d-flex" style="justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;"><b>' + titulo + '</b><span class="fs-sm">' + usadoTxt + ' de ' + limiteTxt + ' · <b style="color:' + cor(p) + ';">' + (Number(pct) || 0).toLocaleString('pt-BR') + '%</b></span></div>'
-      + '<div style="position:relative;height:14px;background:#3a2c1c;border-radius:7px;overflow:hidden;margin-top:4px;" role="progressbar" aria-valuenow="' + p + '" aria-valuemin="0" aria-valuemax="100">'
+    return '<div class="arm-bloco" style="margin:6px 0 10px;">'
+      + '<div class="d-flex" style="justify-content:space-between;align-items:baseline;gap:8px;"><b style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;">' + titulo + '</b><span class="fs-xs" style="white-space:nowrap;">' + usadoTxt + ' de ' + limiteTxt + ' · <b style="color:' + cor(p) + ';">' + (Number(pct) || 0).toLocaleString('pt-BR') + '%</b></span></div>'
+      + '<div style="position:relative;height:9px;background:#3a2c1c;border-radius:5px;overflow:hidden;margin-top:3px;" role="progressbar" aria-valuenow="' + p + '" aria-valuemin="0" aria-valuemax="100">'
       + '<div style="width:' + p + '%;height:100%;background:' + cor(p) + ';"></div>'
       + [70, 85, 95].map(m => '<span style="position:absolute;top:0;bottom:0;left:' + m + '%;width:1px;background:rgba(255,255,255,.35);"></span>').join('')
       + '</div>' + (extra || '') + '</div>';
@@ -52,37 +52,21 @@
       if(!r || !r.ok){ c.innerHTML = erroBox((r && r.message) || 'Não foi possível carregar o armazenamento agora.'); return; }
       ultimo = r; desenhar_();
     }catch(e){ c.innerHTML = erroBox('Sem conexão para medir o armazenamento. Confira a internet e toque em Atualizar.'); return; }
-    // células por arquivo vêm da planilha (mais lento): chega depois e completa a tela
-    celulas = null; celulasErro = '';
-    try{
-      const j = await sb410Edge_('planilha-admin', { acao:'celulasArquivos' }, 90000);
-      if(j && j.ok) celulas = j; else celulasErro = (j && j.message) || 'A planilha não respondeu.';
-    }catch(e){ celulasErro = 'Sem conexão com a planilha.'; }
-    desenhar_();
   };
 
   function desenhar_(){
     const c = document.getElementById('armArqCorpo'), r = ultimo; if(!c || !r) return;
     const b = r.banco || {}, s = r.storage || {}, pl = r.planilha || {}, cfg = r.config || {}, comp = r.compactacao || {};
     let h = '';
-    // ---- 1. Banco ----
-    h += barra_('🗄️ Banco do Supabase', fmtMb(b.mb), fmtMb(b.limiteMb), b.pct,
-      '<div class="obs-line fs-xs mt-1">' + ritmo_(b.crescimentoMbDia) + previsao_(b.diasAte95, b.crescimentoMbDia) + '</div>');
-    // ---- 2. Storage ----
-    h += barra_('📦 Storage (arquivos)', fmtMb(s.mb), fmtMb(s.limiteMb), s.pct,
-      '<div class="obs-line fs-xs mt-1">' + ritmo_(s.crescimentoMbDia) + previsao_(s.diasAte95, s.crescimentoMbDia) + '</div>'
-      + '<div class="fs-xs mt-1" style="opacity:.85;">' + (s.buckets || []).map(x => escH(({ arquivo:'Vendas e caixas antigos', backups:'Backups', notas:'Notas fiscais' })[x.bucket] || x.bucket) + ': ' + fmtN(x.arquivos) + ' arquivo(s), ' + fmtMb(x.mb)).join(' · ') + '</div>');
-    // ---- 3. Planilhas ----
-    let celTxt = '';
-    if(celulas){
-      celTxt = (celulas.arquivos || []).map(a => '<div class="d-flex fs-xs" style="justify-content:space-between;gap:8px;"><span>' + (a.principal ? '📗 ' : '📘 ') + escH(a.nome) + '</span><span>' + (a.erro ? '⚠️ ' + escH(a.erro) : fmtN(a.celulas) + ' células (' + (Math.round(a.celulas / 100000) / 10).toLocaleString('pt-BR') + '%)') + '</span></div>').join('')
-        + '<div class="obs-line fs-xs">Cada arquivo do Google aceita até 10 milhões de células. Os blocos antigos vão para um arquivo por ano ("Texas Burger - Arquivo AAAA"); quando um enche, o sistema abre o próximo sozinho. Blocos guardados: ' + fmtN(celulas.blocos) + '.</div>';
-    } else if(celulasErro){
-      celTxt = erroBox('Células da planilha: ' + celulasErro + ' (o resto da tela está certo).');
-    } else celTxt = '<div class="obs-line fs-xs">⏳ Contando as células de cada arquivo da planilha…</div>';
-    h += barra_('📗 Planilha principal', fmtN(pl.celulas), '10.000.000 células', pl.pct,
-      '<div class="obs-line fs-xs mt-1">Medido em ' + fmtData(pl.medidoEm) + '.</div>' + celTxt);
-
+    // ---- 1 a 3: banco, Storage e planilha (uma linha cada; os dois Drives vêm logo abaixo, do app-10) ----
+    h += barra_('🗄️ Banco do Supabase', fmtMb(b.mb), fmtMb(b.limiteMb), b.pct);
+    h += barra_('📦 Storage (arquivos)', fmtMb(s.mb), fmtMb(s.limiteMb), s.pct);
+    h += barra_('📗 Planilha principal', (Number(pl.celulas || 0) / 1e6).toLocaleString('pt-BR', { maximumFractionDigits:2 }) + ' mi', '10 mi células', pl.pct);
+    // uma linha só, no fim do cartão: ritmo e previsão do banco (+ alerta se algo passou de 85%)
+    const alto = [['Banco', b.pct], ['Storage', s.pct], ['Planilha', pl.pct]].filter(x => Number(x[1]) >= 85).map(x => x[0] + ' em ' + Number(x[1]).toLocaleString('pt-BR') + '%');
+    const rl = document.getElementById('armResumoLinha');
+    if(rl) rl.innerHTML = (alto.length ? '<div class="msg warn" role="alert" style="display:block;margin:0 0 4px;">⚠️ ' + escH(alto.join(' · ')) + ': a proteção automática libera espaço; confira em Avançado.</div>' : '')
+      + 'Banco: ' + ritmo_(b.crescimentoMbDia).replace(/^./, c => c.toLowerCase()) + previsao_(b.diasAte95, b.crescimentoMbDia);
     // ---- daqui para baixo: Avançado (recolhido, no fim da tela) ----
     const av = document.getElementById('armArqAvancado');
     if(av){ c.innerHTML = h; h = ''; }

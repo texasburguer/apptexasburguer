@@ -141,15 +141,15 @@ async function carregarStatusContingencia(){
     const r = await fetchContingencia_(_connOptsContingencia_(), TIMEOUT_CONT_LEITURA_MS_, 0);
     if(r.ok){
       if(r.pendentes === undefined && r.espelhoAtualizadoEm === undefined){
-        box.innerHTML = '🟢 Contingência acessível. Para ver a data do espelho e as vendas pendentes, a chave da contingência precisa estar neste aparelho (ela é carregada quando o Administrador entra; saia e entre de novo).';
+        box.innerHTML = '🟢 No ar · para ver o espelho e as vendas pendentes, saia e entre de novo como Administrador (a chave da contingência carrega no login).';
       } else {
         const idade = r.espelhoAtualizadoEm ? fmtDiaHoraBr_(r.espelhoAtualizadoEm) : 'nunca sincronizado';
         const pend = (typeof r.pendentes === 'number') ? r.pendentes : (Array.isArray(r.pendentes) ? r.pendentes.length : 0);
-        box.innerHTML = `🟢 Contingência acessível — espelho atualizado em: <b>${idade}</b> · ${pend} venda(s) pendente(s) de reconciliar`;
+        box.innerHTML = (pend > 0 ? '<span style="color:#ffb3ab;">⚠️ ' : '🟢 ') + `No ar · espelho ${idade} · ${pend} venda(s) pendente(s)` + (pend > 0 ? ': toque em Trazer vendas</span>' : '');
       }
       carregarArmazenamentoContingencia();
-    } else { box.innerHTML = '🔴 Contingência respondeu com erro.'; bkDriveErro_('armDriveCont', '☁️ Drive da contingência', 'A contingência respondeu com erro; não deu para medir o espaço.'); }
-  } catch(e){ box.innerHTML = '🔴 Não foi possível falar com a API de contingência agora.'; bkDriveErro_('armDriveCont', '☁️ Drive da contingência', 'A contingência não respondeu; não deu para medir o espaço.'); }
+    } else { box.innerHTML = '<span style="color:#ffb3ab;">🔴 A contingência respondeu com erro.</span>'; bkDriveErro_('armDriveCont', '☁️ Drive da contingência', 'A contingência respondeu com erro; não deu para medir o espaço.'); }
+  } catch(e){ box.innerHTML = '<span style="color:#ffb3ab;">🔴 A contingência não respondeu agora.</span>'; bkDriveErro_('armDriveCont', '☁️ Drive da contingência', 'A contingência não respondeu; não deu para medir o espaço.'); }
 }
 async function carregarArmazenamentoContingencia(){
   const T = '☁️ Drive da contingência';
