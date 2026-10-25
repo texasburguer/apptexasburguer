@@ -39,11 +39,11 @@ const IC_SVG_ = {
 function icSvg_(k){ return '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="' + (IC_SVG_[k] || IC_SVG_.sistema) + '"/></svg>'; }
 const ADMIN_GRUPOS = [
   { nome:'Hoje',               ico:'painel',     subs:['visaogeral', 'ocorrencias', 'feedbacks'] },
-  { nome:'Dinheiro',           ico:'financeiro', subs:['financeiro', 'historico', 'ajustes', 'analise', 'relatorios', 'ifoodfin'] },
+  { nome:'Dinheiro',           ico:'financeiro', subs:['historico', 'financeiro', 'ajustes', 'ifoodfin', 'relatorios', 'analise'] },
   { nome:'Produtos',           ico:'catalogo',   subs:['produtos', 'estoque', 'compras', 'custosprecificacao'] },
   { nome:'Vendas e cardápio',  ico:'campanhas',  subs:['cardapiodigital', 'pagamentos', 'promocoes', 'eventos'] },
-  { nome:'Loja e equipe',      ico:'operacao',   subs:['restaurante', 'taxasentregas', 'equipe', 'escala', 'ponto', 'usuarios', 'notifadmin'] },
-  { nome:'Sistema',            ico:'sistema',    subs:['integridade', 'armazenamento', 'contas', 'auditoria'] }
+  { nome:'Loja e equipe',      ico:'operacao',   subs:['ponto', 'escala', 'equipe', 'taxasentregas', 'restaurante', 'usuarios', 'notifadmin'] },
+  { nome:'Sistema',            ico:'sistema',    subs:['contas', 'auditoria', 'integridade', 'armazenamento'] }
 ];
 const ADMIN_SUBABAS = ADMIN_GRUPOS.reduce((a,g)=>a.concat(g.subs), []);
 /* a barra do Administrador existia copiada em 13 telas. Agora há UMA definição, desenhada em todas. */
@@ -107,19 +107,18 @@ function adminBuscarTecla_(ev, inp){
   if(ev.key !== 'Enter') return;
   const b = inp.parentNode.querySelector('.admin-busca-res button'); if(b){ ev.preventDefault(); b.click(); }
 }
-const ADMIN_SAUDE_BTN_ = '<button type="button" onclick="abrirModalConexao_()"><span class="adm-t">Saúde do sistema</span><small class="adm-d">Conexão e servidores: bolinha verde, amarela ou vermelha e cada item</small></button>';
 function montarBarrasAdmin_(alvo, grupoIdx){
   /* alvo = tela aberta; sem alvo, mostra só os grupos (ou as telas do grupo escolhido), nada aberto até tocar */
   const grupos = gruposAdmin_();
   const ativo = alvo ? (grupos.find(g=>g.subs.includes(alvo)) || grupos[0]) : (grupoIdx != null ? grupos[grupoIdx] : (grupos.length === 1 ? grupos[0] : null));
   const abas = grupos.length>1 ? grupos.map((g,i)=>`<button class="admin-gbtn${g===ativo?' active':''}" onclick="abrirAdminGrupo_(${i})">${icSvg_(g.ico)}<span>${g.nome}</span></button>`).join('') : '';
-  const subs = ativo ? (`<div class="admin-grupo">${icSvg_(ativo.ico)}${grupos.length>1 ? ativo.nome : (ativo.nome+' — o que você pode tratar aqui')}</div>` + ativo.subs.map(id=>`<button data-sub="${id}" class="${id===alvo?'active':''}" onclick="abrirAdministrador('${id}')">${adminBtnTxt_(id)}</button>`).join('') + (ativo.nome === 'Sistema' ? ADMIN_SAUDE_BTN_ : '')) : '';
+  const subs = ativo ? (`<div class="admin-grupo">${icSvg_(ativo.ico)}${grupos.length>1 ? ativo.nome : (ativo.nome+' — o que você pode tratar aqui')}</div>` + ativo.subs.map(id=>`<button data-sub="${id}" class="${id===alvo?'active':''}" onclick="abrirAdministrador('${id}')">${adminBtnTxt_(id)}</button>`).join('')) : '';
   const busca = grupos.length>1 ? adminBuscaHtml_() : '';
   document.querySelectorAll('.admin-subnav[data-admin-nav]').forEach(nav=>{ nav.innerHTML = busca + abas + subs; });
   _adminGrupoAtivo_ = ativo ? grupos.indexOf(ativo) : null;
   /* Computador: menu lateral com todos os grupos e telas à vista (um clique). No celular ele fica escondido (CSS). */
   const lat = document.getElementById('adminLateral');
-  if(lat) lat.innerHTML = busca + grupos.map(g=>`<div class="al-grupo">${icSvg_(g.ico)}${g.nome}</div>` + g.subs.map(id=>`<button type="button" data-sub="${id}" class="${id===alvo?'active':''}" onclick="abrirAdministrador('${id}')">${adminBtnTxt_(id)}</button>`).join('') + (g.nome === 'Sistema' ? ADMIN_SAUDE_BTN_ : '')).join('');
+  if(lat) lat.innerHTML = busca + grupos.map(g=>`<div class="al-grupo">${icSvg_(g.ico)}${g.nome}</div>` + g.subs.map(id=>`<button type="button" data-sub="${id}" class="${id===alvo?'active':''}" onclick="abrirAdministrador('${id}')">${adminBtnTxt_(id)}</button>`).join('')).join('');
 }
 let _adminGrupoAtivo_ = null;
 /* Entrar no Admin: só os grupos, nenhuma tela aberta. Tocar num grupo mostra as telas dele; a tela abre só quando você toca nela. */
