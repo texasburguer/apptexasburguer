@@ -6,13 +6,13 @@
    - BACKEND: NADA de Apps Script (script.google.com) nem de Supabase (*.supabase.co) é guardado aqui.
      Dados, pedidos, login e RPCs nunca passam pelo cache do service worker — sempre vão direto para a rede.
    - O único cache de dados é o de fotos (FOTOS) e o da casca/ícones (SHELL/ASSETS). Não adicionar outros. */
-const SHELL = 'texas-shell-v116';
+const SHELL = 'texas-shell-v117';
 const ASSETS = 'texas-assets-v8';   // trocou ícone/logo/manifest/leaflet? suba para v5
 const FOTOS = 'texas-fotos-v1';
 /* Código do app dividido em arquivos (app-*.js e estilo-*.css). Cada arquivo tem ?v=<impressão digital> na página; o cache guarda
    pela endereço COMPLETO, então uma página antiga sempre acha os arquivos antigos dela e a nova acha os novos (nunca mistura versões).
    A lista abaixo é gerada pelo script de selagem (selar.py) a cada entrega. */
-const CODIGO = 'texas-codigo-v3';   // trocou o nome = todo aparelho descarta o cache de código antigo (inclusive cópia vazia)
+const CODIGO = 'texas-codigo-v4';   // trocou o nome = todo aparelho descarta o cache de código antigo (inclusive cópia vazia)
 const LISTA = [/*LISTA-INICIO*/
   'css/estilo-base.css?v=966ad513',
   'js/app-01-base-e-api.js?v=38b507df',
@@ -87,8 +87,9 @@ self.addEventListener('install', e => e.waitUntil((async () => {
 })()));
 
 self.addEventListener('activate', e => e.waitUntil((async () => {
+  let trocou = false;   // v117: se um aparelho tinha cache de versão antiga, a página abre de novo sozinha com o código novo (uma vez)
   for (const k of await caches.keys()) {
-    if ((k.indexOf('texas-shell') === 0 && k !== SHELL) || (k.indexOf('texas-assets') === 0 && k !== ASSETS) || (k.indexOf('texas-codigo') === 0 && k !== CODIGO)) await caches.delete(k);
+    if ((k.indexOf('texas-shell') === 0 && k !== SHELL) || (k.indexOf('texas-assets') === 0 && k !== ASSETS) || (k.indexOf('texas-codigo') === 0 && k !== CODIGO)) { await caches.delete(k); trocou = true; }
   }
   try {   /* limpa do cache de código o que não está na lista atual */
     const cc = await caches.open(CODIGO);
@@ -96,6 +97,7 @@ self.addEventListener('activate', e => e.waitUntil((async () => {
     for (const rq of await cc.keys()) if (!validos.has(rq.url)) await cc.delete(rq);
   } catch (err) {}
   await self.clients.claim();
+  if (trocou) { try { for (const c of await self.clients.matchAll({ type: 'window' })) { if (c.url && c.visibilityState !== 'hidden') c.navigate(c.url).catch(() => {}); } } catch (err) {} }
 })()));
 
 /* Resposta vazia (0 byte) nunca vale como cópia boa: pode vir de envio incompleto ao GitHub. Não guardar e não servir. */
