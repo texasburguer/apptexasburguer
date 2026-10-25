@@ -134,6 +134,8 @@ label{display:block;font-size:var(--fs-sm);color:var(--muted);margin:10px 0 4px;
 input[type=text],input[type=tel],input[type=number],input[type=date],input[type=month],input[type=password],input[type=search],input[type=time],input[type=datetime-local],input[type=email],input[type=url],input[type=week],input:not([type]),select,textarea{
     width:100%;background:var(--bg);border:1.5px solid var(--line-forte);color:var(--cream);padding:10px 11px;border-radius:var(--raio-controle);font-size:var(--fs-md);font-family:inherit;}
 textarea{resize:vertical;min-height:64px;}
+/* Setinha própria nos seletores (no iPhone a nativa quase some): igual em Android, iPhone e computador */
+select{-webkit-appearance:none;appearance:none;padding-right:38px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='10' viewBox='0 0 16 10'%3E%3Cpath d='M2 2l6 6 6-6' fill='none' stroke='%23e0b23a' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;background-size:16px 10px;text-overflow:ellipsis;}
 #apiCarregando{position:fixed;inset:0;z-index:100000;display:none;align-items:flex-start;justify-content:center;pointer-events:none;padding-top:calc(env(safe-area-inset-top,0px) + 14px);}
 #apiCarregando.show{display:flex;}
 #apiCarregando.trava{pointer-events:auto;background:rgba(10,6,4,.55);align-items:center;padding-top:0;}
