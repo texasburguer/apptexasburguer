@@ -100,7 +100,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alfa+Slab+One&display=swap">
 <title>Texas Burger — Sistema Completo</title>
-<link rel="stylesheet" href="css/estilo-base.css?v=3125b6b4">
+<link rel="stylesheet" href="css/estilo-base.css?v=966ad513">
 </head>
 <body>
 
@@ -1498,7 +1498,7 @@
       <label for="relPeriodo">Período</label>
       <select id="relPeriodo" onchange="renderRelatorio()"></select>
       <div id="relMesArqBox" style="display:none;margin-top:6px;"><label for="relMesArq">Mês</label><input type="month" id="relMesArq" onchange="renderRelatorio()">
-        <div class="obs-line">Vendas antigas já arquivadas na planilha (prazo definido em Sistema → Backup e espaço) são buscadas de lá por este relatório.</div></div>
+        <div class="obs-line">Vendas antigas já arquivadas na planilha (prazo definido em Sistema → Espaço e arquivamento) são buscadas de lá por este relatório.</div></div>
       <label for="relTipo">Relatório</label>
       <select id="relTipo" onchange="renderRelatorio()"></select>
       <div id="relResultado"></div>
@@ -1571,14 +1571,20 @@
 
   <section class="tab" id="tab-armazenamento">
     <div class="admin-subnav" data-admin-nav="1"></div>
-    <div class="card" data-atalho-saude="1">
-      <p class="sub" style="margin:0 0 8px;">Backup e espaço são parte da saúde do sistema. Para ver tudo de uma vez (bolinha verde, amarela ou vermelha e cada item), abra a saúde do sistema.</p>
-      <button type="button" class="ghost" onclick="abrirModalConexao_()">Ver saúde do sistema</button>
+    <div class="seg-abas">
+      <button type="button" data-aba="uso" onclick="abaInterna_('tab-armazenamento','uso')">Uso</button>
+      <button type="button" data-aba="arquivamento" onclick="abaInterna_('tab-armazenamento','arquivamento')">Arquivamento</button>
+      <button type="button" data-aba="drive" onclick="abaInterna_('tab-armazenamento','drive')">Drive e fotos</button>
+    </div>
+    <div class="card" data-painel="uso">
+      <h2>📦 Uso do espaço e histórico</h2>
+      <p class="sub" style="margin:0 0 6px;">Banco do Supabase, Storage e planilhas do Google: quanto está usado, quanto cresce e quanto tempo falta para encher. E o que já foi arquivado, onde está e quanto espaço cada arquivamento liberou de verdade.</p>
+      <div id="armArqCorpo"><div class="obs-line">Abra esta tela com internet para medir.</div></div>
     </div>
 
-    <!-- app-17 acrescenta aqui Backup e Uso do Supabase; o Google Drive fica por último -->
-    <div class="card" id="driveCard">
-      <h2>Google Drive</h2>
+    <!-- app-17 acrescenta aqui o cartão "Arquivamento" (aba Arquivamento); o Google Drive (aba Drive e fotos) fica por último -->
+    <div class="card" id="driveCard" data-painel="drive">
+      <h2>Google Drive e fotos</h2>
       <div id="driveResumo" class="fs-sm">Carregando...</div>
       <div id="driveArquivos" style="overflow-x:auto;font-size:12.5px;margin-top:10px;"></div>
       <button class="ghost" style="width:100%;padding:10px;margin-top:8px;" onclick="carregarArmazenamento()">Atualizar</button>
@@ -1601,24 +1607,11 @@
     </div>
   </section>
 
-  <section class="tab" id="tab-arquivo">
-    <div class="admin-subnav" data-admin-nav="1"></div>
-    <div class="card">
-      <h2>📦 Armazenamento</h2>
-      <p class="sub" style="margin:0 0 6px;">Banco do Supabase, Storage e planilhas do Google: quanto está usado, quanto cresce e quanto tempo falta para encher. E o que já foi arquivado, onde está e quanto espaço cada arquivamento liberou de verdade.</p>
-      <div id="armArqCorpo"><div class="obs-line">Abra esta tela com internet para medir.</div></div>
-    </div>
-  </section>
-
   <section class="tab" id="tab-integridade">
         <div class="admin-subnav" data-admin-nav="1"></div>
 
-    <div class="card" data-atalho-saude="1">
-      <p class="sub" style="margin:0 0 8px;">A contingência e a sincronização são parte da saúde do sistema. Para ver tudo de uma vez (bolinha verde, amarela ou vermelha e cada item), abra a saúde do sistema.</p>
-      <button type="button" class="ghost" onclick="abrirModalConexao_()">Ver saúde do sistema</button>
-    </div>
 
-    <div class="card">
+    <div class="card" id="contCard">
       <h2>Contingência</h2>
       <p class="sub">Uma segunda planilha, numa conta Google separada, que mantém o Cardápio Digital funcionando (cliente continua pedindo) se o Supabase e a planilha principal ficarem fora do ar. Ela guarda uma cópia dos produtos/preços/clientes e enfileira as vendas feitas nesse meio tempo.</p>
       <div id="contingenciaStatus" class="fs-sm mb-3">Carregando status...</div>
@@ -2611,7 +2604,7 @@
 <script src="js/app-15-cardapio-cliente.js?v=b3549f0c" charset="utf-8" data-origem="__big14__"></script>
 <script src="js/app-16-sessao-final.js?v=ef1da8ab" charset="utf-8" data-origem="__big15__"></script>
 <!-- ═══════════ SINCRONIZAÇÃO, BACKUP, ESPAÇO E INTEGRIDADE ═══════════
-     app-17 cria cartões (ids sb410*) nas telas Backup e espaço e Sincronização e contingência. -->
+     app-17 cria cartões (ids sb410*) nas telas Backup e cópias e Espaço e arquivamento. -->
 
 <script src="js/app-17-sessao-supabase.js?v=8d95f924" charset="utf-8" data-origem=""></script>
 
@@ -2628,7 +2621,7 @@
  Sem segundo cliente Supabase · sem listener duplicado · sem setInterval (nada de consumo automático) ·
  fora do renderizarTudo() · toda resposta da IA é escapada (nada de innerHTML cru, eval ou Function).
 ===================================================================== -->
-<link rel="stylesheet" href="css/estilo-ia-cardapio.css?v=b19ce938">
+<link rel="stylesheet" href="css/estilo-ia-cardapio.css?v=22645202">
 
 <script src="js/app-19-ia.js?v=37d36dbd" charset="utf-8" data-origem="iaModulo"></script>
 <!-- =====================================================================
@@ -2677,7 +2670,7 @@
 <script src="js/app-44-ifood-vinheta.js?v=de438ee2" charset="utf-8" data-origem=""></script>
 <script src="js/app-45-ver-cardapio.js?v=a75737b8" charset="utf-8" data-origem=""></script>
 <script src="js/app-46-cardapio-hoje.js?v=06c1114e" charset="utf-8" data-origem=""></script>
-<script src="js/app-47-cardapio-facil.js?v=4a7fab83" charset="utf-8" data-origem=""></script>
+<script src="js/app-47-cardapio-facil.js?v=0c7e14a5" charset="utf-8" data-origem=""></script>
 <script src="js/app-51-infinitepay.js?v=a3fdd917" charset="utf-8" data-origem=""></script>
 <script src="js/app-52-ifood-financeiro.js?v=bf3223c9" charset="utf-8" data-origem=""></script>
 <script src="js/app-50-ifood-homologacao.js?v=fc1546ba" charset="utf-8" data-origem=""></script>
