@@ -154,16 +154,16 @@ button.primary:disabled{opacity:.5;cursor:default;}
 button.primary,.lock-box button.primary{margin-top:14px;width:100%;min-height:48px;padding:12px;font-size:var(--fs-md);font-weight:800;letter-spacing:.05em;text-transform:uppercase;cursor:pointer;color:#fff;background:linear-gradient(180deg,var(--red-hi),var(--red) 55%,var(--red-dim));border:2px solid #000;border-bottom-width:4px;border-radius:var(--raio-controle);text-shadow:0 1px 0 rgba(0,0,0,.55);box-shadow:0 0 0 1px var(--gold-dim);}
 .lock-box button.primary{margin-top:4px;}
 button.primary:active,.lock-box button.primary:active{background:linear-gradient(180deg,var(--red),var(--red-dim));transform:translateY(2px);border-bottom-width:2px;}
-button.small-gold{background:linear-gradient(180deg,var(--gold-hi),var(--gold) 55%,var(--gold-lo));color:var(--on-gold);border:1.5px solid #000;border-bottom-width:3px;border-radius:var(--raio-controle);padding:6px 10px;font-size:var(--fs-xs);font-weight:800;cursor:pointer;}
-button.small-gold:active{transform:translateY(1px);}
+button.small-gold,a.small-gold{background:linear-gradient(180deg,var(--gold-hi),var(--gold) 55%,var(--gold-lo));color:var(--on-gold);border:1.5px solid #000;border-bottom-width:3px;border-radius:var(--raio-controle);padding:6px 10px;font-size:var(--fs-xs);font-weight:800;cursor:pointer;}
+button.small-gold:active,a.small-gold:active{transform:translateY(1px);}
 button.ghost{background:transparent;border:1px solid var(--line-forte);color:var(--cream);padding:6px 10px;border-radius:var(--raio-controle);font-size:var(--fs-xs);cursor:pointer;}
 button.atalho-btn{background:var(--panel-2);border:1px solid var(--gold-dim);color:var(--cream);padding:8px 12px;border-radius:var(--raio-pilula);font-size:var(--fs-xs);font-weight:700;cursor:pointer;}
 button.atalho-btn:active{background:var(--gold);color:var(--on-gold);}
 button.toggle-mode{flex:1;background:var(--panel-2);border:1px solid var(--line);color:var(--muted);padding:9px;border-radius:var(--raio-controle);font-size:var(--fs-xs);font-weight:700;cursor:pointer;}
 button.toggle-mode.active{color:var(--on-gold);border-color:var(--gold);background:linear-gradient(180deg,var(--gold-hi),var(--gold) 55%,var(--gold-lo));}
 /* alvo de toque: 36px no computador, 44px no celular (controles dentro de linhas, como − e +, usam 40px) */
-button.ghost,button.small-gold,button.atalho-btn,button.toggle-mode{min-height:var(--alvo-toque-pc);}
-@media (max-width:899px){ button.ghost,button.small-gold,button.atalho-btn,button.toggle-mode{min-height:var(--alvo-toque);} }
+button.ghost,button.small-gold,a.small-gold,button.atalho-btn,button.toggle-mode{min-height:var(--alvo-toque-pc);}
+@media (max-width:899px){ button.ghost,button.small-gold,a.small-gold,button.atalho-btn,button.toggle-mode{min-height:var(--alvo-toque);} }
 .qtd-controle{display:flex;align-items:center;gap:6px;}
 .qtd-controle button{background:var(--panel-2);border:1px solid var(--line);color:var(--cream);width:var(--alvo-toque-compacto);height:var(--alvo-toque-compacto);border-radius:var(--raio-controle);font-size:var(--fs-xl);cursor:pointer;line-height:1;}
 button.rm-row{background:none;border:none;color:var(--erro-texto);font-size:var(--fs-xl);cursor:pointer;padding:0 4px;min-width:var(--alvo-toque-compacto);min-height:var(--alvo-toque-compacto);}
