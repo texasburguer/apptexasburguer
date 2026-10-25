@@ -623,7 +623,8 @@ function abrirPerfilCliente(clienteId){
   const soIfood_ = !!(cliente && cliente.ifoodId && !normTel(cliente.telefone));
   if(!cliente){ box.innerHTML = ''; }
   else if(soIfood_){
-    box.innerHTML = '<div class="modal-section"><h3>🛵 Cliente do iFood</h3><div class="obs-line">Cadastrado sozinho por um pedido do iFood. O iFood não envia o telefone do cliente (manda um 0800 com código localizador, que aparece no pedido), por isso cartão fidelidade e indicação não se aplicam. Os pedidos dele aparecem no histórico abaixo.</div></div>';
+    box.innerHTML = '<div class="modal-section"><h3>🛵 Cliente do iFood</h3><div class="obs-line">Cadastrado sozinho por um pedido do iFood. O iFood não envia o telefone do cliente (manda um 0800 com código localizador, que aparece no pedido), por isso cartão fidelidade e indicação não se aplicam. Os pedidos dele aparecem no histórico abaixo.</div></div><div id="mIfoodUniao"></div>';
+    ifoodUniaoCarregar_(cliente);
   }
   else {
     const tel = normTel(cliente.telefone);
@@ -652,6 +653,7 @@ function abrirPerfilCliente(clienteId){
     }
     html += `<div class="btnrow"><button class="small-gold" style="flex:1;" onclick="adicionarMarcaModal()">+1 marca</button></div></div>`;
     box.innerHTML = html;
+    if(cliente.ifoodId){ box.insertAdjacentHTML('afterbegin','<div id="mIfoodUniao"></div>'); ifoodUniaoCarregar_(cliente); }
   }
   const boxFeedback = document.getElementById('mFeedbackSection');
   if(boxFeedback){
@@ -803,4 +805,52 @@ function fotoFalhou_(img){
 function renderAdminInicio_(){
   const box = document.getElementById('adminInicioConteudo'); if(!box) return;
   box.innerHTML = '<p class="obs-line mt-3">Escolha uma tela no menu' + (gruposAdmin_().length > 1 ? ' ou use o campo “Ir para…”.' : '.') + '</p>';
+}
+
+
+/* ===== Cliente do iFood × cliente do sistema: unir pelo nome + endereço (telefone o iFood não manda) ===== */
+async function ifoodUniaoCarregar_(cliente){
+  const el = document.getElementById('mIfoodUniao'); if(!el || !cliente) return;
+  el.innerHTML = '<div class="obs-line">Procurando ligação com o iFood…</div>';
+  let r; try{ r = await apiCall('clienteIfoodInfo', { id: cliente.id }); }catch(e){ r = null; }
+  if(modalClienteId !== cliente.id) return;
+  if(!r || !r.ok){ el.innerHTML = '<div class="obs-line" style="color:#c0392b;">Não consegui consultar a ligação com o iFood: ' + escH((r && r.message) || 'sem resposta') + '</div>'; return; }
+  let h = '';
+  const un = r.unioes || [];
+  if(un.length){
+    h += '<div class="modal-section"><h3>🛵 Também é cliente do iFood</h3>' + un.map(u=>
+      '<div class="info-line"><b>Nome no iFood:</b> ' + escH(u.nomeIfood || '(sem nome)') + (u.igual ? '' : ' <span style="color:#b9770e;">· nome diferente do cadastro</span>') + '<br><span class="txt-muted">' + (u.auto ? '🤖 ligado sozinho pelo nome e endereço' : 'ligado por você') + ' · ' + escH(dataBr_(u.quando)) + '</span></div>').join('')
+      + '<button class="small-gold" style="width:100%;margin-top:6px;" onclick="ifoodUniaoDesfazer_(\'' + cliente.id + '\')">Desfazer a ligação</button></div>';
+  }
+  const sug = r.sugestoes || [];
+  if(sug.length){
+    h += '<div class="modal-section"><h3>🔗 Unir com cliente do sistema</h3><div class="obs-line">Este cliente do iFood não tem telefone. Estes cadastros do sistema se parecem com ele (confira os nomes antes de unir):</div>' + sug.map(x=>
+      '<div class="notif-card" style="margin-top:6px;"><b>' + escH(x.nome) + '</b> · ' + escH(x.telefone) + '<br><span class="txt-muted">' + escH(x.endereco || 'sem endereço') + '</span><br><span class="txt-muted">' + escH(x.motivo) + '</span>'
+      + '<button class="small-gold" style="width:100%;margin-top:6px;" onclick="ifoodUniaoUnir_(\'' + cliente.id + '\',\'' + x.id + '\')">Unir com este</button></div>').join('') + '</div>';
+  }
+  el.innerHTML = h;
+}
+function dataBr_(d){ try{ return new Date(d).toLocaleDateString('pt-BR'); }catch(e){ return ''; } }
+async function ifoodUniaoUnir_(fId, sId){
+  const f = clientes.find(c=>c.id===fId); const sug = null;
+  const alvo = (document.querySelector('#mIfoodUniao .notif-card button[onclick*="' + sId + '"]') || {}).parentNode;
+  const nomeS = alvo ? (alvo.querySelector('b') || {}).textContent : '';
+  if(!await confirmarTxt_('Unir "' + ((f && f.nome) || 'cliente do iFood') + '" (iFood) com "' + (nomeS || 'o cadastro escolhido') + '"? O telefone, a fidelidade e os pedidos passam a ser de um cliente só. O nome do iFood continua visível no perfil e dá para desfazer.')) return;
+  const senha = await pedirSenha_(); if(!senha) return;
+  try{
+    const r = await apiCall('unirClientes', { ifoodClienteId: fId, sistemaClienteId: sId, senhaAdminConfirmacao: senha });
+    if(!r || !r.ok){ showMsg('mMsg', (r && r.message) || 'Não foi possível unir.', 'warn'); return; }
+    clientes = r.clientes || clientes; if(r.fidelidade) fidelidadeClientes = r.fidelidade; if(r.vendas) vendas = r.vendas; if(r.indicacoes) indicacoes = r.indicacoes;
+    salvarCache(); renderClientes(); abrirPerfilCliente(sId); showMsg('mMsg', r.message, 'ok');
+  }catch(e){ showMsg('mMsg', 'Não foi possível unir agora. Nada foi alterado.', 'warn'); }
+}
+async function ifoodUniaoDesfazer_(sId){
+  if(!await confirmarTxt_('Desfazer a ligação? O cliente do iFood volta a ser um cadastro separado, com os pedidos dele.')) return;
+  const senha = await pedirSenha_(); if(!senha) return;
+  try{
+    const r = await apiCall('desunirCliente', { id: sId, senhaAdminConfirmacao: senha });
+    if(!r || !r.ok){ showMsg('mMsg', (r && r.message) || 'Não foi possível desfazer.', 'warn'); return; }
+    clientes = r.clientes || clientes; if(r.fidelidade) fidelidadeClientes = r.fidelidade; if(r.vendas) vendas = r.vendas; if(r.indicacoes) indicacoes = r.indicacoes;
+    salvarCache(); renderClientes(); abrirPerfilCliente(sId); showMsg('mMsg', r.message, 'ok');
+  }catch(e){ showMsg('mMsg', 'Não foi possível desfazer agora. Nada foi alterado.', 'warn'); }
 }
