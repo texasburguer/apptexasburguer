@@ -784,7 +784,9 @@ body.vendo-cardapio #cardapioPublico{ padding-top:56px; }
 .cd-receber-btn.on b{ color:var(--gold); }
 select.cd-receber-sel{ display:none !important; }
 .cd-usar-local{ width:100%; margin:4px 0 8px; min-height:44px; }
-.cd-info-entrega{ font-size:12.5px; color:var(--muted); margin-top:4px; text-align:center; }
+.cd-info-entrega{ font-size:12.5px; color:var(--muted); margin-top:6px; display:flex; flex-wrap:wrap; justify-content:center; gap:6px; }
+.cd-info-entrega span{ background:var(--panel); border:1px solid var(--line); border-radius:var(--raio-pilula); padding:3px 10px; white-space:nowrap; }
+@media (max-width:899px){ #cardapioPublico .cd-banner .cd-info-entrega{ grid-column:2; justify-content:flex-start; margin-top:8px; font-size:11.5px; } #cardapioPublico .cd-banner .cd-info-entrega:empty{ display:none; } }
 
 /* v1.15 — tabelas da tela Armazenamento */
 .tbl{border-collapse:collapse;}

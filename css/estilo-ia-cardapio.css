@@ -55,7 +55,7 @@ input[type=time]{width:100%;background:var(--bg);border:1.5px solid var(--line-f
 /* ===== Layout A do cardápio do cliente (celular): cabeçalho enxuto, cards com "+", Atendimento só ícone ===== */
 @media (max-width:899px){
   #cardapioPublico .cd-banner{ display:grid; grid-template-columns:104px 1fr; column-gap:12px; align-items:center; text-align:left; padding:10px 12px; margin:10px 4px 8px; border-width:1.5px; border-radius:var(--raio-card); }
-  #cardapioPublico .cd-banner .hero-logo{ grid-row:1 / span 3; width:104px; margin:0; }
+  #cardapioPublico .cd-banner .hero-logo{ grid-row:1 / span 4; width:104px; margin:0; }
   #cardapioPublico .cd-banner .kicker{ justify-self:start; padding:3px 9px; font-size:var(--fs-2xs); border-width:1.5px; letter-spacing:.08em; }
   #cardapioPublico .cd-banner .frase{ margin-top:6px; font-size:var(--fs-xs); line-height:1.3; }
   #cardapioPublico .cd-banner .status{ margin-top:8px !important; justify-self:start; display:inline-flex; align-items:center; padding:5px 12px; border-radius:var(--raio-pilula); background:var(--panel); border:1px solid var(--line); font-size:var(--fs-xs); font-weight:700; color:var(--cream); }

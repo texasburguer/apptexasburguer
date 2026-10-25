@@ -177,7 +177,7 @@
         const taxa = Number(cfg.taxaEntrega) || 0, p = [];
         p.push('🛵 Entrega ' + (taxa > 0 ? cdFormatarPreco(taxa) : 'grátis') + (cfg.tempoEntrega ? ' · ' + cfg.tempoEntrega : ''));
         if(cfg.tempoRetirada) p.push('🥡 Retirada ' + cfg.tempoRetirada);
-        el.textContent = p.join('  ·  ');
+        el.textContent = ''; p.forEach(function(t){ const sp = document.createElement('span'); sp.textContent = t; el.appendChild(sp); });
       }catch(e){}
       return r;
     };
