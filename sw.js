@@ -6,7 +6,7 @@
    - BACKEND: NADA de Apps Script (script.google.com) nem de Supabase (*.supabase.co) é guardado aqui.
      Dados, pedidos, login e RPCs nunca passam pelo cache do service worker — sempre vão direto para a rede.
    - O único cache de dados é o de fotos (FOTOS) e o da casca/ícones (SHELL/ASSETS). Não adicionar outros. */
-const SHELL = 'texas-shell-v130';
+const SHELL = 'texas-shell-v131';
 const ASSETS = 'texas-assets-v8';   // trocou ícone/logo/manifest/leaflet? suba para v5
 const FOTOS = 'texas-fotos-v1';
 /* Código do app dividido em arquivos (app-*.js e estilo-*.css). Cada arquivo tem ?v=<impressão digital> na página; o cache guarda
@@ -15,11 +15,11 @@ const FOTOS = 'texas-fotos-v1';
 const CODIGO = 'texas-codigo-v5';   // trocou o nome = todo aparelho descarta o cache de código antigo (inclusive cópia vazia)
 const LISTA = [/*LISTA-INICIO*/
   'css/estilo-base.css?v=205e0ad2',
-  'js/app-01-base-e-api.js?v=a577d7bf',
+  'js/app-01-base-e-api.js?v=3fab7752',
   'js/app-02-abas.js?v=4172dc0a',
   'js/app-03-cadastros.js?v=46167420',
   'js/app-04-pedidos-entrega.js?v=04c0dcf4',
-  'js/app-05-avisos-push.js?v=5ff06049',
+  'js/app-05-avisos-push.js?v=1ddbf8d0',
   'js/app-06-caixa.js?v=d8657313',
   'js/app-07-impressao.js?v=5c9f0484',
   'js/app-08-vendas-despesas.js?v=0b8d9a34',
@@ -68,6 +68,7 @@ const LISTA = [/*LISTA-INICIO*/
   'js/app-52-ifood-financeiro.js?v=bf3223c9',
   'js/app-53-ifood-entregador.js?v=b0e6ddfa',
   'js/app-54-ifood-indicadores.js?v=144d8d09',
+  'js/app-56-rota-entrega.js?v=41f1f321',
   'js/app-55-ifood-roteiro.js?v=7de45218',
   'js/app-50-ifood-homologacao.js?v=72eb9915',
   'js/app-49-jogos.js?v=792e66dd',

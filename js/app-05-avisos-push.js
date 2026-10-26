@@ -316,6 +316,7 @@ ${(souEntregador && v.statusPedido==='Em preparo') ? `<div class="obs-line mt-2"
       </div>`;
     }).join('') : `<div class="notif-empty">${souEntregador?'Nenhuma entrega atribuída a você agora.':'Nenhuma entrega em andamento.'}</div>`;
   }
+  try{ if(window.rotaRender_) rotaRender_(pendentes); }catch(e){ if(window.erroTela_) erroTela_(e); }
   const hoje = dataLocalISO(new Date());
   let concluidas = vendas.filter(v=>v.status==='Confirmada' && v.tipoEntrega==='Entrega' && v.statusPedido==='Entregue' && v.statusPagamento!=='A Receber' && noTurnoCaixa_(v.timestamp)).sort((a,b)=>b.timestamp-a.timestamp);
   if(souEntregador) concluidas = concluidas.filter(v=>v.entregador===loginVisao_());
