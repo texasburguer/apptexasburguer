@@ -258,7 +258,7 @@ async function testarChaveIa_(prov, alvoId, btn){
     if(r && r.ok){
       ok = !!r.funcionando;
       el.textContent = ok ? ('✅ Funcionando · respondeu em ' + (Math.round((r.ms||0)/100)/10).toString().replace('.',',') + ' s' + (r.modelo ? ' · modelo ' + r.modelo : ''))
-                          : ('❌ ' + testeIaMotivo_(r.codigo));
+                          : ('❌ ' + testeIaMotivo_(r.codigo) + (r.detalhe ? ' (' + r.detalhe + ')' : ''));
     }else if(r && r.codigo === 'sem_permissao'){ el.textContent = '⚠️ Só o Administrador pode testar.'; }
     else if(r && (r.codigo === 'rede' || r.codigo === 'offline' || r.codigo === 'pausado' || r.codigo === 'sessao')){ el.textContent = '⚠️ Não consegui falar com o servidor agora. Confira a conexão e tente de novo.'; }
     else{ el.textContent = '⚠️ Não foi possível testar agora.'; }
