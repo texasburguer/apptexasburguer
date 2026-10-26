@@ -6,7 +6,7 @@
    - BACKEND: NADA de Apps Script (script.google.com) nem de Supabase (*.supabase.co) é guardado aqui.
      Dados, pedidos, login e RPCs nunca passam pelo cache do service worker — sempre vão direto para a rede.
    - O único cache de dados é o de fotos (FOTOS) e o da casca/ícones (SHELL/ASSETS). Não adicionar outros. */
-const SHELL = 'texas-shell-v133';
+const SHELL = 'texas-shell-v134';
 const ASSETS = 'texas-assets-v8';   // trocou ícone/logo/manifest/leaflet? suba para v5
 const FOTOS = 'texas-fotos-v1';
 /* Código do app dividido em arquivos (app-*.js e estilo-*.css). Cada arquivo tem ?v=<impressão digital> na página; o cache guarda
@@ -15,7 +15,7 @@ const FOTOS = 'texas-fotos-v1';
 const CODIGO = 'texas-codigo-v5';   // trocou o nome = todo aparelho descarta o cache de código antigo (inclusive cópia vazia)
 const LISTA = [/*LISTA-INICIO*/
   'css/estilo-base.css?v=205e0ad2',
-  'js/app-01-base-e-api.js?v=2ca97eb0',
+  'js/app-01-base-e-api.js?v=38e7b04c',
   'js/app-02-abas.js?v=4172dc0a',
   'js/app-03-cadastros.js?v=46167420',
   'js/app-04-pedidos-entrega.js?v=04c0dcf4',
@@ -29,14 +29,14 @@ const LISTA = [/*LISTA-INICIO*/
   'js/app-12-gestao-ia.js?v=0232103e',
   'js/app-13-conexao-sync.js?v=4169baef',
   'js/app-14-relatorios.js?v=89a1208a',
-  'js/app-15-cardapio-cliente.js?v=b3549f0c',
+  'js/app-15-cardapio-cliente.js?v=476432bf',
   'js/app-16-sessao-final.js?v=ef1da8ab',
   'js/app-17-sessao-supabase.js?v=6eb3d678',
   'js/app-18-queda-supabase.js?v=c3cdfe49',
   'css/estilo-ia-cardapio.css?v=b19ce938',
   'js/app-19-ia.js?v=37d36dbd',
   'js/app-20-balao-interno.js?v=c974eb7b',
-  'js/app-21-localizacao.js?v=bb28de16',
+  'js/app-21-localizacao.js?v=cd8592e7',
   'css/estilo-equipe.css?v=10e8510c',
   'js/app-22-navegacao-inferior.js?v=9c0835e7',
   'js/app-23-janelas-popup.js?v=6f031891',
@@ -63,12 +63,12 @@ const LISTA = [/*LISTA-INICIO*/
   'js/app-44-ifood-vinheta.js?v=de438ee2',
   'js/app-45-ver-cardapio.js?v=a75737b8',
   'js/app-46-cardapio-hoje.js?v=4cc0f76b',
-  'js/app-47-cardapio-facil.js?v=4a7fab83',
+  'js/app-47-cardapio-facil.js?v=27ecb254',
   'js/app-51-infinitepay.js?v=a3fdd917',
   'js/app-52-ifood-financeiro.js?v=bf3223c9',
   'js/app-53-ifood-entregador.js?v=b0e6ddfa',
   'js/app-54-ifood-indicadores.js?v=144d8d09',
-  'js/app-56-rota-entrega.js?v=41f1f321',
+  'js/app-56-rota-entrega.js?v=f9d32f41',
   'js/app-55-ifood-roteiro.js?v=7de45218',
   'js/app-50-ifood-homologacao.js?v=72eb9915',
   'js/app-49-jogos.js?v=792e66dd',

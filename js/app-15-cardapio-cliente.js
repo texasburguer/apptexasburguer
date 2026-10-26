@@ -1031,7 +1031,7 @@ async function cdPreencherEnderecoPorLocal_(){
     if(cidade){ const cc = document.getElementById('cdCidade'); if(cc && !cc.value.trim()) cc.value = cidade + (uf ? ' - ' + uf : ''); }
     const txt = [rua, bairro].filter(Boolean).join(', ').replace(/[<>]/g, '').slice(0, 120);
     if(!txt || campo.value.trim()) return;   /* não sobrescreve o que o cliente já digitou */
-    campo.value = txt; cdEndAuto_ = true;
+    campo.value = txt; cdEndAuto_ = true; window.__cdEndAutoTxt_ = txt;
     if(aviso){ aviso.style.display = 'block'; aviso.textContent = '📍 Preenchemos rua, bairro e cidade pela sua localização. Confira e digite o NÚMERO da casa.'; }
     try{ const n = document.getElementById('cdNumero'); if(n && !n.value.trim()) n.focus({ preventScroll:true }); }catch(e){}
   }catch(e){ cdAvisoEndLocal_(); }

@@ -151,17 +151,59 @@ window.abrirMapaEntrega_ = function(vendaId){
     }catch(e){ fim(); }
   };
   window.__posCd_ = function(){ return posSilenciosa_ ? { lat:posSilenciosa_.lat, lng:posSilenciosa_.lng } : null; };
+  /* Endereço digitado → coordenada (OpenStreetMap). Nunca trava o pedido: sem resposta em 6 s, segue sem. */
+  function cdVariantes_(t, cid){
+    const out = [], semCid = String(t || '').replace(/\s+/g, ' ').trim(), rua = semCid.split(',')[0].trim();
+    const num = (semCid.match(/n[º°o.]*\s*(\d+)/i) || semCid.match(/,\s*(\d+)\b/) || [])[1] || '';
+    if(rua && num) out.push(rua + ' ' + num + (cid ? ', ' + cid : ''));
+    if(rua) out.push(rua + (cid ? ', ' + cid : ''));
+    return out.filter(function(x, i){ return x && out.indexOf(x) === i; });
+  }
+  async function cdGeocodificar_(rua, numero, cidade){
+    const base = String(rua || '').trim(); if(!base) return null;
+    const cid = String(cidade || '').trim(), txt = base + (numero ? ', nº ' + numero : '');
+    const vars = cdVariantes_(txt, cid);
+    for(let i = 0; i < vars.length; i++){
+      try{
+        const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), 6000);
+        const r = await fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=br&accept-language=pt-BR&q=' + encodeURIComponent(vars[i]), { signal:ctl.signal, cache:'no-store' });
+        clearTimeout(t);
+        if(!r.ok) return null;
+        const j = await r.json();
+        if(j && j[0]){ const lat = Number(j[0].lat), lng = Number(j[0].lon); if(Number.isFinite(lat) && Number.isFinite(lng)) return { lat:lat, lng:lng, exato:i === 0 && !!numero }; }
+      }catch(e){ return null; }
+      if(i < vars.length - 1) await new Promise(res => setTimeout(res, 1100));
+    }
+    return null;
+  }
+  function cdMetros_(a, b){
+    const R = 6371000, rad = Math.PI / 180, dLa = (b.lat - a.lat) * rad, dLo = (b.lng - a.lng) * rad;
+    const x = Math.sin(dLa / 2) ** 2 + Math.cos(a.lat * rad) * Math.cos(b.lat * rad) * Math.sin(dLo / 2) ** 2;
+    return 2 * R * Math.asin(Math.sqrt(x));
+  }
+  /* Guarda a coordenada do destino junto do pedido: GPS do cliente quando bate com o endereço (ou o endereço não foi mexido);
+     senão o endereço digitado. Tudo sem travar o pedido; a coordenada some quando o pedido é entregue. */
   window.cdEnviarLocalDoPedido_ = async function(vendaId){
     try{
       if(!vendaId) return;
       const codigo = String(vendaId).slice(-8);
       if(jaCompartilhou_(codigo)) return;
+      const rua = (document.getElementById('cdEndereco') || {}).value || '', numero = (document.getElementById('cdNumero') || {}).value || '', cidade = (document.getElementById('cdCidade') || {}).value || '';
       /* se ainda não capturou, tenta uma última vez sem travar nada */
       if(!posSilenciosa_) window.cdCapturarLocalSilenciosa_();
-      if(!posSilenciosa_) return;   /* sem permissão/sinal: o acompanhamento oferece o botão como antes */
-      const r = await sbRpcPublico_('api_compartilhar_destino_pedido', { p:{ codigo:codigo, lat:posSilenciosa_.lat, lng:posSilenciosa_.lng } });
+      const gps = posSilenciosa_ ? { lat:posSilenciosa_.lat, lng:posSilenciosa_.lng } : null;
+      const mexeu = !!(window.__cdEndAutoTxt_ && rua.trim() !== window.__cdEndAutoTxt_) || !window.__cdEndAutoTxt_;   /* digitou o endereço (não veio da localização) */
+      let alvo = null;
+      if(gps && !mexeu) alvo = gps;
+      else {
+        const ad = await cdGeocodificar_(rua, numero, cidade);
+        if(gps && (!ad || cdMetros_(gps, ad) <= (ad.exato ? 400 : 1000))) alvo = gps;
+        else if(ad) alvo = { lat:ad.lat, lng:ad.lng };
+      }
+      if(!alvo) return;   /* sem GPS e endereço não localizado: o acompanhamento oferece o botão como antes */
+      const r = await sbRpcPublico_('api_compartilhar_destino_pedido', { p:{ codigo:codigo, lat:alvo.lat, lng:alvo.lng } });
       if(r && r.ok) marcarCompartilhou_(codigo);
-    }catch(e){ /* silencioso: nunca atrapalha o pedido */ }
+    }catch(e){ /* nunca atrapalha o pedido */ }
   };
 
   /* ---------- ganchos (envolvem funções existentes sem trocar o comportamento delas) ---------- */

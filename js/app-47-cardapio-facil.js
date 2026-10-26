@@ -122,8 +122,27 @@
         const b = document.createElement('button'); b.type = 'button'; b.id = 'cdUsarLocalBtn'; b.className = 'ghost cd-usar-local';
         b.textContent = '📍 Usar minha localização'; b.onclick = window.cdUsarMinhaLocal_;
         end.insertBefore(b, end.firstChild);
+        permissaoLocal_();
       }
     }catch(e){}
+  }
+  /* Localização já permitida: pega sozinha e o botão some. Não permitida (ou celular que não informa): o botão fica aparecendo. */
+  let permLocal_ = null;
+  function permissaoLocal_(){
+    const b = document.getElementById('cdUsarLocalBtn'); if(!b) return;
+    const aplicar = function(estado){
+      const ok = estado === 'granted';
+      b.style.display = ok ? 'none' : '';
+      if(ok){ try{ if(window.cdCapturarLocalSilenciosa_) window.cdCapturarLocalSilenciosa_(); }catch(e){} try{ cdPreencherEnderecoPorLocal_(); }catch(e){} }
+    };
+    try{
+      if(!navigator.geolocation){ b.style.display = 'none'; return; }
+      if(!navigator.permissions || !navigator.permissions.query){ aplicar('prompt'); return; }
+      navigator.permissions.query({ name:'geolocation' }).then(function(st){
+        aplicar(st.state);
+        if(!permLocal_){ permLocal_ = st; st.onchange = function(){ aplicar(st.state); }; }
+      }, function(){ aplicar('prompt'); });
+    }catch(e){ aplicar('prompt'); }
   }
   window.cdEscolherReceber_ = function(v){
     const sel = document.getElementById('cdTipoEntrega'); if(!sel || sel.value === v) return;
@@ -135,13 +154,14 @@
     if(!navigator.geolocation){ if(aviso){ aviso.style.display = 'block'; aviso.textContent = '⚠️ Este aparelho não oferece localização. Digite o endereço.'; } return; }
     if(aviso){ aviso.style.display = 'block'; aviso.textContent = '⏳ Buscando sua localização…'; }
     navigator.geolocation.getCurrentPosition(function(){
+      try{ const bt = document.getElementById('cdUsarLocalBtn'); if(bt) bt.style.display = 'none'; }catch(e){}
       try{ if(window.cdCapturarLocalSilenciosa_) window.cdCapturarLocalSilenciosa_(); }catch(e){}
       const campo = document.getElementById('cdEndereco');
       if(campo && typeof cdEndAuto_ !== 'undefined' && cdEndAuto_) campo.value = '';
       try{ cdEndTentou_ = false; }catch(e){}
       setTimeout(function(){ try{ cdPreencherEnderecoPorLocal_(); }catch(e){} }, 400);
     }, function(){
-      if(aviso){ aviso.style.display = 'block'; aviso.textContent = '⚠️ Não conseguimos pegar sua localização (permissão negada ou sem sinal). Digite a rua, o bairro, o número e a cidade.'; }
+      if(aviso){ aviso.style.display = 'block'; aviso.textContent = '⚠️ Não conseguimos pegar sua localização (permissão negada ou sem sinal). Se negou, libere a localização nas configurações do navegador para este site. Ou digite a rua, o bairro, o número e a cidade.'; }
     }, { enableHighAccuracy:true, timeout:15000, maximumAge:60000 });
   };
 

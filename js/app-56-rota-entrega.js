@@ -111,6 +111,7 @@
       let ini = r.restaurante && r.restaurante.lat != null ? { lat:Number(r.restaurante.lat), lng:Number(r.restaurante.lng) } : null, iniTxt = 'restaurante';
       if(!ini){ ini = await posicaoAtual_(); iniTxt = 'sua posição atual (o local do restaurante ainda não foi definido)'; }
       const ifood = {}; (r.ifood || []).forEach(x=>{ ifood[x.id] = { lat:Number(x.lat), lng:Number(x.lng), exato:true }; });
+      (r.destinos || []).forEach(x=>{ if(!ifood[x.id]) ifood[x.id] = { lat:Number(x.lat), lng:Number(x.lng), exato:true }; });   // localização guardada no pedido (GPS ou endereço do cliente)
       const paradas = [], sem = []; let ruaInteira = 0;
       for(let i = 0; i < vs.length; i++){
         const v = vs[i]; st.msg = '⏳ Localizando endereços… ' + (i + 1) + ' de ' + vs.length; desenhar_();
