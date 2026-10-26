@@ -825,3 +825,7 @@ body.jg-aberto{overflow:hidden;}
 
 /* v1.15 — seletores dos cartões de pagamento não passam da largura no celular */
 .mp-adm select{max-width:100%;}
+
+/* sem zoom de pinça nem toque duplo: a tela não deve ampliar sozinha (o mapa tem os botões + e −) */
+html,body,body *{touch-action:pan-x pan-y;}
+.jg-palco canvas{touch-action:none;}

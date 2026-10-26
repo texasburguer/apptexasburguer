@@ -1,3 +1,4 @@
+try{ document.addEventListener('gesturestart', function(e){ e.preventDefault(); }); }catch(e){}
 
 /* =========================================================
    COLE AQUI A URL DO SEU APPS SCRIPT (termina em /exec)
@@ -21,6 +22,7 @@ const APP_NOVIDADES = {
     { v:'1.16', em:'25/10/2026', itens:[
       'Administrador → Sistema: "Backup e cópias" e "Espaço e arquivamento" viraram uma tela só, "Backup e espaço". No topo, "Uso do espaço" com cinco barras (banco, Storage, planilha, Drive principal e Drive da contingência); depois Backup, Cópia na planilha, Contingência e Conferência. Plano, arquivamento e fotos sem uso ficam em "Avançado", recolhido no fim. O botão "Saúde do sistema" saiu do menu (ela abre pela bolinha do topo) e os menus foram reordenados pelo uso.',
       'iFood · Preço automático: ao salvar o preço da forma "iFood" de um produto ou combo ligado ao iFood, o novo preço vai sozinho para o iFood. Acima do limite de variação não envia e cria um aviso para você conferir.',
+      'Tela · Não amplia mais com o gesto de pinça nem com toque duplo.',
       'Cardápio hoje · O mapa agora mostra as entregas feitas, com localização aproximada: verde = pedidos do sistema, vermelho = iFood.',
       'iFood · Clientes unidos: cliente do iFood (sem telefone) se junta sozinho ao cadastro do sistema quando NOME e ENDEREÇO batem; o telefone passa a sair na comanda e a fidelidade vale. Endereço igual com nome diferente vira sugestão no perfil (botão Unir, com senha) e o nome do iFood fica sempre visível, com Desfazer.',
       'iFood · Ligação automática: item do iFood com nome exatamente igual ao de um produto, combo ou adicional se liga sozinho e aparece marcado "🤖 ligado sozinho"; se estiver errado, toque em Desfazer.',

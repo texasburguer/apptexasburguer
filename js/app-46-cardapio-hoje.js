@@ -92,7 +92,7 @@
     if(!pts.length && !ped.length && !(r.semCoord || []).length){
       h += '<div class="obs-line">Ainda sem localização no período (só aparece quem permitiu a localização no celular).</div>';
     } else {
-      h += '<div id="cdHojeMapa" style="position:relative;height:300px;border-radius:8px;overflow:hidden;background:#2a2a2a;touch-action:manipulation;"></div>'
+      h += '<div id="cdHojeMapa" style="position:relative;height:300px;border-radius:8px;overflow:hidden;background:#2a2a2a;touch-action:pan-x pan-y;"></div>'
         + '<div class="obs-line fs-xs mt-1"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:rgba(217,162,27,.85);"></span> visitas (aproximadas, ~500 m) &nbsp; <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#3fb97a;"></span> entregas do sistema &nbsp; <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#ea1d2c;"></span> entregas do iFood &nbsp; ' + (r.restaurante ? '<span style="display:inline-block;width:10px;height:10px;background:#fff;border:2px solid #111;"></span> restaurante' : '') + '</div>';
     }
     h += '<div id="cdHojeGeoMsg" class="obs-line fs-xs">' + geoTexto_() + '</div>';
@@ -107,6 +107,18 @@
     return (pend ? '⏳ Localizando ' + pend + ' endereço(s) de entrega no mapa…' : '') + (n ? (pend ? ' ' : '') + '<span style="color:#e5a13b;">⚠️ ' + n + ' entrega(s) sem como aparecer no mapa (endereço ausente ou não encontrado).</span>' : '') + (geoErro ? ' <span style="color:#e5534b;">⚠️ ' + escH(geoErro) + '</span>' : '');
   }
   let geoErro = '', geoRodando = false;
+  /* "Rua X, Bairro, nº 554 — Cidade - SP" → tenta "Rua X 554, Cidade", depois "Rua X, Cidade" (a rua toda; serve para o ponto aproximado de ~500 m) e por fim o texto original */
+  function variantes_(end){
+    const t = String(end || '').replace(/\s+/g, ' ').trim(), out = [];
+    const cid = (t.match(/[—–]\s*([^—–-]+?)\s*(?:-\s*[A-Z]{2})?\s*$/) || [])[1] || '';
+    const semCid = t.replace(/\s*[—–].*$/, '');
+    const rua = semCid.split(',')[0].trim();
+    const num = (semCid.match(/n[º°o.]*\s*(\d+)/i) || semCid.match(/,\s*(\d+)\b/) || [])[1] || '';
+    if(rua && num) out.push(rua + ' ' + num + (cid ? ', ' + cid : ''));
+    if(rua) out.push(rua + (cid ? ', ' + cid : ''));
+    out.push(t);
+    return out.filter(function(x, i){ return x && out.indexOf(x) === i; });
+  }
   async function geoBuscar_(){
     if(geoRodando) return; const r = dados; if(!r || !(r.semCoord || []).length) return; geoRodando = true; geoErro = '';
     const rest = r.restaurante && r.restaurante.lat ? r.restaurante : null;
@@ -115,9 +127,13 @@
         let a = null;
         try{
           const vb = rest ? '&viewbox=' + [Number(rest.lng) - 0.25, Number(rest.lat) + 0.25, Number(rest.lng) + 0.25, Number(rest.lat) - 0.25].join(',') + '&bounded=1' : '';
-          const resp = await fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=br&accept-language=pt-BR' + vb + '&q=' + encodeURIComponent(it.endereco), { cache:'no-store' });
-          if(!resp.ok) throw new Error('mapa ' + resp.status);
-          const j = await resp.json(); a = j && j[0] ? { lat:Number(j[0].lat), lng:Number(j[0].lon) } : null;
+          const vars = variantes_(it.endereco);
+          for(let k = 0; k < vars.length && !a; k++){
+            if(k) await new Promise(res=>setTimeout(res, 1100));
+            const resp = await fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=br&accept-language=pt-BR' + vb + '&q=' + encodeURIComponent(vars[k]), { cache:'no-store' });
+            if(!resp.ok) throw new Error('mapa ' + resp.status);
+            const j = await resp.json(); a = j && j[0] ? { lat:Number(j[0].lat), lng:Number(j[0].lon) } : null;
+          }
         }catch(e){ geoErro = 'Não consegui consultar o mapa para localizar alguns endereços agora. Toque em Atualizar para tentar de novo.'; break; }
         const sv = await apiCall('geoEnderecoSalvar', a ? { chave:it.chave, achou:true, lat:a.lat, lng:a.lng } : { chave:it.chave, achou:false });
         if(!sv || !sv.ok){ geoErro = (sv && sv.message) || 'Não consegui guardar a localização de um endereço.'; break; }
