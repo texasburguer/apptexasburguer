@@ -6,7 +6,7 @@
    - BACKEND: NADA de Apps Script (script.google.com) nem de Supabase (*.supabase.co) é guardado aqui.
      Dados, pedidos, login e RPCs nunca passam pelo cache do service worker — sempre vão direto para a rede.
    - O único cache de dados é o de fotos (FOTOS) e o da casca/ícones (SHELL/ASSETS). Não adicionar outros. */
-const SHELL = 'texas-shell-v125';
+const SHELL = 'texas-shell-v126';
 const ASSETS = 'texas-assets-v8';   // trocou ícone/logo/manifest/leaflet? suba para v5
 const FOTOS = 'texas-fotos-v1';
 /* Código do app dividido em arquivos (app-*.js e estilo-*.css). Cada arquivo tem ?v=<impressão digital> na página; o cache guarda
@@ -15,7 +15,7 @@ const FOTOS = 'texas-fotos-v1';
 const CODIGO = 'texas-codigo-v5';   // trocou o nome = todo aparelho descarta o cache de código antigo (inclusive cópia vazia)
 const LISTA = [/*LISTA-INICIO*/
   'css/estilo-base.css?v=b8ce86db',
-  'js/app-01-base-e-api.js?v=52c68b38',
+  'js/app-01-base-e-api.js?v=0335ec16',
   'js/app-02-abas.js?v=4172dc0a',
   'js/app-03-cadastros.js?v=46167420',
   'js/app-04-pedidos-entrega.js?v=04c0dcf4',
@@ -62,7 +62,7 @@ const LISTA = [/*LISTA-INICIO*/
   'js/app-43-erros-visiveis.js?v=bcc87052',
   'js/app-44-ifood-vinheta.js?v=de438ee2',
   'js/app-45-ver-cardapio.js?v=a75737b8',
-  'js/app-46-cardapio-hoje.js?v=9e4a4ae4',
+  'js/app-46-cardapio-hoje.js?v=d45142f8',
   'js/app-47-cardapio-facil.js?v=4a7fab83',
   'js/app-51-infinitepay.js?v=a3fdd917',
   'js/app-52-ifood-financeiro.js?v=bf3223c9',
