@@ -34,7 +34,7 @@ async function prAtualizar_(){
   try{
     const r = await minhaExtrasHtml_();
     corpo.innerHTML = r.h + '<h3 style="margin:14px 0 4px;">Próximos 7 dias</h3>' + prHtmlDias_(r.m) +
-      '<div class="btn-row" style="margin-top:12px;"><button type="button" class="ghost small" onclick="escEquipeAbrir()">Ver a escala da equipe</button></div>';
+      '<div class="btn-row" style="margin-top:12px;"><button type="button" class="ghost small" onclick="escEquipeAbrir()">Ver a escala da equipe</button><button type="button" class="ghost small" onclick="mrAbrir()">📋 Meus registros</button></div>';
   }catch(e){ corpo.innerHTML = '<p class="sub">Não foi possível carregar agora. Tente de novo.</p>'; }
 }
 async function prAbrir(){
