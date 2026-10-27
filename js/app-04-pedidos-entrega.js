@@ -629,7 +629,7 @@ function mostrarNotificacao_(titulo, corpo, extra){
     _ultimaNotifEm_ = Date.now();
     if(!avisosSuportado_() || Notification.permission!=='granted') return;
     const opts = { body: corpo, tag: (extra && extra.tag) || 'texas-novo-pedido', renotify: true, vibrate: [300,150,300], requireInteraction: true };
-    if(extra && extra.silencioso) opts.silent = true;   /* v1.15: app na tela com a vinheta do iFood tocando — a notificação não toca um segundo som */
+    if(extra && extra.silencioso){ opts.silent = true; delete opts.vibrate; }   /* v1.15: app na tela com a vinheta do iFood tocando — a notificação não toca um segundo som */
     const direto = ()=>{ try{ const n = new Notification(titulo, opts); n.onclick = ()=>{ try{ window.focus(); n.close(); }catch(e){} }; }catch(e){} };
     if(navigator.serviceWorker && navigator.serviceWorker.getRegistration){
       navigator.serviceWorker.getRegistration().then(reg=>{ if(reg && reg.showNotification) reg.showNotification(titulo, opts); else direto(); }).catch(direto);
