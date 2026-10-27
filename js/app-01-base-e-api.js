@@ -466,7 +466,7 @@ function turnoCaixa_(){
   const d = new Date(); const ini = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
   return { ini, fim: ini + 864e5 - 1, aberto: false, calendario: true };
 }
-function noTurnoCaixa_(ts){ const t = turnoCaixa_(); ts = Number(ts) || 0; return ts >= t.ini && ts <= t.fim; }
+function noTurnoCaixa_(ts, v){ const t = turnoCaixa_(); /* venda ligada ao caixa aberto (ex.: pedido do iFood que chegou antes da abertura) conta no turno, mesmo com horário anterior */ try{ if(v && v.caixaId && t.aberto && typeof sessaoCaixa!=='undefined' && sessaoCaixa && v.caixaId===sessaoCaixa.id) return true; }catch(e){} ts = Number(ts) || 0; return ts >= t.ini && ts <= t.fim; }
 /* Dia (AAAA-MM-DD) do TURNO a que um horário pertence = dia em que aquele caixa abriu. Sem caixa que o contenha, vale o dia do calendário.
    Usado no acerto do entregador e em "Vendas por dia" (o turno atravessa a meia-noite e continua sendo o mesmo dia). Mesma regra do banco (_calc_fechamento_entrega). */
 function diaDoTurno_(ts){ ts = Number(ts) || 0; try{ const lista = (historicoCaixa||[]).slice(); if(typeof sessaoCaixa!=='undefined' && sessaoCaixa && sessaoCaixa.aberturaTimestamp) lista.push({aberturaTimestamp:sessaoCaixa.aberturaTimestamp, fechamentoTimestamp:0});
@@ -754,7 +754,7 @@ async function sbMontarDados_(nivel, chaves){
       timestampPronta:v.pronta_em?Date.parse(v.pronta_em):null, timestampConcluida:v.concluida_em?Date.parse(v.concluida_em):null,
       statusPagamento:v.status_pagamento||'Pago', timestampRecebimento:v.recebido_em?Date.parse(v.recebido_em):null,
       valorOriginal:Number(v.valor_original)||Number(v.valor_total)||0, valorDesconto:Number(v.valor_desconto)||0, acrescimoForma:Number(v.acrescimo_forma)||0, descontoDetalhe:v.desconto_detalhe||'', entregador:v.entregador||'',
-      timestampSaiu:v.saiu_em?Date.parse(v.saiu_em):null, origem:v.origem||'Balcão', canal:v.canal||'', mesaId:v.mesa_id||'', mesaNumero:(v.mesa_numero!=null?String(v.mesa_numero):''), taxaEntrega:Number(v.taxa_entrega)||0, fechamentoEntregaId:v.fechamento_entrega_id||'',
+      timestampSaiu:v.saiu_em?Date.parse(v.saiu_em):null, origem:v.origem||'Balcão', canal:v.canal||'', mesaId:v.mesa_id||'', mesaNumero:(v.mesa_numero!=null?String(v.mesa_numero):''), taxaEntrega:Number(v.taxa_entrega)||0, fechamentoEntregaId:v.fechamento_entrega_id||'', caixaId:v.caixa_id||'',
       registradoPor:v.registrado_por||'', numero:Number(v.numero)||0, timestampInicioPreparo:v.inicio_preparo_em?Date.parse(v.inicio_preparo_em):null,
       clienteId:v.cliente_id||'', ifoodLocalizador:v.ifood_localizador||'', ifoodLocalizadorAte:v.ifood_localizador_ate?Date.parse(v.ifood_localizador_ate):null }))
       .map(v=>{ if(nivel==='Entregador'||nivel==='Garçom'||nivel==='Cozinha') delete v.custoTotal; if(nivel==='Cozinha'){ delete v.clienteTelefone; delete v.endereco; delete v.complemento; delete v.referencia; } return v; }),

@@ -318,7 +318,7 @@ ${(souEntregador && v.statusPedido==='Em preparo') ? `<div class="obs-line mt-2"
   }
   try{ if(window.rotaRender_) rotaRender_(pendentes); }catch(e){ if(window.erroTela_) erroTela_(e); }
   const hoje = dataLocalISO(new Date());
-  let concluidas = vendas.filter(v=>v.status==='Confirmada' && v.tipoEntrega==='Entrega' && v.statusPedido==='Entregue' && v.statusPagamento!=='A Receber' && noTurnoCaixa_(v.timestamp)).sort((a,b)=>b.timestamp-a.timestamp);
+  let concluidas = vendas.filter(v=>v.status==='Confirmada' && v.tipoEntrega==='Entrega' && v.statusPedido==='Entregue' && v.statusPagamento!=='A Receber' && noTurnoCaixa_(v.timestamp,v)).sort((a,b)=>b.timestamp-a.timestamp);
   if(souEntregador) concluidas = concluidas.filter(v=>v.entregador===loginVisao_());
   const box2 = document.getElementById('entregasConcluidasLista');
   if(box2){
@@ -420,7 +420,7 @@ function renderEntregasFinanceiro(){
   if(nivel==='Entregador'){
     const box = document.getElementById('entregasMeuDia');
     const hoje = diaTurnoAtual_();
-    const minhas = vendas.filter(v=>v.status==='Confirmada' && v.tipoEntrega==='Entrega' && v.statusPedido==='Entregue' && v.timestampConcluida && noTurnoCaixa_(v.timestampConcluida));
+    const minhas = vendas.filter(v=>v.status==='Confirmada' && v.tipoEntrega==='Entrega' && v.statusPedido==='Entregue' && v.timestampConcluida && noTurnoCaixa_(v.timestampConcluida,v));
     const taxas = arred2(minhas.reduce((s,v)=>s+(Number(v.taxaEntrega)||0),0));
     const jaFechouHoje = fechamentosEntrega.some(f=>f.dataRef===hoje);
     const ajuda = (minhas.length && !jaFechouHoje) ? configEntrega.ajudaDiaria : 0;
@@ -562,7 +562,7 @@ function renderInicio(){
     const caixaTxt = sessaoCaixa ? '🟢 Aberto' : '🔒 Fechado';
     const caixaSub = sessaoCaixa ? ('desde '+String(sessaoCaixa.abertura||'').split(' ').pop()) : 'toque para abrir';
     blocos.push(`<button type="button" class="resumo-box ${sessaoCaixa?'':'atencao'}" ${clique("document.querySelector('[data-tab=caixa]').click();abrirCaixaStatus_()")}><span class="rot">Caixa</span><b>${caixaTxt}</b><small>${escH(caixaSub)}</small></button>`);
-    const hoje = vendas.filter(v=>v.status==='Confirmada' && noTurnoCaixa_(v.timestamp));
+    const hoje = vendas.filter(v=>v.status==='Confirmada' && noTurnoCaixa_(v.timestamp,v));
     const faturado = hoje.filter(v=>v.statusPagamento!=='A Receber').reduce((t,v)=>t+(Number(v.valorTotal)||0),0);
     const aReceber = hoje.filter(v=>v.statusPagamento==='A Receber').reduce((t,v)=>t+(Number(v.valorTotal)||0),0);
     blocos.push(`<div class="resumo-box" ${nivel==='Admin' ? clique("abrirAdministrador('visaogeral')") : ''}><span class="rot">${turnoCaixa_().calendario?'Vendas hoje':'Vendas do turno'}</span><b>${fmt(faturado)}</b><small>${hoje.length} pedido(s)${aReceber>0?' · '+fmt(aReceber)+' a receber':''}</small></div>`);

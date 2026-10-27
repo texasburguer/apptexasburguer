@@ -320,7 +320,7 @@ function atualizarMetaUI(){
   document.getElementById('metaMensalTextoProgresso').textContent = formatarMoeda(totalMes) + ' / ' + formatarMoeda(metas.mensal) + ' (' + pctMes.toFixed(0) + '%)';
 
   const hojeISO = dataLocalISO(hoje);
-  const vendasHoje = vendas.filter(v=>v.status==='Confirmada' && noTurnoCaixa_(v.timestamp));
+  const vendasHoje = vendas.filter(v=>v.status==='Confirmada' && noTurnoCaixa_(v.timestamp,v));
   const totalHoje = vendasHoje.reduce((s,v)=>s+Number(v.valorTotal),0);
   const pctDia = metas.diaria>0 ? Math.min(100, (totalHoje/metas.diaria*100)) : 0;
   document.getElementById('metaDiariaBar').style.width = pctDia+'%';
@@ -328,7 +328,7 @@ function atualizarMetaUI(){
 }
 function atualizarResumoHoje(){
   const hoje = dataLocalISO(new Date());
-  const vendasHoje = vendas.filter(v=>noTurnoCaixa_(v.timestamp) && v.status==='Confirmada');
+  const vendasHoje = vendas.filter(v=>noTurnoCaixa_(v.timestamp,v) && v.status==='Confirmada');
   const despesasHoje = despesas.filter(d=>noTurnoCaixa_(d.timestamp) && despesaEfetiva(d));
   const totalV = vendasHoje.reduce((s,v)=>s+Number(v.valorTotal),0);
   const totalD = despesasHoje.reduce((s,d)=>s+Number(d.valor),0);
