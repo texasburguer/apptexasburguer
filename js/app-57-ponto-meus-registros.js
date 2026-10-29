@@ -88,7 +88,7 @@ function mrAtestado(){
   if(!m){
     m = document.createElement('div'); m.className = 'modal-overlay'; m.id = 'mrAtModal';
     m.innerHTML = '<div class="modal-box" style="max-width:480px;"><div class="modal-header"><h2>Enviar atestado</h2><button class="close-btn" onclick="fecharFormModal(\'mrAtModal\')" aria-label="Fechar">✕</button></div>' +
-      '<p class="sub">Informe os dias de afastamento e tire (ou escolha) uma foto do atestado. O administrador analisa; a foto é apagada sozinha após 30 dias.</p>' +
+      '<p class="sub">Informe os dias de afastamento e tire (ou escolha) uma foto do atestado. O administrador analisa; a foto fica guardada no Google Drive e é apagada sozinha após 30 dias.</p>' +
       '<label for="mrAtIni">Primeiro dia</label><input type="date" id="mrAtIni">' +
       '<label for="mrAtFim">Último dia</label><input type="date" id="mrAtFim">' +
       '<label for="mrAtFoto">Foto do atestado</label><input type="file" id="mrAtFoto" accept="image/*" onchange="mrAtFotoLida_(this)">' +
@@ -119,7 +119,7 @@ async function mrAtestadoEnviar_(){
   if(!mrFoto_) return showMsg('mrAtMsg', 'Tire ou escolha a foto do atestado.', 'warn');
   const bt = document.getElementById('mrAtEnviar'); bt.disabled = true;
   try{
-    const r = await apiCall('pontoPedidoCriar', { tipo:'atestado', dataIni:ini, dataFim:fim, foto:mrFoto_, motivo:document.getElementById('mrAtObs').value });
+    const r = await sb410Edge_('ponto-foto', { acao:'atestado', dataIni:ini, dataFim:fim, base64Data:mrFoto_, motivo:document.getElementById('mrAtObs').value }, 90000);
     showMsg('mrAtMsg', (r && r.message) || 'Não foi possível enviar o atestado.', r && r.ok ? 'ok' : 'warn');
     if(r && r.ok){ setTimeout(() => { fecharFormModal('mrAtModal'); mrCarregar_(); }, 900); }
   }catch(e){ showMsg('mrAtMsg', 'Não foi possível enviar agora. Confira a internet e tente de novo.', 'warn'); }
@@ -157,7 +157,7 @@ function mrPedidoAdminHtml_(x){
 }
 async function mrVerFoto(id){
   try{
-    const r = await apiCall('pontoPedidoFoto', { id });
+    const r = await sb410Edge_('ponto-foto', { acao:'verAtestado', id }, 60000);
     if(!r || !r.ok) return avisar((r && r.message) || 'Não foi possível abrir a foto.');
     let m = document.getElementById('mrFotoModal');
     if(!m){
@@ -165,7 +165,7 @@ async function mrVerFoto(id){
       m.innerHTML = '<div class="modal-box" style="max-width:640px;"><div class="modal-header"><h2>Atestado</h2><button class="close-btn" onclick="fecharFormModal(\'mrFotoModal\')" aria-label="Fechar">✕</button></div><img id="mrFotoImg" alt="Foto do atestado" style="width:100%;border-radius:8px;"></div>';
       document.body.appendChild(m);
     }
-    document.getElementById('mrFotoImg').src = 'data:image/jpeg;base64,' + r.foto; abrirFormModal('mrFotoModal');
+    document.getElementById('mrFotoImg').src = 'data:' + (r.tipo || 'image/jpeg') + ';base64,' + r.base64; abrirFormModal('mrFotoModal');
   }catch(e){ avisar('Não foi possível abrir a foto agora.'); }
 }
 async function mrDecidir(id, aprovar){

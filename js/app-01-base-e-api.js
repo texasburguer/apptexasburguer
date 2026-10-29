@@ -7,7 +7,7 @@ const API_URL = "https://script.google.com/macros/s/AKfycbwCftUm-1pxhA8XLNqMB7dM
 const CONTINGENCIA_API_URL = "https://script.google.com/macros/s/AKfycby3WljBnr7gpJrHdkbTvBCh5uIXqS4KCS6wkBYB5idxf5gI04efoDumQj264kR_smoW/exec";
 
 /* ===================== VERSÃO DO APP ===================== */
-const APP_VERSAO = '1.19';
+const APP_VERSAO = '1.20';
 const APP_ATUALIZADO_EM = '29/10/2026';
 window.APP_VERSAO = APP_VERSAO;
 
@@ -19,6 +19,8 @@ window.APP_VERSAO = APP_VERSAO;
    A seção "🆕 O que mudou" do manual é gerada daqui. */
 const APP_NOVIDADES = {
   Admin: [
+    { v:'1.20', em:'29/10/2026', itens:[
+      'Fotos · A foto do atestado (Meus registros) agora fica no Google Drive, nos dois (principal e contingência), e é apagada sozinha após 30 dias. Nenhuma foto vai mais para o banco. O Storage do Supabase fica só com os backups e os arquivos antigos do banco.' ] },
     { v:'1.19', em:'29/10/2026', itens:[
       'Google Drive · Tudo que lia ou gravava no Drive pela planilha agora vai primeiro direto pelo Supabase (mais rápido) e, se não der, pela planilha como segundo caminho: fotos do cardápio (enviar, trocar, remover, copiar para a contingência), comprovantes de nota, fotos do ponto e de perdas/recebimentos/ocorrências, e a leitura do Uso do espaço. Continuam só pela planilha: limpeza de fotos sem uso, meses arquivados e a fila da contingência. Na tela Uso do espaço, o tamanho de "Arquivos do sistema" é atualizado a cada 12 horas.' ] },
     { v:'1.18', em:'29/10/2026', itens:[
