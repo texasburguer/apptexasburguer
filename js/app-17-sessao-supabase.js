@@ -67,6 +67,7 @@ function sb410BkResumo_(){
 }
 function sb410Carregar_(){
   sb410Montar_();
+  try{ if(typeof window.driveDiretoCarregar_ === 'function') window.driveDiretoCarregar_(); }catch(e){}
   try{ const s = document.getElementById('tab-integridade'); if(s && s.classList.contains('active')) contAbrirTela_(); }catch(e){}
   try{ // no servidor novo os cartões antigos (planilha) não têm dados: ficam escondidos, os sb410* fazem o papel deles
     const velhos = ['Backup','Histórico e restauração','Conferência de integridade'];

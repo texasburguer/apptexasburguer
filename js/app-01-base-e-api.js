@@ -7,8 +7,8 @@ const API_URL = "https://script.google.com/macros/s/AKfycbwCftUm-1pxhA8XLNqMB7dM
 const CONTINGENCIA_API_URL = "https://script.google.com/macros/s/AKfycby3WljBnr7gpJrHdkbTvBCh5uIXqS4KCS6wkBYB5idxf5gI04efoDumQj264kR_smoW/exec";
 
 /* ===================== VERSÃO DO APP ===================== */
-const APP_VERSAO = '1.17';
-const APP_ATUALIZADO_EM = '28/10/2026';
+const APP_VERSAO = '1.18';
+const APP_ATUALIZADO_EM = '29/10/2026';
 window.APP_VERSAO = APP_VERSAO;
 
 /* ===================== NOVIDADES POR PERFIL =====================
@@ -19,6 +19,8 @@ window.APP_VERSAO = APP_VERSAO;
    A seção "🆕 O que mudou" do manual é gerada daqui. */
 const APP_NOVIDADES = {
   Admin: [
+    { v:'1.18', em:'29/10/2026', itens:[
+      'Backup e espaço · Novo cartão "☁️ Google Drive direto": conecte o Drive principal e o Drive da contingência (cada um com a sua conta Google, com senha) e acesse os dois sem passar pelo Apps Script: navegar nas pastas, baixar, enviar arquivos (senha) e criar pastas. O backup agora também é copiado por esse caminho: se o Apps Script falhar, a cópia no Drive sai mesmo assim, e o Drive da contingência recebe uma cópia independente. O Apps Script continua funcionando como antes.' ] },
     { v:'1.17', em:'28/10/2026', itens:[
       'Conexão e servidores · Tela mais curta e bonita: um resumo grande no topo (tudo certo ou o que pede atenção), servidores em uma linha cada, o que está com problema logo em cima, "Plano grátis do Supabase" em barras (X de Y · %), as outras verificações recolhidas e o botão Verificar agora sempre visível embaixo.' ] },
     { v:'1.16', em:'25/10/2026', itens:[
