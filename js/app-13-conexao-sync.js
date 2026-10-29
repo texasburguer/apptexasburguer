@@ -54,8 +54,8 @@ async function _connPing_(url, opts, ms){
 }
 function _connHora_(t){ const d = new Date(t), p = n=>String(n).padStart(2,'0'); return p(d.getHours())+':'+p(d.getMinutes())+':'+p(d.getSeconds()); }
 function _connLinha_(rotulo, papel, cls, texto, detalhe){
-  return '<div class="conn-linha"><span class="conn-bolha ' + cls + '"></span><div style="flex:1;min-width:0;"><b>' + escH(rotulo) + '</b> <small style="display:inline;">' + escH(papel) + '</small>'
-    + '<div class="fs-sm">' + escH(texto) + '</div>' + (detalhe ? '<small>' + escH(detalhe) + '</small>' : '') + '</div></div>';
+  return '<div class="cx-linha"><span class="conn-bolha ' + cls + '"></span><b>' + escH(rotulo) + '</b> <small>' + escH(papel) + '</small>'
+    + '<span class="cx-dir">' + escH(texto) + '</span>' + (detalhe ? '<div class="cx-sub">' + escH(detalhe) + '</div>' : '') + '</div>';
 }
 function renderConexaoModal_(){
   const box = document.getElementById('conexaoLista'); if(!box) return;

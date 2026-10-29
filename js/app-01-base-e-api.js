@@ -7,8 +7,8 @@ const API_URL = "https://script.google.com/macros/s/AKfycbwCftUm-1pxhA8XLNqMB7dM
 const CONTINGENCIA_API_URL = "https://script.google.com/macros/s/AKfycby3WljBnr7gpJrHdkbTvBCh5uIXqS4KCS6wkBYB5idxf5gI04efoDumQj264kR_smoW/exec";
 
 /* ===================== VERSÃO DO APP ===================== */
-const APP_VERSAO = '1.16';
-const APP_ATUALIZADO_EM = '25/10/2026';
+const APP_VERSAO = '1.17';
+const APP_ATUALIZADO_EM = '28/10/2026';
 window.APP_VERSAO = APP_VERSAO;
 
 /* ===================== NOVIDADES POR PERFIL =====================
@@ -19,6 +19,8 @@ window.APP_VERSAO = APP_VERSAO;
    A seção "🆕 O que mudou" do manual é gerada daqui. */
 const APP_NOVIDADES = {
   Admin: [
+    { v:'1.17', em:'28/10/2026', itens:[
+      'Conexão e servidores · Tela mais curta e bonita: um resumo grande no topo (tudo certo ou o que pede atenção), servidores em uma linha cada, o que está com problema logo em cima, "Plano grátis do Supabase" em barras (X de Y · %), as outras verificações recolhidas e o botão Verificar agora sempre visível embaixo.' ] },
     { v:'1.16', em:'25/10/2026', itens:[
       'Ponto · Meus registros: o funcionário vê as batidas do período (do dia seguinte ao fechamento até o fechamento do mês seguinte), pede correção de ponto e envia atestado com foto. Você aprova ou recusa em Equipe → Ponto, com senha, e o funcionário recebe um aviso. O dia de fechamento (hoje 20) você muda no mesmo lugar. A foto do atestado é apagada sozinha após 30 dias.',
       'Administrador → Sistema: "Backup e cópias" e "Espaço e arquivamento" viraram uma tela só, "Backup e espaço". No topo, "Uso do espaço" com cinco barras (banco, Storage, planilha, Drive principal e Drive da contingência); depois Backup, Cópia na planilha, Contingência e Conferência. Plano, arquivamento e fotos sem uso ficam em "Avançado", recolhido no fim. O botão "Saúde do sistema" saiu do menu (ela abre pela bolinha do topo) e os menus foram reordenados pelo uso.',

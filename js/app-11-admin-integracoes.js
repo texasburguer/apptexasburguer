@@ -92,22 +92,53 @@ async function encerrarSessaoRemotaUI_(sessaoId){
 }
 const SAUDE_COR_ = { ok:'#2f9e44', atencao:'#f0a500', problema:'#d6336c' }, SAUDE_ROT_ = { ok:'Tudo certo', atencao:'Atenção', problema:'Precisa de cuidado' };
 /* Saúde do sistema: a lista vive dentro de "Conexão e servidores"; no Painel fica só uma linha com a bolinha geral (toque abre a tela). */
+/* Plano grátis: o texto da Saúde ("45,0 MB de 500 MB (9,0%).") vira barra com título e "X de Y · %". Se não der para ler, cai na linha comum. */
+function saudePlanoBarra_(it){
+  try{
+    if(typeof window.armBarra_ !== 'function') return null;
+    const tit = String(it.titulo||'').replace(/^Plano grátis:\s*/i, '');
+    const m = String(it.texto||'').match(/^(?:Cerca de\s+)?([\d.,]+(?:\s*[A-Za-z]+)?)(?:\s+por mês)?,?\s+de\s+([\d.,]+(?:\s*[A-Za-z]+)?)(?:\s*\(([\d.,]+)%\))?/i);
+    if(!m) return null;
+    const lim = m[2].replace(/[.,]$/, ''), uso = m[1].replace(/[.,]$/, '');
+    const num = x => parseFloat(String(x).replace(/[^\d.,]/g,'').replace(/\.(?=\d{3}\b)/g,'').replace(',', '.'));
+    const pct = m[3] ? parseFloat(m[3].replace(',', '.')) : (num(uso) / num(lim) * 100);
+    if(!isFinite(pct)) return null;
+    const extra = /aproximad|estimativa/i.test(it.texto + ' ' + it.titulo) ? '<div class="fs-xs" style="color:var(--muted);margin-top:2px;">Estimativa pelas últimas 24 h. O número oficial está no Supabase (Settings → Usage).</div>' : '';
+    return window.armBarra_(escH(tit.charAt(0).toUpperCase() + tit.slice(1)), escH(uso), escH(lim), Math.round(pct * 10) / 10, extra);
+  }catch(e){ return null; }
+}
 async function carregarSaude_(){
-  const card = document.getElementById('saudeCard'), sec = document.getElementById('saudeSecao');
+  const card = document.getElementById('saudeCard'), sec = document.getElementById('saudeSecao'), topo = document.getElementById('saudeTopoBox');
   const nivel = currentUser && currentUser.nivel; const pode = (nivel==='Admin' || nivel==='Desenvolvedor');
   if(card) card.style.display = pode ? '' : 'none';
   if(sec) sec.style.display = pode ? '' : 'none';
+  if(topo) topo.style.display = pode ? '' : 'none';
+  const prob = document.getElementById('saudeProblemas'); if(prob && !pode) prob.innerHTML = '';
   if(!pode){ window._saudeGeral_ = null; return; }
   try{ const sb = document.getElementById('reservaSimBtn'); if(sb){ sb.style.display = nivel==='Desenvolvedor' ? '' : 'none'; sb.textContent = window._sb5Simulado_ ? '✅ Encerrar simulação' : '🧪 Simular queda (treino)'; } }catch(e){}
-  const dots = ['saudeDot','saudeDotModal'].map(i=>document.getElementById(i)).filter(Boolean), ress = ['saudeResumo','saudeResumoModal'].map(i=>document.getElementById(i)).filter(Boolean), lis = document.getElementById('saudeLista');
-  const pintar = (cor, txt)=>{ dots.forEach(d=>d.style.background = cor); ress.forEach(r=>r.textContent = txt); };
+  const dots = ['saudeDot','saudeDotModal'].map(i=>document.getElementById(i)).filter(Boolean), ress = ['saudeResumo'].map(i=>document.getElementById(i)).filter(Boolean), lis = document.getElementById('saudeLista');
+  const resM = document.getElementById('saudeResumoModal'), quandoM = document.getElementById('saudeQuandoModal'), plano = document.getElementById('saudePlano'), tit = document.getElementById('saudeTodosTit');
+  const pintar = (cor, txt, titulo, quando)=>{ dots.forEach(d=>d.style.background = cor); ress.forEach(r=>r.textContent = txt); if(resM) resM.textContent = titulo || txt; if(quandoM) quandoM.textContent = quando || ''; };
   try{
     const r = await apiCall('saudeSistema', {});
-    if(!r || !r.ok){ pintar('#888', (r && r.message) || 'Não foi possível verificar agora.'); if(lis) lis.innerHTML = ''; return; }
-    const ruins = (r.itens||[]).filter(i=>i.nivel!=='ok');
+    if(!r || !r.ok){ pintar('#888', (r && r.message) || 'Não foi possível verificar agora.'); if(lis) lis.innerHTML = ''; if(plano) plano.innerHTML = ''; if(prob) prob.innerHTML = ''; return; }
+    const itens = r.itens||[], ruins = itens.filter(i=>i.nivel!=='ok');
     window._saudeGeral_ = r.geral; try{ atualizarConnDot_(); }catch(e){}
-    pintar(SAUDE_COR_[r.geral] || '#888', SAUDE_ROT_[r.geral] + (ruins.length ? ': ' + ruins.map(i=>i.titulo).join(', ') : '.') + ' · verificado às ' + String(r.em||'').split(' ')[1]);
-    if(lis) lis.innerHTML = (r.itens||[]).map(i=>`<div class="notif-card" style="border-left:4px solid ${SAUDE_COR_[i.nivel]||'#888'};"><b>${escH(i.titulo)}</b><div class="obs-line">${escH(i.texto)}</div></div>`).join('');
+    const hora = String(r.em||'').split(' ')[1];
+    pintar(SAUDE_COR_[r.geral] || '#888', SAUDE_ROT_[r.geral] + (ruins.length ? ': ' + ruins.map(i=>i.titulo).join(', ') : '.') + ' · verificado às ' + hora,
+      (r.geral==='ok' ? '✅ ' : r.geral==='problema' ? '⛔ ' : '⚠️ ') + SAUDE_ROT_[r.geral] + (ruins.length ? ' · ' + ruins.length + (ruins.length===1 ? ' item pede' : ' itens pedem') + ' atenção' : ''),
+      'Verificado às ' + hora + ' · ' + itens.length + ' verificações');
+    const ehPlano = i => /^Plano grátis:/i.test(i.titulo||'');
+    // 1) o que pede atenção vem logo no topo, com o texto inteiro (o plano grátis já mostra a cor na barra)
+    if(prob) prob.innerHTML = ruins.filter(i=>!ehPlano(i)).map(i=>`<div class="cx-prob" style="border-left-color:${SAUDE_COR_[i.nivel]||'#888'};"><b>${escH(i.titulo)}</b><span>${escH(i.texto)}</span></div>`).join('');
+    // 2) plano grátis em barras
+    const barras = [], semBarra = [];
+    itens.filter(ehPlano).forEach(i=>{ const b = saudePlanoBarra_(i); if(b) barras.push(b); else semBarra.push(i); });
+    if(plano) plano.innerHTML = barras.length ? '<div class="cx-titulo">📊 Plano grátis do Supabase</div><div class="cx-card" style="padding:8px 14px 2px;">' + barras.join('') + '</div>' : '';
+    // 3) o resto, recolhido: uma linha por verificação
+    const resto = itens.filter(i=>!ehPlano(i) || semBarra.includes(i));
+    if(tit) tit.textContent = 'Todas as verificações (' + resto.length + ')';
+    if(lis) lis.innerHTML = resto.map(i=>`<div class="cx-item"><i style="background:${SAUDE_COR_[i.nivel]||'#888'};"></i><div><b>${escH(i.titulo)}</b><span>${escH(i.texto)}</span></div></div>`).join('');
   }catch(e){ pintar('#888', 'Sem conexão para verificar.'); }
 }
 /* confere a Saúde de tempos em tempos para a bolinha do topo (só Admin/Desenvolvedor, só com a tela aberta) */

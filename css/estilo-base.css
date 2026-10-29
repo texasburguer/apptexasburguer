@@ -829,3 +829,30 @@ body.jg-aberto{overflow:hidden;}
 /* sem zoom de pinça nem toque duplo: a tela não deve ampliar sozinha (o mapa tem os botões + e −) */
 html,body,body *{touch-action:pan-x pan-y;}
 .jg-palco canvas{touch-action:none;}
+
+/* Conexão e servidores (v138): tela curta — resumo grande, servidores em linhas, plano grátis em barras, resto recolhido */
+.cx-topo{display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid var(--line);border-radius:14px;background:var(--panel-2);margin:2px 0 10px;}
+.cx-topo-dot{flex:0 0 auto;width:20px;height:20px;border-radius:50%;background:#888;box-shadow:0 0 0 4px rgba(255,255,255,.06);}
+.cx-topo-txt b{display:block;font-size:var(--fs-lg, 1.1rem);line-height:1.25;}
+.cx-topo-txt small{display:block;color:var(--muted);font-size:var(--fs-xs);margin-top:2px;}
+.cx-titulo{font-weight:700;margin:14px 0 6px;font-size:var(--fs-md, 1rem);}
+.cx-card{border:1px solid var(--line);border-radius:14px;background:var(--panel-2);padding:2px 14px;}
+.cx-linha{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--line);}
+.cx-linha:last-child{border-bottom:0;}
+.cx-linha .conn-bolha{margin-top:0;}
+.cx-linha small{color:var(--muted);font-size:var(--fs-xs);}
+.cx-dir{margin-left:auto;text-align:right;font-size:var(--fs-sm);color:var(--muted);min-width:0;}
+.cx-sub{flex:1 1 100%;color:var(--muted);font-size:var(--fs-xs);padding-left:20px;margin-top:-4px;}
+.cx-prob{border-left:4px solid #f0a500;border-radius:10px;background:var(--panel-2);padding:9px 12px;margin:0 0 8px;}
+.cx-prob b{display:block;}
+.cx-prob span{display:block;color:var(--muted);font-size:var(--fs-sm);margin-top:2px;}
+.cx-det{margin:12px 0 0;border:1px solid var(--line);border-radius:14px;padding:0 14px;background:var(--panel-2);}
+.cx-det>summary{cursor:pointer;list-style:none;padding:12px 0;font-weight:600;}
+.cx-det>summary::-webkit-details-marker{display:none;}
+.cx-det>summary::after{content:"▾";float:right;color:var(--muted);}
+.cx-det[open]>summary::after{content:"▴";}
+.cx-item{display:flex;align-items:flex-start;gap:8px;padding:8px 0;border-top:1px solid var(--line);}
+.cx-item i{flex:0 0 auto;width:10px;height:10px;border-radius:50%;margin-top:5px;}
+.cx-item b{font-size:var(--fs-sm);}
+.cx-item span{display:block;color:var(--muted);font-size:var(--fs-xs);line-height:1.4;}
+.cx-rodape{position:sticky;bottom:-1px;background:var(--panel);padding:8px 0 2px;margin-top:10px;}

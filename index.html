@@ -100,7 +100,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alfa+Slab+One&display=swap">
 <title>Texas Burger — Sistema Completo</title>
-<link rel="stylesheet" href="css/estilo-base.css?v=205e0ad2">
+<link rel="stylesheet" href="css/estilo-base.css?v=468c6976">
 </head>
 <body>
 
@@ -2007,14 +2007,19 @@
 <div class="modal-overlay" id="conexaoModal">
   <div class="modal-box">
     <div class="modal-header"><h2>Conexão e servidores</h2><button class="close-btn" onclick="fecharFormModal('conexaoModal')">✕</button></div>
-    <div id="conexaoLista"></div>
-    <div id="saudeSecao" style="display:none;margin-top:14px;border-top:1px solid var(--gold);padding-top:12px;">
-      <h3 style="display:flex;align-items:center;gap:8px;margin:0 0 4px;"><span id="saudeDotModal" style="width:14px;height:14px;border-radius:50%;background:#888;display:inline-block;"></span> Saúde do sistema</h3>
-      <div class="obs-line" id="saudeResumoModal">Verificando…</div>
-      <div id="saudeLista" class="mt-2"></div>
+    <div id="saudeTopoBox" class="cx-topo" style="display:none;">
+      <span id="saudeDotModal" class="cx-topo-dot"></span>
+      <div class="cx-topo-txt"><b id="saudeResumoModal">Verificando…</b><small id="saudeQuandoModal"></small></div>
+    </div>
+    <div id="saudeProblemas"></div>
+    <div class="cx-titulo">Servidores</div>
+    <div id="conexaoLista" class="cx-card"></div>
+    <div id="saudeSecao" style="display:none;">
+      <div id="saudePlano"></div>
+      <details id="saudeTodos" class="cx-det"><summary id="saudeTodosTit">Todas as verificações</summary><div id="saudeLista"></div></details>
       <div id="errosSistemaBox" class="mt-2">
-        <h3 style="margin:10px 0 4px;">🐞 Erros do sistema</h3>
-        <p class="sub fs-xs" style="margin:0 0 6px;">Tudo o que deu errado para a equipe e para os clientes do cardápio nos últimos dias (inclusive os avisos de falha que apareceram na tela). Toque em "Resolvido" quando corrigir.</p>
+        <div class="cx-titulo">🐞 Erros do sistema</div>
+        <p class="sub fs-xs" style="margin:0 0 6px;">O que deu errado para a equipe e para os clientes nos últimos dias. Toque em "Resolvido" quando corrigir.</p>
         <div class="btnrow"><select id="errosOnde" onchange="carregarErrosSistema_()" style="flex:1 1 40%;"><option value="todos">Todos</option><option value="cardapio">Só cardápio (clientes)</option><option value="equipe">Só equipe</option></select>
           <select id="errosDias" onchange="carregarErrosSistema_()" style="flex:1 1 30%;"><option value="1">Hoje e ontem</option><option value="7" selected>7 dias</option><option value="14">14 dias</option></select>
           <button class="ghost" type="button" onclick="carregarErrosSistema_()" style="flex:1 1 20%;">Atualizar</button></div>
@@ -2024,8 +2029,8 @@
       <div id="integracoesSaude"></div>
       <div class="btnrow mt-2"><button class="ghost" type="button" id="reservaSimBtn" style="display:none;" onclick="sb5Simulacao_()"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6M10 3v6L5 19a1 1 0 0 0 1 2h12a1 1 0 0 0 1-2l-5-10V3"/></svg>Simular queda (treino)</button></div>
     </div>
-    <div id="conexaoInfo" class="sub" style="font-size:13px;line-height:1.7;margin-top:12px;"></div>
-    <div class="btnrow mt-3"><button class="primary" id="conexaoVerificarBtn" onclick="verificarConexaoServidores_()" style="flex:1 1 100%;min-height:46px;"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7M21 4v5h-5"/></svg>Verificar agora</button></div>
+    <details class="cx-det"><summary>Detalhes deste aparelho</summary><div id="conexaoInfo" class="sub" style="font-size:13px;line-height:1.7;margin-top:6px;"></div></details>
+    <div class="btnrow mt-3 cx-rodape"><button class="primary" id="conexaoVerificarBtn" onclick="verificarConexaoServidores_()" style="flex:1 1 100%;min-height:46px;"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7M21 4v5h-5"/></svg>Verificar agora</button></div>
   </div>
 </div>
 <div class="modal-overlay" id="senhaPropriaModal">
@@ -2592,7 +2597,7 @@
   </div>
 </div>
 
-<script src="js/app-01-base-e-api.js?v=089fb3d8" charset="utf-8" data-origem="__big0__"></script>
+<script src="js/app-01-base-e-api.js?v=6e5b70b5" charset="utf-8" data-origem="__big0__"></script>
 <script src="js/app-02-abas.js?v=4172dc0a" charset="utf-8" data-origem="__big1__"></script>
 <script src="js/app-03-cadastros.js?v=46167420" charset="utf-8" data-origem="__big2__"></script>
 <script src="js/app-04-pedidos-entrega.js?v=99782e13" charset="utf-8" data-origem="__big3__"></script>
@@ -2602,9 +2607,9 @@
 <script src="js/app-08-vendas-despesas.js?v=0b8d9a34" charset="utf-8" data-origem="__big7__"></script>
 <script src="js/app-09-ajuda.js?v=6c228ecc" charset="utf-8" data-origem="__big8__"></script>
 <script src="js/app-10-backup-financeiro.js?v=7f6d2298" charset="utf-8" data-origem="__big9__"></script>
-<script src="js/app-11-admin-integracoes.js?v=eef99585" charset="utf-8" data-origem="__big10__"></script>
+<script src="js/app-11-admin-integracoes.js?v=df7ba2d9" charset="utf-8" data-origem="__big10__"></script>
 <script src="js/app-12-gestao-ia.js?v=0232103e" charset="utf-8" data-origem="__big11__"></script>
-<script src="js/app-13-conexao-sync.js?v=4169baef" charset="utf-8" data-origem="__big12__"></script>
+<script src="js/app-13-conexao-sync.js?v=fc0dccb7" charset="utf-8" data-origem="__big12__"></script>
 <script src="js/app-14-relatorios.js?v=89a1208a" charset="utf-8" data-origem="__big13__"></script>
 <script src="js/app-15-cardapio-cliente.js?v=476432bf" charset="utf-8" data-origem="__big14__"></script>
 <script src="js/app-16-sessao-final.js?v=ef1da8ab" charset="utf-8" data-origem="__big15__"></script>
