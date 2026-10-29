@@ -25,7 +25,7 @@ async function carregarArmazenamento(){
     if(!r || r.ok===false){ bkDriveErro_('armDrivePrin', '☁️ Drive principal', 'Não foi possível medir: ' + ((r&&r.message)||'sem resposta') + '.'); return; }
     const d = r.drive;
     bkDriveBarra_('armDrivePrin', '☁️ Drive principal', d, d.nivel==='Crítico' ? '⚠️ Drive quase cheio: novos backups e fotos podem falhar. Libere espaço.' : '', r.categorias);
-    sistemaAlertas_.drive = d.nivel==='Crítico' ? ('Google Drive quase cheio ('+d.percentual+'% usado). Libere espaço (Administrador → Sistema → Backup e espaço → Google Drive → Limpar fotos sem uso).') : '';
+    sistemaAlertas_.drive = d.nivel==='Crítico' ? ('Google Drive quase cheio ('+d.percentual+'% usado). Libere espaço (Administrador → Sistema → Backup e espaço → Google Drive → Opções → Limpar fotos sem uso).') : '';
     marcarAlertaAdmin_(d.nivel==='Crítico'); renderNotificacoes();
   } catch(e){ bkDriveErro_('armDrivePrin', '☁️ Drive principal', 'Sem conexão para medir o Drive agora. Toque em Atualizar.'); }
 }

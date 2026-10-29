@@ -42,29 +42,36 @@
   function montar_(){
     const aba = document.getElementById('tab-integridade'); if(!aba || document.getElementById('driveDiretoCard')) return !!document.getElementById('driveDiretoCard');
     const html = '<div class="card" id="driveDiretoCard"><h2>☁️ Google Drive</h2>'
-      + '<div class="obs-line" style="margin:0 0 8px;">Os dois Drives somam espaço: o principal guarda as fotos do cardápio, as notas de compra e os backups; o da contingência guarda as fotos do ponto, de perdas, recebimentos, ocorrências e os atestados, mais uma cópia das fotos do cardápio e dos backups.</div>'
       + '<div id="driveDiretoLista" class="cx-card"><div class="cx-linha"><span class="conn-bolha wait"></span><b>Verificando…</b></div></div>'
       + '<div id="driveDiretoMsg" class="obs-line" style="margin-top:8px;"></div>'
       + '<div id="driveLimpezaAuto" class="obs-line fs-xs" style="margin-top:8px;"></div>'
-      + '<div id="fotosSemUsoBox" class="mt-2"></div>'
-      + '<div class="btnrow mt-2"><button class="ghost" onclick="restaurarFotosLimpeza_()">↩ Desfazer a última limpeza</button></div></div>'
-      + '<div class="card" id="drivePrazosCard"><h2>🗓️ Quanto tempo guardar</h2>'
-      + '<div class="obs-line" style="margin:0 0 8px;">Depois deste prazo o arquivo é apagado sozinho do Drive, para não ocupar espaço à toa. Backups feitos na mão e os de antes de restaurar nunca são apagados.</div>'
-      + '<div id="drivePrazosCorpo"><div class="obs-line">Carregando…</div></div></div>';
+      + '<div id="fotosSemUsoBox" class="mt-2"></div></div>';
     const ref = document.getElementById('sb410Bk');
     if(ref) ref.insertAdjacentHTML('afterend', html); else aba.insertAdjacentHTML('beforeend', html);
+    // o que quase nunca se mexe fica no Avançado
+    const av = document.getElementById('bkAvancado');
+    const extra = '<div id="drivePrazosCard" style="margin-top:10px;border-top:1px solid var(--line,#3a2d1d);padding-top:10px;"><b>🗓️ Quanto tempo guardar</b>'
+      + '<div class="obs-line fs-xs" style="margin:4px 0 8px;">Depois deste prazo o arquivo é apagado sozinho do Drive, para não ocupar espaço à toa. Backups feitos na mão e os de antes de restaurar nunca são apagados.</div>'
+      + '<div id="drivePrazosCorpo"><div class="obs-line">Carregando…</div></div></div>'
+      + '<div id="driveDivisao" style="margin-top:10px;border-top:1px solid var(--line,#3a2d1d);padding-top:10px;"><b>🗂️ O que fica em cada Drive</b>'
+      + '<div class="obs-line fs-xs" style="margin-top:4px;">Os dois Drives somam espaço. O principal guarda as fotos do cardápio, as notas de compra e os backups. O da contingência guarda as fotos do ponto, de perdas, recebimentos e ocorrências e os atestados, mais uma cópia das fotos do cardápio e dos backups.</div></div>';
+    if(av) av.insertAdjacentHTML('beforeend', extra); else aba.insertAdjacentHTML('beforeend', '<div class="card">' + extra + '</div>');
     return true;
   }
   const CHAVE_LIMPA = { principal:'p', contingencia:'c' };
   function linha_(c){
     const cor = !c.conectado ? 'wait' : (c.ok ? 'ok' : 'bad');
     const sub = !c.conectado ? 'Não conectado' : (c.ok ? esc(c.email || 'conectado') + ' · desde ' + fmtData(c.desde) : '⚠️ ' + esc(c.erro || 'Autorização com problema'));
-    const bts = c.conectado
-      ? (c.ok ? '<button class="small-gold" onclick="driveDiretoAbrir(\'' + c.conta + '\')">Abrir pastas</button><button class="ghost" onclick="analisarFotosSemUso_(\'' + CHAVE_LIMPA[c.conta] + '\')">🧹 Limpar fotos sem uso</button>' : '')
-        + '<button class="ghost" onclick="driveDiretoConectar(\'' + c.conta + '\')">Reconectar</button><button class="ghost" onclick="driveDiretoDesconectar(\'' + c.conta + '\')">Desconectar</button>'
-      : '<button class="small-gold" onclick="driveDiretoConectar(\'' + c.conta + '\')">Conectar</button>';
+    const k = '\'' + c.conta + '\'';
+    // problema ou não conectado: o botão para resolver fica à vista; com tudo certo, as opções ficam recolhidas
+    const precisa = !c.conectado ? '<button class="small-gold" onclick="driveDiretoConectar(' + k + ')">Conectar</button>'
+      : (!c.ok ? '<button class="small-gold" onclick="driveDiretoConectar(' + k + ')">Reconectar</button>' : '');
+    const opcoes = c.conectado
+      ? '<details style="margin:2px 0 0 20px;"><summary class="fs-xs" style="cursor:pointer;color:var(--muted);">Opções</summary><div class="btnrow" style="flex-wrap:wrap;margin-top:6px;">'
+        + (c.ok ? '<button class="small-gold" onclick="driveDiretoAbrir(' + k + ')">Abrir pastas</button><button class="ghost" onclick="analisarFotosSemUso_(\'' + CHAVE_LIMPA[c.conta] + '\')">🧹 Limpar fotos sem uso</button><button class="ghost" onclick="restaurarFotosLimpeza_()">↩ Desfazer a última limpeza</button>' : '')
+        + (c.ok ? '<button class="ghost" onclick="driveDiretoConectar(' + k + ')">Reconectar</button>' : '') + '<button class="ghost" onclick="driveDiretoDesconectar(' + k + ')">Desconectar</button></div></details>' : '';
     return '<div style="padding:8px 0;border-top:1px solid var(--line,#3a2d1d);"><div class="cx-linha" style="padding:0;"><span class="conn-bolha ' + cor + '"></span><b>' + esc(c.nome) + '</b></div>'
-      + '<div class="fs-xs" style="color:var(--muted);margin:2px 0 6px 20px;">' + sub + '</div><div class="btnrow" style="margin-left:20px;flex-wrap:wrap;">' + bts + '</div></div>';
+      + '<div class="fs-xs" style="color:var(--muted);margin:2px 0 6px 20px;">' + sub + '</div>' + (precisa ? '<div class="btnrow" style="margin-left:20px;">' + precisa + '</div>' : '') + opcoes + '</div>';
   }
   const ROTULOS = [['ponto','Fotos do ponto'],['evidencias','Perdas, recebimentos e ocorrências'],['atestados','Atestados'],['notas','Notas de compra'],['backups','Backups automáticos']];
   function limpezaAuto_(l){

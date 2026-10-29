@@ -245,14 +245,14 @@ Admin:{ nome:'Administrador', secoes:[
 
   { t:'🧹 Limpar fotos sem uso do Google Drive', itens:[
     'Sozinho: uma vez por mês o sistema faz esta limpeza nos dois Drives (de madrugada). O resultado da última aparece no cartão "☁️ Google Drive". Se der erro, o aviso fica vermelho ali.',
-    'Na mão: Administrador → Sistema → Backup e espaço → cartão "☁️ Google Drive" → "🧹 Limpar fotos sem uso" na linha do Drive que você quer. Nada é apagado nesta etapa: só mostra a lista.',
+    'Na mão: Administrador → Sistema → Backup e espaço → cartão "☁️ Google Drive" → "Opções" na linha do Drive que você quer → "🧹 Limpar fotos sem uso". Nada é apagado nesta etapa: só mostra a lista.',
     'Aparecem as fotos sem uso, quanto espaço libera e o motivo (sem produto/combo, duplicada, cópia que não é mais usada). Desmarque o que quiser manter e toque em "Mandar as marcadas para a lixeira do Drive" (pede a senha). O sistema confere de novo, na hora, que nenhuma está em uso.',
     'Nunca entram: fotos de produtos e combos, as do histórico de fotos, as que o Espelho da contingência ainda usa, as com menos de 7 dias, comprovantes de nota e fotos do ponto.',
     'Arrependeu? "↩ Desfazer a última limpeza" tira da lixeira. O espaço do Drive só volta de verdade quando você esvazia a lixeira no próprio Google Drive (drive.google.com → Lixeira).',
     'Não roda durante um backup (o sistema avisa e não apaga nada).' ] },
 
   { t:'🗓️ Quanto tempo guardar (fotos, notas e backups)', itens:[
-    'Administrador → Sistema → Backup e espaço → cartão "🗓️ Quanto tempo guardar". Mostra por quantos dias cada coisa fica no Drive antes de ser apagada sozinha.',
+    'Administrador → Sistema → Backup e espaço → "⚙️ Avançado" (no fim da tela) → "🗓️ Quanto tempo guardar". Mostra por quantos dias cada coisa fica no Drive antes de ser apagada sozinha.',
     'Padrão: fotos do ponto, perdas, recebimentos e ocorrências 90 dias; atestados 90 dias; notas de compra 13 meses (395 dias); backups automáticos 30 dias. Backups feitos na mão e os de antes de restaurar nunca são apagados.',
     'Para mudar, altere os dias e toque em "Salvar prazos" (pede a senha). Vale a partir da próxima limpeza diária.',
     'Dividir os dois Drives: o principal guarda fotos do cardápio, notas de compra e backups; o da contingência guarda fotos do ponto, perdas, recebimentos, ocorrências e atestados, mais uma cópia das fotos do cardápio e dos backups.' ] },

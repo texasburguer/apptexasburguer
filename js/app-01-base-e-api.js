@@ -7,7 +7,7 @@ const API_URL = "https://script.google.com/macros/s/AKfycbwCftUm-1pxhA8XLNqMB7dM
 const CONTINGENCIA_API_URL = "https://script.google.com/macros/s/AKfycby3WljBnr7gpJrHdkbTvBCh5uIXqS4KCS6wkBYB5idxf5gI04efoDumQj264kR_smoW/exec";
 
 /* ===================== VERSÃO DO APP ===================== */
-const APP_VERSAO = '1.21';
+const APP_VERSAO = '1.22';
 const APP_ATUALIZADO_EM = '29/10/2026';
 window.APP_VERSAO = APP_VERSAO;
 
@@ -19,6 +19,9 @@ window.APP_VERSAO = APP_VERSAO;
    A seção "🆕 O que mudou" do manual é gerada daqui. */
 const APP_NOVIDADES = {
   Admin: [
+    { v:'1.22', em:'29/10/2026', itens:[
+      'Backup e espaço · A tela abre só com o essencial: Uso do espaço, Backup, Google Drive (status de cada Drive e a última limpeza automática) e Cópias de segurança. "Quanto tempo guardar" e "O que fica em cada Drive" foram para o Avançado, e as opções do Drive (abrir pastas, limpar fotos sem uso, reconectar, desconectar) ficam recolhidas em "Opções". Se um Drive tiver problema, o botão para resolver aparece na hora.',
+      'Backup e espaço · As barras dos dois Drives abrem mais rápido: o que ocupa cada Drive é guardado por 30 minutos (o espaço usado é sempre o atual) e é refeito logo depois de qualquer limpeza.' ] },
     { v:'1.21', em:'29/10/2026', itens:[
       'Google Drive · Os dois Drives agora somam espaço, em vez de guardar a mesma coisa: o principal fica com as fotos do cardápio, as notas de compra e os backups; a contingência fica com as fotos do ponto, de perdas, recebimentos, ocorrências e os atestados, mais uma cópia das fotos do cardápio e dos backups. Acabou o espelhamento de fotos entre os Drives.',
       'Backup e espaço · Cartão novo "☁️ Google Drive": status de cada Drive, abrir pastas e "🧹 Limpar fotos sem uso" direto na linha do Drive (pede a senha, vai para a lixeira do Drive e dá para desfazer). Sai o bloco de fotos sem uso do Avançado. As barras do "Uso do espaço" mostram o que ocupa cada Drive.',
