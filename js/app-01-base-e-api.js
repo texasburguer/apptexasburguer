@@ -7,7 +7,7 @@ const API_URL = "https://script.google.com/macros/s/AKfycbwCftUm-1pxhA8XLNqMB7dM
 const CONTINGENCIA_API_URL = "https://script.google.com/macros/s/AKfycby3WljBnr7gpJrHdkbTvBCh5uIXqS4KCS6wkBYB5idxf5gI04efoDumQj264kR_smoW/exec";
 
 /* ===================== VERSÃO DO APP ===================== */
-const APP_VERSAO = '1.20';
+const APP_VERSAO = '1.21';
 const APP_ATUALIZADO_EM = '29/10/2026';
 window.APP_VERSAO = APP_VERSAO;
 
@@ -19,6 +19,11 @@ window.APP_VERSAO = APP_VERSAO;
    A seção "🆕 O que mudou" do manual é gerada daqui. */
 const APP_NOVIDADES = {
   Admin: [
+    { v:'1.21', em:'29/10/2026', itens:[
+      'Google Drive · Os dois Drives agora somam espaço, em vez de guardar a mesma coisa: o principal fica com as fotos do cardápio, as notas de compra e os backups; a contingência fica com as fotos do ponto, de perdas, recebimentos, ocorrências e os atestados, mais uma cópia das fotos do cardápio e dos backups. Acabou o espelhamento de fotos entre os Drives.',
+      'Backup e espaço · Cartão novo "☁️ Google Drive": status de cada Drive, abrir pastas e "🧹 Limpar fotos sem uso" direto na linha do Drive (pede a senha, vai para a lixeira do Drive e dá para desfazer). Sai o bloco de fotos sem uso do Avançado. As barras do "Uso do espaço" mostram o que ocupa cada Drive.',
+      'Backup e espaço · A limpeza de fotos sem uso agora roda sozinha uma vez por mês; o resultado (ou o erro) aparece no cartão do Drive.',
+      'Backup e espaço · Cartão novo "🗓️ Quanto tempo guardar", com os dias editáveis (pede a senha). Novos padrões: fotos do ponto, perdas, recebimentos e ocorrências 90 dias; atestados 90 dias; backups automáticos 30 dias; notas de compra 13 meses (antes nunca eram apagadas).' ] },
     { v:'1.20', em:'29/10/2026', itens:[
       'Fotos · A foto do atestado (Meus registros) agora fica no Google Drive, nos dois (principal e contingência), e é apagada sozinha após 30 dias. Nenhuma foto vai mais para o banco. O Storage do Supabase fica só com os backups e os arquivos antigos do banco.' ] },
     { v:'1.19', em:'29/10/2026', itens:[

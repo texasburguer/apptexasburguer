@@ -1,5 +1,5 @@
 /* Fotos opcionais em três lançamentos (18/10/2026): perda de estoque, recebimento de compra e ocorrência de pedido.
-   Depois de lançar, o sistema pergunta se a pessoa quer anexar até 3 fotos (pode pular). Ficam 45 dias nos dois Drives.
+   Depois de lançar, o sistema pergunta se a pessoa quer anexar até 3 fotos (pode pular). Ficam 90 dias no Drive.
    Quem vê: Admin (perda e recebimento) e Admin/Operador (ocorrência), pelo botão 📷 no próprio lançamento. */
 const FV_ROTULO_ = { perda:'Perda de estoque', recebimento:'Recebimento da compra', ocorrencia:'Ocorrência' };
 const FV_OFERECIDOS_ = new Set();
@@ -46,7 +46,7 @@ function fvDesenhar_(msg){
   const c = fvCtx_; if(!c) return;
   const miniaturas = c.fotos.map((b, i) => '<span style="position:relative;display:inline-block;margin:0 6px 6px 0;"><img alt="Foto ' + (i + 1) + '" style="width:84px;height:84px;object-fit:cover;border-radius:8px;" src="data:image/jpeg;base64,' + b + '"><button type="button" class="ghost small" style="position:absolute;top:2px;right:2px;padding:0 6px;" onclick="fvTirar(' + i + ')" aria-label="Tirar foto ' + (i + 1) + '">✕</button></span>').join('');
   document.getElementById('fvCorpo').innerHTML =
-    '<p class="sub">Opcional. Serve de prova se precisar conferir depois. A foto fica guardada por 45 dias e só o dono vê' + (c.tipo === 'ocorrencia' ? ' (e o operador)' : '') + '.</p>'
+    '<p class="sub">Opcional. Serve de prova se precisar conferir depois. A foto fica guardada por 90 dias e só o dono vê' + (c.tipo === 'ocorrencia' ? ' (e o operador)' : '') + '.</p>'
     + (miniaturas ? '<div style="margin:8px 0;">' + miniaturas + '</div>' : '')
     + (msg ? '<p class="sub" id="fvMsg">' + escH(msg) + '</p>' : '')
     + '<div class="btn-row" style="gap:8px;flex-wrap:wrap;">'
@@ -155,6 +155,6 @@ async function fvVer(tipo, refId, indice){
     if(!j || !j.ok || !j.base64) throw new Error((j && j.message) || 'Não consegui abrir a foto.');
     let abas = '';
     if(j.total > 1){ abas = '<div class="btn-row" style="margin-bottom:8px;">'; for(let i = 0; i < j.total; i++) abas += '<button type="button" class="' + (i === (indice || 0) ? 'small-gold' : 'ghost small') + '" onclick="fvVer(\'' + tipo + '\',\'' + refId + '\',' + i + ')">Foto ' + (i + 1) + '</button>'; abas += '</div>'; }
-    corpo.innerHTML = abas + '<img alt="Foto do lançamento" style="width:100%;border-radius:10px;" src="data:' + (j.tipo || 'image/jpeg') + ';base64,' + j.base64 + '"><div class="obs-line" style="margin-top:6px;">Guardada por 45 dias.</div>';
+    corpo.innerHTML = abas + '<img alt="Foto do lançamento" style="width:100%;border-radius:10px;" src="data:' + (j.tipo || 'image/jpeg') + ';base64,' + j.base64 + '"><div class="obs-line" style="margin-top:6px;">Guardada por 90 dias.</div>';
   }catch(e){ corpo.innerHTML = '<p class="sub">' + escH(e.message || 'Não consegui abrir a foto.') + '</p>'; }
 }

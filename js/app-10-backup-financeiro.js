@@ -3,11 +3,14 @@ function escBk_(s){ return escH(s); }
 function formatarBytes_(b){ b=Number(b)||0; if(b<=0) return '—'; const u=['B','KB','MB','GB','TB']; let i=0; while(b>=1024&&i<u.length-1){ b/=1024; i++; } return b.toFixed(i?1:0)+' '+u[i]; }
 function marcarAlertaAdmin_(ativo){ if(!ativo) return; const b=document.querySelector('[data-tab="administrador"]'); if(b) b.classList.add('has-alert'); }
 /* Barra de um Drive na tela Backup e espaço (mesmo desenho do banco, Storage e planilha). Erro sempre aparece. */
-function bkDriveBarra_(boxId, titulo, d, alerta){
+function bkDriveBarra_(boxId, titulo, d, alerta, cats){
   const box = document.getElementById(boxId); if(!box) return;
   const total = (Number(d.usado)||0) + (Number(d.livre)||0);
+  // composição: o que ocupa o espaço (só categorias com algo dentro), em uma linha
+  const comp = cats ? Object.keys(cats).filter(k => (cats[k].bytes||0) > 0).map(k => escBk_(k) + ' ' + formatarBytes_(cats[k].bytes)).join(' · ') : '';
+  const extra = (comp ? '<div class="fs-xs mt-1" style="color:var(--muted);">' + comp + '</div>' : '') + (alerta ? '<div class="obs-line fs-xs mt-1" style="color:#ffb3ab;">' + alerta + '</div>' : '');
   const html = (typeof armBarra_ === 'function')
-    ? armBarra_(titulo, formatarBytes_(d.usado), d.livre===null ? '—' : formatarBytes_(total), d.percentual===null ? 0 : d.percentual, alerta ? '<div class="obs-line fs-xs mt-1" style="color:#ffb3ab;">' + alerta + '</div>' : '')
+    ? armBarra_(titulo, formatarBytes_(d.usado), d.livre===null ? '—' : formatarBytes_(total), d.percentual===null ? 0 : d.percentual, extra)
     : '<b>' + titulo + '</b> ' + formatarBytes_(d.usado) + ' · ' + (d.percentual===null?'—':d.percentual+'%');
   box.innerHTML = html;
 }
@@ -21,8 +24,8 @@ async function carregarArmazenamento(){
     const r = await apiCall('obterArmazenamento', {});
     if(!r || r.ok===false){ bkDriveErro_('armDrivePrin', '☁️ Drive principal', 'Não foi possível medir: ' + ((r&&r.message)||'sem resposta') + '.'); return; }
     const d = r.drive;
-    bkDriveBarra_('armDrivePrin', '☁️ Drive principal', d, d.nivel==='Crítico' ? '⚠️ Drive quase cheio: novos backups e fotos podem falhar. Libere espaço.' : '');
-    sistemaAlertas_.drive = d.nivel==='Crítico' ? ('Google Drive quase cheio ('+d.percentual+'% usado). Libere espaço (Administrador → Sistema → Backup e espaço → Avançado → Fotos sem uso).') : '';
+    bkDriveBarra_('armDrivePrin', '☁️ Drive principal', d, d.nivel==='Crítico' ? '⚠️ Drive quase cheio: novos backups e fotos podem falhar. Libere espaço.' : '', r.categorias);
+    sistemaAlertas_.drive = d.nivel==='Crítico' ? ('Google Drive quase cheio ('+d.percentual+'% usado). Libere espaço (Administrador → Sistema → Backup e espaço → Google Drive → Limpar fotos sem uso).') : '';
     marcarAlertaAdmin_(d.nivel==='Crítico'); renderNotificacoes();
   } catch(e){ bkDriveErro_('armDrivePrin', '☁️ Drive principal', 'Sem conexão para medir o Drive agora. Toque em Atualizar.'); }
 }
@@ -158,7 +161,7 @@ async function carregarArmazenamentoContingencia(){
     const r = await apiCall('obterArmazenamentoContingencia', {});
     if(!r || r.ok===false){ bkDriveErro_('armDriveCont', T, 'Não foi possível medir: ' + ((r&&r.message)||'sem resposta') + '.'); sistemaAlertas_.driveCont=''; return; }
     const d = r.drive;
-    bkDriveBarra_('armDriveCont', T, d, d.nivel==='Crítico' ? '⚠️ Drive da contingência quase cheio: novas cópias de backup e fotos podem ser recusadas. Libere espaço nessa conta.' : '');
+    bkDriveBarra_('armDriveCont', T, d, d.nivel==='Crítico' ? '⚠️ Drive da contingência quase cheio: novas cópias de backup e fotos podem ser recusadas. Libere espaço nessa conta.' : '', r.categorias);
     sistemaAlertas_.driveCont = d.nivel==='Crítico' ? ('Drive da conta da contingência quase cheio ('+d.percentual+'% usado). Libere espaço nessa conta.') : '';
     marcarAlertaAdmin_(d.nivel==='Crítico'); renderNotificacoes();
   } catch(e){ bkDriveErro_('armDriveCont', T, 'Sem conexão para medir o Drive da contingência agora. Toque em Atualizar.'); }
@@ -825,8 +828,9 @@ async function excluirUsuarioPrompt(login){
 }
 
 /* ---------- P-12 (v1.15): fotos sem uso no Drive principal e no da contingência ---------- */
-let _fotosSemUso_ = null;
-async function analisarFotosSemUso_(){
+let _fotosSemUso_ = null, _fotosSoEsse_ = '';
+async function analisarFotosSemUso_(soEsse){
+  _fotosSoEsse_ = soEsse || '';
   const box = document.getElementById('fotosSemUsoBox'); if(!box) return;
   box.innerHTML = '<div class="obs-line">⏳ Analisando os dois Drives… pode levar até 2 minutos. Nada é apagado nesta etapa.</div>';
   try{
@@ -846,8 +850,8 @@ function renderFotosSemUso_(){
       <label class="d-flex ai-centro gap-2 mt-1"><input type="checkbox" class="largura-auto" checked onchange="document.querySelectorAll('[data-fsu=${chave}]').forEach(c=>c.checked=this.checked)"> Marcar / desmarcar todas</label>
       <div style="max-height:220px;overflow:auto;margin-top:4px;">${lista.map(x=>`<label class="d-flex ai-centro gap-2 fs-xs" style="margin:3px 0;"><input type="checkbox" class="largura-auto" data-fsu="${chave}" value="${escBk_(x.id)}" checked> <span>${escBk_(x.nome || x.id)} · ${formatarBytes_(x.tamanho)} · <i>${escBk_(x.motivo || '')}</i></span></label>`).join('')}</div></div>`;
   };
-  const nada = !(r.principal && (r.principal.semUso||[]).length) && !(r.contingencia && r.contingencia.ok !== false && (r.contingencia.semUso||[]).length);
-  box.innerHTML = bloco('Drive principal', r.principal, 'p') + bloco('Drive da contingência', r.contingencia, 'c')
+  const nada = (_fotosSoEsse_ === 'c' || !(r.principal && (r.principal.semUso||[]).length)) && (_fotosSoEsse_ === 'p' || !(r.contingencia && r.contingencia.ok !== false && (r.contingencia.semUso||[]).length));
+  box.innerHTML = (_fotosSoEsse_ === 'c' ? '' : bloco('Drive principal', r.principal, 'p')) + (_fotosSoEsse_ === 'p' ? '' : bloco('Drive da contingência', r.contingencia, 'c'))
     + (nada ? '' : `<div class="btnrow mt-2"><button class="primary" onclick="limparFotosSemUso_()">🗑️ Mandar as marcadas para a lixeira do Drive</button></div>
        <p class="obs-line">Vão para a LIXEIRA do Google Drive: dá para desfazer por cerca de 30 dias ("Desfazer a última limpeza"). O espaço só volta de verdade quando você esvaziar a lixeira no próprio Google Drive (drive.google.com → Lixeira).</p>`);
 }
@@ -866,7 +870,7 @@ async function limparFotosSemUso_(){
       const p = r.principal || {}, c = r.contingencia || {};
       avisar('Limpeza feita: ' + (p.removidas||0) + ' foto(s) do principal (' + formatarBytes_(p.bytes) + ') e ' + (c.removidas||0) + ' da contingência (' + formatarBytes_(c.bytes) + ') foram para a lixeira do Drive.', 'ok', 9000);
       if(c.erro) mostrarErro_('⚠️ Contingência: ' + c.erro, { forcar:true });
-      _fotosSemUso_ = null; analisarFotosSemUso_(); carregarArmazenamento();
+      _fotosSemUso_ = null; analisarFotosSemUso_(_fotosSoEsse_); bkAtualizarEspaco_(); try{ window.driveDiretoCarregar_ && window.driveDiretoCarregar_(); }catch(e){}
     }catch(e){ const and = document.getElementById('fsuAndamento'); if(and) and.remove(); mostrarErro_('📡 Sem conexão durante a limpeza. Toque em "Analisar" de novo para ver o que ficou.', { forcar:true }); }
   });
 }
@@ -875,7 +879,7 @@ async function restaurarFotosLimpeza_(){
   abrirModalSenhaAdmin(async (senha)=>{
     try{
       const r = await sb410Edge_('planilha-admin', { acao:'fotosRestaurar', senha }, 150000);
-      if(r && r.ok){ avisar(r.message || 'Restaurado.', 'ok', 8000); carregarArmazenamento(); }
+      if(r && r.ok){ avisar(r.message || 'Restaurado.', 'ok', 8000); bkAtualizarEspaco_(); }
       else mostrarErro_('⚠️ ' + ((r && r.message) || 'Não foi possível desfazer.'), { forcar:true });
     }catch(e){ mostrarErro_('📡 Sem conexão: nada foi desfeito.', { forcar:true }); }
   });

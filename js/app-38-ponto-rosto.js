@@ -3,7 +3,7 @@
    • Primeira batida: aceite (LGPD) + cadastro do rosto (um código de 128 números, não é foto). A comparação é feita no banco.
    • Cada batida: olhar para a câmera e piscar (ou virar o rosto um pouco) → rosto conferido → batida registrada.
    • Rosto não conferiu: tentar de novo ou mandar a selfie; a batida fica "pendente" para o dono aprovar ou cancelar.
-   • A foto de cada batida vai para o Drive principal e o da contingência (pasta privada) e é apagada após 45 dias.
+   • A foto de cada batida vai para o Drive principal e o da contingência (pasta privada) e é apagada após o prazo definido (90 dias por padrão).
    • Biblioteca face-api.js (MIT) e modelos ficam na própria pasta do site (nada vem de fora).
    ============================================================ */
 var prFace_ = { pronto:false, carregando:null, falhou:false };
@@ -77,7 +77,7 @@ function prConsentimento_(){
   prMsg_('');
   document.getElementById('prFaceTitulo').textContent = 'Cadastro do seu rosto';
   document.getElementById('prFaceCorpo').innerHTML = '<div class="obs-line" style="text-align:left;line-height:1.5;">Para confirmar que é você quem bate o ponto, o sistema vai guardar um <b>código numérico do seu rosto</b> (não é a foto). ' +
-    'A <b>foto</b> de cada batida fica salva por <b>45 dias</b> e depois é apagada sozinha. Esses dados são usados somente para o controle de ponto do Texas Burger. ' +
+    'A <b>foto</b> de cada batida fica salva por <b>90 dias</b> (o administrador pode mudar) e depois é apagada sozinha. Esses dados são usados somente para o controle de ponto do Texas Burger. ' +
     'Você pode pedir ao dono para apagar o seu rosto a qualquer momento.</div>';
   prBotoes_([
     { t:'Aceito e continuar', cls:'small-gold', f:() => { prCtx_.consentimento = true; prIniciar_(); } },
@@ -219,7 +219,7 @@ function pontoRostoBotoes_(x){
 function pontoRostoCard_(){
   const r = (pontoDados_ && pontoDados_.rosto) || { ligado:true, limite:0.55 };
   return '<div class="notif-card"><b>🙂 Reconhecimento facial</b><div class="obs-line" style="margin-top:4px;">' + (r.ligado ? 'Ligado: o funcionário cadastra o rosto na primeira batida e confirma nas seguintes. ' : 'Desligado: o ponto é batido sem câmera. ') +
-    'As fotos das batidas ficam salvas por 45 dias (Drive principal e contingência) e são apagadas sozinhas.</div><div class="btn-row" style="margin-top:6px;">' +
+    'As fotos das batidas ficam salvas por 90 dias (um dos Drives) e são apagadas sozinhas.</div><div class="btn-row" style="margin-top:6px;">' +
     '<button type="button" class="' + (r.ligado ? 'ghost small' : 'small-gold') + '" onclick="pontoRostoLigar(' + (r.ligado ? 'false' : 'true') + ')">' + (r.ligado ? 'Desligar' : 'Ligar') + '</button>' +
     (r.ligado ? '<button type="button" class="ghost small" onclick="pontoRostoRigor()">Rigor: ' + Number(r.limite).toFixed(2).replace('.', ',') + '</button>' : '') + '</div></div>';
 }
@@ -264,6 +264,6 @@ async function pontoFotoVer(id, lado){
     const j = await sb410Edge_('ponto-foto', { acao:'ver', registroId: id, lado }, 60000);
     if(!j || !j.ok || !j.base64) throw new Error((j && j.message) || 'Não consegui abrir a foto.');
     corpo.innerHTML = troca + '<img alt="Foto da batida" style="width:100%;border-radius:10px;" src="data:' + (j.tipo || 'image/jpeg') + ';base64,' + j.base64 + '">' +
-      '<div class="obs-line" style="margin-top:6px;">' + (x.rostoEntrada || x.rostoSaida ? 'Foto guardada por 45 dias.' : '') + '</div>';
+      '<div class="obs-line" style="margin-top:6px;">' + (x.rostoEntrada || x.rostoSaida ? 'Foto guardada por 90 dias.' : '') + '</div>';
   }catch(e){ corpo.innerHTML = troca + '<p class="sub">' + escH(e.message || 'Não consegui abrir a foto.') + '</p>'; }
 }

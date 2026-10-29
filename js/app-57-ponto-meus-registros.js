@@ -88,7 +88,7 @@ function mrAtestado(){
   if(!m){
     m = document.createElement('div'); m.className = 'modal-overlay'; m.id = 'mrAtModal';
     m.innerHTML = '<div class="modal-box" style="max-width:480px;"><div class="modal-header"><h2>Enviar atestado</h2><button class="close-btn" onclick="fecharFormModal(\'mrAtModal\')" aria-label="Fechar">✕</button></div>' +
-      '<p class="sub">Informe os dias de afastamento e tire (ou escolha) uma foto do atestado. O administrador analisa; a foto fica guardada no Google Drive e é apagada sozinha após 30 dias.</p>' +
+      '<p class="sub">Informe os dias de afastamento e tire (ou escolha) uma foto do atestado. O administrador analisa; a foto fica guardada no Google Drive e é apagada sozinha após 90 dias.</p>' +
       '<label for="mrAtIni">Primeiro dia</label><input type="date" id="mrAtIni">' +
       '<label for="mrAtFim">Último dia</label><input type="date" id="mrAtFim">' +
       '<label for="mrAtFoto">Foto do atestado</label><input type="file" id="mrAtFoto" accept="image/*" onchange="mrAtFotoLida_(this)">' +

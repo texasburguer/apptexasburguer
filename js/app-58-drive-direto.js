@@ -1,6 +1,6 @@
 /* =====================================================================
    v1.17 — Google Drive direto (sem Apps Script)
-   Cartão "☁️ Google Drive direto" em Sistema → Backup e espaço (só Admin):
+   Cartões "☁️ Google Drive" e "🗓️ Quanto tempo guardar" em Sistema → Backup e espaço (só Admin):
      • conectar o Drive principal e o Drive da contingência (cada um com a sua conta Google; senha pedida);
      • navegar pelas pastas, baixar arquivos, enviar arquivos (senha) e criar pastas;
      • o backup passa a ser copiado também por este caminho (função criar-backup).
@@ -38,30 +38,66 @@
   }
   if(retorno){ let tent = 0; const t = setInterval(() => { tent++; if(ehAdmin() && typeof abrirAdministrador === 'function'){ clearInterval(t); tratarRetorno_(); } else if(tent > 60) clearInterval(t); }, 500); }
 
-  /* ---------- cartão ---------- */
+  /* ---------- cartão "☁️ Google Drive" (conexão + limpar fotos sem uso + última limpeza automática) e cartão "🗓️ Quanto tempo guardar" ---------- */
   function montar_(){
     const aba = document.getElementById('tab-integridade'); if(!aba || document.getElementById('driveDiretoCard')) return !!document.getElementById('driveDiretoCard');
-    const html = '<div class="card" id="driveDiretoCard"><h2>☁️ Google Drive direto</h2>'
-      + '<div class="obs-line" style="margin:0 0 8px;">Acesso ao Google Drive sem passar pelo Apps Script. Conecte cada Drive com a conta Google dele. O backup também é copiado por aqui.</div>'
+    const html = '<div class="card" id="driveDiretoCard"><h2>☁️ Google Drive</h2>'
+      + '<div class="obs-line" style="margin:0 0 8px;">Os dois Drives somam espaço: o principal guarda as fotos do cardápio, as notas de compra e os backups; o da contingência guarda as fotos do ponto, de perdas, recebimentos, ocorrências e os atestados, mais uma cópia das fotos do cardápio e dos backups.</div>'
       + '<div id="driveDiretoLista" class="cx-card"><div class="cx-linha"><span class="conn-bolha wait"></span><b>Verificando…</b></div></div>'
-      + '<div id="driveDiretoMsg" class="obs-line" style="margin-top:8px;"></div></div>';
+      + '<div id="driveDiretoMsg" class="obs-line" style="margin-top:8px;"></div>'
+      + '<div id="driveLimpezaAuto" class="obs-line fs-xs" style="margin-top:8px;"></div>'
+      + '<div id="fotosSemUsoBox" class="mt-2"></div>'
+      + '<div class="btnrow mt-2"><button class="ghost" onclick="restaurarFotosLimpeza_()">↩ Desfazer a última limpeza</button></div></div>'
+      + '<div class="card" id="drivePrazosCard"><h2>🗓️ Quanto tempo guardar</h2>'
+      + '<div class="obs-line" style="margin:0 0 8px;">Depois deste prazo o arquivo é apagado sozinho do Drive, para não ocupar espaço à toa. Backups feitos na mão e os de antes de restaurar nunca são apagados.</div>'
+      + '<div id="drivePrazosCorpo"><div class="obs-line">Carregando…</div></div></div>';
     const ref = document.getElementById('sb410Bk');
     if(ref) ref.insertAdjacentHTML('afterend', html); else aba.insertAdjacentHTML('beforeend', html);
     return true;
   }
+  const CHAVE_LIMPA = { principal:'p', contingencia:'c' };
   function linha_(c){
     const cor = !c.conectado ? 'wait' : (c.ok ? 'ok' : 'bad');
     const sub = !c.conectado ? 'Não conectado' : (c.ok ? esc(c.email || 'conectado') + ' · desde ' + fmtData(c.desde) : '⚠️ ' + esc(c.erro || 'Autorização com problema'));
     const bts = c.conectado
-      ? (c.ok ? '<button class="small-gold" onclick="driveDiretoAbrir(\'' + c.conta + '\')">Abrir</button>' : '')
+      ? (c.ok ? '<button class="small-gold" onclick="driveDiretoAbrir(\'' + c.conta + '\')">Abrir pastas</button><button class="ghost" onclick="analisarFotosSemUso_(\'' + CHAVE_LIMPA[c.conta] + '\')">🧹 Limpar fotos sem uso</button>' : '')
         + '<button class="ghost" onclick="driveDiretoConectar(\'' + c.conta + '\')">Reconectar</button><button class="ghost" onclick="driveDiretoDesconectar(\'' + c.conta + '\')">Desconectar</button>'
       : '<button class="small-gold" onclick="driveDiretoConectar(\'' + c.conta + '\')">Conectar</button>';
     return '<div style="padding:8px 0;border-top:1px solid var(--line,#3a2d1d);"><div class="cx-linha" style="padding:0;"><span class="conn-bolha ' + cor + '"></span><b>' + esc(c.nome) + '</b></div>'
-      + '<div class="fs-xs" style="color:var(--muted);margin:2px 0 6px 20px;">' + sub + '</div><div class="btnrow" style="margin-left:20px;">' + bts + '</div></div>';
+      + '<div class="fs-xs" style="color:var(--muted);margin:2px 0 6px 20px;">' + sub + '</div><div class="btnrow" style="margin-left:20px;flex-wrap:wrap;">' + bts + '</div></div>';
   }
+  const ROTULOS = [['ponto','Fotos do ponto'],['evidencias','Perdas, recebimentos e ocorrências'],['atestados','Atestados'],['notas','Notas de compra'],['backups','Backups automáticos']];
+  function limpezaAuto_(l){
+    const box = document.getElementById('driveLimpezaAuto'); if(!box) return;
+    if(!l){ box.innerHTML = '🗓️ Limpeza automática de fotos sem uso: roda sozinha uma vez por mês. Ainda não rodou.'; return; }
+    const quando = l.em ? new Date(l.em).toLocaleDateString('pt-BR') : l.mes;
+    if(l.erro){ box.innerHTML = '<span style="color:#ffb3ab;">⚠️ A limpeza automática de ' + esc(quando) + ' não terminou: ' + esc(l.erro) + ' Nada foi apagado além do que já foi dito aqui; ela tenta de novo no dia seguinte.</span>'; return; }
+    const p = l.principal || {}, c = l.contingencia || {};
+    box.innerHTML = '✅ Última limpeza automática (' + esc(quando) + '): principal ' + (p.removidas || 0) + ' foto(s), ' + esc(formatarBytes_(p.bytes)) + '; contingência ' + (c.removidas || 0) + ' foto(s), ' + esc(formatarBytes_(c.bytes)) + (l.replicadas ? '; ' + l.replicadas + ' foto(s) do cardápio copiadas para a contingência' : '') + '. Vão para a lixeira do Drive.';
+  }
+  function prazos_(j){
+    const box = document.getElementById('drivePrazosCorpo'); if(!box) return;
+    if(!j || !j.ok){ box.innerHTML = '<div class="fs-sm" style="color:#ffb3ab;">⚠️ Não consegui ler os prazos: ' + esc((j && j.message) || 'sem resposta') + '</div><div class="btnrow"><button class="ghost" onclick="driveDiretoCarregar_()">Tentar de novo</button></div>'; return; }
+    const lim = j.limites || {};
+    box.innerHTML = ROTULOS.map(([k, nome]) => '<div class="d-flex ai-centro gap-2" style="justify-content:space-between;margin:6px 0;"><label for="dpz_' + k + '" style="flex:1;">' + nome + '<div class="fs-xs" style="color:var(--muted);">de ' + (lim[k] || [1, 999])[0] + ' a ' + (lim[k] || [1, 999])[1] + ' dias · padrão ' + (j.padroes || {})[k] + '</div></label>'
+      + '<input id="dpz_' + k + '" type="number" inputmode="numeric" min="' + (lim[k] || [1])[0] + '" max="' + (lim[k] || [1, 999])[1] + '" value="' + j.prazos[k] + '" style="width:90px;"><span class="fs-xs">dias</span></div>').join('')
+      + '<div class="btnrow mt-2"><button class="small-gold" onclick="drivePrazosSalvar()">Salvar prazos</button></div><div id="drivePrazosMsg" class="obs-line" style="margin-top:6px;"></div>';
+  }
+  window.drivePrazosSalvar = async function(){
+    const prazos = {}; for(const [k] of ROTULOS) prazos[k] = Number((document.getElementById('dpz_' + k) || {}).value);
+    const senha = await pedirSenha_(); if(!senha) return;
+    const msg = document.getElementById('drivePrazosMsg');
+    try{
+      const j = await edge({ acao:'prazosSalvar', senhaAdmin:senha, prazos }, 40000);
+      if(!j || !j.ok) throw new Error((j && j.message) || 'Não salvou.');
+      if(msg) msg.innerHTML = '<span style="color:#7cc46a;">✅ Prazos salvos.</span>';
+      window.avisar && window.avisar('Prazos salvos.', 'ok', 5000);
+    }catch(e){ if(msg) msg.innerHTML = '<span style="color:#ffb3ab;">⚠️ ' + esc(e.message) + ' Nada foi salvo.</span>'; erroTela('⚠️ Prazos: ' + e.message); }
+  };
   async function carregar_(){
     if(!ehAdmin() || !montar_()) return;
     const box = document.getElementById('driveDiretoLista'); if(!box) return;
+    edge({ acao:'prazos' }, 40000).then(j => { prazos_(j); limpezaAuto_(j && j.ok ? j.limpezaAuto : undefined); }).catch(e => prazos_({ ok:false, message:e.message }));
     try{
       const j = await edge({ acao:'status' }, 40000);
       if(!j || !j.ok) throw new Error((j && j.message) || 'O servidor não respondeu.');
@@ -70,7 +106,7 @@
       const msg = document.getElementById('driveDiretoMsg');
       if(msg) msg.innerHTML = j.credenciais ? '' : '<span style="color:#ffb3ab;">⚠️ As credenciais do Google não estão guardadas no Supabase (google_client_id / google_client_secret).</span>';
     }catch(e){
-      box.innerHTML = '<div class="fs-sm" style="color:#ffb3ab;padding:6px 0;">⚠️ Não consegui consultar o Drive direto: ' + esc(e.message) + '</div><div class="btnrow"><button class="ghost" onclick="driveDiretoCarregar_()">Tentar de novo</button></div>';
+      box.innerHTML = '<div class="fs-sm" style="color:#ffb3ab;padding:6px 0;">⚠️ Não consegui consultar o Google Drive: ' + esc(e.message) + '</div><div class="btnrow"><button class="ghost" onclick="driveDiretoCarregar_()">Tentar de novo</button></div>';
     }
   }
   window.driveDiretoCarregar_ = carregar_;

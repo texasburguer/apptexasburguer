@@ -6,7 +6,7 @@
    - BACKEND: NADA de Apps Script (script.google.com) nem de Supabase (*.supabase.co) é guardado aqui.
      Dados, pedidos, login e RPCs nunca passam pelo cache do service worker — sempre vão direto para a rede.
    - O único cache de dados é o de fotos (FOTOS) e o da casca/ícones (SHELL/ASSETS). Não adicionar outros. */
-const SHELL = 'texas-shell-v141';
+const SHELL = 'texas-shell-v142';
 const ASSETS = 'texas-assets-v8';   // trocou ícone/logo/manifest/leaflet? suba para v5
 const FOTOS = 'texas-fotos-v1';
 /* Código do app dividido em arquivos (app-*.js e estilo-*.css). Cada arquivo tem ?v=<impressão digital> na página; o cache guarda
@@ -15,7 +15,7 @@ const FOTOS = 'texas-fotos-v1';
 const CODIGO = 'texas-codigo-v5';   // trocou o nome = todo aparelho descarta o cache de código antigo (inclusive cópia vazia)
 const LISTA = [/*LISTA-INICIO*/
   'css/estilo-base.css?v=468c6976',
-  'js/app-01-base-e-api.js?v=790b195b',
+  'js/app-01-base-e-api.js?v=941fa0d3',
   'js/app-02-abas.js?v=4172dc0a',
   'js/app-03-cadastros.js?v=46167420',
   'js/app-04-pedidos-entrega.js?v=99782e13',
@@ -23,15 +23,15 @@ const LISTA = [/*LISTA-INICIO*/
   'js/app-06-caixa.js?v=d8657313',
   'js/app-07-impressao.js?v=5c9f0484',
   'js/app-08-vendas-despesas.js?v=0b8d9a34',
-  'js/app-09-ajuda.js?v=6c228ecc',
-  'js/app-10-backup-financeiro.js?v=7f6d2298',
+  'js/app-09-ajuda.js?v=8b9d060e',
+  'js/app-10-backup-financeiro.js?v=d69241df',
   'js/app-11-admin-integracoes.js?v=df7ba2d9',
   'js/app-12-gestao-ia.js?v=0232103e',
   'js/app-13-conexao-sync.js?v=fc0dccb7',
   'js/app-14-relatorios.js?v=89a1208a',
   'js/app-15-cardapio-cliente.js?v=476432bf',
   'js/app-16-sessao-final.js?v=ef1da8ab',
-  'js/app-17-sessao-supabase.js?v=f2ba479c',
+  'js/app-17-sessao-supabase.js?v=9fdacbbc',
   'js/app-18-queda-supabase.js?v=c3cdfe49',
   'css/estilo-ia-cardapio.css?v=b19ce938',
   'js/app-19-ia.js?v=37d36dbd',
@@ -54,8 +54,8 @@ const LISTA = [/*LISTA-INICIO*/
   'js/app-35-equipe-extras.js?v=650e4df1',
   'js/app-36-gestao.js?v=bb125f4f',
   'js/app-37-ponto-rapido.js?v=2ea0dbba',
-  'js/app-38-ponto-rosto.js?v=d58fe8fd',
-  'js/app-39-fotos-registros.js?v=b24b7995',
+  'js/app-38-ponto-rosto.js?v=eb22fd84',
+  'js/app-39-fotos-registros.js?v=7786e7f0',
   'js/app-40-etiquetas.js?v=5ac4487f',
   'js/app-41-ifood-extras.js?v=e6801644',
   'js/app-42-ifood-catalogo.js?v=60701d5d',
@@ -70,14 +70,14 @@ const LISTA = [/*LISTA-INICIO*/
   'js/app-54-ifood-indicadores.js?v=144d8d09',
   'js/app-56-rota-entrega.js?v=f9d32f41',
   'js/app-55-ifood-roteiro.js?v=7de45218',
-  'js/app-57-ponto-meus-registros.js?v=12c13f54',
+  'js/app-57-ponto-meus-registros.js?v=9ac01cfd',
   'js/app-50-ifood-homologacao.js?v=72eb9915',
   'js/app-49-jogos.js?v=792e66dd',
   'js/jogo-burger.js?v=d67a1a42',
   'js/jogo-chuva.js?v=c0a88274',
   'js/jogo-memoria.js?v=5246b144',
   'js/jogo-cobra.js?v=651a89f6',
-  'js/app-58-drive-direto.js?v=eb10a530',
+  'js/app-58-drive-direto.js?v=475cd6b4',
   'js/app-48-armazenamento.js?v=c4160c65',
   'js/app-32-equipe.js?v=5f1d4bd8',
 /*LISTA-FIM*/];

@@ -156,7 +156,7 @@ async function sb410BkCfgCarregar(){
     const a = document.getElementById('sb410BkAuto'), r = document.getElementById('sb410BkRet'), st = document.getElementById('sb410BkAutoSt');
     if(a) a.checked = on;
     if(h) h.value = String(v('BACKUP_HORA') ?? 4);
-    if(r && bc[0]) r.value = String(bc[0].auto_retencao_dias);
+    if(r && bc[0]){ const d = String(bc[0].auto_retencao_dias); if(!Array.from(r.options).some(o => o.value === d)){ const o = document.createElement('option'); o.value = d; o.textContent = d + ' dias'; r.appendChild(o); } r.value = d; }
     if(st) st.textContent = on ? 'Ligado: um backup por dia no horário escolhido.' : '⚠️ Desligado: nenhum backup é feito sozinho. Só os manuais.';
     sb410BkResumo_();
   }catch(e){}
