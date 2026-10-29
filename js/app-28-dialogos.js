@@ -127,7 +127,6 @@
       setTimeout(fechar, tipo === 'erro' ? dur + 1500 : dur);
     }catch(e){ try{ console.warn(texto); }catch(_){} }
   };
-  window.avisarTxt_ = function(texto){ window.avisar(texto); };
 })();
 
 /* ---------- Fechamento padrão das janelas (as 49 do index.html têm o mesmo cabeçalho com ✕) ----------

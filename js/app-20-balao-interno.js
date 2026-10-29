@@ -43,7 +43,6 @@
     }
     const ct = $('balaoIaContador'); if(ct){ ct.hidden = !(n && equipe_()); ct.textContent = String(n); }
   }
-  function avisar_(){ notificarChat_('💬 Atendimento', 'Há uma novidade no atendimento.'); }
   /* som alto (usa o áudio já liberado pelo app) — dois tons repetidos */
   function tomChat_(){
     try{
@@ -200,14 +199,6 @@
     const s = t.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
     if(/ontem/.test(s)) return 'ontem'; if(/(7|sete) dias|semana/.test(s)) return '7d'; if(/(30|trinta) dias/.test(s)) return '30d'; if(/\bmes\b/.test(s)) return 'mes'; return 'hoje';
   }
-  /* pergunta sobre mês/ano que não é o atual (ou "mês passado"): o Analista só enxerga o Supabase, então não responde total parcial */
-  function periodoArquivado_(t){
-    const s = t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-    if(/\b(mes passado|mes anterior|ano passado|semana passada|20\d\d)\b/.test(s)) return true;
-    const meses = ['janeiro','fevereiro','marco','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'], atual = new Date().getMonth();
-    for(let i = 0; i < 12; i++){ if(new RegExp('\\b' + meses[i] + '\\b').test(s)) return i !== atual; }
-    return false;
-  }
   function extra_(acao, t, vc, ro){
     const e = { verComo:vc };
     /* ro = o que o roteador entendeu (pergunta com erros corrigidos, período e palavras de busca com sinônimos) */
@@ -219,15 +210,6 @@
       e.periodo = pe || periodo_(t);
     }
     return e;
-  }
-  function htmlIa_(acao, r){
-    const H = IA.html; if(!r || !r.ok) return H.resposta(r);
-    let h = '';
-    if(acao === 'resumo_dia' || acao === 'pergunte') h += H.resumo(r.dados);
-    else if(acao === 'alertas' || acao === 'anomalias') h += H.alertas(r.dados);
-    else if(acao === 'compras') h += H.compras(r.dados);
-    else if(acao === 'diagnostico') h += H.diag(r.dados);
-    return h + H.resposta(r);
   }
   /* Assistente (Admin, Operador e demais perfis): conversa livre pelo ai-assistente. A IA raciocina sobre os dados do sistema e pede consultas extras sozinha. */
   IN.hist = IN.hist || [];

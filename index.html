@@ -100,7 +100,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alfa+Slab+One&display=swap">
 <title>Texas Burger — Sistema Completo</title>
-<link rel="stylesheet" href="css/estilo-base.css?v=468c6976">
+<link rel="stylesheet" href="css/estilo-base.css?v=8ec306b9">
 </head>
 <body>
 
@@ -379,7 +379,7 @@
       <button onclick="abrirAjuda()" title="Ajuda" aria-label="Ajuda"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1 .9-1 1.7M12 17h.01"/></svg><span class="rot"> Ajuda</span></button>
       <button onclick="abrirModalTrocarSenha()" title="Senha" aria-label="Senha"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 10a4 4 0 1 1-1.2-2.8L21 15v3h-3v-2h-2v-2h-2l-1.8-1.8"/></svg><span class="rot"> Senha</span></button>
       <button onclick="verCardapioComoCliente_()" title="Ver o cardápio digital como o cliente vê, sem sair" aria-label="Ver cardápio"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2l2.4 11.2a2 2 0 0 0 2 1.6h7.8a2 2 0 0 0 2-1.5L21 8H6M10 21h.01M17 21h.01"/></svg><span class="rot"> Cardápio</span></button>
-      <button onclick="sair()">Sair</button>
+      <button class="sair-btn" onclick="sair()">Sair</button>
     </div>
   </header>
   <div id="devBar" style="display:none;background:#122213;border:1px solid #4caf50;border-radius:10px;padding:10px 12px;margin:0 0 12px;font-size:13px;line-height:1.45;">
@@ -2591,8 +2591,8 @@
   </div>
 </div>
 
-<script src="js/app-01-base-e-api.js?v=eb40ea16" charset="utf-8" data-origem="__big0__"></script>
-<script src="js/app-02-abas.js?v=4172dc0a" charset="utf-8" data-origem="__big1__"></script>
+<script src="js/app-01-base-e-api.js?v=03cfe636" charset="utf-8" data-origem="__big0__"></script>
+<script src="js/app-02-abas.js?v=9bdf43cf" charset="utf-8" data-origem="__big1__"></script>
 <script src="js/app-03-cadastros.js?v=46167420" charset="utf-8" data-origem="__big2__"></script>
 <script src="js/app-04-pedidos-entrega.js?v=99782e13" charset="utf-8" data-origem="__big3__"></script>
 <script src="js/app-05-avisos-push.js?v=4ddba47f" charset="utf-8" data-origem="__big4__"></script>
@@ -2610,7 +2610,7 @@
 <!-- ═══════════ SINCRONIZAÇÃO, BACKUP, ESPAÇO E INTEGRIDADE ═══════════
      app-17 cria cartões (ids sb410*) na tela Backup e espaço. -->
 
-<script src="js/app-17-sessao-supabase.js?v=9fdacbbc" charset="utf-8" data-origem=""></script>
+<script src="js/app-17-sessao-supabase.js?v=5a30d71b" charset="utf-8" data-origem=""></script>
 
 <!-- ═══════════ MODO RESERVA (queda do Supabase) ═══════════
      Detecta a queda do Supabase, avisa com faixa laranja e reenvia a fila do aparelho sozinha na volta.
@@ -2625,14 +2625,14 @@
  Sem segundo cliente Supabase · sem listener duplicado · sem setInterval (nada de consumo automático) ·
  fora do renderizarTudo() · toda resposta da IA é escapada (nada de innerHTML cru, eval ou Function).
 ===================================================================== -->
-<link rel="stylesheet" href="css/estilo-ia-cardapio.css?v=b19ce938">
+<link rel="stylesheet" href="css/estilo-ia-cardapio.css?v=fb33ce83">
 
 <script src="js/app-19-ia.js?v=37d36dbd" charset="utf-8" data-origem="iaModulo"></script>
 <!-- =====================================================================
    BALÃO ÚNICO — parte da EQUIPE (Fase 3/4): só texto. O roteador do ai-gateway escolhe o robô; a fila de clientes aparece como aviso.
    Reaproveita IA.chamar, sbRpc_, sbSessaoLer_, sbJson_. Nenhum botão de função: tudo é texto (exceto Assumir/Encerrar/Sair da conversa).
    ===================================================================== -->
-<script src="js/app-20-balao-interno.js?v=c974eb7b" charset="utf-8" data-origem="balaoInterno"></script>
+<script src="js/app-20-balao-interno.js?v=ed4510d2" charset="utf-8" data-origem="balaoInterno"></script>
 
 <!-- =====================================================================
    FASE 5 — Localização do entregador (plano V3 §49–§59). Aditivo.
@@ -2642,7 +2642,7 @@
    ===================================================================== -->
 <script src="js/app-21-localizacao.js?v=cd8592e7" charset="utf-8" data-origem="fase5Localizacao"></script>
 
-<link rel="stylesheet" href="css/estilo-equipe.css?v=10e8510c">
+<link rel="stylesheet" href="css/estilo-equipe.css?v=bdf2d104">
 <nav id="navInf" aria-label="Navegação principal"></nav>
 <div id="navInfMais" onclick="if(event.target===this)navInfFechar_()"><div class="nm-box" id="navInfMaisBox"></div></div>
 <script src="js/app-22-navegacao-inferior.js?v=9c0835e7" charset="utf-8" data-origem="navInfJs"></script>
@@ -2653,11 +2653,12 @@
 <script src="js/app-24-acessibilidade.js?v=1567f2c1" charset="utf-8" data-origem=""></script>
 <script src="js/app-25-cadastro-facil.js?v=ad9fdcff" charset="utf-8" data-origem=""></script>
 <script src="js/app-26-visual.js?v=3c963d27" charset="utf-8" data-origem=""></script>
-<link rel="stylesheet" href="css/estilo-conta-pagamento.css?v=c8bbf776">
-<script src="js/app-28-dialogos.js?v=58e2325f" charset="utf-8" data-origem=""></script>
-<script src="js/app-27-conta-cliente.js?v=2228f1aa" charset="utf-8" data-origem=""></script>
-<script src="js/app-29-usabilidade.js?v=8c6dd0c8" charset="utf-8" data-origem=""></script>
-<script src="js/app-30-teclado-pc.js?v=6ada025e" charset="utf-8" data-origem=""></script>
+<link rel="stylesheet" href="css/estilo-conta-pagamento.css?v=3eb94069">
+<link rel="stylesheet" href="css/estilo-sistema.css?v=30460052">
+<script src="js/app-28-dialogos.js?v=5e2e43b5" charset="utf-8" data-origem=""></script>
+<script src="js/app-27-conta-cliente.js?v=6ebdbf1b" charset="utf-8" data-origem=""></script>
+<script src="js/app-29-usabilidade.js?v=69a7af9b" charset="utf-8" data-origem=""></script>
+<script src="js/app-30-teclado-pc.js?v=f205bac9" charset="utf-8" data-origem=""></script>
 <script src="js/app-31-alertas.js?v=cc24a649" charset="utf-8" data-origem=""></script>
 <script src="js/app-32-equipe.js?v=5f1d4bd8" charset="utf-8" data-origem=""></script>
 <script src="js/app-33-escala.js?v=345a54d7" charset="utf-8" data-origem=""></script>
@@ -2686,6 +2687,7 @@
 <script src="js/app-49-jogos.js?v=792e66dd" charset="utf-8" data-origem=""></script>
 <script src="js/app-58-drive-direto.js?v=9e4d8a06" charset="utf-8" data-origem=""></script>
 <script src="js/app-48-armazenamento.js?v=c4160c65" charset="utf-8" data-origem=""></script>
+<script src="js/app-59-layout.js?v=5aa543db" charset="utf-8" data-origem=""></script>
 <script id="autoCura">
 /* Se o arquivo principal do app não carregou (cópia vazia/velha guardada no aparelho), limpa os guardados e recarrega sozinho, uma vez. */
 (function(){

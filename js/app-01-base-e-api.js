@@ -7,7 +7,7 @@ const API_URL = "https://script.google.com/macros/s/AKfycbwCftUm-1pxhA8XLNqMB7dM
 const CONTINGENCIA_API_URL = "https://script.google.com/macros/s/AKfycby3WljBnr7gpJrHdkbTvBCh5uIXqS4KCS6wkBYB5idxf5gI04efoDumQj264kR_smoW/exec";
 
 /* ===================== VERSÃO DO APP ===================== */
-const APP_VERSAO = '1.22';
+const APP_VERSAO = '1.23';
 const APP_ATUALIZADO_EM = '29/10/2026';
 window.APP_VERSAO = APP_VERSAO;
 
@@ -19,6 +19,12 @@ window.APP_VERSAO = APP_VERSAO;
    A seção "🆕 O que mudou" do manual é gerada daqui. */
 const APP_NOVIDADES = {
   Admin: [
+    { v:'1.23', em:'29/10/2026', itens:[
+      'Visual · A área da equipe ficou com cara de sistema profissional: títulos em letra comum, cartões lisos, dourado só no que é ação principal ou destaque, ícones de linha no lugar dos emojis e três tipos de botão (principal dourado, secundário de contorno e perigo). O cardápio do cliente continua com a cara do Texas.',
+      'Celular · Topo compacto (logo pequena e ícones numa linha só), sobrando mais tela para o trabalho. A faixa "Sem conexão com o servidor principal" agora aparece no alto e não cobre mais a barra de baixo. O Tex fica menor e sai da frente quando você rola a página para baixo.',
+      'Computador · Uma barra única no topo com a marca, o menu e as ferramentas; o menu do Administrador na lateral virou uma lista limpa; a tela usa a largura toda.',
+      'Cliente · Em Minha conta → Meus dados voltaram os botões "Baixar uma cópia dos meus dados" e "Apagar minha conta", que o Aviso de Privacidade promete.',
+      'Limpeza · Código sem uso removido da página e do banco; a rotina que limpa o registro das integrações passou a rodar todo dia (antes o registro crescia sem parar).' ] },
     { v:'1.22', em:'29/10/2026', itens:[
       'Backup e espaço · A tela abre só com o essencial: Uso do espaço, Backup, Google Drive (status de cada Drive e a última limpeza automática) e Cópias de segurança. "Quanto tempo guardar" e "O que fica em cada Drive" foram para o Avançado, e as opções do Drive (abrir pastas, limpar fotos sem uso, reconectar, desconectar) ficam recolhidas em "Opções". Se um Drive tiver problema, o botão para resolver aparece na hora.',
       'Backup e espaço · As barras dos dois Drives abrem mais rápido: o que ocupa cada Drive é guardado por 30 minutos (o espaço usado é sempre o atual) e é refeito logo depois de qualquer limpeza.' ] },
@@ -608,7 +614,7 @@ function sbFaixaTexto_(){
   const d = document.getElementById('sbFaixa'); if(!d) return;
   if(_sbNivelOk_){ d.style.display = 'none'; d.textContent = ''; return; }   // tudo normal: sem faixa
   d.style.background = '#991b1b';
-  d.textContent = '🔴 Supabase sem resposta' + (_sbFaixaBase_ ? ' · ' + _sbFaixaBase_ : '');
+  d.textContent = '⚠️ Sem conexão com o servidor principal' + (_sbFaixaBase_ ? ' · ' + _sbFaixaBase_ : '');
   d.style.display = 'block';
 }
 /* repetir = nº de novas tentativas em falha de rede/timeout/erro 5xx. Só é usado em LEITURAS (repetir uma gravação poderia duplicar). */

@@ -34,7 +34,36 @@ const IC_SVG_ = {
   pin:'M12 21s7-6 7-11a7 7 0 1 0-14 0c0 5 7 11 7 11zM12 12a2 2 0 1 0 0-4 2 2 0 0 0 0 4z',
   download:'M12 4v11M7 11l5 5 5-5M5 20h14',
   lixeira:'M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6',
-  busca:'M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM21 21l-5-5'
+  busca:'M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM21 21l-5-5',
+  /* v1.23: ícones dos títulos (troca dos emojis da área da equipe) */
+  atualizar:'M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7',
+  nuvem:'M7 18h10a4 4 0 0 0 .6-8A6 6 0 0 0 6.2 9.5 4.3 4.3 0 0 0 7 18z',
+  salvar:'M5 3h11l3 3v15H5zM8 3v6h7V3M8 21v-7h8v7',
+  calendario:'M4 6h16v15H4zM4 10h16M8 3v5M16 3v5',
+  vassoura:'M14 3l-3 9M6 13h10l2 8H4l2-8zM9 17v4M13 17v4',
+  cadeado:'M6 11h12v10H6zM8 11V8a4 4 0 0 1 8 0v3',
+  lista:'M9 6h11M9 12h11M9 18h11M4.5 6h.01M4.5 12h.01M4.5 18h.01',
+  talheres:'M7 3v8M5 3v5a2 2 0 0 0 4 0V3M7 11v10M17 3c-2 1-3 4-3 7h3v11',
+  globo:'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18',
+  boia:'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM5.6 5.6l3.6 3.6M14.8 14.8l3.6 3.6M18.4 5.6l-3.6 3.6M9.2 14.8l-3.6 3.6',
+  planilha:'M5 3h14v18H5zM5 9h14M5 15h14M11 3v18',
+  camera:'M4 7h4l2-3h4l2 3h4v13H4zM12 17a4 4 0 1 0 0-8 4 4 0 0 0 0 8z',
+  som:'M4 9h4l5-4v14l-5-4H4zM17 9a4 4 0 0 1 0 6',
+  link:'M10 14a4 4 0 0 0 6 0l3-3a4 4 0 0 0-6-6l-1 1M14 10a4 4 0 0 0-6 0l-3 3a4 4 0 0 0 6 6l1-1',
+  olho:'M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z',
+  carrinho:'M3 4h2l2.4 11h11l2-8H6M9 20h.01M17 20h.01',
+  pasta:'M3 6h6l2 2h10v12H3z',
+  jogo:'M6 9h12a4 4 0 0 1 0 8H6a4 4 0 0 1 0-8zM8 11v4M6 13h4M15 12h.01M17 14h.01',
+  mapa:'M9 4L3 6v14l6-2 6 2 6-2V4l-6 2-6-2zM9 4v14M15 6v14',
+  calculadora:'M6 3h12v18H6zM9 7h6M9 12h.01M12 12h.01M15 12h.01M9 16h.01M12 16h.01M15 16h.01',
+  saude:'M3 12h4l2-5 4 10 2-5h6',
+  pessoa:'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21a8 8 0 0 1 16 0',
+  documento:'M6 3h9l4 4v14H6zM14 3v5h5M9 13h6M9 17h6',
+  ajuda:'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1 .9-1 1.7M12 17h.01',
+  banco:'M4 6c0-1.7 3.6-3 8-3s8 1.3 8 3-3.6 3-8 3-8-1.3-8-3zM4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3',
+  bandeira:'M5 21V4h12l-2 4 2 4H5',
+  upload:'M12 20V9M7 13l5-5 5 5M5 4h14',
+  teclado:'M3 6h18v12H3zM7 10h.01M11 10h.01M15 10h.01M7 14h10'
 };
 function icSvg_(k){ return '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="' + (IC_SVG_[k] || IC_SVG_.sistema) + '"/></svg>'; }
 const ADMIN_GRUPOS = [

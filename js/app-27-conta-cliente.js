@@ -522,6 +522,8 @@ function abaDados(){
       '<div id="ctPMsg" class="msg"></div><button type="button" class="small-gold" onclick="contaSalvarPref_()">Salvar preferências</button>') +
     '<h3 class="ct-h3 mt-4">Privacidade</h3>' +
     '<div class="ct-linha ct-col"><button type="button" class="ghost" onclick="abrirAvisoPrivacidade()">📄 Ler o Aviso de Privacidade</button>' +
+    '<button type="button" class="ghost" onclick="contaBaixarDados_()">⬇️ Baixar uma cópia dos meus dados</button>' +
+    '<button type="button" class="ghost" onclick="contaApagar_()">🗑️ Apagar minha conta</button>' +
     '<button type="button" class="ghost" onclick="contaSairBotao_()">↪️ Sair da conta</button></div>';
 }
 window.contaSalvarDados_ = async function(){

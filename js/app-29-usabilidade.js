@@ -14,11 +14,6 @@
     return '<div class="estado-vazio">' + esc(texto) +
       (botaoTxt && acaoJs ? '<br><button type="button" class="small-gold" onclick="' + esc(acaoJs) + '">' + esc(botaoTxt) + '</button>' : '') + '</div>';
   };
-  /* Erro: texto + botão "Tentar de novo". */
-  window.estadoErro_ = function(texto, acaoJs){
-    return '<div class="estado-erro">' + esc(texto || 'Não foi possível carregar agora.') +
-      (acaoJs ? '<br><button type="button" class="ghost" onclick="' + esc(acaoJs) + '">Tentar de novo</button>' : '') + '</div>';
-  };
 
 
   /* Ícones nos botões montados por JS: se o texto do botão COMEÇA com um emoji conhecido, troca pelo SVG do sistema

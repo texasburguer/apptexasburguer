@@ -150,7 +150,6 @@ th[align="right"]{ text-align:right; }
 
 /* menu lateral do Administrador e a dica só existem no computador */
 #adminLateral{ display:none; }
-.so-pc{ display:none; }
 
 @media (min-width:900px){
   /* ---- Topo numa linha: logo pequeno à esquerda, usuário e botões à direita ---- */
@@ -181,8 +180,6 @@ th[align="right"]{ text-align:right; }
     line-height:1.2; background:transparent; border:1px solid transparent; border-radius:var(--raio-controle); color:var(--cream); cursor:pointer; box-shadow:none; }
   #adminLateral button:hover{ background:rgba(224,181,58,.08); border-color:var(--line); }
   #adminLateral button.active{ background:linear-gradient(180deg,var(--gold-hi),var(--gold) 55%,var(--gold-lo)); color:var(--on-gold); border-color:#000; font-weight:800; }
-  .so-pc{ display:block; }
-  .admin-dica{ text-align:center; color:var(--muted); padding:28px 16px; }
 
   /* ---- Letras do mesmo tamanho (avisos com • ficavam maiores que o resto) ---- */
   .info-line{ font-size:var(--fs-sm); line-height:1.5; }

@@ -42,9 +42,6 @@
 .ct-perigo{background:transparent;border:1px solid #b3261e;color:var(--erro-texto);border-radius:var(--raio-controle);padding:8px 12px;font-size:var(--fs-sm);font-weight:700;cursor:pointer;}
 .ct-check{display:flex;align-items:flex-start;gap:8px;margin:8px 0;font-size:var(--fs-sm);line-height:1.4;color:var(--cream);}
 .ct-check input{width:auto;margin-top:3px;flex:0 0 auto;}
-.ct-carimbos{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:8px;}
-.ct-carimbo{display:flex;align-items:center;justify-content:center;aspect-ratio:1/1;border-radius:50%;border:2px dashed var(--gold-dim);color:var(--muted);font-weight:800;font-size:var(--fs-lg);}
-.ct-carimbo.on{border-style:solid;border-color:var(--gold);background:rgba(224,181,58,.16);color:var(--gold);}
 .ct-chamada{display:flex;align-items:center;gap:10px;justify-content:space-between;background:rgba(224,181,58,.1);border:1px solid var(--gold-dim);border-radius:var(--raio-controle);padding:9px 11px;margin-bottom:10px;font-size:var(--fs-xs);line-height:1.4;}
 .ct-chamada button{width:auto;margin:0;flex:0 0 auto;}
 .ct-chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:8px 0 2px;}

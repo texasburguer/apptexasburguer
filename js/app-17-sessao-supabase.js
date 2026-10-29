@@ -238,22 +238,6 @@ async function sb410Espaco(){
     sb410ArqCarregarRegra_(); sb410PlanoCarregar_(j.limite_mb);
   }catch(e){ box.textContent = '—'; }
 }
-async function sb410HistoricoCarregar_(){
-  const box = document.getElementById('sb410EspBox'); if(!box || document.getElementById('sb410Hist')) return;
-  const d = document.createElement('div'); d.id = 'sb410Hist'; d.style.cssText = 'margin-top:10px;border-top:1px solid #3a2c1c;padding-top:10px;'; d.innerHTML = '<b>Crescimento do banco</b><span class="obs-line">Carregando…</span>'; box.appendChild(d);
-  try{
-    const r = await rpcArq_('api_espaco_historico', { p:{} });
-    if(!r || r.ok === false){ d.innerHTML = '<b>Crescimento do banco</b><span class="obs-line">Indisponível agora.</span>'; return; }
-    const meses = r.meses || [], max = Math.max.apply(null, meses.map(m => Number(m.mb) || 0).concat([1])), nomes = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
-    const barras = meses.map(m => { const mb = Number(m.mb) || 0, mm = String(m.mes).slice(5, 7), pc = Math.max(4, Math.round(mb / max * 100)); return '<div style="flex:1;min-width:0;text-align:center;font-size:10px;"><div style="height:60px;display:flex;align-items:flex-end;"><div style="width:100%;height:' + pc + '%;background:var(--gold);border-radius:3px 3px 0 0;" title="' + mb + ' MB"></div></div>' + (nomes[Number(mm) - 1] || mm) + '<br><span style="color:var(--muted);">' + Math.round(mb) + '</span></div>'; }).join('');
-    let prev;
-    if((r.pontos || 0) < 5) prev = 'Ainda reunindo dados (o sistema registra o tamanho do banco todo dia). A previsão aparece depois de alguns dias.';
-    else if(!r.crescimentoMbDia || r.crescimentoMbDia <= 0) prev = 'O banco está estável: não está crescendo no momento.';
-    else { const dias = r.diasAte95; prev = 'Cresce cerca de ' + Number(r.crescimentoMbDia).toFixed(1).replace('.', ',') + ' MB por dia. ' + (dias == null ? '' : (dias > 365 ? 'Deve levar mais de 1 ano para chegar a 95%.' : dias > 60 ? 'Deve chegar a 95% em cerca de ' + Math.round(dias / 30) + ' meses.' : 'Deve chegar a 95% em cerca de ' + dias + ' dia(s).')); }
-    d.innerHTML = '<b>Crescimento do banco</b><span class="obs-line">Agora: ' + Number(r.atualMb).toLocaleString('pt-BR') + ' MB de ' + Number(r.limiteMb).toLocaleString('pt-BR') + ' MB (MB no fim de cada mês).</span>' +
-      (meses.length ? '<div style="display:flex;gap:4px;margin:8px 0;">' + barras + '</div>' : '') + '<span class="obs-line">' + prev + '</span>';
-  }catch(e){ d.innerHTML = '<b>Crescimento do banco</b><span class="obs-line">Indisponível agora.</span>'; }
-}
 function sb410ArqTexto_(d, auto){ const t = document.getElementById('sb410ArqTexto'); if(t) t.textContent = 'Vendas com mais de ' + d + ' dias ' + (auto === false ? 'só vão para a planilha quando você mandar (modo manual)' : 'vão para a planilha (abas Arquivo_*) e saem do Supabase, todo dia de madrugada') + '. Elas continuam acessíveis no sistema (histórico do cliente, relatórios e Histórico de vendas). Pedidos com chat, ocorrência ou nota fiscal ficam no sistema.'; }
 async function sb410ArqCarregarRegra_(){
   try{ const c = await sbSelecionar_('backup_config','id=eq.true',true); const r = c && c[0]; if(!r) return;

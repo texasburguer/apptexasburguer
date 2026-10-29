@@ -212,7 +212,8 @@
   /* ---------- altura das abas fixas do topo (usada pelo cabeçalho grudado das tabelas) ---------- */
   function medirAbas_(){
     try{
-      var nav = document.querySelector('nav.tabs'), r = document.documentElement;
+      // v1.23: no computador o menu fica dentro da barra do topo (que é a parte que gruda ao rolar)
+      var nav = document.querySelector('header.brand nav.tabs') ? document.querySelector('header.brand') : document.querySelector('nav.tabs'), r = document.documentElement;
       if(!nav || !pc_()){ r.style.removeProperty('--tabs-h'); return; }
       var h = Math.round(nav.getBoundingClientRect().height);
       if(h > 20 && h < 260) r.style.setProperty('--tabs-h', h + 'px');

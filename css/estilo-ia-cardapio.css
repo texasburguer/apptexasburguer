@@ -147,6 +147,4 @@ input[type=time]{width:100%;background:var(--bg);border:1.5px solid var(--line-f
 .av-vazio{text-align:center;padding:36px 12px;color:var(--muted);font-size:var(--fs-sm);}
 .av-vazio b{display:block;font-size:var(--fs-3xl);margin-bottom:6px;}
 .balao-ia-avisos{position:absolute;top:-8px;left:-4px;min-width:20px;height:20px;border-radius:var(--raio-controle);background:var(--on-gold);color:var(--gold);font-size:var(--fs-2xs);font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 6px;border:2px solid var(--gold);}
-.balao-ia-avisos[hidden]{display:none;}
-
-.bi-foto-row{display:flex;width:100%;margin-bottom:7px}.bi-foto-btn{width:100%;min-height:42px;font-weight:700}.chat-envio{flex-wrap:wrap}
+.balao-ia-avisos[hidden]{display:none;}.chat-envio{flex-wrap:wrap}

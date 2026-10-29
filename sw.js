@@ -6,7 +6,7 @@
    - BACKEND: NADA de Apps Script (script.google.com) nem de Supabase (*.supabase.co) é guardado aqui.
      Dados, pedidos, login e RPCs nunca passam pelo cache do service worker — sempre vão direto para a rede.
    - O único cache de dados é o de fotos (FOTOS) e o da casca/ícones (SHELL/ASSETS). Não adicionar outros. */
-const SHELL = 'texas-shell-v143';
+const SHELL = 'texas-shell-v144';
 const ASSETS = 'texas-assets-v8';   // trocou ícone/logo/manifest/leaflet? suba para v5
 const FOTOS = 'texas-fotos-v1';
 /* Código do app dividido em arquivos (app-*.js e estilo-*.css). Cada arquivo tem ?v=<impressão digital> na página; o cache guarda
@@ -14,9 +14,9 @@ const FOTOS = 'texas-fotos-v1';
    A lista abaixo é gerada pelo script de selagem (selar.py) a cada entrega. */
 const CODIGO = 'texas-codigo-v5';   // trocou o nome = todo aparelho descarta o cache de código antigo (inclusive cópia vazia)
 const LISTA = [/*LISTA-INICIO*/
-  'css/estilo-base.css?v=468c6976',
-  'js/app-01-base-e-api.js?v=eb40ea16',
-  'js/app-02-abas.js?v=4172dc0a',
+  'css/estilo-base.css?v=8ec306b9',
+  'js/app-01-base-e-api.js?v=03cfe636',
+  'js/app-02-abas.js?v=9bdf43cf',
   'js/app-03-cadastros.js?v=46167420',
   'js/app-04-pedidos-entrega.js?v=99782e13',
   'js/app-05-avisos-push.js?v=4ddba47f',
@@ -31,23 +31,23 @@ const LISTA = [/*LISTA-INICIO*/
   'js/app-14-relatorios.js?v=89a1208a',
   'js/app-15-cardapio-cliente.js?v=476432bf',
   'js/app-16-sessao-final.js?v=ef1da8ab',
-  'js/app-17-sessao-supabase.js?v=9fdacbbc',
+  'js/app-17-sessao-supabase.js?v=5a30d71b',
   'js/app-18-queda-supabase.js?v=c3cdfe49',
-  'css/estilo-ia-cardapio.css?v=b19ce938',
+  'css/estilo-ia-cardapio.css?v=fb33ce83',
   'js/app-19-ia.js?v=37d36dbd',
-  'js/app-20-balao-interno.js?v=c974eb7b',
+  'js/app-20-balao-interno.js?v=ed4510d2',
   'js/app-21-localizacao.js?v=cd8592e7',
-  'css/estilo-equipe.css?v=10e8510c',
+  'css/estilo-equipe.css?v=bdf2d104',
   'js/app-22-navegacao-inferior.js?v=9c0835e7',
   'js/app-23-janelas-popup.js?v=6f031891',
   'js/app-24-acessibilidade.js?v=1567f2c1',
   'js/app-25-cadastro-facil.js?v=ad9fdcff',
   'js/app-26-visual.js?v=3c963d27',
-  'css/estilo-conta-pagamento.css?v=c8bbf776',
-  'js/app-28-dialogos.js?v=58e2325f',
-  'js/app-27-conta-cliente.js?v=2228f1aa',
-  'js/app-29-usabilidade.js?v=8c6dd0c8',
-  'js/app-30-teclado-pc.js?v=6ada025e',
+  'css/estilo-conta-pagamento.css?v=3eb94069',
+  'js/app-28-dialogos.js?v=5e2e43b5',
+  'js/app-27-conta-cliente.js?v=6ebdbf1b',
+  'js/app-29-usabilidade.js?v=69a7af9b',
+  'js/app-30-teclado-pc.js?v=f205bac9',
   'js/app-31-alertas.js?v=cc24a649',
   'js/app-33-escala.js?v=345a54d7',
   'js/app-34-eventos.js?v=69bb2d23',
@@ -80,6 +80,8 @@ const LISTA = [/*LISTA-INICIO*/
   'js/app-58-drive-direto.js?v=9e4d8a06',
   'js/app-48-armazenamento.js?v=c4160c65',
   'js/app-32-equipe.js?v=5f1d4bd8',
+  'css/estilo-sistema.css?v=30460052',
+  'js/app-59-layout.js?v=5aa543db',
 /*LISTA-FIM*/];
 const FOTOS_MAX = 150;
 const PRE = ['manifest.webmanifest', 'img/icon-192.png', 'img/badge-96.png', 'img/apple-touch-icon.png', 'img/logo-texas-burger.webp', 'img/logo-impressao-cor.png', 'sons/ifood-novo-pedido.mp3'];
