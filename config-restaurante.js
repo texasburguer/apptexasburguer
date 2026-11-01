@@ -5,6 +5,7 @@
    A marca (nome, cores, logos) pode ser ajustada depois pelo dono em Administrador → Sistema → Aparência.
    ===================================================================== */
 window.RESTAURANTE = {
+  motor: 'https://lucassricardo95.github.io/motor/texas-estavel/',   // sistema que este restaurante usa: texas-estavel (acompanha as atualizações) ou uma versão fixa, ex.: .../motor/texas-v1.27/
   slug: 'texas-burger',
   nome: 'Texas Burger',
   siteUrl: 'https://texasburguer.github.io/apptexasburguer/',
