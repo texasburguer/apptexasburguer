@@ -305,17 +305,106 @@ function cfAtualizarCusto(pre){
 }
 /* ---------- LUCRO OU PREJUÍZO EM TEXTO CLARO (produto, combo, adicional, lista) ---------- */
 /* Fase 8.2: preço sugerido para ~50% de lucro (já descontado o imposto); só sugere, quem decide é o dono */
-function cfPrecoSugerido_(custo, pctImp){
-  custo = cfNum_(custo); pctImp = cfNum_(pctImp);
-  const f = 1 - 0.5 - pctImp / 100; if(!(custo > 0) || !(f > 0.1)) return 0;
-  return Math.ceil(custo / f * 2) / 2; /* arredonda para cima de 50 em 50 centavos */
+/* v1.24 — PREÇO SUGERIDO (o mesmo na lista de produtos, na de combos e no cadastro)
+   1) Ideal = custo ÷ custo-alvo (% do preço). Padrão de hamburgueria: lanches 35% · porções e batatas 30% · bebidas 60% · combos 40%.
+      O resto do preço paga taxa da maquininha, imposto, despesas fixas (aluguel, equipe, contas) e o lucro.
+   2) Travas para ser sempre sensato:
+      • nunca sugere BAIXAR: se o preço atual já deixa o custo abaixo do alvo, o preço atual está ok;
+      • sobe no máximo 25% de uma vez (cliente sente aumento grande); o ideal aparece junto para ir chegando aos poucos;
+      • nunca fica abaixo do mínimo: custo + imposto + taxa média de pagamento + 15% de lucro.
+   3) Arredonda para cima terminando em ,90. iFood: o sugerido é dividido pela taxa do iFood (sobra o mesmo para o restaurante).
+   Tudo muda em Custos e precificação → Custos gerais. */
+const PRECO_SUG_PADRAO_ = { lanche:35, porcao:30, bebida:60, combo:40, maxAumento:25, margemMin:15 };
+function precoSugCfg_(){
+  const c = (typeof configCardapio !== 'undefined' && configCardapio && configCardapio.precoSugerido) || {};
+  const o = {};
+  ['lanche','porcao','bebida','combo'].forEach(k => { const v = Number(c[k]); o[k] = (v >= 10 && v <= 90) ? v : PRECO_SUG_PADRAO_[k]; });
+  const ma = Number(c.maxAumento), mm = Number(c.margemMin);
+  o.maxAumento = (ma >= 5 && ma <= 100) ? ma : PRECO_SUG_PADRAO_.maxAumento;
+  o.margemMin = (mm >= 0 && mm <= 60) ? mm : PRECO_SUG_PADRAO_.margemMin;
+  return o;
 }
-function cfUsarPrecoSug_(pre, v){ cfSet_(pre + 'Preco', Number(v).toFixed(2)); cfAtualizarMargem(pre); }
+const ROTULO_TIPO_PRECO_ = { lanche:'lanches', porcao:'porções e batatas', bebida:'bebidas', combo:'combos' };
+function tipoPrecoProduto_(p){
+  if(!p) return 'lanche';
+  if(p.combo) return 'combo';
+  if(p.estoqueProprioIngredienteId) return 'bebida';
+  const cat = (typeof nomeCategoria === 'function' ? nomeCategoria(p.categoria) : '') || '';
+  if(/bebida|refri|suco|cerveja|[aá]gua/i.test(cat)) return 'bebida';
+  if(/por[cç][aã]o|por[cç][oõ]es|batata|frita|acompanha|petisco/i.test(cat)) return 'porcao';
+  return 'lanche';
+}
+function arred90_(v){ if(!(v > 0)) return 0; const c = Math.ceil(v - 1e-9) - 0.10; return Math.round((c >= v - 1e-9 ? c : c + 1) * 100) / 100; }
+/* % que sai de toda venda: imposto do mês + taxa média das formas do balcão/cardápio (sem iFood) */
+function custoVariavelPct_(){
+  let imp = 0; try{ if(typeof impostoPctHoje_ === 'function') imp = cfNum_(impostoPctHoje_()); }catch(e){}
+  const fs = (typeof formasPagamento !== 'undefined' ? formasPagamento : []).filter(f => f.ativa !== false && !/ifood/i.test(String(f.nome || '')));
+  const tx = fs.length ? fs.reduce((a, f) => a + cfNum_(f.taxaPct), 0) / fs.length : 0;
+  return imp + tx;
+}
+/* devolve { sug, ideal, piso, status: 'ok' | 'subir' | 'aos_poucos' | 'piso' } */
+function calcPrecoSugerido_(custo, tipo, precoAtual){
+  custo = cfNum_(custo); precoAtual = cfNum_(precoAtual); if(!(custo > 0)) return null;
+  const cfg = precoSugCfg_(), alvo = cfg[tipo || 'lanche'] || 35;
+  const ideal = custo / (alvo / 100);
+  const den = 1 - (custoVariavelPct_() + cfg.margemMin) / 100;
+  const piso = den > 0.1 ? custo / den : custo * 2;
+  if(precoAtual > 0 && ideal <= precoAtual + 0.009 && precoAtual >= piso - 0.009) return { sug: precoAtual, ideal: arred90_(ideal), piso: arred90_(piso), status:'ok' };
+  let v = ideal, st = 'subir';
+  if(precoAtual > 0){
+    const teto = precoAtual * (1 + cfg.maxAumento / 100);
+    if(v > teto){ v = teto; st = 'aos_poucos'; }
+  }
+  if(v < piso){ v = piso; st = 'piso'; }
+  return { sug: arred90_(v), ideal: arred90_(ideal), piso: arred90_(piso), status: st };
+}
+function precoSugerido_(custo, tipo, precoAtual){ const r = calcPrecoSugerido_(custo, tipo, precoAtual); return r ? r.sug : 0; }
+function precoSugeridoIfood_(base){
+  const f = (typeof formasPagamento !== 'undefined' ? formasPagamento : []).find(x => /^ifood/i.test(String(x.nome || '')) && x.ativa !== false);
+  const t = f ? cfNum_(f.taxaPct) : 0; if(!(base > 0) || !(t > 0) || t >= 60) return 0;
+  return arred90_(base / (1 - t / 100));
+}
+function textoSugestao_(r, preco, tipo, curto){
+  const cfg = precoSugCfg_(), ifd = precoSugeridoIfood_(r.sug);
+  const porque = 'custo ÷ ' + cfg[tipo] + '% (' + ROTULO_TIPO_PRECO_[tipo] + ')';
+  let t;
+  if(r.status === 'ok') t = '💡 Preço atual ok (' + porque + ' daria ' + formatarMoeda(r.ideal) + ')';
+  else {
+    const dif = Math.round((r.sug - cfNum_(preco)) * 100) / 100;
+    t = '💡 Sugerido <b>' + formatarMoeda(r.sug) + '</b>' + (cfNum_(preco) > 0 ? ' (+' + formatarMoeda(dif) + ')' : '');
+    if(r.status === 'aos_poucos') t += curto ? ' · ideal ' + formatarMoeda(r.ideal) : ' — subida limitada a ' + cfg.maxAumento + '% por vez; o ideal (' + porque + ') é ' + formatarMoeda(r.ideal) + ': vá subindo aos poucos ou reveja a receita';
+    else if(r.status === 'piso') t += curto ? ' · mínimo para não perder' : ' — é o mínimo para cobrir custo, imposto, taxa e ' + cfg.margemMin + '% de lucro';
+    else if(!curto) t += ' (' + porque + ')';
+  }
+  if(ifd) t += ' · iFood ' + formatarMoeda(ifd);
+  return t;
+}
+/* linha curta para as listas de produtos e combos */
+function precoSugLinha_(preco, custo, tipo){
+  const r = calcPrecoSugerido_(custo, tipo, preco); if(!r) return '';
+  return '<span class="obs-line" title="Preço sugerido: ' + escH(textoSugestao_(r, preco, tipo, false).replace(/<[^>]+>/g, '')) + '">' + textoSugestao_(r, preco, tipo, true) + '</span>';
+}
+/* compatível com o código antigo do cadastro */
+function cfPrecoSugerido_(custo){ return precoSugerido_(custo, cfTipoAtual_(), 0); }
+function cfTipoAtual_(){
+  try{
+    const sel = document.getElementById('ppCategoria') || document.getElementById('pCategoria');
+    const pid = (typeof produtoEditandoId !== 'undefined') ? produtoEditandoId : null;
+    const p = pid ? (produtos || []).find(x => x.id === pid) : null;
+    return tipoPrecoProduto_(p ? Object.assign({}, p, { categoria: (sel && sel.value) || p.categoria }) : { categoria: sel ? sel.value : '' });
+  }catch(e){ return 'lanche'; }
+}
+function cfUsarPrecoSug_(pre, v){ cfSet_(pre + 'Preco', Number(v).toFixed(2)); if(pre === 'ko' && typeof atualizarMargemPreviewCombo === 'function') atualizarMargemPreviewCombo(); else cfAtualizarMargem(pre); }
 function cfSugestaoHtml_(preco, custo, pctImp, pre){
-  const sug = cfPrecoSugerido_(custo, pctImp); if(!sug || !pre) return '';
-  const m = cfNum_(preco) - cfNum_(custo) - cfNum_(preco) * cfNum_(pctImp) / 100, pct = cfNum_(preco) > 0 ? m / cfNum_(preco) * 100 : -1;
-  if(pct >= 40) return '';
-  return ' <span class="sub">Sugestão: ' + formatarMoeda(sug) + ' para uns 50% de lucro.</span> <button type="button" class="ghost" style="min-height:32px;padding:2px 10px;" onclick="cfUsarPrecoSug_(\'' + pre + '\',' + sug + ')">Usar</button>';
+  const tipo = pre === 'ko' ? 'combo' : cfTipoAtual_();
+  /* no cadastro, compara com o preço que está salvo (para o botão "Usar" não ficar mudando enquanto digita) */
+  let base = cfNum_(preco);
+  try{
+    if(pre === 'pp' && typeof produtoEditandoId !== 'undefined' && produtoEditandoId && typeof precoDisplayProduto === 'function') base = precoDisplayProduto(produtoEditandoId).preco || base;
+  }catch(e){}
+  const r = calcPrecoSugerido_(custo, tipo, base); if(!r) return '';
+  return '<div class="sub" style="margin-top:4px;">' + textoSugestao_(r, base, tipo, false)
+    + (pre && r.status !== 'ok' && Math.abs(r.sug - cfNum_(preco)) > 0.009 ? ' <button type="button" class="ghost" style="min-height:32px;padding:2px 10px;width:auto;" onclick="cfUsarPrecoSug_(\'' + pre + '\',' + r.sug + ')">Usar ' + formatarMoeda(r.sug) + '</button>' : '') + '</div>';
 }
 function cfMargemHtml_(preco, custo, pctImp, pre){
   preco = cfNum_(preco); custo = cfNum_(custo); pctImp = cfNum_(pctImp);

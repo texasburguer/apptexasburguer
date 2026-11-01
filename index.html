@@ -1191,6 +1191,15 @@
         <div><label for="cgEntrega">Por pedido de entrega (R$)</label><input type="number" inputmode="decimal" id="cgEntrega" min="0" step="0.05"></div></div>
       <div class="row2"><div><label for="cgRetirada">Por pedido de retirada (R$)</label><input type="number" inputmode="decimal" id="cgRetirada" min="0" step="0.05"></div>
         <div><label for="cgMesa">Por pedido na mesa (R$)</label><input type="number" inputmode="decimal" id="cgMesa" min="0" step="0.05"></div></div>
+      <h3 class="mt-3">Preço sugerido</h3>
+      <p class="sub">Em cada produto aparece o preço sugerido = custo ÷ custo-alvo, arredondado para terminar em ,90. Custo-alvo é quanto do preço pode ir para o custo do produto; o resto paga taxas, imposto, aluguel, equipe e o lucro. Padrão de hamburgueria: lanches 35%, porções 30%, bebidas 60%, combos 40%.</p>
+      <div class="row2"><div><label for="cgAlvoLanche">Lanches e pratos (%)</label><input type="number" inputmode="decimal" id="cgAlvoLanche" min="10" max="90" step="1"></div>
+        <div><label for="cgAlvoPorcao">Porções e batatas (%)</label><input type="number" inputmode="decimal" id="cgAlvoPorcao" min="10" max="90" step="1"></div></div>
+      <div class="row2"><div><label for="cgAlvoBebida">Bebidas (%)</label><input type="number" inputmode="decimal" id="cgAlvoBebida" min="10" max="90" step="1"></div>
+        <div><label for="cgAlvoCombo">Combos (%)</label><input type="number" inputmode="decimal" id="cgAlvoCombo" min="10" max="90" step="1"></div></div>
+      <div class="row2"><div><label for="cgMaxAumento">Aumento máximo por vez (%)</label><input type="number" inputmode="decimal" id="cgMaxAumento" min="5" max="100" step="1"></div>
+        <div><label for="cgMargemMin">Lucro mínimo (%)</label><input type="number" inputmode="decimal" id="cgMargemMin" min="0" max="60" step="1"></div></div>
+      <p class="sub" style="font-size:12px;">Travas: o sugerido nunca manda baixar um preço que já está bom, não sobe mais que o "aumento máximo" de uma vez (o ideal aparece junto) e nunca fica abaixo do mínimo que cobre custo, imposto, taxa média de pagamento e o "lucro mínimo".</p>
       <div id="cgTaxas" class="mt-2"></div>
       <button class="primary" type="button" onclick="salvarCustosGerais_()">Salvar</button>
       <div class="msg" id="cgMsg"></div>
@@ -2629,15 +2638,15 @@
   </div>
 </div>
 
-<script src="js/app-01-base-e-api.js?v=ebbf58c5" charset="utf-8" data-origem="__big0__"></script>
+<script src="js/app-01-base-e-api.js?v=73613555" charset="utf-8" data-origem="__big0__"></script>
 <script src="js/app-02-abas.js?v=86fd03ac" charset="utf-8" data-origem="__big1__"></script>
-<script src="js/app-03-cadastros.js?v=d507b499" charset="utf-8" data-origem="__big2__"></script>
+<script src="js/app-03-cadastros.js?v=1eec31e4" charset="utf-8" data-origem="__big2__"></script>
 <script src="js/app-04-pedidos-entrega.js?v=99782e13" charset="utf-8" data-origem="__big3__"></script>
 <script src="js/app-05-avisos-push.js?v=4ddba47f" charset="utf-8" data-origem="__big4__"></script>
 <script src="js/app-06-caixa.js?v=d8657313" charset="utf-8" data-origem="__big5__"></script>
 <script src="js/app-07-impressao.js?v=5c9f0484" charset="utf-8" data-origem="__big6__"></script>
 <script src="js/app-08-vendas-despesas.js?v=0b8d9a34" charset="utf-8" data-origem="__big7__"></script>
-<script src="js/app-09-ajuda.js?v=1009afd2" charset="utf-8" data-origem="__big8__"></script>
+<script src="js/app-09-ajuda.js?v=19265d79" charset="utf-8" data-origem="__big8__"></script>
 <script src="js/app-10-backup-financeiro.js?v=f3d08c92" charset="utf-8" data-origem="__big9__"></script>
 <script src="js/app-11-admin-integracoes.js?v=df7ba2d9" charset="utf-8" data-origem="__big10__"></script>
 <script src="js/app-12-gestao-ia.js?v=fed5faf4" charset="utf-8" data-origem="__big11__"></script>
@@ -2689,7 +2698,7 @@
   </div>
 <script src="js/app-23-janelas-popup.js?v=6f031891" charset="utf-8" data-origem=""></script>
 <script src="js/app-24-acessibilidade.js?v=1567f2c1" charset="utf-8" data-origem=""></script>
-<script src="js/app-25-cadastro-facil.js?v=ad9fdcff" charset="utf-8" data-origem=""></script>
+<script src="js/app-25-cadastro-facil.js?v=e34352e7" charset="utf-8" data-origem=""></script>
 <script src="js/app-26-visual.js?v=3c963d27" charset="utf-8" data-origem=""></script>
 <link rel="stylesheet" href="css/estilo-conta-pagamento.css?v=a8a0c5cb">
 <link rel="stylesheet" href="css/estilo-sistema.css?v=30460052">
@@ -2726,7 +2735,7 @@
 <script src="js/app-58-drive-direto.js?v=9e4d8a06" charset="utf-8" data-origem=""></script>
 <script src="js/app-48-armazenamento.js?v=c4160c65" charset="utf-8" data-origem=""></script>
 <script src="js/app-59-layout.js?v=5aa543db" charset="utf-8" data-origem=""></script>
-<script src="js/app-61-custos-gerais.js?v=96edb7f0" charset="utf-8" data-origem=""></script>
+<script src="js/app-61-custos-gerais.js?v=856d2e6d" charset="utf-8" data-origem=""></script>
 <script src="js/app-60-navegador-app.js?v=51ce21da" charset="utf-8" data-origem=""></script>
 <script id="autoCura">
 /* Se o arquivo principal do app não carregou (cópia vazia/velha guardada no aparelho), limpa os guardados e recarrega sozinho, uma vez. */

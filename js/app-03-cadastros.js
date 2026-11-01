@@ -577,7 +577,7 @@ function renderProdutos(){
     const ingredientesDoProduto = produtoIngredientes.filter(v=>v.produtoId===p.id);
     const ingredientesTxt = ingredientesDoProduto.filter(v=>v.ingredienteId!==p.estoqueProprioIngredienteId).map(v=>{ const e = estoque.find(x=>x.id===v.ingredienteId)||{}; const u = e.unidade||'un'; const f = (u==='kg'||u==='l')?1000:1; return (Math.round(Number(v.quantidadePorUnidade)*f*1000)/1000).toLocaleString('pt-BR')+' '+(u==='kg'?'g':(u==='l'?'ml':u))+' '+v.ingredienteNome; }).join(', ');
     const thumb = p.fotoUrl ? `<img src="${fotoSrc_(p.fotoUrl, 100)}" onerror="fotoFalhou_(this)" style="width:34px;height:34px;border-radius:6px;object-fit:cover;vertical-align:middle;margin-right:6px;">` : '';
-    return `<tr class="vs-linha" onclick="abrirEditarProduto('${p.id}')"><td>${thumb}${escH(p.nome)}${p.preCadastro?' <span class="badge neutro" title="Criado a partir de um item do iFood. Complete e ative.">📝 pré-cadastro iFood</span>':''}<span class="obs-line">${nomeCategoria(p.categoria)}${p.semDesconto?' · 🏷️ sem desconto/cupom':''}${ingredientesTxt?' · '+ingredientesTxt:''}</span></td><td>${formatarMoeda(preco)}</td><td>${custo>0 ? (margem<0 ? '<span class="cf-perda">PREJUÍZO '+formatarMoeda(-margem)+'</span>' : formatarMoeda(margem))+'<span class="obs-line">'+pct.toFixed(0)+'%</span>' : '<span class="cf-sem">custo não informado</span>'}</td>
+    return `<tr class="vs-linha" onclick="abrirEditarProduto('${p.id}')"><td>${thumb}${escH(p.nome)}${p.preCadastro?' <span class="badge neutro" title="Criado a partir de um item do iFood. Complete e ative.">📝 pré-cadastro iFood</span>':''}<span class="obs-line">${nomeCategoria(p.categoria)}${p.semDesconto?' · 🏷️ sem desconto/cupom':''}${ingredientesTxt?' · '+ingredientesTxt:''}</span></td><td>${formatarMoeda(preco)}</td><td>${custo>0 ? (margem<0 ? '<span class="cf-perda">PREJUÍZO '+formatarMoeda(-margem)+'</span>' : formatarMoeda(margem))+'<span class="obs-line">'+pct.toFixed(0)+'%</span>' : '<span class="cf-sem">custo não informado</span>'}${(typeof precoSugLinha_==='function' && custo>0) ? precoSugLinha_(preco, custo, tipoPrecoProduto_(p)) : ''}</td>
       <td><button type="button" class="ghost vs-mais" aria-label="Ações de ${escH(p.nome)}" onclick="event.stopPropagation();vsAcoesProduto('${p.id}')">⋯</button></td></tr>`;
   }).join('');
 }
@@ -620,7 +620,7 @@ function atualizarMargemPreviewCombo(){
   const custo = Number(document.getElementById('koCusto').value) || 0;
   const pctImp = (typeof impostoPctHoje_ === 'function') ? impostoPctHoje_() : 0;   // imposto sobre a venda sai da margem
   const el = document.getElementById('koMargemPreview');
-  if(typeof cfMargemHtml_ === 'function') el.innerHTML = cfMargemHtml_(preco, custo, pctImp);
+  if(typeof cfMargemHtml_ === 'function') el.innerHTML = cfMargemHtml_(preco, custo, pctImp, 'ko');
   else { const margem = preco - custo - preco * pctImp / 100; el.textContent = formatarMoeda(margem) + ' (' + (preco>0 ? (margem/preco*100) : 0).toFixed(0) + '%)'; }
 }
 async function registrarCombo(){
@@ -744,7 +744,7 @@ function renderCombos(){
     const itensTxt = descricaoItensCombo(c.id);
     const perdaC = (Number(custoC) > 0 && Number(preco) < Number(custoC)) ? '<span class="obs-line cf-perda">PREJUÍZO de '+formatarMoeda(Number(custoC)-Number(preco))+' por venda: o preço está abaixo do custo</span>' : '';
     const thumb = c.fotoUrl ? `<img src="${fotoSrc_(c.fotoUrl, 100)}" onerror="fotoFalhou_(this)" style="width:34px;height:34px;border-radius:6px;object-fit:cover;vertical-align:middle;margin-right:6px;">` : '';
-    return `<tr class="vs-linha" onclick="abrirEditarCombo('${c.id}')"><td>${thumb}${escH(c.nome)}<span class="obs-line">${nomeCategoria(c.categoria)}${c.semDesconto?' · 🏷️ sem desconto/cupom':''}${itensTxt?' · '+itensTxt:''}</span>${perdaC}</td><td>${formatarMoeda(preco)}</td><td><button type="button" class="ghost vs-mais" aria-label="Ações de ${escH(c.nome)}" onclick="event.stopPropagation();vsAcoesCombo('${c.id}')">⋯</button></td></tr>`;
+    return `<tr class="vs-linha" onclick="abrirEditarCombo('${c.id}')"><td>${thumb}${escH(c.nome)}<span class="obs-line">${nomeCategoria(c.categoria)}${c.semDesconto?' · 🏷️ sem desconto/cupom':''}${itensTxt?' · '+itensTxt:''}</span>${perdaC}</td><td>${formatarMoeda(preco)}${(typeof precoSugLinha_==='function' && Number(custoC)>0) ? precoSugLinha_(preco, custoC, 'combo') : ''}</td><td><button type="button" class="ghost vs-mais" aria-label="Ações de ${escH(c.nome)}" onclick="event.stopPropagation();vsAcoesCombo('${c.id}')">⋯</button></td></tr>`;
   }).join('');
 }
 function renderComboCuradoria(){
