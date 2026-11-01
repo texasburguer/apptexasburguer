@@ -75,7 +75,7 @@ Admin:{ nome:'Administrador', secoes:[
 
   { t:'Onde fica cada coisa', itens:[
     'Ao tocar em Admin, nada abre sozinho: aparecem só os 6 grupos; toque num grupo para ver as telas dele e depois na tela que quer abrir.',
-    'A aba Administrador tem uma barra dividida em 6 grupos: Hoje (Visão Geral, Ocorrências, Feedbacks); Dinheiro (Contas a pagar e despesas, Histórico, Reembolsos e ajustes, Previsto e metas, Relatórios e DRE); Produtos (Produtos, combos e adicionais, Estoque, Compras e fornecedores, Custos e precificação); Vendas e cardápio (Cardápio Digital, Formas de pagamento, Promoções e cupons, Eventos); Loja e equipe (Ponto, Escala da equipe, Equipe e pagamentos, Entregadores e taxas, Mesas e QR Codes, Usuários e permissões, Configurar avisos); Sistema (Integrações e contas, Auditoria, Backup e espaço). A Saúde do sistema abre pela bolinha colorida do topo.',
+    'A aba Administrador tem uma barra dividida em 6 grupos: Hoje (Visão Geral, Ocorrências, Feedbacks); Dinheiro (Contas a pagar e despesas, Histórico, Reembolsos e ajustes, Previsto e metas, Relatórios e DRE); Produtos (Produtos, combos e adicionais, Estoque, Compras e fornecedores, Custos e precificação); Vendas e cardápio (Raio-X do negócio, Cardápio Digital, Cardápio: funil e mapa, Formas de pagamento, Promoções e cupons, Eventos); Loja e equipe (Ponto, Escala da equipe, Equipe e pagamentos, Entregadores e taxas, Mesas e QR Codes, Usuários e permissões, Configurar avisos); Sistema (Integrações e contas, Auditoria, Backup e espaço). A Saúde do sistema abre pela bolinha colorida do topo.',
     'O campo “Ir para…”, no topo do menu, acha uma tela pelo nome ou por uma palavra (ex.: cupom, estoque, iFood, reembolso). Toque na tela que aparecer.',
     'Cada tela do menu traz embaixo do nome uma linha explicando o que ela faz.',
     'Caixa, Pedidos, Entregas e Clientes funcionam como nos outros perfis, e você pode tudo.' ],
@@ -232,6 +232,26 @@ Admin:{ nome:'Administrador', secoes:[
     'Dias anteriores: Administrador → Vendas e cardápio → "Cardápio: funil e mapa". Escolha o período (atalhos Hoje, 7 dias, 30 dias, Este mês, Mês passado ou as datas) e veja as visitas por dia, o funil, o que segurou o pedido no finalizar, o mapa das entregas do período (do sistema e do iFood) e de onde acessaram (contagem por região, guardada desde 01/11/2026).',
     'Parte "🧾 No finalizar": das pessoas que abriram a tela de finalizar, quantas enviaram, quantas tocaram em "Enviar pedido" e quantas saíram sem tocar. Embaixo, o que segurou quem tocou: faltou número da casa, rua, cidade, nome ou telefone; troco menor que o total; pagar pelo site pediu para entrar na conta; cardápio fechado; ou erro ao enviar (internet ou sistema). Use "Últimos 30 dias" para ver o padrão com mais movimento.',
     'Se muita gente sai sem tocar em Enviar, costuma ser a taxa de entrega, o total ou a quantidade de campos. Se o mais comum é "Faltou o número da casa", vale reforçar isso na divulgação.' ] },
+
+  { t:'🔍 Raio-X do negócio', itens:[
+    'Administrador → Vendas e cardápio → "Raio-X do negócio". Escolha o período (7, 30 ou 90 dias, Este mês, Mês passado ou as datas) e toque em "Ver período".',
+    '🔥 Quando vendem mais: quadro dia × hora (cor mais forte = mais pedidos) e a média de pedidos por noite de cada dia da semana. Pedidos depois da meia-noite contam na noite anterior. Serve para decidir promoção no dia fraco e reforçar a escala no pico.',
+    '🛵 iFood × seu cardápio: pedidos, vendido, valor médio, comissão do iFood (aproximada nas vendas antigas) ou taxas da maquininha, e quantos clientes voltaram a pedir. "Seu sistema" junta cardápio, balcão e mesa.',
+    '⭐ Clientes fiéis do iFood: quem já pediu 2 vezes ou mais (o iFood informa as compras anteriores da loja). O telefone desses clientes é um 0800 do iFood, então o caminho é um bilhete na sacola com o QR do cardápio.',
+    '⏱️ Tempos: esperando aceitar, preparo, rua e total da entrega; preparo por horário, tempo na rua por entregador e preparo por turno (vermelho = bem acima do normal). Se a cozinha ficar bem mais lenta que o normal na última hora, o Admin recebe um aviso.',
+    '❌ Cancelamentos por motivo (os de teste ficam de fora), 🐢 onde os pedidos ficam parados (pelos alertas automáticos), 📈 custos de fornecedor que mudaram 5% ou mais nas compras dos últimos 90 dias e 🗑️ perdas registradas comparadas com a estimativa de perdas usada no custo.' ] },
+
+  { t:'📣 Promoção por aviso no celular', itens:[
+    'Administrador → Vendas e cardápio → Promoções e cupons → cartão "📣 Promoção por aviso no celular".',
+    'Só recebe quem aceitou: no cardápio, o cliente com os avisos do pedido ligados vê uma vez "🎁 Quer receber as promoções do Texas por aqui?". A barra mostra quantos aparelhos aceitaram.',
+    'Escreva o título (até 60 letras) e o texto (até 140), confira a prévia e toque em "📣 Enviar promoção". Não dá para desfazer, e a próxima só pode sair 6 horas depois, para o cliente não desligar os avisos.',
+    'Na lista "Últimas enviadas" aparece para quantos foi entregue e quantos desligaram os avisos. Ao tocar no aviso, o cliente abre o cardápio com a opção "Não quero mais".',
+    'Não escreva nome, telefone ou endereço de cliente no aviso: ele aparece na tela bloqueada do celular.' ] },
+
+  { t:'🗑️ Perdi um produto pronto', itens:[
+    'Estoque → "🗑️ Perdi um produto pronto": para lanche que caiu, voltou ou saiu errado. Escolha o produto, a quantidade e o motivo.',
+    'Todos os ingredientes da receita saem do estoque como Perda (aparecem em Movimentações) e o valor entra no Raio-X, comparado com a estimativa de perdas.',
+    'Ingrediente que estragou ou venceu continua no botão "➖ Perda" da linha do ingrediente.' ] },
 
   { t:'🛒 Ver o cardápio sem sair', itens:[
     'No topo da área de funcionários, toque em "🛒 Cardápio": o cardápio digital aparece como o cliente vê. Você continua logado.',

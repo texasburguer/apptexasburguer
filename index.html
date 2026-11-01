@@ -548,6 +548,7 @@
       <div class="btnrow" id="estNovoIngBox">
         <button type="button" class="primary" onclick="cfAbrirNovoIngrediente()">+ Novo ingrediente</button>
         <button type="button" class="ghost" onclick="gCompraAbrir()">🛒 Compra sugerida</button>
+        <button type="button" class="ghost" onclick="abrirPerdaProduto_()">🗑️ Perdi um produto pronto</button>
         <button type="button" class="ghost" onclick="cfAbrirLote()"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v18M16 7h-6a3 3 0 0 0 0 6h4a3 3 0 0 1 0 6H8"/></svg>Preços em lote</button>
       </div>
       <p class="sub" id="estBebAjuda" style="display:none;">Bebidas e itens prontos são cadastrados como produto: Produtos → Produtos, combos e adicionais → + Novo produto → "🥤 Comprado pronto". Aqui você vê e ajusta o estoque deles.</p>
@@ -1166,6 +1167,7 @@
       <button type="button" class="primary" onclick="abrirCupomUI()">+ Novo cupom</button>
       <div class="msg" id="cupMsgLista"></div>
     </div>
+    <div class="card" id="paCard"><h2>📣 Promoção por aviso no celular</h2><p class="sub">Manda uma promoção direto para a tela do celular dos clientes que aceitaram receber promoções no cardápio. Sem custo e sem comissão.</p><div id="paCorpo"></div></div>
     <div class="card"><h2><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3zM19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8L19 16z"/></svg>Cupons automáticos</h2><p class="sub">Entregues sozinhos para quem tem conta. Todos começam <b>desligados</b>: ajuste o benefício e ative.</p><div id="cupAutoLista"></div></div>
     <div class="card"><h2>Cupons cadastrados</h2><div id="cupLista"></div></div>
   </section>
@@ -1225,6 +1227,25 @@
         <button class="toggle-mode" id="fbFiltroNovosBtn" onclick="setFiltroFeedbacks('Novo')">Novos</button>
       </div>
       <div id="fbLista" class="mt-3"></div>
+    </div>
+  </section>
+
+  <!-- =========================== RAIO-X DO NEGÓCIO (v1.25) =========================== -->
+  <section class="tab" id="tab-raiox">
+    <div class="admin-subnav" data-admin-nav="1"></div>
+    <div class="card">
+      <h2>Raio-X do negócio</h2>
+      <p class="sub">O que os dados do sistema mostram no período: quando vende mais, iFood × seu cardápio, clientes fiéis do iFood, tempos de cada etapa, cancelamentos, pedidos parados, custos que subiram e perdas.</p>
+      <div class="d-flex" style="flex-wrap:wrap;gap:6px;margin:6px 0;">
+        <button type="button" class="ghost" style="width:auto;margin:0;padding:6px 12px;min-height:36px;" onclick="raioXAtalho_(7)">7 dias</button>
+        <button type="button" class="ghost" style="width:auto;margin:0;padding:6px 12px;min-height:36px;" onclick="raioXAtalho_(30)">30 dias</button>
+        <button type="button" class="ghost" style="width:auto;margin:0;padding:6px 12px;min-height:36px;" onclick="raioXAtalho_(90)">90 dias</button>
+        <button type="button" class="ghost" style="width:auto;margin:0;padding:6px 12px;min-height:36px;" onclick="raioXAtalho_('mes')">Este mês</button>
+        <button type="button" class="ghost" style="width:auto;margin:0;padding:6px 12px;min-height:36px;" onclick="raioXAtalho_('mesant')">Mês passado</button>
+      </div>
+      <div class="row2"><div><label for="rxDe">De</label><input type="date" id="rxDe"></div><div><label for="rxAte">Até</label><input type="date" id="rxAte"></div></div>
+      <button class="primary" type="button" onclick="carregarRaioX_()">Ver período</button>
+      <div id="rxCorpo" class="mt-2"></div>
     </div>
   </section>
 
@@ -2637,15 +2658,15 @@
   </div>
 </div>
 
-<script src="js/app-01-base-e-api.js?v=7ac85f7d" charset="utf-8" data-origem="__big0__"></script>
-<script src="js/app-02-abas.js?v=86fd03ac" charset="utf-8" data-origem="__big1__"></script>
+<script src="js/app-01-base-e-api.js?v=0c351fe5" charset="utf-8" data-origem="__big0__"></script>
+<script src="js/app-02-abas.js?v=48a9334c" charset="utf-8" data-origem="__big1__"></script>
 <script src="js/app-03-cadastros.js?v=3c5db50a" charset="utf-8" data-origem="__big2__"></script>
 <script src="js/app-04-pedidos-entrega.js?v=99782e13" charset="utf-8" data-origem="__big3__"></script>
 <script src="js/app-05-avisos-push.js?v=98079090" charset="utf-8" data-origem="__big4__"></script>
 <script src="js/app-06-caixa.js?v=d8657313" charset="utf-8" data-origem="__big5__"></script>
 <script src="js/app-07-impressao.js?v=5c9f0484" charset="utf-8" data-origem="__big6__"></script>
 <script src="js/app-08-vendas-despesas.js?v=0b8d9a34" charset="utf-8" data-origem="__big7__"></script>
-<script src="js/app-09-ajuda.js?v=80363eeb" charset="utf-8" data-origem="__big8__"></script>
+<script src="js/app-09-ajuda.js?v=2e2004e4" charset="utf-8" data-origem="__big8__"></script>
 <script src="js/app-10-backup-financeiro.js?v=f3d08c92" charset="utf-8" data-origem="__big9__"></script>
 <script src="js/app-11-admin-integracoes.js?v=df7ba2d9" charset="utf-8" data-origem="__big10__"></script>
 <script src="js/app-12-gestao-ia.js?v=fed5faf4" charset="utf-8" data-origem="__big11__"></script>
@@ -2700,9 +2721,9 @@
 <script src="js/app-25-cadastro-facil.js?v=b041c52e" charset="utf-8" data-origem=""></script>
 <script src="js/app-26-visual.js?v=3c963d27" charset="utf-8" data-origem=""></script>
 <link rel="stylesheet" href="css/estilo-conta-pagamento.css?v=a8a0c5cb">
-<link rel="stylesheet" href="css/estilo-sistema.css?v=3378bcf2">
+<link rel="stylesheet" href="css/estilo-sistema.css?v=5d181627">
 <script src="js/app-28-dialogos.js?v=5e2e43b5" charset="utf-8" data-origem=""></script>
-<script src="js/app-27-conta-cliente.js?v=9c79c4d2" charset="utf-8" data-origem=""></script>
+<script src="js/app-27-conta-cliente.js?v=452c28ed" charset="utf-8" data-origem=""></script>
 <script src="js/app-29-usabilidade.js?v=69a7af9b" charset="utf-8" data-origem=""></script>
 <script src="js/app-30-teclado-pc.js?v=f205bac9" charset="utf-8" data-origem=""></script>
 <script src="js/app-31-alertas.js?v=819a321b" charset="utf-8" data-origem=""></script>
@@ -2735,6 +2756,8 @@
 <script src="js/app-48-armazenamento.js?v=c4160c65" charset="utf-8" data-origem=""></script>
 <script src="js/app-59-layout.js?v=5aa543db" charset="utf-8" data-origem=""></script>
 <script src="js/app-61-custos-gerais.js?v=856d2e6d" charset="utf-8" data-origem=""></script>
+<script src="js/app-62-raio-x.js?v=a9a70e0e" charset="utf-8" data-origem=""></script>
+<script src="js/app-63-promocoes-aviso.js?v=cdad1c46" charset="utf-8" data-origem=""></script>
 <script src="js/app-60-navegador-app.js?v=51ce21da" charset="utf-8" data-origem=""></script>
 <script id="autoCura">
 /* Se o arquivo principal do app não carregou (cópia vazia/velha guardada no aparelho), limpa os guardados e recarrega sozinho, uma vez. */

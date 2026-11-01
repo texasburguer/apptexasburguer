@@ -6,7 +6,7 @@
    - BACKEND: NADA de Apps Script (script.google.com) nem de Supabase (*.supabase.co) é guardado aqui.
      Dados, pedidos, login e RPCs nunca passam pelo cache do service worker — sempre vão direto para a rede.
    - O único cache de dados é o de fotos (FOTOS) e o da casca/ícones (SHELL/ASSETS). Não adicionar outros. */
-const SHELL = 'texas-shell-v145';
+const SHELL = 'texas-shell-v146';
 const ASSETS = 'texas-assets-v8';   // trocou ícone/logo/manifest/leaflet? suba para v5
 const FOTOS = 'texas-fotos-v1';
 /* Código do app dividido em arquivos (app-*.js e estilo-*.css). Cada arquivo tem ?v=<impressão digital> na página; o cache guarda
@@ -15,15 +15,15 @@ const FOTOS = 'texas-fotos-v1';
 const CODIGO = 'texas-codigo-v5';   // trocou o nome = todo aparelho descarta o cache de código antigo (inclusive cópia vazia)
 const LISTA = [/*LISTA-INICIO*/
   'css/estilo-base.css?v=30c61648',
-  'js/app-01-base-e-api.js?v=7ac85f7d',
-  'js/app-02-abas.js?v=86fd03ac',
+  'js/app-01-base-e-api.js?v=0c351fe5',
+  'js/app-02-abas.js?v=48a9334c',
   'js/app-03-cadastros.js?v=3c5db50a',
   'js/app-04-pedidos-entrega.js?v=99782e13',
   'js/app-05-avisos-push.js?v=98079090',
   'js/app-06-caixa.js?v=d8657313',
   'js/app-07-impressao.js?v=5c9f0484',
   'js/app-08-vendas-despesas.js?v=0b8d9a34',
-  'js/app-09-ajuda.js?v=80363eeb',
+  'js/app-09-ajuda.js?v=2e2004e4',
   'js/app-10-backup-financeiro.js?v=f3d08c92',
   'js/app-11-admin-integracoes.js?v=df7ba2d9',
   'js/app-12-gestao-ia.js?v=fed5faf4',
@@ -45,7 +45,7 @@ const LISTA = [/*LISTA-INICIO*/
   'js/app-26-visual.js?v=3c963d27',
   'css/estilo-conta-pagamento.css?v=a8a0c5cb',
   'js/app-28-dialogos.js?v=5e2e43b5',
-  'js/app-27-conta-cliente.js?v=9c79c4d2',
+  'js/app-27-conta-cliente.js?v=452c28ed',
   'js/app-29-usabilidade.js?v=69a7af9b',
   'js/app-30-teclado-pc.js?v=f205bac9',
   'js/app-31-alertas.js?v=819a321b',
@@ -80,9 +80,11 @@ const LISTA = [/*LISTA-INICIO*/
   'js/app-58-drive-direto.js?v=9e4d8a06',
   'js/app-48-armazenamento.js?v=c4160c65',
   'js/app-32-equipe.js?v=5f1d4bd8',
-  'css/estilo-sistema.css?v=3378bcf2',
+  'css/estilo-sistema.css?v=5d181627',
   'js/app-59-layout.js?v=5aa543db',
   'js/app-61-custos-gerais.js?v=856d2e6d',
+  'js/app-62-raio-x.js?v=a9a70e0e',
+  'js/app-63-promocoes-aviso.js?v=cdad1c46',
   'js/app-60-navegador-app.js?v=51ce21da',
 /*LISTA-FIM*/];
 const FOTOS_MAX = 150;
@@ -199,7 +201,7 @@ self.addEventListener('fetch', e => {
 self.addEventListener('notificationclick', e => {
   e.notification.close();
   const d = e.notification.data || {};
-  const url = /^\.\/\?(pedido|feedback)=[0-9a-f]{8}$/.test(String(d.url || '')) ? d.url : './';
+  const url = /^\.\/\?((pedido|feedback)=[0-9a-f]{8}|promo=1)$/.test(String(d.url || '')) ? d.url : './';
   e.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
     for (const c of list) { if ('focus' in c) { if (url !== './') c.postMessage({ tipo: 'abrir-url', url }); return c.focus(); } }
     if (self.clients.openWindow) return self.clients.openWindow(url);

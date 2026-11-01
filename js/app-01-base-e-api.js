@@ -7,7 +7,7 @@ const API_URL = "https://script.google.com/macros/s/AKfycbwCftUm-1pxhA8XLNqMB7dM
 const CONTINGENCIA_API_URL = "https://script.google.com/macros/s/AKfycby3WljBnr7gpJrHdkbTvBCh5uIXqS4KCS6wkBYB5idxf5gI04efoDumQj264kR_smoW/exec";
 
 /* ===================== VERSÃO DO APP ===================== */
-const APP_VERSAO = '1.24';
+const APP_VERSAO = '1.25';
 const APP_ATUALIZADO_EM = '01/11/2026';
 window.APP_VERSAO = APP_VERSAO;
 
@@ -19,6 +19,12 @@ window.APP_VERSAO = APP_VERSAO;
    A seção "🆕 O que mudou" do manual é gerada daqui. */
 const APP_NOVIDADES = {
   Admin: [
+    { v:'1.25', em:'01/11/2026', itens:[
+      'Tela nova · Administrador → Vendas e cardápio → "Raio-X do negócio": escolha o período e veja, com os dados que o sistema já guardava, quando vende mais (quadro dia × hora e média de pedidos por noite), iFood × seu cardápio (pedidos, valor médio, quem voltou, comissão e taxas), os clientes fiéis do iFood, os tempos de cada etapa (geral, por horário, por entregador e por turno), os cancelamentos por motivo (sem os testes), onde os pedidos ficam parados, os custos de fornecedor que mudaram nos últimos 90 dias e as perdas registradas comparadas com a estimativa.',
+      'Promoções e cupons · Cartão novo "📣 Promoção por aviso no celular": escreva título e texto, veja a prévia e envie para os clientes que aceitaram receber promoções. No cardápio, quem tem os avisos ligados é convidado uma vez a aceitar; cada aviso de promoção tem "Não quero mais". Uma promoção a cada 6 horas, no máximo.',
+      'Estoque · Botão novo "🗑️ Perdi um produto pronto": escolha o produto (lanche que caiu, voltou ou saiu errado), a quantidade e o motivo; todos os ingredientes da receita saem do estoque como perda e o valor aparece no Raio-X.',
+      'Aviso novo ao Admin: se na última hora a cozinha ficar bem mais lenta que o normal (3 pedidos ou mais), chega um aviso no celular.',
+      'Cupom de aniversário (ANIVERSARIO) foi ligado: quem tem conta com a data de nascimento ganha o cupom no dia. Quem tem conta sem a data vê um convite para informar. Para desligar, use Promoções e cupons → Cupons automáticos.' ] },
     { v:'1.24', em:'01/11/2026', itens:[
       'Cardápio hoje · Parte nova "🧾 No finalizar": de quem abriu a tela de finalizar, quantos tocaram em "Enviar pedido", quantos saíram sem tocar e o que segurou quem tocou (faltou o número da casa, rua, cidade, nome ou telefone, troco menor que o total, pagar pelo site pediu login, cardápio fechado ou erro ao enviar). Dá para ver o período atual ou os últimos 30 dias. Sem nome nem telefone do cliente, igual ao funil.',
       'Tela nova · Administrador → Vendas e cardápio → "Cardápio: funil e mapa": o funil, o detalhe do finalizar e o mapa por PERÍODO (Hoje, 7 dias, 30 dias, Este mês, Mês passado ou datas à escolha), com as visitas por dia. O funil e as entregas aparecem desde o começo; os pontos de acesso passam a ser guardados a partir de hoje como contagem por região, sem identificar o aparelho.',
@@ -341,6 +347,9 @@ const APP_NOVIDADES = {
     ]}
   ],
   Cliente: [
+    { v:'1.25', em:'01/11/2026', itens:[
+      'Com os avisos do pedido ligados, você pode escolher receber também as promoções do Texas no celular. Para parar, toque num aviso de promoção e escolha "Não quero mais".',
+      'Informe seu aniversário em Minha conta → Meus dados e ganhe um presente no dia.' ] },
     { v:'1.24', em:'01/11/2026', itens:[
       'Toque em qualquer parte do cartão do produto para abrir e escolher.',
       'Abriu o cardápio pelo Instagram ou Facebook? Para entrar com o Google e pagar pelo site, use "Abrir no navegador". Pedir sem conta funciona ali mesmo.' ] },
@@ -893,7 +902,7 @@ const SB_ESCRITAS_ = {
   salvarConfigNotificacoes:{ config:'configNotificacoes' }, salvarConfigEstoque:{ configEstoque:'configEstoque' }, salvarConfigCardapio:{ config:'configCardapio' }, salvarCardapioFechamento:{ config:'configCardapio' }, salvarDadosRestaurante:{ config:'configCardapio' },
   salvarConfigEntrega:{ configEntrega:'configEntrega' }, salvarMeta:{ metas:'metas' }, salvarCliente:['clientes'],
   criarUsuario:['usuarios'], editarUsuario:['usuarios'], excluirUsuario:['usuarios'], excluirCliente:['clientes'], unirClientes:['clientes','fidelidade','vendas','indicacoes'], desunirCliente:['clientes','fidelidade','vendas','indicacoes'],
-  registrarEntradaEstoque:['estoque','movimentacoesEstoque','produtoPrecos','comboPrecos'], registrarPerdaEstoque:['estoque','movimentacoesEstoque'], registrarInventarioEstoque:['estoque','movimentacoesEstoque'],
+  registrarEntradaEstoque:['estoque','movimentacoesEstoque','produtoPrecos','comboPrecos'], registrarPerdaEstoque:['estoque','movimentacoesEstoque'], registrarPerdaProduto:['estoque','movimentacoesEstoque'], registrarInventarioEstoque:['estoque','movimentacoesEstoque'],
   addSangria:['sangrias'],
   fecharContaMesa:['vendas','itensVenda','pagamentosVenda','mesas','fidelidade','clientes'], fecharPeriodoEntregador:['vendas','fechamentosEntrega','entregasFechadas','despesas'],
   abrirCaixa:['sessaoCaixa'], cancelarVenda:['vendas','estoque'], editarVenda:['vendas','itensVenda','pagamentosVenda'],
@@ -923,7 +932,7 @@ async function sbRpc_(fn, corpo){
   if(!r.ok) return { ok:false, message:'Não foi possível salvar' + (j && j.message ? ' (' + j.message + ')' : ' (erro ' + r.status + ')') + '. Nada foi gravado.' };
   return j && typeof j === 'object' ? j : { ok:false, message:'Resposta inesperada do servidor.' };
 }
-const SB_IDEM_NOVAS_ = ['pagarFuncionario','registrarCompra','addDespesa','pagarDespesa','registrarAjustePosVenda','cancelarAjustePosVenda','registrarBrinde','addSangria','registrarEntradaEstoque','registrarPerdaEstoque','registrarInventarioEstoque','resgatarPremioFidelidade','toggleResgateIndicacao']; // o banco já devolve a resposta guardada se o mesmo pedido chegar duas vezes
+const SB_IDEM_NOVAS_ = ['pagarFuncionario','registrarCompra','addDespesa','pagarDespesa','registrarAjustePosVenda','cancelarAjustePosVenda','registrarBrinde','addSangria','registrarEntradaEstoque','registrarPerdaEstoque','registrarPerdaProduto','registrarInventarioEstoque','resgatarPremioFidelidade','toggleResgateIndicacao']; // o banco já devolve a resposta guardada se o mesmo pedido chegar duas vezes
 async function sbEscrever_(action, payload){
   const mapa = SB_ESCRITAS_[action];
   let chaveIdem = '';

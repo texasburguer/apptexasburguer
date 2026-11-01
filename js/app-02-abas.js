@@ -70,7 +70,7 @@ const ADMIN_GRUPOS = [
   { nome:'Hoje',               ico:'painel',     subs:['visaogeral', 'ocorrencias', 'feedbacks'] },
   { nome:'Dinheiro',           ico:'financeiro', subs:['historico', 'financeiro', 'ajustes', 'ifoodfin', 'relatorios', 'analise'] },
   { nome:'Produtos',           ico:'catalogo',   subs:['produtos', 'estoque', 'compras', 'custosprecificacao'] },
-  { nome:'Vendas e cardápio',  ico:'campanhas',  subs:['cardapiodigital', 'cardapioperiodo', 'pagamentos', 'promocoes', 'eventos'] },
+  { nome:'Vendas e cardápio',  ico:'campanhas',  subs:['raiox', 'cardapiodigital', 'cardapioperiodo', 'pagamentos', 'promocoes', 'eventos'] },
   { nome:'Loja e equipe',      ico:'operacao',   subs:['ponto', 'escala', 'equipe', 'taxasentregas', 'restaurante', 'usuarios', 'notifadmin'] },
   { nome:'Sistema',            ico:'sistema',    subs:['contas', 'auditoria', 'integridade'] }
 ];
@@ -80,7 +80,7 @@ const ADMIN_SUBABAS_ROTULOS = {
   visaogeral:'Visão Geral', ocorrencias:'Ocorrências', feedbacks:'Feedbacks',
   financeiro:'Contas a pagar e despesas', historico:'Histórico', ajustes:'Reembolsos e ajustes', analise:'Previsto e metas', relatorios:'Relatórios e DRE', ifoodfin:'iFood: vendas e repasses',
   produtos:'Produtos, combos e adicionais', estoque:'Estoque', compras:'Compras e fornecedores', custosprecificacao:'Custos e precificação',
-  cardapiodigital:'Cardápio Digital', cardapioperiodo:'Cardápio: funil e mapa', pagamentos:'Formas de pagamento', promocoes:'Promoções e cupons', eventos:'Eventos',
+  raiox:'Raio-X do negócio', cardapiodigital:'Cardápio Digital', cardapioperiodo:'Cardápio: funil e mapa', pagamentos:'Formas de pagamento', promocoes:'Promoções e cupons', eventos:'Eventos',
   restaurante:'Mesas e QR Codes', taxasentregas:'Entregadores e taxas', equipe:'Equipe e pagamentos', escala:'Escala da equipe', ponto:'Ponto', usuarios:'Usuários e permissões', notifadmin:'Configurar avisos',
   contas:'Integrações e contas', integridade:'Backup e espaço', auditoria:'Auditoria'
 };
@@ -91,7 +91,7 @@ const ADMIN_SUBABAS_DESCRICOES = {
   visaogeral:'Resumo do dia e saúde do sistema', ocorrencias:'Problemas registrados e como tratar', feedbacks:'O que os clientes escreveram; responder',
   financeiro:'Boletos, aluguel e despesas fixas', historico:'Vendas, despesas e caixas já feitos', ajustes:'Devolver dinheiro, dar crédito ou cortesia', analise:'Quanto entra e sai nos próximos 30 dias, e metas', relatorios:'DRE, imposto, mais vendidos e Excel', ifoodfin:'Comissões, taxas, repasses, antecipações e arquivo mensal do iFood',
   produtos:'Cadastro de produtos, combos e adicionais', estoque:'Ingredientes, bebidas e movimentações', compras:'Registrar compras e fornecedores', custosprecificacao:'Simular custo e preço de venda',
-  cardapiodigital:'O que o cliente vê no cardápio: dados, visual, ordem e destaques', cardapioperiodo:'Acessos, onde o cliente desiste e mapa das entregas por período', pagamentos:'Taxas, prazos, troco e o que aparece no cardápio', promocoes:'Cupons e cupons automáticos', eventos:'Custos e recebimentos por evento',
+  raiox:'Quando vende mais, iFood × seu cardápio, tempos, cancelamentos, custos e perdas', cardapiodigital:'O que o cliente vê no cardápio: dados, visual, ordem e destaques', cardapioperiodo:'Acessos, onde o cliente desiste e mapa das entregas por período', pagamentos:'Taxas, prazos, troco e o que aparece no cardápio', promocoes:'Cupons e cupons automáticos', eventos:'Custos e recebimentos por evento',
   restaurante:'Mesas do salão e QR Codes', taxasentregas:'Taxa, ajuda diária e fechamento dos entregadores', equipe:'Funcionários, salários, pagamentos, encargos e recibos', escala:'Quem trabalha em cada dia e horário', ponto:'Entradas e saídas, horas feitas e horas extras', usuarios:'Quem acessa o sistema, o que pode fazer e a privacidade (LGPD) das contas', notifadmin:'Quais avisos ligam, para quem, e os alertas automáticos',
   contas:'iFood, Nota fiscal, Mercado Pago, chaves das IAs e contas do sistema', integridade:'Uso do espaço, backup, cópia na planilha e contingência', auditoria:'Ações sensíveis registradas'
 };
@@ -106,7 +106,7 @@ const ADMIN_BUSCA_PALAVRAS_ = {
   analise:'meta previsto fluxo categoria', ifoodfin:'ifood financeiro repasse liquidacao antecipacao comissao taxa conciliacao arquivo csv boleto recebiveis lancamento venda', relatorios:'dre imposto lucro excel mercado pago resumo mensal produtos mais vendidos',
   produtos:'combo categoria adicional receita foto preco cardapio item lanche', estoque:'ingrediente bebida inventario entrada perda minimo', compras:'fornecedor nota compra comprei',
   custosprecificacao:'calculadora margem custo preco simulador', cardapiodigital:'cardapio online cliente qr logo banner horario fechamento dados do restaurante razao social cnpj', pagamentos:'pix cartao credito debito dinheiro taxa troco prazo online ifood',
-  promocoes:'cupom desconto indicacao fidelidade brinde', cardapioperiodo:'funil mapa visitas acessos entregas regiao bairro conversao desistencia finalizar periodo historico', eventos:'evento festa',
+  raiox:'raio x analise dia hora horario pico semana movimento calor ifood comissao fiel fieis voltaram tempo preparo demora entregador turno cancelamento cancelado motivo parado gargalo custo fornecedor subiu inflacao perda desperdicio', promocoes:'cupom desconto indicacao fidelidade brinde promocao aviso push campanha notificacao', cardapioperiodo:'funil mapa visitas acessos entregas regiao bairro conversao desistencia finalizar periodo historico', eventos:'evento festa',
   restaurante:'mesa qr code salao', taxasentregas:'entregador motoboy frete taxa ajuda diaria fechamento', ponto:'ponto bater entrada saida horas extras banco de horas atraso esqueceu', escala:'troca de turno trocar escala turno horario folga ferias falta atestado quem trabalha semana padrao escalar', equipe:'funcionario funcionarios salario pagamento folha pagar recibo encargos fgts inss ferias decimo terceiro adiantamento vale diaria comissao equipe', usuarios:'usuario login senha acesso perfil garcom cozinha operador permissao lgpd privacidade anonimizar aviso', notifadmin:'aviso notificacao alerta push pedido parado vencimento repetir',
   contas:'ifood nota fiscal nfce mercado pago ia chave gemini groq senha conta email supabase github integracao', integridade:'backup restaurar sincronizar sincronizacao contingencia planilha espelho integridade conferir copia drive foto fotos espaco storage arquivo arquivar arquivamento banco celulas compactacao vacuum previsao plano limite uso',
   auditoria:'log registro historico acao'
@@ -204,7 +204,8 @@ function abrirAdministrador(sub){
   if(_abaInterna_['tab-'+alvo]) abaInterna_('tab-'+alvo, _abaInterna_['tab-'+alvo]);
   if((alvo==='visaogeral' || alvo==='relatorios') && apiConfigurada()) sincronizarEmSegundoPlano(); // ITEM 92: atualiza ao entrar, sem refresh periódico
   if(alvo==='taxasentregas'){ renderEntregasFinanceiro(); if(apiConfigurada()) atualizarAoEntrar_(); }
-  if(alvo==='promocoes'){ renderCuponsUI(); }
+  if(alvo==='promocoes'){ renderCuponsUI(); if(typeof carregarPromoAviso_ === 'function') carregarPromoAviso_(); }
+  if(alvo==='raiox' && typeof abrirRaioX_ === 'function') abrirRaioX_();
   if(alvo==='cardapioperiodo' && typeof abrirCardapioPeriodo_ === 'function') abrirCardapioPeriodo_();
   if(alvo==='usuarios' || alvo==='cardapiodigital'){ lgpdCarregarUI_(); }
   if(alvo==='eventos'){ renderEventosUI(); }

@@ -321,10 +321,24 @@ function abrirConta(aba){
   if(aba) estado.aba = aba;
   var h = cab('Minha conta', 'contaModal') +
     '<p class="sub mb-2">Olá, <b>' + esc(primeiroNome(estado.conta.nome) || 'cliente') + '</b> · ' + esc(estado.conta.email || '') + '</p>' +
+    '<div id="ctAniv"></div>' +
     '<div class="ct-abas" id="ctAbas">' + ABAS.map(function(a){ return '<button type="button" data-aba="' + a[0] + '" class="' + (a[0] === estado.aba ? 'on' : '') + '" onclick="contaAba_(\'' + a[0] + '\')">' + a[1] + '</button>'; }).join('') + '</div>' +
     '<div id="ctCorpo" class="ct-corpo"></div>';
   janela('contaModal', h);
   desenharAba();
+  chamadaAniversario_();
+}
+/* v1.25: conta sem data de nascimento e presente de aniversário ligado → convite para informar */
+function chamadaAniversario_(){
+  var box = $('ctAniv'); if(!box) return;
+  if(!estado.conta || estado.conta.nascimento){ box.innerHTML = ''; return; }
+  var mostrar = function(r){
+    var a = r && r.aniversario, b = $('ctAniv'); if(!a || !b) return;
+    var pres = a.tipo === 'percentual' ? Number(a.valor) + '% de desconto' : a.tipo === 'fixo' ? dinheiro(a.valor) + ' de desconto' : a.tipo === 'frete' ? 'frete grátis' : 'um presente';
+    b.innerHTML = '<div class="ct-chamada" style="margin:0 0 10px;"><span>🎂 <b>Ganhe ' + esc(pres) + ' no seu aniversário.</b> Informe a data em Meus dados.</span><button type="button" class="small-gold" onclick="contaAba_(\'dados\')">Informar</button></div>';
+  };
+  if(_incentivo && _incentivo.ok) mostrar(_incentivo);
+  else rpcPublico('api_conta_incentivo', { p:{} }).then(function(r){ if(r && r.ok){ _incentivo = r; mostrar(r); } }).catch(function(){});
 }
 window.abrirMinhaConta = function(aba){ if(!lerSessao()) return abrirEntrar(); if(!estado.conta) return iniciar(true); abrirConta(aba); };
 window.contaAba_ = function(a){
