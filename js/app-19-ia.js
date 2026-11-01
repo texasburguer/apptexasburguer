@@ -167,7 +167,7 @@
     let m = $('iaStatusModal');
     if(!m){
       m = document.createElement('div'); m.className = 'modal-overlay'; m.id = 'iaStatusModal';
-      m.innerHTML = '<div class="modal-box"><div class="modal-header"><h2><span class="tex-av g" role="img" aria-label="Tex"></span> Tex · Assistente de IA</h2><button class="close-btn" type="button" id="iaStatusFechar">✕</button></div><div id="iaStatusCorpo"></div></div>';
+      m.innerHTML = '<div class="modal-box"><div class="modal-header"><h2><span class="tex-av g" role="img" aria-label="' + ASSISTENTE_H_() + '"></span> ' + ASSISTENTE_H_() + ' · Assistente de IA</h2><button class="close-btn" type="button" id="iaStatusFechar">✕</button></div><div id="iaStatusCorpo"></div></div>';
       document.body.appendChild(m); $('iaStatusFechar').addEventListener('click', () => m.classList.remove('open'));
     }
     m.classList.add('open'); const corpo = $('iaStatusCorpo'); corpo.innerHTML = '<p class="ia-sub">⏳ Verificando…</p>';
@@ -276,8 +276,8 @@
     const d = document.createElement('div');
     const a = m.autor === 'cliente' ? 'eu' : (m.autor === 'sistema' ? 'sis' : (m.autor === 'ia' ? 'ia' : 'eq'));
     d.className = 'chat-balao ' + a;
-    const rot = m.autor === 'cliente' ? 'Você' : (m.autor === 'atendente' ? 'Equipe' : (m.autor === 'ia' ? 'Tex' : ''));
-    if(rot){ const r = document.createElement('small'); if(rot === 'Tex'){ const av = document.createElement('span'); av.className = 'tex-av'; r.appendChild(av); } r.appendChild(document.createTextNode(rot)); d.appendChild(r); }
+    const rot = m.autor === 'cliente' ? 'Você' : (m.autor === 'atendente' ? 'Equipe' : (m.autor === 'ia' ? '' + ASSISTENTE_ + '' : ''));
+    if(rot){ const r = document.createElement('small'); if(rot === '' + ASSISTENTE_ + ''){ const av = document.createElement('span'); av.className = 'tex-av'; r.appendChild(av); } r.appendChild(document.createTextNode(rot)); d.appendChild(r); }
     const t = document.createElement('span'); t.textContent = m.texto; d.appendChild(t);
     box.appendChild(d); box.scrollTop = box.scrollHeight;
   }
@@ -309,7 +309,7 @@
 
   /* ---------- ATENDENTE VIRTUAL (IA do cardápio): dúvidas, preços, status do pedido (pelo celular) e encaminhamento ---------- */
   const PARECE_STATUS = /pedid|status|entreg|a caminho|saiu|demor|atras|chegou|quanto tempo|previs|andamento/i;
-  const BOAS_VINDAS = 'Oi! Eu sou o Tex, o atendente virtual da Texas Burger 🍔\nPosso tirar dúvidas do cardápio, preços, promoções e formas de pagamento, ver o andamento do seu pedido ou chamar a equipe.';
+  const BOAS_VINDAS = 'Oi! Eu sou o ' + ASSISTENTE_ + ', o atendente virtual da ' + NOME_RESTAURANTE_ + ' 🍔\nPosso tirar dúvidas do cardápio, preços, promoções e formas de pagamento, ver o andamento do seu pedido ou chamar a equipe.';
   function renderIa_(){
     pintar_('<div class="chat-msgs" id="chatMsgs"></div><div class="ia-acoes" id="iaAcoes"></div>' +
       '<div class="chat-envio" id="iaEnvio"><input type="text" id="iaTexto" maxlength="400" placeholder="Pergunte sobre cardápio, preços, pedido…" autocomplete="off"><button type="button" class="primary" data-a="iaEnviar">Enviar</button></div>' +

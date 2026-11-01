@@ -6,16 +6,18 @@
    cartões lisos; 3 tipos de botão (principal dourado, secundário de contorno, perigo vermelho).
    ===================================================================== */
 
+/* valores originais da área da equipe (usados quando o tema é o padrão; outros temas recalculam em app-00-marca.js) */
+:root{ --eq-bg:#0c0a08; --eq-panel:#15110d; --eq-panel-2:#1c1712; --eq-panel-3:#241d16; --eq-cream:#f1e8d6; --eq-muted:#a3977f; --eq-line:rgba(255,236,200,.09); --eq-line-forte:rgba(255,236,200,.16); }
 /* ---------- 1. Paleta e letras (a letra de faroeste fica só na marca) ---------- */
 :is(.eq #mainWrap, .eq:not(.vendo-cardapio) .modal-overlay, .eq #navInf, .eq #navInfMais){
   --font-display: var(--font-body);
-  --bg:#0c0a08; --panel:#15110d; --panel-2:#1c1712; --panel-3:#241d16;
-  --line:rgba(255,236,200,.09); --line-forte:rgba(255,236,200,.16);
-  --cream:#f1e8d6; --muted:#a3977f;
+  --bg:var(--eq-bg); --panel:var(--eq-panel); --panel-2:var(--eq-panel-2); --panel-3:var(--eq-panel-3);
+  --line:var(--eq-line); --line-forte:var(--eq-line-forte);
+  --cream:var(--eq-cream); --muted:var(--eq-muted);
   --raio-controle:10px; --raio-card:14px;
   --sombra-card:0 1px 2px rgba(0,0,0,.35), 0 8px 24px rgba(0,0,0,.25);
 }
-body.eq{ background:#0c0a08; }
+body.eq{ background:var(--bg); }
 body.eq #mainWrap{ font-family:var(--font-body); color:var(--cream); }
 
 /* ---------- 2. Cartões e títulos ---------- */
@@ -54,7 +56,7 @@ body.eq #mainWrap{ font-family:var(--font-body); color:var(--cream); }
 :is(.eq #mainWrap, .eq:not(.vendo-cardapio) .modal-overlay) :is(button.primary, button.small-gold, a.small-gold){
   background:var(--gold); color:#1d150b; border:1px solid transparent; border-bottom-width:1px;
   border-radius:var(--raio-controle); font-weight:700; letter-spacing:0; text-transform:none; text-shadow:none;
-  box-shadow:0 1px 0 rgba(255,255,255,.18) inset, 0 2px 8px rgba(224,181,58,.18);
+  box-shadow:0 1px 0 rgba(255,255,255,.18) inset, 0 2px 8px rgba(var(--gold-rgb),.18);
 }
 :is(.eq #mainWrap, .eq:not(.vendo-cardapio) .modal-overlay) button.primary{ font-size:15px; }
 :is(.eq #mainWrap, .eq:not(.vendo-cardapio) .modal-overlay) :is(button.primary, button.small-gold):hover{ filter:brightness(1.06); }
@@ -62,7 +64,7 @@ body.eq #mainWrap{ font-family:var(--font-body); color:var(--cream); }
 :is(.eq #mainWrap, .eq:not(.vendo-cardapio) .modal-overlay) button.ghost{
   background:var(--panel-2); border:1px solid var(--line-forte); color:var(--cream); font-weight:600; border-radius:var(--raio-controle);
 }
-:is(.eq #mainWrap, .eq:not(.vendo-cardapio) .modal-overlay) button.ghost:hover{ border-color:rgba(224,181,58,.45); background:var(--panel-3); }
+:is(.eq #mainWrap, .eq:not(.vendo-cardapio) .modal-overlay) button.ghost:hover{ border-color:rgba(var(--gold-rgb),.45); background:var(--panel-3); }
 /* perigo: botões que já eram vermelhos (excluir, cancelar, recusar) */
 :is(.eq #mainWrap, .eq:not(.vendo-cardapio) .modal-overlay) :is(button.perigo, button.danger, button.btn-perigo){
   background:rgba(224,68,58,.14); border:1px solid rgba(224,68,58,.55); color:#ffb3ab;
@@ -84,16 +86,16 @@ body.eq #mainWrap{ font-family:var(--font-body); color:var(--cream); }
   background:var(--panel-2); border:1px solid var(--line); color:var(--muted); box-shadow:none; text-shadow:none; font-weight:600;
 }
 :is(.eq #mainWrap, .eq:not(.vendo-cardapio) .modal-overlay) :is(.admin-subnav button.active, .ped-subnav button.active, .seg-abas button.active, button.toggle-mode.active){
-  background:rgba(224,181,58,.14); border-color:rgba(224,181,58,.6); color:var(--gold); box-shadow:none;
+  background:rgba(var(--gold-rgb),.14); border-color:rgba(var(--gold-rgb),.6); color:var(--gold); box-shadow:none;
 }
 :is(.eq #mainWrap, .eq:not(.vendo-cardapio) .modal-overlay) :is(.admin-subnav button, .ped-subnav button, .seg-abas button):hover{ color:var(--cream); }
 
 /* ---------- 5. Campos ---------- */
 :is(.eq #mainWrap, .eq:not(.vendo-cardapio) .modal-overlay) :is(input[type=text],input[type=tel],input[type=number],input[type=date],input[type=month],input[type=password],input[type=search],input[type=time],input[type=datetime-local],input[type=email],input[type=url],input:not([type]),select,textarea){
-  background-color:#100c09; border:1px solid var(--line-forte); border-radius:var(--raio-controle); color:var(--cream);
+  background-color:var(--bg-campo); border:1px solid var(--line-forte); border-radius:var(--raio-controle); color:var(--cream);
 }
 :is(.eq #mainWrap, .eq:not(.vendo-cardapio) .modal-overlay) :is(input,select,textarea):focus{
-  outline:none; border-color:var(--gold); box-shadow:0 0 0 3px rgba(224,181,58,.18);
+  outline:none; border-color:var(--gold); box-shadow:0 0 0 3px rgba(var(--gold-rgb),.18);
 }
 :is(.eq #mainWrap, .eq:not(.vendo-cardapio) .modal-overlay) label{ color:var(--muted); font-weight:600; }
 :is(.eq #mainWrap, .eq:not(.vendo-cardapio) .modal-overlay) th{ color:var(--muted); border-bottom:1px solid var(--line-forte); }
@@ -156,7 +158,7 @@ body.nav-inf #sbFaixa{ top:0 !important; bottom:auto !important; padding-top:cal
     background:transparent; border:1px solid transparent; color:var(--muted); box-shadow:none; text-shadow:none;
   }
   .eq header.brand nav.tabs button:hover{ color:var(--cream); background:var(--panel-2); }
-  .eq header.brand nav.tabs button.active{ color:var(--gold); background:rgba(224,181,58,.12); border-color:rgba(224,181,58,.35); }
+  .eq header.brand nav.tabs button.active{ color:var(--gold); background:rgba(var(--gold-rgb),.12); border-color:rgba(var(--gold-rgb),.35); }
   .eq header.brand nav.tabs button .dot{ top:7px; right:5px; }
   .eq header.brand .userbar button{ width:auto; min-width:36px; padding:0 9px; gap:6px; }
   .eq header.brand .userbar .rot{ display:none; }
@@ -171,7 +173,7 @@ body.nav-inf #sbFaixa{ top:0 !important; bottom:auto !important; padding-top:cal
   .eq #adminLateral button .adm-d{ display:none; }
   .eq #adminLateral button{ padding:7px 10px; font-size:14px; font-weight:500; color:var(--cream); }
   .eq #adminLateral button:hover{ background:var(--panel-2); border-color:transparent; }
-  .eq #adminLateral button.active{ background:rgba(224,181,58,.14); color:var(--gold); border-color:rgba(224,181,58,.35); font-weight:700; }
+  .eq #adminLateral button.active{ background:rgba(var(--gold-rgb),.14); color:var(--gold); border-color:rgba(var(--gold-rgb),.35); font-weight:700; }
   .eq #adminLateral .al-grupo{ color:var(--muted); letter-spacing:.08em; margin:14px 10px 4px; }
   .eq #adminLateral .al-grupo .ic{ color:var(--gold); }
 
@@ -191,7 +193,7 @@ body.nav-inf #sbFaixa{ top:0 !important; bottom:auto !important; padding-top:cal
 .sug-chips > span{white-space:nowrap;}
 .sug-chips .sug-resto{display:inline-flex;flex-wrap:wrap;gap:0 2px;white-space:normal;}
 .sug-chips .sug-resto > span{white-space:nowrap;}
-.sug-chips .sug-l1{font-size:13px !important;color:var(--gold,#e0b53a);font-weight:600;}
+.sug-chips .sug-l1{font-size:13px !important;color:var(--gold,var(--gold));font-weight:600;}
 .sug-chips .sug-l1 b{font-weight:800;}
 .sug-chips .sug-l1 small{font-size:11.5px !important;font-weight:500;opacity:.85;}
 .sug-chips .sug-l1.sug-ok{color:var(--ok,#6dbb2e);}
@@ -209,7 +211,7 @@ tr.sug-linha td{padding-top:0 !important;padding-bottom:10px;}
 .rx-barra-t > span{min-width:0;}
 .rx-barra-t > b{white-space:nowrap;}
 .rx-trilho{height:10px;background:#3a2c1c;border-radius:6px;overflow:hidden;margin-top:2px;}
-.rx-trilho > div{height:100%;background:var(--gold,#d9a21b);border-radius:6px;}
+.rx-trilho > div{height:100%;background:var(--gold,var(--gold));border-radius:6px;}
 .rx-dica{margin:8px 0 2px;padding:8px 10px;border-radius:10px;background:rgba(217,162,27,.10);border:1px solid rgba(217,162,27,.25);font-size:13px;line-height:1.4;}
 .rx-calor-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%;}
 .rx-calor{border-collapse:separate;border-spacing:2px;font-size:11px;width:auto;margin:0;}
@@ -229,7 +231,7 @@ tr.sug-linha td{padding-top:0 !important;padding-bottom:10px;}
 .rx-pct.sobe{color:#ff8a80;} .rx-pct.desce{color:#7bd88f;}
 .rx-colunas{display:flex;align-items:flex-end;gap:3px;height:96px;margin:4px 0 0;}
 .rx-colunas > div{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;}
-.rx-col-b{width:100%;background:var(--gold,#d9a21b);border-radius:3px 3px 0 0;min-height:2px;}
+.rx-col-b{width:100%;background:var(--gold,var(--gold));border-radius:3px 3px 0 0;min-height:2px;}
 .rx-col-v{font-size:10px;color:var(--muted,#bfae94);}
 .rx-col-l{font-size:10px;color:var(--muted,#bfae94);margin-top:2px;}
 .pa-not{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:14px;background:#f3f3f3;color:#222;font-size:13px;line-height:1.35;max-width:380px;box-shadow:0 2px 8px rgba(0,0,0,.25);margin-bottom:10px;}
@@ -242,3 +244,18 @@ tr.sug-linha td{padding-top:0 !important;padding-bottom:10px;}
 .bs-previa .box{border:2px solid #000;padding:6px;margin-top:8px;}
 .bs-previa .big{font-size:1.4em;}
 .bs-previa .rod{font-size:.75em;font-weight:400;}
+
+/* ---------- Aparência (v1.27) ---------- */
+.ap-temas{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:8px;margin:6px 0;}
+.ap-tema{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 6px;border-radius:12px;border:2px solid var(--line);color:#fff;font-size:12px;font-weight:700;cursor:pointer;min-height:64px;}
+.ap-tema i{display:inline-block;width:20px;height:20px;border-radius:50%;margin:0 2px;border:1px solid rgba(0,0,0,.4);}
+.ap-tema.on{border-color:var(--gold);box-shadow:0 0 0 2px rgba(var(--gold-rgb),.35);}
+.ap-cores{display:flex;gap:14px;flex-wrap:wrap;margin:6px 0;}
+.ap-cor{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:12px;color:var(--muted);font-weight:700;margin:0;}
+.ap-cor input[type=color]{width:64px;height:48px;padding:2px;border-radius:12px;border:2px solid var(--line);background:none;cursor:pointer;}
+.ap-previa{border-radius:14px;padding:14px;margin:10px 0;border:1px solid var(--line);}
+.ap-bt{display:inline-block;padding:9px 16px;border-radius:999px;font-weight:800;color:#fff;}
+.ap-bt2{display:inline-block;padding:7px 14px;border-radius:999px;font-weight:800;border:2px solid;}
+.ap-logo{display:flex;gap:12px;align-items:center;margin:10px 0;}
+.ap-logo-img{width:84px;height:70px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.06);border-radius:10px;flex:0 0 auto;}
+.ap-logo-img img{max-width:100%;max-height:100%;object-fit:contain;}

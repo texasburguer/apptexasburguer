@@ -1,5 +1,5 @@
 /* ---------- Avisos com o app FECHADO (Web Push; Admin/Operador e, desde 18/10/2026, Cozinha e Garçom para os alertas de pedido parado). O servidor manda "Novo pedido" e "Cliente aguardando" mesmo com o app fechado. ---------- */
-const PUSH_CHAVE_PUBLICA_ = 'BK1UHD8LyT7jX5dBSaXZ4YdsnHIRa6JrYofIWpHMhEfFh3Lam6akQcpzhJERF_T6tg0JlXA3--hHk0geAzolFyI';
+const PUSH_CHAVE_PUBLICA_ = (window.RESTAURANTE && window.RESTAURANTE.pushChave) || '';   // chave pública dos avisos (config-restaurante.js)
 function pushSuportado_(){ try{ return location.protocol==='https:' && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window; }catch(e){ return false; } }
 function pushChaveBytes_(b64){ const pad = '='.repeat((4 - b64.length % 4) % 4), raw = atob((b64 + pad).replace(/-/g,'+').replace(/_/g,'/')); const a = new Uint8Array(raw.length); for(let i=0;i<raw.length;i++) a[i] = raw.charCodeAt(i); return a; }
 async function pushInscricaoAtual_(){ try{ const reg = await navigator.serviceWorker.getRegistration(); return reg ? await reg.pushManager.getSubscription() : null; }catch(e){ return null; } }
@@ -27,6 +27,7 @@ async function alternarPush_(){
       const perm = await Notification.requestPermission();
       if(perm !== 'granted'){ showMsg('avisosMsg', 'Sem a permissão do navegador não dá para ligar. Permita as notificações e tente de novo.', 'warn'); return; }
       const reg = await navigator.serviceWorker.ready;
+      if(!PUSH_CHAVE_PUBLICA_) throw new Error('Os avisos no celular ainda não foram configurados neste restaurante.');
       const novo = sub || await reg.pushManager.subscribe({ userVisibleOnly:true, applicationServerKey: pushChaveBytes_(PUSH_CHAVE_PUBLICA_) });
       const r = await apiCall('pushInscrever', novo.toJSON());
       if(!r || !r.ok){ try{ await novo.unsubscribe(); }catch(e){} showMsg('avisosMsg', (r && r.message) || 'Não foi possível ligar agora.', 'warn'); return; }
@@ -790,7 +791,7 @@ Diferença: ${formatarMoeda(Math.abs(diferenca))} (${sinal})`;
   if(r.reconciliadasNaSessao && r.reconciliadasNaSessao.quantidade>0) blocoCont += `\n\n🟠 VENDAS VINDAS DA CONTINGÊNCIA (já incluídas)\n${r.reconciliadasNaSessao.quantidade} venda(s) — ${formatarMoeda(r.reconciliadasNaSessao.valor)}, registradas com a hora original da venda.`;
   if(r.pendentesContingencia>0) blocoCont += `\n\n⚠️ VENDAS AINDA NA FILA DA CONTINGÊNCIA\n${r.pendentesContingencia} venda(s) não entraram neste fechamento. Quando forem reconciliadas, entram nesta sessão como "reconciliadas após o fechamento" e o saldo e a diferença são ajustados.`;
   const acertoTxt = (r.acertoEntregadores > 0) ? `\n\n🛵 Acerto dos entregadores (pago em dinheiro, depois da conferência): ${formatarMoeda(r.acertoEntregadores)}\n💵 Fica na gaveta após o acerto: ${formatarMoeda(r.saldoAposAcertos)}` : '';
-  const texto = `🧾 FECHAMENTO DE CAIXA — TEXAS BURGER
+  const texto = `🧾 FECHAMENTO DE CAIXA — ${NOME_UP_()}
 Abertura: ${r.abertura}
 Fechamento: ${r.fechamento}
 

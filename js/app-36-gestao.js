@@ -137,7 +137,7 @@ async function gFechamentoMes(){
   const L = (t, val, o) => { o = o || {}; return '<tr style="' + (o.forte ? 'font-weight:bold;border-top:1px solid #999;' : '') + '"><td style="padding:3px 0;' + (o.recuo ? 'padding-left:16px;color:#555;' : '') + '">' + escH(t) + '</td><td style="text-align:right;">' + (o.neg ? '− ' : '') + formatarMoeda(val) + '</td></tr>'; };
   const cats = Object.entries(d.despPorCat || {}).sort((a, b) => b[1] - a[1]).map(([c, x]) => L(c, x, { recuo: true, neg: true })).join('');
   const evs = (eventos || []).filter(e => { const t = new Date(e.data); return !isNaN(t) && t.getFullYear() === ano && t.getMonth() + 1 === mes && !['Orçamento', 'Cancelado'].includes(e.status); });
-  const h = '<div style="font-family:Arial,sans-serif;font-size:13px;padding:18px;max-width:720px;"><h1 style="margin:0;">TEXAS BURGER</h1><div style="color:#555;margin-bottom:12px;">Fechamento de ' + nomes[mes - 1] + ' de ' + ano + '</div>' +
+  const h = '<div style="font-family:Arial,sans-serif;font-size:13px;padding:18px;max-width:720px;"><h1 style="margin:0;">' + NOME_UP_H_() + '</h1><div style="color:#555;margin-bottom:12px;">Fechamento de ' + nomes[mes - 1] + ' de ' + ano + '</div>' +
     '<table style="border-collapse:collapse;width:100%;">' +
     L('Vendas (antes do desconto)', d.receitaBruta) + L('Descontos', d.descontos, { recuo: true, neg: true }) + L('Receita líquida de vendas', d.receitaLiquida, { forte: true }) +
     L('Faturamento de eventos', d.receitaEventos || 0) + L('Custos de eventos', d.custosEventos || 0, { neg: true }) +
@@ -170,12 +170,12 @@ async function evContrato(){
   const itens = String(f.obj || '').split('\n').map(x => x.trim()).filter(Boolean), cls = String(f.cl || '').split('\n').map(x => x.trim()).filter(Boolean);
   const hoje = new Date();
   const h = '<div style="font-family:Arial,sans-serif;font-size:13px;line-height:1.5;padding:20px;max-width:720px;"><h2 style="text-align:center;margin:0 0 14px;">CONTRATO DE PRESTAÇÃO DE SERVIÇOS PARA EVENTO</h2>' +
-    '<p><b>CONTRATADO:</b> Texas Burger.</p><p><b>CONTRATANTE:</b> ' + escH(e.contratante || '________________') + (f.doc ? ', CPF/CNPJ ' + escH(f.doc) : '') + (e.telefone ? ', telefone ' + escH(e.telefone) : '') + (f.end ? ', ' + escH(f.end) : '') + '.</p>' +
+    '<p><b>CONTRATADO:</b> ' + NOME_H_() + '.</p><p><b>CONTRATANTE:</b> ' + escH(e.contratante || '________________') + (f.doc ? ', CPF/CNPJ ' + escH(f.doc) : '') + (e.telefone ? ', telefone ' + escH(e.telefone) : '') + (f.end ? ', ' + escH(f.end) : '') + '.</p>' +
     '<p><b>Evento:</b> ' + escH(e.nome) + (e.tipo ? ' (' + escH(e.tipo) + ')' : '') + '<br><b>Data:</b> ' + escH(fmtDataBR(String(e.data).slice(0, 10))) + (typeof evHora_ === 'function' && evHora_(e) ? ', ' + escH(evHora_(e)) : '') + (e.local ? '<br><b>Local:</b> ' + escH(e.local) : '') + '</p>' +
     (itens.length ? '<p><b>O que está incluso:</b></p><ul style="margin:0 0 10px;padding-left:20px;">' + itens.map(x => '<li>' + escH(x) + '</li>').join('') + '</ul>' : '') +
     '<p><b>Valor total:</b> ' + formatarMoeda(e.valorContratado) + '.</p>' +
     (cls.length ? '<p><b>Cláusulas:</b></p><ol style="margin:0 0 10px;padding-left:20px;">' + cls.map(x => '<li>' + escH(x) + '</li>').join('') + '</ol>' : '') +
     '<p>' + (f.cidade ? escH(f.cidade) + ', ' : '') + escH(hoje.toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })) + '.</p>' +
-    '<div style="margin-top:50px;display:flex;gap:40px;"><div style="flex:1;border-top:1px solid #000;padding-top:4px;text-align:center;">Texas Burger<br>CONTRATADO</div><div style="flex:1;border-top:1px solid #000;padding-top:4px;text-align:center;">' + escH(e.contratante || 'Contratante') + '<br>CONTRATANTE</div></div></div>';
+    '<div style="margin-top:50px;display:flex;gap:40px;"><div style="flex:1;border-top:1px solid #000;padding-top:4px;text-align:center;">' + NOME_H_() + '<br>CONTRATADO</div><div style="flex:1;border-top:1px solid #000;padding-top:4px;text-align:center;">' + escH(e.contratante || 'Contratante') + '<br>CONTRATANTE</div></div></div>';
   imprimirDocumento(h, 'Contrato — ' + e.nome, 'A4');
 }

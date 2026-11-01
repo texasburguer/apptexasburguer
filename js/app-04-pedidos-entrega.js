@@ -493,7 +493,7 @@ function comandaHtml_(v){
     : `<div class="pago">JÁ PAGO${ehEnt?'<br>NÃO COBRAR':''}</div>`;
   if(ehEnt && v.entregador) h += `<div class="forma">Entregador: <b>${sem(pdEntregadorNome_(v.entregador))}</b></div>`;
   h += `<div class="vers">“Portanto, quando vocês comem, ou bebem, ou fazem qualquer outra coisa, façam tudo para a glória de Deus.”<br><b>1 Coríntios 10:31</b></div>`;
-  h += `<div class="rod">Impressa às ${escR(agora)} · Texas Burger</div></div>`;
+  h += `<div class="rod">Impressa às ${escR(agora)} · ${NOME_H_()}</div></div>`;
   return h;
 }
 function imprimirComandas_(lista){
@@ -601,7 +601,7 @@ function somDoSistemaAtivo_(){ try{ return avisosSuportado_() && Notification.pe
 function somAlerta_(){
   if(somDoSistemaAtivo_()){
     /* Som padrão de notificação do celular: quem toca é a notificação. Se quem chamou não mostrou nenhuma, mostra uma simples. */
-    setTimeout(()=>{ if(Date.now() - _ultimaNotifEm_ > 1500) mostrarNotificacao_('🔔 Texas Burger', 'Há uma atualização nos pedidos.'); }, 400);
+    setTimeout(()=>{ if(Date.now() - _ultimaNotifEm_ > 1500) mostrarNotificacao_('🔔 ' + NOME_RESTAURANTE_, 'Há uma atualização nos pedidos.'); }, 400);
   } else {
     try{
       const ctx = audioCtx_();

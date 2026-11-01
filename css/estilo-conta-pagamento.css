@@ -2,10 +2,10 @@
 
 /* ===== (de estilo-15-conta.css) ===== */
 /* Conta do cliente (login com Google): botão do cardápio, Minha conta, aceite e aviso de privacidade */
-.cd-contabar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 4px 10px;padding:7px 8px 7px 14px;border:1px solid var(--gold-dim);border-radius:var(--raio-pilula);background:rgba(224,181,58,.08);}
+.cd-contabar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 4px 10px;padding:7px 8px 7px 14px;border:1px solid var(--gold-dim);border-radius:var(--raio-pilula);background:rgba(var(--gold-rgb),.08);}
 .cd-contabar-txt{font-size:var(--fs-xs);color:var(--cream);line-height:1.25;min-width:0;}
 .cd-contabar-txt b{color:var(--gold);}
-.cd-contabar.logada{background:rgba(224,181,58,.14);}
+.cd-contabar.logada{background:rgba(var(--gold-rgb),.14);}
 .cd-conta-btn{flex:0 0 auto;width:auto;margin:0;background:var(--gold);color:var(--on-gold);border:none;border-radius:var(--raio-pilula);padding:8px 14px;font-size:var(--fs-sm);font-weight:800;cursor:pointer;max-width:52%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .cd-conta-btn:active{background:var(--red-dim);color:#fff;}
 @media (min-width:900px){ .cd-contabar{max-width:760px;margin-left:auto;margin-right:auto;} }
@@ -13,12 +13,12 @@
 .ct-box input[type=date]{color-scheme:light;}
 .ct-box input[type=date]::-webkit-calendar-picker-indicator{filter:invert(1) brightness(1.4);opacity:1;cursor:pointer;width:22px;height:22px;}
 .ct-fid .punch{margin-top:8px;}
-.ct-brinde{border:1px solid var(--gold);background:rgba(224,181,58,.1);border-radius:var(--raio-controle);padding:10px 11px;margin:10px 0;}
+.ct-brinde{border:1px solid var(--gold);background:rgba(var(--gold-rgb),.1);border-radius:var(--raio-controle);padding:10px 11px;margin:10px 0;}
 .ct-prod{display:flex;align-items:center;gap:10px;justify-content:space-between;padding:7px 0;border-top:1px solid var(--line);}
 .ct-prod:first-of-type{border-top:none;}
 .ct-prod span{font-size:var(--fs-sm);min-width:0;}
 .ct-prod button{width:auto;margin:0;flex:0 0 auto;}
-#cdContaBrindes{border:1px solid var(--gold);background:rgba(224,181,58,.1);border-radius:var(--raio-controle);padding:9px 11px;margin-bottom:10px;}
+#cdContaBrindes{border:1px solid var(--gold);background:rgba(var(--gold-rgb),.1);border-radius:var(--raio-controle);padding:9px 11px;margin-bottom:10px;}
 #cdContaBrindes select{margin:4px 0 0;}
 .ct-box{max-width:520px;max-height:92vh;overflow-y:auto;}
 .ct-lista{margin:0 0 12px;padding-left:18px;font-size:var(--fs-sm);line-height:1.7;color:var(--cream);}
@@ -32,7 +32,7 @@
 .ct-card{background:var(--panel-2);border:1px solid var(--line);border-radius:var(--raio-controle);padding:10px 12px;margin-bottom:10px;}
 .ct-cab{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:var(--fs-md);}
 .ct-cab span{font-size:var(--fs-xs);color:var(--muted);}
-.ct-cab .ct-cod{background:rgba(224,181,58,.14);border:1px dashed var(--gold-dim);color:var(--gold);padding:2px 8px;border-radius:var(--raio-controle);font-weight:800;letter-spacing:.04em;}
+.ct-cab .ct-cod{background:rgba(var(--gold-rgb),.14);border:1px dashed var(--gold-dim);color:var(--gold);padding:2px 8px;border-radius:var(--raio-controle);font-weight:800;letter-spacing:.04em;}
 .ct-itens{font-size:var(--fs-xs);color:var(--cream);line-height:1.5;}
 .ct-msg{font-size:var(--fs-xs);color:var(--cream);font-style:italic;margin:2px 0 4px;}
 .ct-linha{display:flex;gap:8px;justify-content:flex-end;margin-top:10px;flex-wrap:wrap;}
@@ -42,10 +42,10 @@
 .ct-perigo{background:transparent;border:1px solid #b3261e;color:var(--erro-texto);border-radius:var(--raio-controle);padding:8px 12px;font-size:var(--fs-sm);font-weight:700;cursor:pointer;}
 .ct-check{display:flex;align-items:flex-start;gap:8px;margin:8px 0;font-size:var(--fs-sm);line-height:1.4;color:var(--cream);}
 .ct-check input{width:auto;margin-top:3px;flex:0 0 auto;}
-.ct-chamada{display:flex;align-items:center;gap:10px;justify-content:space-between;background:rgba(224,181,58,.1);border:1px solid var(--gold-dim);border-radius:var(--raio-controle);padding:9px 11px;margin-bottom:10px;font-size:var(--fs-xs);line-height:1.4;}
+.ct-chamada{display:flex;align-items:center;gap:10px;justify-content:space-between;background:rgba(var(--gold-rgb),.1);border:1px solid var(--gold-dim);border-radius:var(--raio-controle);padding:9px 11px;margin-bottom:10px;font-size:var(--fs-xs);line-height:1.4;}
 .ct-chamada button{width:auto;margin:0;flex:0 0 auto;}
 .ct-chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:8px 0 2px;}
-.ct-chip{width:auto;margin:0;background:rgba(224,181,58,.14);border:1px dashed var(--gold);color:var(--gold);border-radius:var(--raio-pilula);padding:5px 10px;font-size:var(--fs-xs);font-weight:800;cursor:pointer;}
+.ct-chip{width:auto;margin:0;background:rgba(var(--gold-rgb),.14);border:1px dashed var(--gold);color:var(--gold);border-radius:var(--raio-pilula);padding:5px 10px;font-size:var(--fs-xs);font-weight:800;cursor:pointer;}
 .ct-aviso h3{margin:14px 0 4px;font-size:var(--fs-md);color:var(--gold);}
 .ct-aviso p,.ct-aviso li{font-size:var(--fs-sm);line-height:1.55;color:var(--cream);}
 .ct-aviso ul{padding-left:18px;margin:4px 0;}
@@ -54,7 +54,7 @@
 /* feedback do pedido (Minha conta › Pedidos) */
 .ct-fb{margin-top:8px;padding:8px 10px;border:1px solid var(--line);border-radius:var(--raio-controle);background:rgba(0,0,0,.25);font-size:var(--fs-sm);}
 .ct-estrelas{color:var(--gold);letter-spacing:2px;}
-.ct-resp{margin-top:6px;padding:7px 9px;border-left:3px solid var(--gold);background:rgba(224,181,58,.1);border-radius:var(--raio-controle);font-size:var(--fs-sm);}
+.ct-resp{margin-top:6px;padding:7px 9px;border-left:3px solid var(--gold);background:rgba(var(--gold-rgb),.1);border-radius:var(--raio-controle);font-size:var(--fs-sm);}
 .ct-estrelas-sel{display:flex;justify-content:center;gap:6px;margin:6px 0 10px;}
 .ct-estrelas-sel button{width:auto;margin:0;background:transparent;border:none;color:var(--muted);font-size:var(--fs-3xl);line-height:1;padding:2px 6px;cursor:pointer;}
 .ct-estrelas-sel button.on{color:var(--gold);}
@@ -76,7 +76,7 @@
 .mp-tag{margin-left:auto;flex:0 0 auto;font-size:var(--fs-2xs);font-weight:700;background:rgba(109,187,46,.16);color:var(--ok);border-radius:var(--raio-pilula);padding:3px 9px;white-space:nowrap}
 .mp-tag.off{background:rgba(191,174,143,.14);color:var(--muted)}
 #cdResumoPag{margin-top:12px}
-.mp-aviso{background:rgba(224,181,58,.12);border:1px solid var(--gold-dim);border-radius:var(--raio-controle);padding:9px 11px;font-size:var(--fs-sm);margin:8px 0 0;color:var(--cream)}
+.mp-aviso{background:rgba(var(--gold-rgb),.12);border:1px solid var(--gold-dim);border-radius:var(--raio-controle);padding:9px 11px;font-size:var(--fs-sm);margin:8px 0 0;color:var(--cream)}
 
 /* ---- janela do pagamento ---- */
 .mp-box{max-width:480px;width:calc(100% - 24px);max-height:92vh;overflow:auto;position:relative;padding:0;background:transparent;border:0;box-shadow:none}
@@ -107,7 +107,7 @@ label.mp-c{display:flex;flex-direction:column;gap:4px;font-size:var(--fs-xs);col
 .mp-inp{background:#fff;color:#222;border-radius:var(--raio-controle);padding:11px 12px;font:500 var(--fs-lg) var(--font-body);border:0;width:100%;box-sizing:border-box}
 .mp-brick{min-height:80px}
 .mp-ok{align-self:center;width:72px;height:72px;border-radius:50%;background:rgba(109,187,46,.18);display:grid;place-items:center}
-.mp-ok.mp-relogio{background:rgba(224,181,58,.16)}
+.mp-ok.mp-relogio{background:rgba(var(--gold-rgb),.16)}
 .mp-ok svg{width:38px;height:38px}
 .mp-zap{background:#173a26;border-radius:10px 10px 10px 2px;padding:10px 12px;font-size:var(--fs-sm);line-height:1.5;color:#e6f7ec;overflow-wrap:anywhere}
 .mp-zap b{color:#9ff0b8}
@@ -122,7 +122,7 @@ label.mp-c{display:flex;flex-direction:column;gap:4px;font-size:var(--fs-xs);col
 .mp-lista li{display:flex;gap:8px;align-items:flex-start}
 .mp-i{flex:0 0 18px;height:18px;border-radius:50%;display:grid;place-items:center;font-size:var(--fs-2xs);font-weight:700;margin-top:1px}
 .mp-i.v{background:rgba(109,187,46,.2);color:var(--ok)}
-.mp-i.p{background:rgba(224,181,58,.18);color:var(--gold)}
+.mp-i.p{background:rgba(var(--gold-rgb),.18);color:var(--gold)}
 .mp-camp{display:flex;flex-direction:column;gap:3px;font-size:var(--fs-xs);color:var(--muted)}
 .mp-camp .v{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--panel-2);border:1px solid var(--line);border-radius:var(--raio-controle);padding:9px 10px;color:var(--cream);font:13.5px ui-monospace,Menlo,monospace}
 .mp-modo{display:flex;gap:6px}
@@ -182,5 +182,5 @@ label.mp-c{display:flex;flex-direction:column;gap:4px;font-size:var(--fs-xs);col
 @media (min-width:900px){ .avisos-host{ bottom:var(--esp-4); align-items:flex-end; padding:0 var(--esp-4); } }
 @media (prefers-reduced-motion:reduce){ .aviso{ animation:none; } .aviso.saindo{ transition:none; } }
 /* v1.24 · cupom que vale só em algumas formas de pagamento */
-.mp-tag.mp-tag-cupom{background:rgba(224,181,58,.18);color:var(--gold)}
+.mp-tag.mp-tag-cupom{background:rgba(var(--gold-rgb),.18);color:var(--gold)}
 .mp-tag.mp-tag-semcupom{opacity:.85}

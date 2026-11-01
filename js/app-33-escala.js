@@ -179,7 +179,7 @@ function escWhatsapp(){ window.open('https://wa.me/?text=' + encodeURIComponent(
 function escImprimir(){
   const dias = escDias_(), fs = (escDados_.funcionarios || []).filter(f => f.ativo);
   const cel = (f, iso) => escTurnosDe_(f.id, iso).filter(t => ['Trabalho', 'Folga', 'Férias'].includes(t.tipo)).map(t => t.tipo === 'Trabalho' ? escH(t.inicio + '–' + t.fim) : escH(t.tipo)).join('<br>') || '—';
-  const h = '<div style="font-family:Arial,sans-serif;font-size:13px;padding:16px;"><h2 style="margin:0 0 4px;">Escala da equipe — TEXAS BURGER</h2><div style="margin-bottom:12px;">Semana de ' + escDM_(escSemana_) + ' a ' + escDM_(escSomar_(escSemana_, 6)) + '</div>' +
+  const h = '<div style="font-family:Arial,sans-serif;font-size:13px;padding:16px;"><h2 style="margin:0 0 4px;">Escala da equipe — ' + NOME_UP_H_() + '</h2><div style="margin-bottom:12px;">Semana de ' + escDM_(escSemana_) + ' a ' + escDM_(escSomar_(escSemana_, 6)) + '</div>' +
     '<table style="border-collapse:collapse;width:100%;"><tr><th style="border:1px solid #000;padding:4px;text-align:left;">Pessoa</th>' + dias.map((iso, i) => '<th style="border:1px solid #000;padding:4px;">' + ESC_DIAS_[i] + '<br>' + escDM_(iso) + '</th>').join('') + '</tr>' +
     fs.map(f => '<tr><td style="border:1px solid #000;padding:4px;"><b>' + escH(f.nome) + '</b><br>' + escH(f.cargo || '') + '</td>' + dias.map(iso => '<td style="border:1px solid #000;padding:4px;text-align:center;">' + cel(f, iso) + '</td>').join('') + '</tr>').join('') + '</table></div>';
   imprimirDocumento(h, 'Escala da equipe', 'A4');

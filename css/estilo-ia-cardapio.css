@@ -5,7 +5,7 @@
   .ia-dot.visivel{display:inline-flex;}
   .ia-dot i{display:block;width:10px;height:10px;border-radius:50%;background:#7a7a7a;}
   .ia-dot.normal i{background:var(--ok) !important;box-shadow:0 0 8px #4cc35f99;}
-  .ia-dot.reserva i{background:#f0c93c;box-shadow:0 0 8px #f0c93c99;}
+  .ia-dot.reserva i{background:var(--gold-hi);box-shadow:0 0 8px #f0c93c99;}
   .ia-dot.indisponivel i{background:var(--erro);box-shadow:0 0 8px #e0443a99;}
   .ia-card button.primary,.ia-btn{width:auto;margin-top:0;padding:10px 16px;}
   .ia-linha{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0;}
@@ -15,7 +15,7 @@
   .ia-texto{background:var(--panel-2,var(--panel-2));border:1px solid var(--line,var(--line));border-radius:var(--raio-controle);padding:12px;line-height:1.5;margin:10px 0;}
   .ia-lista{margin:6px 0 6px 18px;padding:0;}
   .ia-sub{font-size:var(--fs-xs);opacity:.75;margin-top:8px;}
-  .ia-aviso{font-size:var(--fs-xs);color:#f0c93c;margin:8px 0;}
+  .ia-aviso{font-size:var(--fs-xs);color:var(--gold-hi);margin:8px 0;}
   .ia-erro{font-size:var(--fs-sm);color:var(--erro-texto);margin:8px 0;}
   .ia-rodape{font-size:var(--fs-2xs);opacity:.6;margin:6px 0 0;}
   .ia-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin:10px 0;}

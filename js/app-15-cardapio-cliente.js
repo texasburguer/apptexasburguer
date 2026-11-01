@@ -1273,7 +1273,7 @@ function cdWaPedido_(r){
   const taxaVal=(r.taxaEntrega!=null)?Number(r.taxaEntrega):(Number(total)-Number(r.valorOriginal||0)+Number(r.valorDesconto||0));   // pedido pago pelo site manda a taxa pronta
   const taxa=(tipo==='Entrega' && !r.freteGratis && taxaVal>0)?`\nTaxa de entrega: R$ ${taxaVal.toFixed(2).replace('.',',')}`:'';
   const linhaPagamento=r.pagamentoOnline ? `PAGO via ${String(r.pagamentoOnline)==='pix'?'Pix':'Cartão'} (${cdPagProvedor_(cdFormaAtualId_())==='infinitepay'?'InfinitePay':'Mercado Pago'}).\nNão cobrar na entrega` : `Pagamento: ${forma||'Não informado'}`;
-  const msg=`🍔 TEXAS BURGER\nPedido #${numero}\nCliente: ${nome}\nWhatsApp: ${tel}\n${linhaPagamento}\n\n${itens}\n\nModalidade: ${tipo}\n${endereco}${obs?'\nObservações: '+obs:''}\nTotal: R$ ${total.toFixed(2).replace('.',',')}${taxa}${cup}${frete}`;
+  const msg=`🍔 ${NOME_UP_()}\nPedido #${numero}\nCliente: ${nome}\nWhatsApp: ${tel}\n${linhaPagamento}\n\n${itens}\n\nModalidade: ${tipo}\n${endereco}${obs?'\nObservações: '+obs:''}\nTotal: R$ ${total.toFixed(2).replace('.',',')}${taxa}${cup}${frete}`;
   return { msg, url:'https://wa.me/5517988323473?text='+encodeURIComponent(msg), numero };
 }
 function mostrarBotaoWhatsappPedido(r){
@@ -1340,7 +1340,7 @@ function cdMostrarConfirmacaoPedido_(url, numero, contingencia, vendaId){
   if(!cdAppJaInstalado_()){
     const inst = document.createElement('div'); inst.className = 'cd-conf-instalar';
     const itx = document.createElement('div'); itx.className = 'cd-conf-inst-txt';
-    itx.innerHTML = '<b>Peça mais rápido da próxima vez</b>Instale o app Texas Burger na tela inicial do seu celular.';
+    itx.innerHTML = '<b>Peça mais rápido da próxima vez</b>Instale o app ' + NOME_H_() + ' na tela inicial do seu celular.';
     inst.appendChild(itx);
     const bIn = document.createElement('button'); bIn.type = 'button'; bIn.className = 'cd-conf-sec';
     bIn.textContent = '📲 Instalar app';
@@ -1373,7 +1373,7 @@ function mostrarBotaoWhatsappContingencia(r){
   const nome=document.getElementById('cdNome').value.trim(); const tel=document.getElementById('cdTelefone').value.trim(); const tipo=document.getElementById('cdTipoEntrega').value; const total=Number(r.valorTotal||0);
   const endereco=tipo==='Entrega' ? cdEnderecoTexto_() : 'Retirada no balcão';
   const obs=(document.getElementById('cdObservacoes')||{}).value || '';
-  const msg=`🍔 TEXAS BURGER\nPEDIDO EM CONTINGÊNCIA\nCódigo: ${r.numero||String(r.id).slice(-6).toUpperCase()}\nCliente: ${nome}\nWhatsApp: ${tel}\n\n${itens}\n\nModalidade: ${tipo}\n${endereco}${obs?'\nObservações: '+obs:''}\nTotal informado: R$ ${total.toFixed(2).replace('.',',')}`;
+  const msg=`🍔 ${NOME_UP_()}\nPEDIDO EM CONTINGÊNCIA\nCódigo: ${r.numero||String(r.id).slice(-6).toUpperCase()}\nCliente: ${nome}\nWhatsApp: ${tel}\n\n${itens}\n\nModalidade: ${tipo}\n${endereco}${obs?'\nObservações: '+obs:''}\nTotal informado: R$ ${total.toFixed(2).replace('.',',')}`;
   cdMostrarConfirmacaoPedido_('https://wa.me/5517988323473?text='+encodeURIComponent(msg), r.numero||String(r.id).slice(-6).toUpperCase(), true);
 }
 /* ---------- FEEDBACK (ITEM 34) — sempre disponível, com ou sem pedido ---------- */

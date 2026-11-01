@@ -148,12 +148,12 @@ function eqRecibo(id){
   const e = t => escH(t == null ? '' : t);
   const dia = fmtDataBR(String(x.pagoEm || '').slice(0, 10));
   const h = '<div style="font-family:Arial,sans-serif;font-size:14px;line-height:1.6;padding:24px 32px;">' +
-    '<h2 style="text-align:center;margin:0 0 4px;">RECIBO DE PAGAMENTO</h2><div style="text-align:center;margin-bottom:24px;">TEXAS BURGER</div>' +
-    '<p>Recebi de <b>TEXAS BURGER</b> a importância de <b>' + e(formatarMoeda(x.valor)) + '</b> (' + e(eqExtenso_(x.valor)) + '), referente a <b>' + e(String(x.tipo).toLowerCase()) + '</b> do mês <b>' + e(eqMesTxt_(x.competencia)) + '</b>.</p>' +
+    '<h2 style="text-align:center;margin:0 0 4px;">RECIBO DE PAGAMENTO</h2><div style="text-align:center;margin-bottom:24px;">' + NOME_UP_H_() + '</div>' +
+    '<p>Recebi de <b>' + NOME_UP_H_() + '</b> a importância de <b>' + e(formatarMoeda(x.valor)) + '</b> (' + e(eqExtenso_(x.valor)) + '), referente a <b>' + e(String(x.tipo).toLowerCase()) + '</b> do mês <b>' + e(eqMesTxt_(x.competencia)) + '</b>.</p>' +
     '<p>Funcionário: <b>' + e(x.nome) + '</b>' + (f.cargo ? ' — ' + e(f.cargo) : '') + '</p>' +
     (x.observacao ? '<p>Observação: ' + e(x.observacao) + '</p>' : '') +
     '<p>Para maior clareza, firmo o presente recibo.</p><p style="margin-top:12px;">Data do pagamento: ' + e(dia) + '</p>' +
     '<div style="margin-top:56px;display:flex;gap:40px;"><div style="flex:1;border-top:1px solid #000;text-align:center;padding-top:4px;">' + e(x.nome) + '<br><small>Funcionário</small></div>' +
-    '<div style="flex:1;border-top:1px solid #000;text-align:center;padding-top:4px;">TEXAS BURGER<br><small>Empregador</small></div></div></div>';
+    '<div style="flex:1;border-top:1px solid #000;text-align:center;padding-top:4px;">' + NOME_UP_H_() + '<br><small>Empregador</small></div></div></div>';
   imprimirDocumento(h, 'Recibo ' + x.nome, 'A4');
 }

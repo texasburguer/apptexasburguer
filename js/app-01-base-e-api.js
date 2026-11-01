@@ -7,7 +7,7 @@ const API_URL = "https://script.google.com/macros/s/AKfycbwCftUm-1pxhA8XLNqMB7dM
 const CONTINGENCIA_API_URL = "https://script.google.com/macros/s/AKfycby3WljBnr7gpJrHdkbTvBCh5uIXqS4KCS6wkBYB5idxf5gI04efoDumQj264kR_smoW/exec";
 
 /* ===================== VERSÃO DO APP ===================== */
-const APP_VERSAO = '1.26';
+const APP_VERSAO = '1.27';
 const APP_ATUALIZADO_EM = '01/11/2026';
 window.APP_VERSAO = APP_VERSAO;
 
@@ -19,6 +19,10 @@ window.APP_VERSAO = APP_VERSAO;
    A seção "🆕 O que mudou" do manual é gerada daqui. */
 const APP_NOVIDADES = {
   Admin: [
+    { v:'1.27', em:'01/11/2026', itens:[
+      'Sistema → Aparência: troque o nome, o slogan, o nome do assistente, as cores (paleta pronta ou seletor de cor, sem códigos) e as logos. A mudança vale no cardápio, na equipe, nas impressões e no app, em todos os aparelhos. Pede a sua senha e tem o botão "Voltar ao padrão".',
+      'Dá para usar fundo claro ou escuro; o sistema ajusta o texto sozinho. Hoje o Texas Burger continua no visual de sempre (dourado e vermelho).'
+    ]},
     { v:'1.26', em:'01/11/2026', itens:[
       'Promoções e cupons · Cartão novo "🏷️ Preço por dia da semana": escolha um produto ou combo, os dias, o horário (opcional) e o preço fixo ou % de desconto; marque se aceita cupom. No cardápio aparece o preço antigo riscado e a etiqueta. Vale só no cardápio online (entrega e retirada), não em mesa, balcão nem iFood. Pedido entre 0h e 5h59 conta na noite anterior.',
       'Promoções e cupons · Cartão novo "🎁 Compre e ganhe": a partir de R$ X em produtos (sem a taxa de entrega), o cliente ganha o brinde que você escolher. O carrinho mostra "Faltam R$ X para ganhar…" e o brinde entra no pedido a R$ 0, com custo e baixa no estoque.',
@@ -789,7 +793,7 @@ async function sbMontarDados_(nivel, chaves){
     comboItens: citens.map(x=>({ id:x.id, comboId:x.combo_id, produtoId:x.produto_id, quantidade:Number(x.quantidade), escolha:!!x.escolha })),
     adicionais: adic.map(a=>({ id:a.id, nome:a.nome, preco:Number(a.preco)||0, ativo:a.ativo, ingredienteId:a.ingrediente_id||'', quantidadeDesconto:Number(a.quantidade_descontar)||1 })),
     produtoAdicionais: padic.map(x=>({ id:x.id, produtoId:x.produto_id, adicionalId:x.adicional_id })),
-    configCardapio: { kicker: sbCfg_(sistema,'CardapioKicker','DELIVERY · SABOR QUE CONQUISTA'), frase: sbCfg_(sistema,'CardapioFrase','Peça pelo cardápio — rápido, sem complicação.'), tempoEntrega: sbCfg_(sistema,'CardapioTempoEntrega','40-60 min'), tempoRetirada: sbCfg_(sistema,'CardapioTempoRetirada','20-30 min'), tempoMesa: sbCfg_(sistema,'CardapioTempoMesa','20-30 min'), faixaPromo: sbCfg_(sistema,'CardapioFaixaPromo',''), precoSugerido: sbCfg_(sistema,'PrecoSugeridoCfg',null),
+    configCardapio: { kicker: sbCfg_(sistema,'CardapioKicker',kickerPadrao_()), frase: sbCfg_(sistema,'CardapioFrase','Peça pelo cardápio — rápido, sem complicação.'), tempoEntrega: sbCfg_(sistema,'CardapioTempoEntrega','40-60 min'), tempoRetirada: sbCfg_(sistema,'CardapioTempoRetirada','20-30 min'), tempoMesa: sbCfg_(sistema,'CardapioTempoMesa','20-30 min'), faixaPromo: sbCfg_(sistema,'CardapioFaixaPromo',''), precoSugerido: sbCfg_(sistema,'PrecoSugeridoCfg',null),
       fechamento: { ativo: !!(sbCfg_(sistema,'CardapioFechadoManual',{})||{}).ativo, mensagem: (sbCfg_(sistema,'CardapioFechadoManual',{})||{}).mensagem || '', periodos: Array.isArray(sbCfg_(sistema,'CardapioPeriodosFechado',[])) ? sbCfg_(sistema,'CardapioPeriodosFechado',[]) : [] },
       restaurante: { nome: sbCfg_(sistema,'RestauranteNome',''), endereco: sbCfg_(sistema,'RestauranteEndereco',''), telefone: sbCfg_(sistema,'RestauranteTelefone',''), horario: sbCfg_(sistema,'RestauranteHorario',''), redes: sbCfg_(sistema,'RestauranteRedes','') } },
     categoriasDespesa: SB_CATEGORIAS_DESPESA_,
@@ -887,7 +891,7 @@ async function sbCardapioPublico_(){
     comboPrecos: precos.filter(x=>x.tipo==='combo').map(x=>({ comboId:x.item_id, formaPagamentoId:x.forma_pagamento_id, preco:Number(x.preco) })),
     adicionais, produtoAdicionais,
     comboItens: citens.map(x=>({ comboId:x.combo_id, produtoId:x.produto_id, quantidade:Number(x.quantidade)||1, escolha:!!x.escolha })),
-    config: { kicker: cfgv.CardapioKicker || 'DELIVERY · SABOR QUE CONQUISTA', frase: cfgv.CardapioFrase || 'Peça pelo cardápio — rápido, sem complicação.', tempoEntrega: cfgv.CardapioTempoEntrega || '40-60 min', tempoRetirada: cfgv.CardapioTempoRetirada || '20-30 min', tempoMesa: cfgv.CardapioTempoMesa || '20-30 min', faixaPromo: cfgv.CardapioFaixaPromo || '', taxaEntrega: Number(cfgv.TaxaEntregaPadrao)||0, restaurante: { nome: cfgv.RestauranteNome||'', endereco: cfgv.RestauranteEndereco||'', telefone: cfgv.RestauranteTelefone||'', horario: cfgv.RestauranteHorario||'', redes: cfgv.RestauranteRedes||'' } },
+    config: { kicker: cfgv.CardapioKicker || kickerPadrao_(), frase: cfgv.CardapioFrase || 'Peça pelo cardápio — rápido, sem complicação.', tempoEntrega: cfgv.CardapioTempoEntrega || '40-60 min', tempoRetirada: cfgv.CardapioTempoRetirada || '20-30 min', tempoMesa: cfgv.CardapioTempoMesa || '20-30 min', faixaPromo: cfgv.CardapioFaixaPromo || '', taxaEntrega: Number(cfgv.TaxaEntregaPadrao)||0, restaurante: { nome: cfgv.RestauranteNome||'', endereco: cfgv.RestauranteEndereco||'', telefone: cfgv.RestauranteTelefone||'', horario: cfgv.RestauranteHorario||'', redes: cfgv.RestauranteRedes||'' } },
     maisPedidos: maisDb.map(m=>({ tipo:m.tipo, id:m.id })), caixaAberto: !!(st[0] && st[0].caixa_aberto), cardapioBloqueio: (st[0] && st[0].cardapio_bloqueio) || '',
     esgotados: { produtos: esgDb.filter(x=>x.tipo==='produto').map(x=>x.id), combos: esgDb.filter(x=>x.tipo==='combo').map(x=>x.id) }
   };

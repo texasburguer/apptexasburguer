@@ -670,7 +670,7 @@ function mpExtraHtml_(it){
 function mpAbrirCardapio_(){
   const it = (integStatus_||[]).find(x=>x.provedor==='mercadopago');
   if(!it || !it.ligado){ showMsg(integMsgId_(),'Ligue o Mercado Pago em TESTE antes de testar.','warn'); return; }
-  window.open('https://texasburguer.github.io/apptexasburguer/', '_blank', 'noopener');
+  window.open((typeof QR_BASE_URL_ !== 'undefined' ? QR_BASE_URL_ : location.href), '_blank', 'noopener');
 }
 async function carregarMpRecentes_(){
   const box = document.getElementById('mpRecentes'); if(!box) return;

@@ -408,7 +408,7 @@ function renderQrPreview_(){
   document.getElementById('qrLinkTxt').textContent = qrLinkMesa_(m);
 }
 function placaQrHtml_(m){
-  return `<div class="placa"><img class="logo" src="${LOGO_IMP_COR_}" alt="Texas Burger">
+  return `<div class="placa"><img class="logo" src="${logoImpEscolhida_(LOGO_IMP_COR_, true)}" alt="${NOME_H_()}">
     <div class="mesa">MESA ${escR(m.numero)}</div>
     <div class="qr">${QR_.svg(qrLinkMesa_(m), 2)}</div>
     <div class="passos"><b>1.</b> Aponte a câmera do celular para o QR Code<br><b>2.</b> Escolha seus itens e envie o pedido<br><b>3.</b> Aguarde a confirmação — o pagamento é feito no caixa</div>

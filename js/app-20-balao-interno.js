@@ -28,7 +28,7 @@
   function bolha_(cls, rot, conteudo, rico){
     const box = $('biMsgs'); if(!box) return null;
     const d = document.createElement('div'); d.className = 'chat-balao ' + cls + (rico ? ' rico' : '');
-    if(rot){ const r = document.createElement('small'); if(rot === 'Assistente'){ const av = document.createElement('span'); av.className = 'tex-av'; r.appendChild(av); r.appendChild(document.createTextNode('Tex')); } else r.textContent = rot; d.appendChild(r); }
+    if(rot){ const r = document.createElement('small'); if(rot === 'Assistente'){ const av = document.createElement('span'); av.className = 'tex-av'; r.appendChild(av); r.appendChild(document.createTextNode('' + ASSISTENTE_ + '')); } else r.textContent = rot; d.appendChild(r); }
     const s = document.createElement('span'); if(rico) s.innerHTML = conteudo; else s.textContent = conteudo; d.appendChild(s);
     box.appendChild(d); box.scrollTop = box.scrollHeight; return d;
   }
@@ -299,7 +299,7 @@
     const c = $('chatPublicoConteudo');
     c.innerHTML = '<div class="bi-seg" id="biSeg"><button type="button" data-bi="vista" data-v="conversa" class="on">✨ Conversa</button><button type="button" data-bi="vista" data-v="avisos">🔔 Avisos<i id="biSegN" hidden>0</i></button></div><div class="bi-avisos" id="biAvisos" hidden></div><div class="bi-aviso" id="biAviso" data-bi="fila" hidden></div><div class="bi-modo" id="iaModoChatAviso" role="status" hidden></div><div class="bi-ctrl" id="biCtrl" hidden></div><div class="chat-msgs bi-msgs" id="biMsgs"></div>' +
       '<div class="chat-envio"><input type="text" id="biTexto" maxlength="600" autocomplete="off" placeholder="Escreva o que precisa…"><button type="button" class="primary" data-bi="enviar">Enviar</button></div>';
-    const tt = $('balaoIaTitulo'); if(tt) tt.innerHTML = '<span class="tex-av g" role="img" aria-label="Tex"></span> Tex';
+    const tt = $('balaoIaTitulo'); if(tt) tt.innerHTML = '<span class="tex-av g" role="img" aria-label="' + ASSISTENTE_H_() + '"></span> ' + ASSISTENTE_H_() + '';
     const ex = $('balaoIaHdrExtra');
     if(ex){
       ex.innerHTML = '';
@@ -389,7 +389,7 @@
       setTimeout(() => { const t = $('biTexto'); if(t) t.focus(); }, 60);
       return;
     }
-    bolha_('ia', 'Assistente', '<div class="tex-hello"><div class="tex-corpo" role="img" aria-label="Tex, o mascote"></div><div>Fala, chefe! Eu sou o Tex. Escreva o que precisa. Exemplos: "como faço uma venda?"' + (equipe_() ? ', "quanto tem de pão no estoque?", "tem cliente aguardando?"' : '') + '.</div></div>', true);
+    bolha_('ia', 'Assistente', '<div class="tex-hello"><div class="tex-corpo" role="img" aria-label="' + ASSISTENTE_H_() + ', o mascote"></div><div>Fala, chefe! Eu sou o ' + ASSISTENTE_H_() + '. Escreva o que precisa. Exemplos: "como faço uma venda?"' + (equipe_() ? ', "quanto tem de pão no estoque?", "tem cliente aguardando?"' : '') + '.</div></div>', true);
     carregarFila_(); if(window.IA && IA.atualizarStatus) IA.atualizarStatus();
     setTimeout(() => { const t = $('biTexto'); if(t) t.focus(); }, 60);
   }
@@ -397,7 +397,7 @@
     /* fechar o pop-up NÃO encerra nem abandona a conversa: IN.conv e IN.pedindoSol são mantidos */
     IN.aberto = false; window.__avisosAberto_ = false; clearTimeout(IN.timer); IN.notifId = IN.depois;
     $('chatPublicoModal').classList.remove('open');
-    const tt = $('balaoIaTitulo'); if(tt) tt.innerHTML = '<span class="tex-av g" role="img" aria-label="Tex"></span> Tex · Atendimento';
+    const tt = $('balaoIaTitulo'); if(tt) tt.innerHTML = '<span class="tex-av g" role="img" aria-label="' + ASSISTENTE_H_() + '"></span> ' + ASSISTENTE_H_() + ' · Atendimento';
     const ex = $('balaoIaHdrExtra'); if(ex) ex.innerHTML = '';
   }
   function atualizarFab_(){
@@ -413,7 +413,7 @@
     const rot = $('balaoIaRot'); if(rot) rot.textContent = interno ? 'Assistente' : 'Atendimento';
     const balao = $('balaoIa'); if(balao) balao.classList.toggle('so-icone', !interno);
     const bav = $('balaoIaAvisos'); if(bav){ bav.hidden = !(interno && mostrar && IN.avTotal > 0); }
-    const ic = $('balaoIaIcone'); if(ic){ if(!ic.querySelector('.tex-av')) ic.innerHTML = '<span class="tex-av g" role="img" aria-label="Tex"></span>'; }
+    const ic = $('balaoIaIcone'); if(ic){ if(!ic.querySelector('.tex-av')) ic.innerHTML = '<span class="tex-av g" role="img" aria-label="' + ASSISTENTE_H_() + '"></span>'; }
     aviso_();
   }
   window.balaoIaAtualizar_ = atualizarFab_;
@@ -421,7 +421,7 @@
   window.balaoIaAbrir_ = function(vista){
     if(logado()){ if(!perfilBalaoPermitido_()) return; abrir_(); if(vista === 'avisos') vista_('avisos'); return; }
     const ex = $('balaoIaHdrExtra'); if(ex) ex.innerHTML = '';
-    const tt = $('balaoIaTitulo'); if(tt) tt.innerHTML = '<span class="tex-av g" role="img" aria-label="Tex"></span> Tex · Atendimento';
+    const tt = $('balaoIaTitulo'); if(tt) tt.innerHTML = '<span class="tex-av g" role="img" aria-label="' + ASSISTENTE_H_() + '"></span> ' + ASSISTENTE_H_() + ' · Atendimento';
     if(window.abrirChatPublico_) window.abrirChatPublico_();
   };
   const fecharPublico = window.fecharChatPublico_;

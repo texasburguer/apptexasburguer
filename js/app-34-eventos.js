@@ -83,7 +83,7 @@ async function evOrcamento(){
   if(!f) return;
   const val = new Date(); val.setDate(val.getDate() + (Number(f.validade) || 7));
   const itens = String(f.incluso || '').split('\n').map(x => x.trim()).filter(Boolean);
-  const h = '<div style="font-family:Arial,sans-serif;font-size:14px;padding:20px;max-width:720px;"><h1 style="margin:0;">TEXAS BURGER</h1><div style="color:#555;margin-bottom:14px;">Orçamento para evento</div>' +
+  const h = '<div style="font-family:Arial,sans-serif;font-size:14px;padding:20px;max-width:720px;"><h1 style="margin:0;">' + NOME_UP_H_() + '</h1><div style="color:#555;margin-bottom:14px;">Orçamento para evento</div>' +
     '<h2 style="margin:0 0 4px;">' + escH(e.nome) + '</h2>' +
     '<table style="border-collapse:collapse;width:100%;margin:8px 0 14px;"><tr><td style="padding:3px 0;width:150px;"><b>Contratante</b></td><td>' + escH(e.contratante || '—') + (e.telefone ? ' · ' + escH(e.telefone) : '') + '</td></tr>' +
     '<tr><td style="padding:3px 0;"><b>Data</b></td><td>' + escH(fmtDataBR(evData_(e.data))) + (evHora_(e) ? ' · ' + escH(evHora_(e)) : '') + '</td></tr>' +
@@ -92,7 +92,7 @@ async function evOrcamento(){
     (itens.length ? '<h3 style="margin:0 0 4px;">O que está incluso</h3><ul style="margin:0 0 14px;padding-left:20px;">' + itens.map(x => '<li>' + escH(x) + '</li>').join('') + '</ul>' : '') +
     '<div style="border:2px solid #000;padding:10px;margin-bottom:14px;"><div style="font-size:12px;color:#555;">VALOR TOTAL</div><div style="font-size:24px;font-weight:bold;">' + formatarMoeda(e.valorContratado) + '</div></div>' +
     '<div><b>Forma de pagamento:</b> ' + escH(f.cond || '') + '</div><div style="margin-top:4px;"><b>Validade:</b> até ' + escH(fmtDataBR(dataLocalISO(val))) + '.</div>' +
-    '<div style="margin-top:46px;display:flex;gap:40px;"><div style="flex:1;border-top:1px solid #000;padding-top:4px;text-align:center;">Texas Burger</div><div style="flex:1;border-top:1px solid #000;padding-top:4px;text-align:center;">' + escH(e.contratante || 'Contratante') + '</div></div></div>';
+    '<div style="margin-top:46px;display:flex;gap:40px;"><div style="flex:1;border-top:1px solid #000;padding-top:4px;text-align:center;">' + NOME_H_() + '</div><div style="flex:1;border-top:1px solid #000;padding-top:4px;text-align:center;">' + escH(e.contratante || 'Contratante') + '</div></div></div>';
   imprimirDocumento(h, 'Orçamento — ' + e.nome, 'A4');
 }
 
@@ -221,7 +221,7 @@ async function cancelarEventoUI(id){
 function evWhatsapp(){
   const e = evAtual_(); const tel = evTel_(e ? e.telefone : document.getElementById('evTelefone').value);
   if(!tel) return avisar('Informe o telefone do contratante na aba Dados e salve.');
-  const txt = 'Olá' + (e && e.contratante ? ', ' + e.contratante : '') + '! Aqui é do Texas Burger sobre o evento "' + (e ? e.nome : '') + '"' + (e && evData_(e.data) ? ' do dia ' + fmtDataBR(evData_(e.data)) : '') + '.' +
+  const txt = 'Olá' + (e && e.contratante ? ', ' + e.contratante : '') + '! Aqui é do ' + NOME_RESTAURANTE_ + ' sobre o evento "' + (e ? e.nome : '') + '"' + (e && evData_(e.data) ? ' do dia ' + fmtDataBR(evData_(e.data)) : '') + '.' +
     (e && e.valorAReceber > 0 ? ' Valor combinado: ' + formatarMoeda(e.valorContratado) + ' · já recebido: ' + formatarMoeda(e.valorRecebido) + ' · falta: ' + formatarMoeda(e.valorAReceber) + '.' : '');
   window.open('https://wa.me/' + tel + '?text=' + encodeURIComponent(txt), '_blank');
 }
@@ -241,7 +241,7 @@ async function evImprimir(){
   await evCarregarMov_(e.id);
   const th = 'border:1px solid #000;padding:4px;text-align:left;', td = 'border:1px solid #000;padding:4px;';
   const tab = (tit, cab, linhas) => '<h3 style="margin:14px 0 4px;">' + tit + '</h3><table style="border-collapse:collapse;width:100%;"><tr>' + cab.map(c => '<th style="' + th + '">' + c + '</th>').join('') + '</tr>' + (linhas.length ? linhas.join('') : '<tr><td style="' + td + '" colspan="' + cab.length + '">Nenhum lançamento.</td></tr>') + '</table>';
-  const h = '<div style="font-family:Arial,sans-serif;font-size:13px;padding:16px;"><h2 style="margin:0 0 4px;">Resumo do evento — TEXAS BURGER</h2>' +
+  const h = '<div style="font-family:Arial,sans-serif;font-size:13px;padding:16px;"><h2 style="margin:0 0 4px;">Resumo do evento — ' + NOME_UP_H_() + '</h2>' +
     '<div><b>' + escH(e.nome) + '</b> (' + escH(e.status) + ')</div><div>' + escH(fmtDataBR(evData_(e.data))) + (evHora_(e) ? ' · ' + evHora_(e) : '') + (e.local ? ' · ' + escH(e.local) : '') + '</div>' +
     '<div>Contratante: ' + escH(e.contratante || '—') + (e.telefone ? ' · ' + escH(e.telefone) : '') + '</div>' +
     '<div style="margin-top:8px;"><b>Valor contratado:</b> ' + formatarMoeda(e.valorContratado) + ' · <b>Recebido:</b> ' + formatarMoeda(e.valorRecebido) + ' · <b>A receber:</b> ' + formatarMoeda(e.valorAReceber) + '</div>' +

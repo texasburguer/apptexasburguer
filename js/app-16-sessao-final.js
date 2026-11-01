@@ -102,6 +102,7 @@ if(document.readyState === 'loading') document.addEventListener('DOMContentLoade
   async function inscrever(codigo){
     var reg = await navigator.serviceWorker.ready;
     var sub = await reg.pushManager.getSubscription();
+    if(!PUSH_CHAVE_PUBLICA_) throw new Error('Os avisos no celular ainda não foram configurados neste restaurante.');
     if(!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly:true, applicationServerKey: pushChaveBytes_(PUSH_CHAVE_PUBLICA_) });
     var p = sub.toJSON(); if(codigo) p.codigo = codigo;
     var r = await sbRpcPublico_('api_push_cliente_inscrever', { p: p });
@@ -305,7 +306,7 @@ if(document.readyState === 'loading') document.addEventListener('DOMContentLoade
   window.compartilharLinkApp = function(){
     var l = linkApp();
     if(navigator.share){
-      navigator.share({ title: 'Texas Burger', text: 'Peça no Texas Burger pelo app:', url: l }).catch(function(){});
+      navigator.share({ title: '' + NOME_RESTAURANTE_ + '', text: 'Peça no ' + NOME_RESTAURANTE_ + ' pelo app:', url: l }).catch(function(){});
     } else { copiarLinkApp(); }
   };
   window.baixarQrApp = function(){
