@@ -15,15 +15,15 @@ const FOTOS = 'texas-fotos-v1';
 const CODIGO = 'texas-codigo-v5';   // trocou o nome = todo aparelho descarta o cache de código antigo (inclusive cópia vazia)
 const LISTA = [/*LISTA-INICIO*/
   'css/estilo-base.css?v=d6522a73',
-  'js/app-01-base-e-api.js?v=024a02c1',
-  'js/app-02-abas.js?v=964e7419',
+  'js/app-01-base-e-api.js?v=ebbf58c5',
+  'js/app-02-abas.js?v=86fd03ac',
   'js/app-03-cadastros.js?v=d507b499',
   'js/app-04-pedidos-entrega.js?v=99782e13',
   'js/app-05-avisos-push.js?v=4ddba47f',
   'js/app-06-caixa.js?v=d8657313',
   'js/app-07-impressao.js?v=5c9f0484',
   'js/app-08-vendas-despesas.js?v=0b8d9a34',
-  'js/app-09-ajuda.js?v=996b7ae1',
+  'js/app-09-ajuda.js?v=1009afd2',
   'js/app-10-backup-financeiro.js?v=f3d08c92',
   'js/app-11-admin-integracoes.js?v=df7ba2d9',
   'js/app-12-gestao-ia.js?v=fed5faf4',
@@ -82,6 +82,7 @@ const LISTA = [/*LISTA-INICIO*/
   'js/app-32-equipe.js?v=5f1d4bd8',
   'css/estilo-sistema.css?v=30460052',
   'js/app-59-layout.js?v=5aa543db',
+  'js/app-61-custos-gerais.js?v=96edb7f0',
   'js/app-60-navegador-app.js?v=51ce21da',
 /*LISTA-FIM*/];
 const FOTOS_MAX = 150;

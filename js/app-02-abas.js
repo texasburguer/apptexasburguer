@@ -208,7 +208,7 @@ function abrirAdministrador(sub){
   if(alvo==='cardapioperiodo' && typeof abrirCardapioPeriodo_ === 'function') abrirCardapioPeriodo_();
   if(alvo==='usuarios' || alvo==='cardapiodigital'){ lgpdCarregarUI_(); }
   if(alvo==='eventos'){ renderEventosUI(); }
-  if(alvo==='custosprecificacao'){ prepararCalculadoraUI(); }
+  if(alvo==='custosprecificacao'){ prepararCalculadoraUI(); if(typeof carregarCustosGerais_ === 'function') carregarCustosGerais_(); }
   if(alvo==='compras') carregarCompras_();
   if(alvo==='contas'){ carregarContas_(); carregarChavesIa_(); carregarIntegracoes_(); }
   if(alvo==='auditoria') carregarAuditoria_();
