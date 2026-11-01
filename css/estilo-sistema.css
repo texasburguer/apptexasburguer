@@ -185,3 +185,17 @@ body.nav-inf #sbFaixa{ top:0 !important; bottom:auto !important; padding-top:cal
   .eq header.brand{ flex-wrap:wrap; }
   .eq header.brand nav.tabs{ order:9; flex:1 1 100%; margin:8px 0 0; }
 }
+
+/* v1.24 · preço sugerido nas listas de produtos e combos: uma linha própria, na largura toda, embaixo de cada item */
+.sug-chips{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 8px;font-style:normal;}
+.sug-chips > span{white-space:nowrap;}
+.sug-chips .sug-resto{display:inline-flex;flex-wrap:wrap;gap:0 2px;white-space:normal;}
+.sug-chips .sug-resto > span{white-space:nowrap;}
+.sug-chips .sug-l1{font-size:13px !important;color:var(--gold,#e0b53a);font-weight:600;}
+.sug-chips .sug-l1 b{font-weight:800;}
+.sug-chips .sug-l1 small{font-size:11.5px !important;font-weight:500;opacity:.85;}
+.sug-chips .sug-l1.sug-ok{color:var(--ok,#6dbb2e);}
+.sug-chips .sug-l2{font-size:12px !important;color:var(--muted,#bfae8f);}
+.sug-chips .sug-sep{color:var(--muted,#bfae8f);opacity:.6;font-size:12px;}
+tr.vs-linha:has(+ tr.sug-linha) td{border-bottom:none !important;padding-bottom:2px;}
+tr.sug-linha td{padding-top:0 !important;padding-bottom:10px;}

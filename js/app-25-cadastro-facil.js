@@ -379,10 +379,20 @@ function textoSugestao_(r, preco, tipo, curto){
   if(ifd) t += ' · iFood ' + formatarMoeda(ifd);
   return t;
 }
-/* linha curta para as listas de produtos e combos */
+/* v1.24 — nas listas de produtos e combos: etiquetas curtas numa linha própria, embaixo do nome (a coluna da margem é estreita) */
 function precoSugLinha_(preco, custo, tipo){
   const r = calcPrecoSugerido_(custo, tipo, preco); if(!r) return '';
-  return '<span class="obs-line" title="Preço sugerido: ' + escH(textoSugestao_(r, preco, tipo, false).replace(/<[^>]+>/g, '')) + '">' + textoSugestao_(r, preco, tipo, true) + '</span>';
+  const ifd = precoSugeridoIfood_(r.sug), dif = Math.round((r.sug - cfNum_(preco)) * 100) / 100;
+  const tip = escH(textoSugestao_(r, preco, tipo, false).replace(/<[^>]+>/g, ''));
+  const m = v => formatarMoeda(v).replace(' ', '\u00a0');   // "R$ 12,90" nunca quebra no meio
+  const itens = [];
+  if(r.status === 'ok') itens.push('<span class="sug-l1 sug-ok">✓ Preço atual ok</span>');
+  else itens.push('<span class="sug-l1">💡 Sugerido <b>' + m(r.sug) + '</b>' + (cfNum_(preco) > 0 ? ' <small>(+' + formatarMoeda(dif).replace('R$ ', '') + ')</small>' : '') + '</span>');
+  if(r.status === 'aos_poucos') itens.push('<span class="sug-l2">ideal ' + m(r.ideal) + '</span>');
+  if(r.status === 'piso') itens.push('<span class="sug-l2">mínimo para não perder</span>');
+  if(ifd) itens.push('<span class="sug-l2">iFood ' + m(ifd) + '</span>');
+  const resto = itens.slice(1);
+  return '<div class="sug-chips" title="' + tip + '">' + itens[0] + (resto.length ? '<span class="sug-resto">' + resto.join('<span class="sug-sep"> · </span>') + '</span>' : '') + '</div>';
 }
 /* compatível com o código antigo do cadastro */
 function cfPrecoSugerido_(custo){ return precoSugerido_(custo, cfTipoAtual_(), 0); }
@@ -403,7 +413,12 @@ function cfSugestaoHtml_(preco, custo, pctImp, pre){
     if(pre === 'pp' && typeof produtoEditandoId !== 'undefined' && produtoEditandoId && typeof precoDisplayProduto === 'function') base = precoDisplayProduto(produtoEditandoId).preco || base;
   }catch(e){}
   const r = calcPrecoSugerido_(custo, tipo, base); if(!r) return '';
-  return '<div class="sub" style="margin-top:4px;">' + textoSugestao_(r, base, tipo, false)
+  const cfg = precoSugCfg_();
+  const exp = r.status === 'ok' ? 'O preço atual já deixa o custo abaixo de ' + cfg[tipo] + '% do preço (' + ROTULO_TIPO_PRECO_[tipo] + ').'
+    : r.status === 'aos_poucos' ? 'Ideal pela regra (custo ÷ ' + cfg[tipo] + '%): ' + formatarMoeda(r.ideal) + '. A sugestão sobe no máximo ' + cfg.maxAumento + '% de uma vez.'
+    : r.status === 'piso' ? 'Mínimo para cobrir custo, imposto, taxa e ' + cfg.margemMin + '% de lucro.'
+    : 'Regra: custo ÷ ' + cfg[tipo] + '% (' + ROTULO_TIPO_PRECO_[tipo] + '), terminando em ,90.';
+  return '<div style="margin-top:6px;">' + precoSugLinha_(base, custo, tipo) + '<div class="sub" style="font-size:12px;margin-top:4px;">' + escH(exp) + '</div>'
     + (pre && r.status !== 'ok' && Math.abs(r.sug - cfNum_(preco)) > 0.009 ? ' <button type="button" class="ghost" style="min-height:32px;padding:2px 10px;width:auto;" onclick="cfUsarPrecoSug_(\'' + pre + '\',' + r.sug + ')">Usar ' + formatarMoeda(r.sug) + '</button>' : '') + '</div>';
 }
 function cfMargemHtml_(preco, custo, pctImp, pre){
