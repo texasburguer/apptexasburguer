@@ -647,24 +647,7 @@ function cdCardHTML(tipo, item){
   </div>`;
 }
 
-/* v1.24 — vitrine e faixa de promoção (o visual do cardápio continua o mesmo: só um destaque maior no topo) */
-function cdEscolherVitrine_(lista){
-  const ok = lista.filter(x=>x.item && x.item.id && !cdEsgotado_(x.tipo, x.item.id) && cdPrecoDe(x.tipo, x.item.id) != null);
-  return ok.find(x=>x.item.fotoUrl) || null;          // só com foto: sem foto o destaque grande não chama atenção
-}
-function cdRenderVitrine_(v){
-  const el = document.getElementById('cdVitrine'); if(!el) return;
-  if(!v){ el.innerHTML = ''; return; }
-  const it = v.item, preco = cdFormatarPreco(cdPrecoDe(v.tipo, it.id));
-  el.innerHTML = `<div class="cd-vitrine" onclick="abrirCdItemModal('${v.tipo}','${it.id}')" role="button" tabindex="0" aria-label="${escH(v.rotulo.replace(/^\S+\s/, ''))}: ${escH(it.nome)}, ${escH(preco)}" onkeydown="if(event.key==='Enter'){abrirCdItemModal('${v.tipo}','${it.id}')}">
-    <img src="${fotoSrc_(it.fotoUrl, 800)}" onerror="fotoFalhou_(this)" alt="" decoding="async" fetchpriority="high">
-    <div class="cd-vitrine-info">
-      <span class="cd-vitrine-selo">${escH(v.rotulo)}</span>
-      <div class="cd-vitrine-nome">${escH(it.nome)}</div>
-      ${it.descricao?`<div class="cd-vitrine-desc">${escH(it.descricao)}</div>`:''}
-      <div class="cd-vitrine-linha"><b class="cd-vitrine-preco">${escH(preco)}</b><button type="button" class="cd-vitrine-btn" onclick="event.stopPropagation();abrirCdItemModal('${v.tipo}','${it.id}')">Adicionar</button></div>
-    </div></div>`;
-}
+/* v1.24 — faixa de promoção (texto opcional do Admin logo abaixo do banner) */
 function cdRenderFaixaPromo_(){
   const el = document.getElementById('cdFaixaPromo'); if(!el) return;
   const t = String((cdDados && cdDados.config && cdDados.config.faixaPromo) || '').trim();
@@ -695,12 +678,8 @@ function renderCdSecoes(){
 
   const maisPedidosEl = document.getElementById('cdMaisPedidos');
   const destaquesEl = document.getElementById('cdDestaques');
-  /* v1.24 — VITRINE: o item nº 1 (mais pedido; se não houver, o primeiro destaque) em tamanho grande no topo, com foto */
-  const vit = visaoTodas ? cdEscolherVitrine_(maisPedidos.map(m=>({ tipo:m.tipo, item:completo(m), rotulo:'🔥 O mais pedido' })).concat(destaques.map(d=>({ tipo:d.tipo, item:d.item, rotulo:'⭐ Destaque da casa' })))) : null;
-  cdRenderVitrine_(vit);
-  const fora = (t, id)=> vit && vit.tipo===t && vit.item.id===id;
-  const maisMostrar = maisPedidos.filter(m=>!fora(m.tipo, m.id));
-  const destMostrar = destaques.filter(d=>!fora(d.tipo, d.item.id));
+  const maisMostrar = maisPedidos;
+  const destMostrar = destaques;
   if(maisMostrar.length){
     maisPedidosEl.innerHTML = '<div class="cd-secao-titulo">⭐ Mais pedidos</div><div class="cd-grid cd-cat-lista">' +
       maisMostrar.map(m=>cdCardHTML(m.tipo, completo(m))).join('') + '</div>';
@@ -1458,7 +1437,7 @@ async function enviarFeedbackPublico(){
   function aplicar_(){
     const inp = document.getElementById('cdBuscaProduto'); if(!inp) return;
     const q = norm_(inp.value), lista = document.getElementById('cdListaProdutos'), vazio = document.getElementById('cdBuscaVazio');
-    ['cdMaisPedidos','cdDestaques','cdVitrine'].forEach(function(id){ const e = document.getElementById(id); if(e) e.style.display = q ? 'none' : ''; });
+    ['cdMaisPedidos','cdDestaques'].forEach(function(id){ const e = document.getElementById(id); if(e) e.style.display = q ? 'none' : ''; });
     if(!lista) return;
     let achou = 0;
     lista.querySelectorAll('.cd-card').forEach(function(c){

@@ -25,7 +25,7 @@ const APP_NOVIDADES = {
       'Cupons · Novo campo "Vale só nestas formas de pagamento" (ex.: só Pix e Dinheiro). No cardápio o cliente vê em quais formas o cupom vale; se escolher outra, o desconto sai e aparece a mensagem com botões "Pagar com Pix"/"Pagar com Dinheiro", e ao voltar para uma forma que vale o cupom volta sozinho.',
       'Cardápio do cliente · A forma de pagamento agora é escolhida em botões (no lugar da lista). A lista falhava em alguns celulares, principalmente no navegador do Instagram no iPhone, e o cliente não conseguia trocar a forma depois de aplicar o cupom. Trocar a forma também confere o cupom de novo.',
       'Conta do cliente · O cardápio convida a entrar com o Google mostrando as vantagens que estão ligadas (cupom de boas-vindas, cartão fidelidade, endereços e repetir pedido), no topo, no carrinho e depois de enviar o pedido.',
-      'Cardápio do cliente · O item nº 1 (o mais pedido; se não houver, o primeiro destaque) aparece grande no topo, com foto, preço e botão "Adicionar". Tocar em qualquer parte do cartão do produto (nome, descrição, preço) já abre o item, não só o botão "+".',
+      'Cardápio do cliente · Tocar em qualquer parte do cartão do produto (nome, descrição, preço) já abre o item, não só o botão "+".',
       'Cardápio do cliente · Faixa de promoção opcional logo abaixo do banner: escreva em Cardápio Digital → Personalizar → "Faixa de promoção" (em branco não aparece).',
       'Cardápio do cliente · Quem abre o link pelo Instagram, Facebook ou TikTok vê um aviso para abrir no navegador do celular (lá o Google bloqueia o login). Ao tocar em "Continuar com o Google" dentro dessas redes, o cliente é avisado antes. Pedir sem conta continua funcionando ali mesmo.',
       'Avisos · Cartão novo "📊 Resumo do turno" em Loja e equipe → Configurar avisos: ao fechar o caixa, todos os Admins recebem no celular o faturamento do turno (sem a taxa de entrega), pedidos, ticket médio, iFood, cancelados e se o caixa bateu. Vem ligado; tem botão de teste.',
@@ -239,7 +239,7 @@ const APP_NOVIDADES = {
   Operador: [
     { v:'1.24', em:'01/11/2026', itens:[
       'Cardápio hoje · Parte nova "🧾 No finalizar": mostra quantos clientes tocaram em "Enviar pedido" e o que segurou o pedido (campo faltando, troco, login, cardápio fechado ou erro).',
-      'Cardápio do cliente · O item mais pedido aparece grande no topo, e tocar em qualquer parte do cartão do produto já abre o item.' ] },
+      'Cardápio do cliente · Tocar em qualquer parte do cartão do produto já abre o item.' ] },
     { v:'1.15', em:'25/10/2026', itens:[
       'Ações sensíveis (cancelar, excluir, desconto, estorno, ajuste pós-venda) pedem sempre a senha de um Administrador.',
       'iFood: ao cancelar um pedido do iFood, escolha o motivo oficial na lista com borda dourada. Quando aparecer "🔐 O iFood precisa de um código" em Pedidos/Entregas, peça o código ao entregador (ou ao cliente) e envie.',
@@ -341,7 +341,7 @@ const APP_NOVIDADES = {
   ],
   Cliente: [
     { v:'1.24', em:'01/11/2026', itens:[
-      'O lanche mais pedido aparece em destaque no topo do cardápio. Toque em qualquer parte do cartão do produto para abrir e escolher.',
+      'Toque em qualquer parte do cartão do produto para abrir e escolher.',
       'Abriu o cardápio pelo Instagram ou Facebook? Para entrar com o Google e pagar pelo site, use "Abrir no navegador". Pedir sem conta funciona ali mesmo.' ] },
     { v:'1.15', em:'25/10/2026', itens:[
       'Novo em Minha conta: a aba "🎮 Jogos" com os 4 joguinhos, para jogar quando quiser (o recorde fica guardado no seu aparelho).',

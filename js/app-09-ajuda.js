@@ -368,7 +368,6 @@ Admin:{ nome:'Administrador', secoes:[
 
   { t:'Cardápio Digital, promoções e eventos', prints:[{id:'adm-cardapio-digital',alt:'Administrador, Vendas e cardápio, Cardápio Digital',leg:'O que o cliente vê no cardápio (1).'},{id:'adm-promocoes',alt:'Administrador, Promoções e cupons',leg:'Cupons e promoções (1).'},{id:'adm-pagamentos',alt:'Administrador, Formas de pagamento',leg:'Formas de pagamento, taxas e o que aparece no cardápio (1).'}], itens:[
     'Cardápio Digital: escolha o que aparece para o cliente, destaques, ordem e frase de abertura. "Mais Pedidos" é automático.',
-    'O item nº 1 de "Mais pedidos" (ou, sem vendas, o primeiro destaque com foto) aparece grande no topo do cardápio. Para ele aparecer, o item precisa ter foto.',
     'Preço sugerido: na lista de produtos e de combos, embaixo da margem, aparece "💡 Sugerido R$ X" (ou "Preço atual ok") e o preço para o iFood. No cadastro do produto aparece a explicação e o botão "Usar". A regra e as travas (custo-alvo por tipo, aumento máximo por vez e lucro mínimo) ficam em Custos gerais.',
     'Custos gerais (Administrador → Custos e precificação): o % de perdas e desperdício entra no custo de todos os produtos (menos bebidas, embalagens, gás e energia), e o custo por pedido (sacola, lacre) entra no custo de cada venda de entrega, retirada ou mesa. Ao mudar o %, o custo dos produtos é recalculado na hora.',
     'Faixa de promoção: em Cardápio Digital → Personalizar, escreva um texto curto (ex.: cupom do dia). Aparece logo abaixo do banner para todo cliente; em branco não aparece.',
@@ -891,7 +890,7 @@ const MANUAL_AJUDA_CLIENTE_ = {
   nome:'Cliente',
   secoes:[
     { t:'🍔 Como fazer um pedido', passos:[
-      'Escolha a categoria lá em cima (Lanches, Combos, Bebidas…) ou role a tela para ver o destaque grande do topo, "Mais pedidos" e "Destaques".',
+      'Escolha a categoria lá em cima (Lanches, Combos, Bebidas…) ou role a tela para ver "Mais pedidos" e "Destaques".',
       'Toque em qualquer parte do cartão do item (nome, descrição ou preço) para abrir e escolher.',
       'Role para o lado em cada seção para ver mais itens. Toque na foto para ver o item ampliado. Toque em "Adicionar" no item. Se ele tiver adicionais, aparece uma janela. Você também pode escrever uma observação (ex.: "sem cebola").',
       'Ajuste a quantidade e toque em "Adicionar ao carrinho".',

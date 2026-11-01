@@ -14,8 +14,8 @@ const FOTOS = 'texas-fotos-v1';
    A lista abaixo é gerada pelo script de selagem (selar.py) a cada entrega. */
 const CODIGO = 'texas-codigo-v5';   // trocou o nome = todo aparelho descarta o cache de código antigo (inclusive cópia vazia)
 const LISTA = [/*LISTA-INICIO*/
-  'css/estilo-base.css?v=d6522a73',
-  'js/app-01-base-e-api.js?v=8a28b8e1',
+  'css/estilo-base.css?v=30c61648',
+  'js/app-01-base-e-api.js?v=f1e443fd',
   'js/app-02-abas.js?v=86fd03ac',
   'js/app-03-cadastros.js?v=3c5db50a',
   'js/app-04-pedidos-entrega.js?v=99782e13',
@@ -23,13 +23,13 @@ const LISTA = [/*LISTA-INICIO*/
   'js/app-06-caixa.js?v=d8657313',
   'js/app-07-impressao.js?v=5c9f0484',
   'js/app-08-vendas-despesas.js?v=0b8d9a34',
-  'js/app-09-ajuda.js?v=19265d79',
+  'js/app-09-ajuda.js?v=f2940b7c',
   'js/app-10-backup-financeiro.js?v=f3d08c92',
   'js/app-11-admin-integracoes.js?v=df7ba2d9',
   'js/app-12-gestao-ia.js?v=fed5faf4',
   'js/app-13-conexao-sync.js?v=fc0dccb7',
   'js/app-14-relatorios.js?v=89a1208a',
-  'js/app-15-cardapio-cliente.js?v=a09a32d9',
+  'js/app-15-cardapio-cliente.js?v=5a90be59',
   'js/app-16-sessao-final.js?v=ef1da8ab',
   'js/app-17-sessao-supabase.js?v=5a30d71b',
   'js/app-18-queda-supabase.js?v=c3cdfe49',
