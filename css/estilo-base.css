@@ -844,3 +844,13 @@ html,body,body *{touch-action:pan-x pan-y;}
 
 /* v1.24 — faixa de promoção do cardápio */
 .cd-faixa-promo{margin:10px 14px 0;padding:9px 12px;border-radius:var(--raio-card);background:linear-gradient(90deg,var(--red-dim,#7a1410),#3a1208);border:1px solid var(--gold);color:var(--cream);font-weight:700;font-size:var(--fs-sm);line-height:1.35;text-align:center;box-shadow:0 3px 10px rgba(0,0,0,.35);}
+
+/* v1.26 · promoções do dono no cardápio */
+.cd-card .cd-preco .cd-preco-de{font-family:inherit;font-size:.72em;color:var(--muted,#bfae94);text-decoration:line-through;margin-right:4px;}
+.cd-promo-tag{display:inline-block;align-self:flex-start;margin:4px 0 2px;padding:2px 8px;border-radius:999px;background:rgba(229,83,75,.18);border:1px solid rgba(229,83,75,.55);color:#ffb4ab;font-size:11px;font-weight:700;line-height:1.3;max-width:100%;}
+#cdCompreGanhe{margin-top:10px;}
+.cd-cg-ok,.cd-cg-falta{padding:9px 11px;border-radius:10px;font-size:13px;line-height:1.4;margin-top:6px;}
+.cd-cg-ok{background:rgba(123,216,143,.14);border:1px solid rgba(123,216,143,.5);}
+.cd-cg-falta{background:rgba(217,162,27,.10);border:1px solid rgba(217,162,27,.35);}
+#cdCompreGanhe .rx-trilho{height:8px;background:#3a2c1c;border-radius:6px;overflow:hidden;}
+#cdCompreGanhe .rx-trilho > div{height:100%;background:var(--gold,#d9a21b);border-radius:6px;}

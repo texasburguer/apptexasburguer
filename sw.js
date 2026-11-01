@@ -6,7 +6,7 @@
    - BACKEND: NADA de Apps Script (script.google.com) nem de Supabase (*.supabase.co) é guardado aqui.
      Dados, pedidos, login e RPCs nunca passam pelo cache do service worker — sempre vão direto para a rede.
    - O único cache de dados é o de fotos (FOTOS) e o da casca/ícones (SHELL/ASSETS). Não adicionar outros. */
-const SHELL = 'texas-shell-v146';
+const SHELL = 'texas-shell-v147';
 const ASSETS = 'texas-assets-v8';   // trocou ícone/logo/manifest/leaflet? suba para v5
 const FOTOS = 'texas-fotos-v1';
 /* Código do app dividido em arquivos (app-*.js e estilo-*.css). Cada arquivo tem ?v=<impressão digital> na página; o cache guarda
@@ -14,16 +14,16 @@ const FOTOS = 'texas-fotos-v1';
    A lista abaixo é gerada pelo script de selagem (selar.py) a cada entrega. */
 const CODIGO = 'texas-codigo-v5';   // trocou o nome = todo aparelho descarta o cache de código antigo (inclusive cópia vazia)
 const LISTA = [/*LISTA-INICIO*/
-  'css/estilo-base.css?v=30c61648',
-  'js/app-01-base-e-api.js?v=0c351fe5',
-  'js/app-02-abas.js?v=48a9334c',
+  'css/estilo-base.css?v=a7ff2762',
+  'js/app-01-base-e-api.js?v=97d9f1c3',
+  'js/app-02-abas.js?v=d5e37eda',
   'js/app-03-cadastros.js?v=3c5db50a',
   'js/app-04-pedidos-entrega.js?v=99782e13',
   'js/app-05-avisos-push.js?v=98079090',
   'js/app-06-caixa.js?v=d8657313',
   'js/app-07-impressao.js?v=5c9f0484',
   'js/app-08-vendas-despesas.js?v=0b8d9a34',
-  'js/app-09-ajuda.js?v=2e2004e4',
+  'js/app-09-ajuda.js?v=46c2771e',
   'js/app-10-backup-financeiro.js?v=f3d08c92',
   'js/app-11-admin-integracoes.js?v=df7ba2d9',
   'js/app-12-gestao-ia.js?v=fed5faf4',
@@ -80,10 +80,11 @@ const LISTA = [/*LISTA-INICIO*/
   'js/app-58-drive-direto.js?v=9e4d8a06',
   'js/app-48-armazenamento.js?v=c4160c65',
   'js/app-32-equipe.js?v=5f1d4bd8',
-  'css/estilo-sistema.css?v=5d181627',
+  'css/estilo-sistema.css?v=ac6245c8',
   'js/app-59-layout.js?v=5aa543db',
   'js/app-61-custos-gerais.js?v=856d2e6d',
   'js/app-62-raio-x.js?v=a9a70e0e',
+  'js/app-64-promocoes-dono.js?v=fb820c1a',
   'js/app-63-promocoes-aviso.js?v=cdad1c46',
   'js/app-60-navegador-app.js?v=51ce21da',
 /*LISTA-FIM*/];

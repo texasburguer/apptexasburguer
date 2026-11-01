@@ -248,6 +248,13 @@ Admin:{ nome:'Administrador', secoes:[
     'Na lista "Últimas enviadas" aparece para quantos foi entregue e quantos desligaram os avisos. Ao tocar no aviso, o cliente abre o cardápio com a opção "Não quero mais".',
     'Não escreva nome, telefone ou endereço de cliente no aviso: ele aparece na tela bloqueada do celular.' ] },
 
+  { t:'🏷️ Preço por dia, compre e ganhe e bilhete na sacola', itens:[
+    'Administrador → Vendas e cardápio → Promoções e cupons. Tudo é configurado pelo dono.',
+    '🏷️ Preço por dia da semana: toque em "+ Nova", escolha produto ou combo, os dias, o horário (se quiser) e se é preço fixo ou % de desconto. Marque "aceita cupom" só se quiser somar. Para parar, desligue (ou exclua, que pede a senha).',
+    '🎁 Compre e ganhe: defina o valor mínimo em produtos (sem taxa de entrega), o brinde e a quantidade. O brinde entra no pedido a R$ 0, com custo e baixa no estoque.',
+    '🧾 Bilhete na sacola: escreva título e texto, escolha o cupom, veja a prévia e ligue. Sai depois da comanda dos pedidos do iFood (ou de todas as entregas). Use "Testar impressão" para conferir.',
+    'Os preços promocionais e o compre e ganhe valem só no cardápio online (entrega e retirada), não em mesa, balcão nem iFood. O servidor calcula o preço final, então o cliente sempre paga o valor certo.' ] },
+
   { t:'🗑️ Perdi um produto pronto', itens:[
     'Estoque → "🗑️ Perdi um produto pronto": para lanche que caiu, voltou ou saiu errado. Escolha o produto, a quantidade e o motivo.',
     'Todos os ingredientes da receita saem do estoque como Perda (aparecem em Movimentações) e o valor entra no Raio-X, comparado com a estimativa de perdas.',

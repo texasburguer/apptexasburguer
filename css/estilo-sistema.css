@@ -235,3 +235,10 @@ tr.sug-linha td{padding-top:0 !important;padding-bottom:10px;}
 .pa-not{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:14px;background:#f3f3f3;color:#222;font-size:13px;line-height:1.35;max-width:380px;box-shadow:0 2px 8px rgba(0,0,0,.25);margin-bottom:10px;}
 .pa-not-ic{font-size:20px;line-height:1;}
 .pa-not b{display:block;}
+
+/* v1.26 · prévia do bilhete na sacola (papel branco, como sai na impressora) */
+.bs-previa{background:#fff;color:#000;border-radius:8px;padding:10px 12px;max-width:302px;margin:4px 0 10px;box-shadow:0 2px 8px rgba(0,0,0,.3);font-family:Arial,Helvetica,sans-serif;font-weight:700;font-size:15px;line-height:1.25;}
+.bs-previa .num{font-size:1.45em;font-weight:900;}
+.bs-previa .box{border:2px solid #000;padding:6px;margin-top:8px;}
+.bs-previa .big{font-size:1.4em;}
+.bs-previa .rod{font-size:.75em;font-weight:400;}
