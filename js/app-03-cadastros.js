@@ -857,7 +857,7 @@ function renderEstoque(){
   tbody.innerHTML = listaEst.map(i=>{
     const baixo = Number(i.minimo)>0 && i.quantidade <= i.minimo;
     return `<tr class="vs-linha" onclick="vsAcoesEstoque('${i.id}')">
-      <td>${escH(i.nome)}${i.ativo===false?' <span class="badge">inativo</span>':''}${typeof cfCustoLinhaEstoque === 'function' ? '<span class="obs-line">'+cfCustoLinhaEstoque(i)+'</span>' : ''}</td>
+      <td>${escH(i.nome)}${i.ativo===false?' <span class="badge">inativo</span>':''}${i.soCusto?' <span class="badge" title="Entra no custo dos produtos, mas não desconta estoque">só custo</span>':''}${typeof cfCustoLinhaEstoque === 'function' ? '<span class="obs-line">'+cfCustoLinhaEstoque(i)+'</span>' : ''}</td>
       <td>${i.quantidade} ${i.unidade||'un'}</td>
       <td>${baixo?'<span class="badge baixo">baixo</span>':'<span class="badge done">ok</span>'}</td>
       <td><button type="button" class="ghost vs-mais" aria-label="Ações de ${escH(i.nome)}" onclick="event.stopPropagation();vsAcoesEstoque('${i.id}')">⋯</button></td>

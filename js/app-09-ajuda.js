@@ -228,7 +228,10 @@ Admin:{ nome:'Administrador', secoes:[
     'No Início, toque no quadro "Cardápio hoje" (Admin e Operador): abre o pop-up CARDÁPIO HOJE.',
     'O funil conta, desde a abertura do caixa (ou nas últimas 24 horas com o caixa fechado), quantos aparelhos entraram no cardápio, abriram um item, puseram no carrinho, abriram o finalizar e enviaram o pedido, com a porcentagem e quantos pararam em cada etapa. Cada aparelho conta uma vez; aparelhos da equipe não contam.',
     'O mapa mostra de onde estão acessando (círculos dourados; o número é a quantidade de aparelhos) e os pedidos com local de entrega (pontos vermelhos). O quadrado branco é o restaurante (o mesmo local cadastrado para o ponto).',
-    'A localização é APROXIMADA (cerca de 500 m), só de quem já permitiu a localização no celular, e é apagada ao fechar o caixa e sempre depois de 24 horas. O cliente é avisado em "Privacidade" no cardápio.' ] },
+    'A localização é APROXIMADA (cerca de 500 m), só de quem já permitiu a localização no celular, e é apagada ao fechar o caixa e sempre depois de 24 horas. Fica guardada só a contagem de acessos por região e por dia, sem identificar o aparelho. O cliente é avisado em "Privacidade" no cardápio.',
+    'Dias anteriores: Administrador → Vendas e cardápio → "Cardápio: funil e mapa". Escolha o período (atalhos Hoje, 7 dias, 30 dias, Este mês, Mês passado ou as datas) e veja as visitas por dia, o funil, o que segurou o pedido no finalizar, o mapa das entregas do período (do sistema e do iFood) e de onde acessaram (contagem por região, guardada desde 01/11/2026).',
+    'Parte "🧾 No finalizar": das pessoas que abriram a tela de finalizar, quantas enviaram, quantas tocaram em "Enviar pedido" e quantas saíram sem tocar. Embaixo, o que segurou quem tocou: faltou número da casa, rua, cidade, nome ou telefone; troco menor que o total; pagar pelo site pediu para entrar na conta; cardápio fechado; ou erro ao enviar (internet ou sistema). Use "Últimos 30 dias" para ver o padrão com mais movimento.',
+    'Se muita gente sai sem tocar em Enviar, costuma ser a taxa de entrega, o total ou a quantidade de campos. Se o mais comum é "Faltou o número da casa", vale reforçar isso na divulgação.' ] },
 
   { t:'🛒 Ver o cardápio sem sair', itens:[
     'No topo da área de funcionários, toque em "🛒 Cardápio": o cardápio digital aparece como o cliente vê. Você continua logado.',
@@ -238,6 +241,7 @@ Admin:{ nome:'Administrador', secoes:[
 
   { t:'🎟️ Excluir cupom', itens:[
     'Em Promoções e cupons, cada cupom tem "🗑️ Excluir". Pede confirmação e a sua senha.',
+    'Cupom só para algumas formas de pagamento: no cadastro do cupom, marque em "Vale só nestas formas de pagamento" (ex.: Pix e Dinheiro). Nenhuma marcada = vale em todas. O cliente vê no cardápio onde o cupom vale e recebe uma mensagem clara se escolher outra forma.',
     'Cupom que nunca foi usado é apagado de vez. Cupom que já foi usado em pedidos é ARQUIVADO: some da lista, da conta dos clientes e do cardápio, mas os pedidos antigos continuam com o desconto certo. O código fica livre para um cupom novo.',
     'Em "🗑️ Cupons excluídos" (no fim da lista) dá para Restaurar um arquivado: ele volta desativado.',
     'Cupons automáticos (boas-vindas, aniversário, indicação) não se excluem: use Desligar.',
@@ -291,6 +295,7 @@ Admin:{ nome:'Administrador', secoes:[
     'O aviso só mostra o que é do seu perfil e só com o caixa aberto. Quando o pedido avança, é pago, cancelado ou o caixa fecha, o aviso some sozinho. Depois de 3 avisos sem resposta o Administrador também é avisado.',
     'O alerta só avisa: nunca muda o status, o pagamento nem o pedido.',
     'Administrador: ajuste os tempos, ligue ou desligue cada regra e teste o aviso em Loja e equipe → Configurar avisos → cartão "⏰ Alertas automáticos". Os avisos de falha do sistema se repetem (padrão a cada 30 min, você muda ali) até o problema ser resolvido; o e-mail vai no máximo a cada 6 horas. Ali também se cadastra a data de vencimento do certificado, do plano da nota fiscal e de outros (aviso 30, 15, 7 e 1 dia antes).',
+    'Resumo do turno: no cartão "📊 Resumo do turno" (mesma tela), ligue ou desligue o aviso que chega aos Admins ao fechar o caixa, com faturamento sem a taxa de entrega, pedidos, ticket médio, iFood, cancelados e se o caixa bateu. "Enviar teste" manda o resumo do último turno fechado.',
     'Além dos pedidos parados, o sistema avisa o Administrador (push e e-mail) quando algo do sistema pára: cópia para a planilha atrasada, tarefa automática falhando, Mercado Pago ou iFood sem resposta, caixa vencido ainda aberto, banco quase cheio, backup parado ou conferência diária com diferença.' ],
     prints:[{id:'alertas',alt:'Faixa Pedidos parados com os botões Ver pedido, Adiar 10 min e Silenciar este pedido',leg:'1: a faixa de pedidos parados, com Ver pedido, Adiar 10 min e Silenciar este pedido em cada pedido.'},{id:'alertas-config',alt:'Cartão Alertas automáticos com os tempos de cada regra',leg:'Administrador → Configurar avisos: cada regra tem liga/desliga e o tempo em minutos (1). Em 2 você escolhe de quanto em quanto tempo os avisos de falha do sistema se repetem.'}] },
   { t:'Turno do caixa (o "hoje" dos pedidos)', itens:[
@@ -363,6 +368,8 @@ Admin:{ nome:'Administrador', secoes:[
 
   { t:'Cardápio Digital, promoções e eventos', prints:[{id:'adm-cardapio-digital',alt:'Administrador, Vendas e cardápio, Cardápio Digital',leg:'O que o cliente vê no cardápio (1).'},{id:'adm-promocoes',alt:'Administrador, Promoções e cupons',leg:'Cupons e promoções (1).'},{id:'adm-pagamentos',alt:'Administrador, Formas de pagamento',leg:'Formas de pagamento, taxas e o que aparece no cardápio (1).'}], itens:[
     'Cardápio Digital: escolha o que aparece para o cliente, destaques, ordem e frase de abertura. "Mais Pedidos" é automático.',
+    'O item nº 1 de "Mais pedidos" (ou, sem vendas, o primeiro destaque com foto) aparece grande no topo do cardápio. Para ele aparecer, o item precisa ter foto.',
+    'Faixa de promoção: em Cardápio Digital → Personalizar, escreva um texto curto (ex.: cupom do dia). Aparece logo abaixo do banner para todo cliente; em branco não aparece.',
     'Se o cliente pedir mais de 1 lanche com adicionais, os adicionais valem para todos — o cardápio avisa.',
     'Endereço de entrega: o cliente preenche Rua e bairro, NÚMERO e CIDADE (a localização do celular e o CEP já preenchem rua, bairro e cidade). Sem o número o pedido não é enviado. No pedido, o endereço chega como "Rua, Bairro, nº 123 — Cidade".',
     'Abrir ou fechar o cardápio: use o botão "🌐 Cardápio aberto" em Início ou no Caixa. Um toque fecha (com uma mensagem opcional para o cliente) e outro reabre, sem fechar o caixa. Pedido de mesa por QR Code continua valendo. O cardápio só recebe pedidos com o caixa aberto.',
@@ -722,7 +729,7 @@ Operador:{ nome:'Caixa', secoes:[
     'Atalho mais rápido no dia a dia: no Assistente, a aba "🔔 Avisos" mostra as ocorrências abertas, com botão "Tratar" direto.',
     'Você NÃO tem acesso às outras telas do Administrador (financeiro, usuários, backup, catálogo etc.).' ]},
 
-  { t:'Clientes e fidelidade', prints:[{id:'clientes',alt:'Aba Clientes com o botão Novo cliente, filtros e a lista de clientes',leg:'1: + Novo cliente. Abaixo, os filtros (Inativos, Em risco, VIP, Fiel, Novos) e a busca por nome ou telefone. Os telefones desta imagem são fictícios.'}], passos:['Clientes → "+ Novo cliente": só nome e telefone são obrigatórios.','Toque no cliente para ver histórico, total gasto, indicação e cartão fidelidade.','Com as 10 marcas, ou com uma indicação pendente, escolha o prêmio e toque em "🎁 Resgatar". Precisa do caixa aberto; o estoque baixa e o cliente não paga.','No histórico do cliente, use os filtros de período, entrega/retirada e pago/a receber.','No alto do perfil está o Perfil 360: segmento (Novo, Fiel, VIP ou Em risco), gasto total, ticket médio, frequência, itens favoritos e se tem conta Google. Já soma os pedidos antigos arquivados.','Na lista de clientes, os botões Em risco, VIP, Fiéis e Novos mostram só aquele grupo. Em risco = sem pedir há mais de 45 dias.'],
+  { t:'Clientes e fidelidade', prints:[{id:'clientes',alt:'Aba Clientes com o botão Novo cliente, filtros e a lista de clientes',leg:'1: + Novo cliente. Abaixo, os filtros (Inativos, Em risco, VIP, Fiel, Novos e iFood, que mostra só quem pediu pelo iFood) e a busca por nome ou telefone. Os telefones desta imagem são fictícios.'}], passos:['Clientes → "+ Novo cliente": só nome e telefone são obrigatórios.','Toque no cliente para ver histórico, total gasto, indicação e cartão fidelidade.','Com as 10 marcas, ou com uma indicação pendente, escolha o prêmio e toque em "🎁 Resgatar". Precisa do caixa aberto; o estoque baixa e o cliente não paga.','No histórico do cliente, use os filtros de período, entrega/retirada e pago/a receber.','No alto do perfil está o Perfil 360: segmento (Novo, Fiel, VIP ou Em risco), gasto total, ticket médio, frequência, itens favoritos e se tem conta Google. Já soma os pedidos antigos arquivados.','Na lista de clientes, os botões Em risco, VIP, Fiéis e Novos mostram só aquele grupo. Em risco = sem pedir há mais de 45 dias.'],
     comuns:['"Nenhum prêmio cadastrado": peça ao Administrador para marcar um produto como prêmio.'] },
 
   _aj.ocorr('Ela aparece na aba "🔔 Avisos" do Assistente e você pode tratar direto pelo botão "Tratar".')
@@ -882,7 +889,8 @@ const MANUAL_AJUDA_CLIENTE_ = {
   nome:'Cliente',
   secoes:[
     { t:'🍔 Como fazer um pedido', passos:[
-      'Escolha a categoria lá em cima (Lanches, Combos, Bebidas…) ou role a tela para ver "Mais pedidos" e "Destaques".',
+      'Escolha a categoria lá em cima (Lanches, Combos, Bebidas…) ou role a tela para ver o destaque grande do topo, "Mais pedidos" e "Destaques".',
+      'Toque em qualquer parte do cartão do item (nome, descrição ou preço) para abrir e escolher.',
       'Role para o lado em cada seção para ver mais itens. Toque na foto para ver o item ampliado. Toque em "Adicionar" no item. Se ele tiver adicionais, aparece uma janela. Você também pode escrever uma observação (ex.: "sem cebola").',
       'Ajuste a quantidade e toque em "Adicionar ao carrinho".',
       'Quando terminar, toque na barra dourada que aparece embaixo ("X itens — R$ …") para abrir o carrinho.',
@@ -899,10 +907,12 @@ const MANUAL_AJUDA_CLIENTE_ = {
       'Digite o código (ex.: PROMO10) e toque em "Aplicar cupom".',
       'O desconto aparece embaixo e o total é recalculado na hora.',
       'Alguns cupons dão mais desconto quanto maior o pedido (ex.: R$ 5 a partir de R$ 50, R$ 10 a partir de R$ 100). Vale a maior faixa que o seu pedido alcança.',
-      'Se o cupom não valer (fora do prazo, valor mínimo não atingido, etc.), aparece uma mensagem explicando.' ]},
+      'Se o cupom não valer (fora do prazo, valor mínimo não atingido, etc.), aparece uma mensagem explicando.',
+      'Alguns cupons valem só em certas formas de pagamento (ex.: só Pix ou Dinheiro). Nos botões de pagamento aparece "🎟️ cupom vale" onde ele vale. Se escolher outra forma, o desconto sai e aparece um aviso; ao voltar para uma forma que vale, o desconto volta sozinho.' ]},
 
     { t:'👤 Minha conta (opcional)', itens:[
       'Toque em "👤 Entrar", na faixa logo abaixo do banner do cardápio, e escolha "Continuar com o Google". Você não precisa de conta para pedir.',
+      'Abriu o cardápio pelo Instagram, Facebook ou TikTok? O Google não deixa entrar pelo navegador dessas redes. Toque em "Abrir no navegador" (no iPhone: ••• → Abrir no Safari) e entre por lá. Pedir sem conta funciona ali mesmo.',
       'Com a conta você vê seus pedidos e toca em "🔁 Repetir pedido", guarda endereços, recebe cupons (boas-vindas, aniversário, indique e ganhe) e acompanha o cartão fidelidade.',
       'Para ganhar o presente de aniversário, informe a data de nascimento (opcional). Receber promoções também é opcional e você muda quando quiser em "Meus dados".',
       'O cartão fidelidade e o histórico de antes aparecem na conta depois do seu primeiro pedido concluído com ela.',

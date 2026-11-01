@@ -7,8 +7,8 @@ const API_URL = "https://script.google.com/macros/s/AKfycbwCftUm-1pxhA8XLNqMB7dM
 const CONTINGENCIA_API_URL = "https://script.google.com/macros/s/AKfycby3WljBnr7gpJrHdkbTvBCh5uIXqS4KCS6wkBYB5idxf5gI04efoDumQj264kR_smoW/exec";
 
 /* ===================== VERSÃO DO APP ===================== */
-const APP_VERSAO = '1.23';
-const APP_ATUALIZADO_EM = '29/10/2026';
+const APP_VERSAO = '1.24';
+const APP_ATUALIZADO_EM = '01/11/2026';
 window.APP_VERSAO = APP_VERSAO;
 
 /* ===================== NOVIDADES POR PERFIL =====================
@@ -19,6 +19,19 @@ window.APP_VERSAO = APP_VERSAO;
    A seção "🆕 O que mudou" do manual é gerada daqui. */
 const APP_NOVIDADES = {
   Admin: [
+    { v:'1.24', em:'01/11/2026', itens:[
+      'Cardápio hoje · Parte nova "🧾 No finalizar": de quem abriu a tela de finalizar, quantos tocaram em "Enviar pedido", quantos saíram sem tocar e o que segurou quem tocou (faltou o número da casa, rua, cidade, nome ou telefone, troco menor que o total, pagar pelo site pediu login, cardápio fechado ou erro ao enviar). Dá para ver o período atual ou os últimos 30 dias. Sem nome nem telefone do cliente, igual ao funil.',
+      'Tela nova · Administrador → Vendas e cardápio → "Cardápio: funil e mapa": o funil, o detalhe do finalizar e o mapa por PERÍODO (Hoje, 7 dias, 30 dias, Este mês, Mês passado ou datas à escolha), com as visitas por dia. O funil e as entregas aparecem desde o começo; os pontos de acesso passam a ser guardados a partir de hoje como contagem por região, sem identificar o aparelho.',
+      'Cupons · Novo campo "Vale só nestas formas de pagamento" (ex.: só Pix e Dinheiro). No cardápio o cliente vê em quais formas o cupom vale; se escolher outra, o desconto sai e aparece a mensagem com botões "Pagar com Pix"/"Pagar com Dinheiro", e ao voltar para uma forma que vale o cupom volta sozinho.',
+      'Cardápio do cliente · A forma de pagamento agora é escolhida em botões (no lugar da lista). A lista falhava em alguns celulares, principalmente no navegador do Instagram no iPhone, e o cliente não conseguia trocar a forma depois de aplicar o cupom. Trocar a forma também confere o cupom de novo.',
+      'Conta do cliente · O cardápio convida a entrar com o Google mostrando as vantagens que estão ligadas (cupom de boas-vindas, cartão fidelidade, endereços e repetir pedido), no topo, no carrinho e depois de enviar o pedido.',
+      'Cardápio do cliente · O item nº 1 (o mais pedido; se não houver, o primeiro destaque) aparece grande no topo, com foto, preço e botão "Adicionar". Tocar em qualquer parte do cartão do produto (nome, descrição, preço) já abre o item, não só o botão "+".',
+      'Cardápio do cliente · Faixa de promoção opcional logo abaixo do banner: escreva em Cardápio Digital → Personalizar → "Faixa de promoção" (em branco não aparece).',
+      'Cardápio do cliente · Quem abre o link pelo Instagram, Facebook ou TikTok vê um aviso para abrir no navegador do celular (lá o Google bloqueia o login). Ao tocar em "Continuar com o Google" dentro dessas redes, o cliente é avisado antes. Pedir sem conta continua funcionando ali mesmo.',
+      'Avisos · Cartão novo "📊 Resumo do turno" em Loja e equipe → Configurar avisos: ao fechar o caixa, todos os Admins recebem no celular o faturamento do turno (sem a taxa de entrega), pedidos, ticket médio, iFood, cancelados e se o caixa bateu. Vem ligado; tem botão de teste.',
+      'Custos · Todo lanche passou a ter no custo 2 sachês de ketchup, 2 de maionese e 2 de mostarda; todo produto preparado tem a embalagem (lanche, hot dog, porção, batata recheada) e o gás e a energia do preparo. Valores estimados: ajuste em Produtos → Estoque. Gás e energia aparecem com a etiqueta "só custo": entram no custo, mas não descontam estoque.',
+      'Clientes · Filtro novo "iFood": mostra só os clientes que pediram pelo iFood. Corrigido: pedido do iFood criava um cadastro repetido "Nome (iFood)" com telefone 0800 (o 0800 é do iFood e é reaproveitado entre clientes) e dava carimbo de fidelidade. Os 9 repetidos foram escondidos e ligados ao cliente do iFood certo, e os carimbos deles voltaram a zero.',
+      'Segurança e velocidade · Ajustes no banco: funções internas fechadas ao público, toda tabela nova já nasce com as permissões certas (mudança do Supabase de 30/10).' ] },
     { v:'1.23', em:'29/10/2026', itens:[
       'Visual · A área da equipe ficou com cara de sistema profissional: títulos em letra comum, cartões lisos, dourado só no que é ação principal ou destaque, ícones de linha no lugar dos emojis e três tipos de botão (principal dourado, secundário de contorno e perigo). O cardápio do cliente continua com a cara do Texas.',
       'Celular · Topo compacto (logo pequena e ícones numa linha só), sobrando mais tela para o trabalho. A faixa "Sem conexão com o servidor principal" agora aparece no alto e não cobre mais a barra de baixo. O Tex fica menor e sai da frente quando você rola a página para baixo.',
@@ -221,6 +234,9 @@ const APP_NOVIDADES = {
     ]}
   ],
   Operador: [
+    { v:'1.24', em:'01/11/2026', itens:[
+      'Cardápio hoje · Parte nova "🧾 No finalizar": mostra quantos clientes tocaram em "Enviar pedido" e o que segurou o pedido (campo faltando, troco, login, cardápio fechado ou erro).',
+      'Cardápio do cliente · O item mais pedido aparece grande no topo, e tocar em qualquer parte do cartão do produto já abre o item.' ] },
     { v:'1.15', em:'25/10/2026', itens:[
       'Ações sensíveis (cancelar, excluir, desconto, estorno, ajuste pós-venda) pedem sempre a senha de um Administrador.',
       'iFood: ao cancelar um pedido do iFood, escolha o motivo oficial na lista com borda dourada. Quando aparecer "🔐 O iFood precisa de um código" em Pedidos/Entregas, peça o código ao entregador (ou ao cliente) e envie.',
@@ -321,6 +337,9 @@ const APP_NOVIDADES = {
     ]}
   ],
   Cliente: [
+    { v:'1.24', em:'01/11/2026', itens:[
+      'O lanche mais pedido aparece em destaque no topo do cardápio. Toque em qualquer parte do cartão do produto para abrir e escolher.',
+      'Abriu o cardápio pelo Instagram ou Facebook? Para entrar com o Google e pagar pelo site, use "Abrir no navegador". Pedir sem conta funciona ali mesmo.' ] },
     { v:'1.15', em:'25/10/2026', itens:[
       'Novo em Minha conta: a aba "🎮 Jogos" com os 4 joguinhos, para jogar quando quiser (o recorde fica guardado no seu aparelho).',
       'Algumas formas de pagamento pelo site podem abrir a página segura da InfinitePay: pague lá e volte ao cardápio; a tela confere sozinha.',
@@ -749,7 +768,7 @@ async function sbMontarDados_(nivel, chaves){
     comboItens: citens.map(x=>({ id:x.id, comboId:x.combo_id, produtoId:x.produto_id, quantidade:Number(x.quantidade), escolha:!!x.escolha })),
     adicionais: adic.map(a=>({ id:a.id, nome:a.nome, preco:Number(a.preco)||0, ativo:a.ativo, ingredienteId:a.ingrediente_id||'', quantidadeDesconto:Number(a.quantidade_descontar)||1 })),
     produtoAdicionais: padic.map(x=>({ id:x.id, produtoId:x.produto_id, adicionalId:x.adicional_id })),
-    configCardapio: { kicker: sbCfg_(sistema,'CardapioKicker','DELIVERY · SABOR QUE CONQUISTA'), frase: sbCfg_(sistema,'CardapioFrase','Peça pelo cardápio — rápido, sem complicação.'), tempoEntrega: sbCfg_(sistema,'CardapioTempoEntrega','40-60 min'), tempoRetirada: sbCfg_(sistema,'CardapioTempoRetirada','20-30 min'), tempoMesa: sbCfg_(sistema,'CardapioTempoMesa','20-30 min'),
+    configCardapio: { kicker: sbCfg_(sistema,'CardapioKicker','DELIVERY · SABOR QUE CONQUISTA'), frase: sbCfg_(sistema,'CardapioFrase','Peça pelo cardápio — rápido, sem complicação.'), tempoEntrega: sbCfg_(sistema,'CardapioTempoEntrega','40-60 min'), tempoRetirada: sbCfg_(sistema,'CardapioTempoRetirada','20-30 min'), tempoMesa: sbCfg_(sistema,'CardapioTempoMesa','20-30 min'), faixaPromo: sbCfg_(sistema,'CardapioFaixaPromo',''),
       fechamento: { ativo: !!(sbCfg_(sistema,'CardapioFechadoManual',{})||{}).ativo, mensagem: (sbCfg_(sistema,'CardapioFechadoManual',{})||{}).mensagem || '', periodos: Array.isArray(sbCfg_(sistema,'CardapioPeriodosFechado',[])) ? sbCfg_(sistema,'CardapioPeriodosFechado',[]) : [] },
       restaurante: { nome: sbCfg_(sistema,'RestauranteNome',''), endereco: sbCfg_(sistema,'RestauranteEndereco',''), telefone: sbCfg_(sistema,'RestauranteTelefone',''), horario: sbCfg_(sistema,'RestauranteHorario',''), redes: sbCfg_(sistema,'RestauranteRedes','') } },
     categoriasDespesa: SB_CATEGORIAS_DESPESA_,
@@ -760,11 +779,11 @@ async function sbMontarDados_(nivel, chaves){
   const din = {
     usuarios: usuarios.map(u=>({ login:u.login, nivel:u.nivel, ativo:u.ativo, criadoEm:sbDataBr_(u.criado_em), nome:u.nome||'', telefone:u.telefone||'', id:u.id })),
     logRecentes: [], clientes: clientes.filter(x=>!x.unido_com).map(x=>{ const y = { id:x.id, nome:x.nome, telefone:x.telefone||'', dataNascimento:x.data_nascimento||'', endereco:x.endereco||'', comoConheceu:x.como_conheceu||'', primeiroContato:sbDataBr_(x.primeiro_contato), observacao:x.observacoes||'', preferencias:x.preferencias||'', ifoodId:x.ifood_id||'', origemCadastro:x.origem||'' }; if(nivel==='Garçom') delete y.observacao; return y; }), promocoes: nivel==='Garçom' ? [] : promos.map(p=>({ nome:p.nome, tipo:p.tipo, regra:p.regra_duplicidade, beneficio:p.beneficio, ativa:p.ativa })),
-    cupons: cupDb.map(c=>({ id:c.id, codigo:String(c.codigo||'').toUpperCase(), nome:c.nome||'', tipo:c.tipo||'percentual', valor:Number(c.valor)||0, faixas:Array.isArray(c.faixas)?c.faixas:[], regra:(c.regra&&typeof c.regra==='object')?c.regra:null, freteGratis:!!c.frete_gratis, dataInicio:c.data_inicio||'', dataFim:c.data_fim||'', horaInicio:String(c.hora_inicio||'').slice(0,5), horaFim:String(c.hora_fim||'').slice(0,5), limiteTotal:Number(c.limite_total)||0, limitePorCliente:Number(c.limite_por_cliente)||0, valorMinimo:Number(c.valor_minimo)||0, ativa:c.ativa!==false, acumula:!!c.acumula, somenteConta:!!c.somente_conta, clienteId:c.cliente_id||'', mensagem:c.mensagem||'', visivelConta:!!c.visivel_conta, automatico:c.automatico||'', validadeDias:Number(c.validade_dias)||30, criadoEm:sbDataBr_(c.criado_em), excluido:!!c.excluido_em, codigoOriginal:c.codigo_original||'' })),
+    cupons: cupDb.map(c=>({ id:c.id, codigo:String(c.codigo||'').toUpperCase(), nome:c.nome||'', tipo:c.tipo||'percentual', valor:Number(c.valor)||0, faixas:Array.isArray(c.faixas)?c.faixas:[], regra:(c.regra&&typeof c.regra==='object')?c.regra:null, freteGratis:!!c.frete_gratis, dataInicio:c.data_inicio||'', dataFim:c.data_fim||'', horaInicio:String(c.hora_inicio||'').slice(0,5), horaFim:String(c.hora_fim||'').slice(0,5), limiteTotal:Number(c.limite_total)||0, limitePorCliente:Number(c.limite_por_cliente)||0, valorMinimo:Number(c.valor_minimo)||0, ativa:c.ativa!==false, acumula:!!c.acumula, somenteConta:!!c.somente_conta, clienteId:c.cliente_id||'', mensagem:c.mensagem||'', visivelConta:!!c.visivel_conta, automatico:c.automatico||'', validadeDias:Number(c.validade_dias)||30, criadoEm:sbDataBr_(c.criado_em), excluido:!!c.excluido_em, codigoOriginal:c.codigo_original||'', formasIds:Array.isArray(c.formas_ids)?c.formas_ids.map(String):[] })),
     eventos: evDb.map(e=>({ id:e.id, nome:e.nome||'', tipo:e.tipo||'', data:e.data||'', horaInicio:String(e.hora_inicio||'').slice(0,5), horaFim:String(e.hora_fim||'').slice(0,5), local:e.local||'', contratante:e.contratante||'', telefone:e.telefone||'', status:e.status||'Orçamento', valorContratado:Number(e.valor_contratado)||0, valorRecebido:Number(e.valor_recebido)||0, valorAReceber:Number(e.valor_a_receber)||0, custoTotal:Number(e.custo_total)||0, resultado:Number(e.resultado)||0, observacoes:e.observacoes||'' })),
     indicacoes: indDb.map(i=>({ nomeIndicador:i.nome_indicador||'', telIndicador:i.telefone_indicador||'', nomeIndicado:i.nome_indicado||'', telIndicado:i.telefone_indicado||'', data:sbDataBr_(i.data), resgatado:i.status==='Resgatado', observacao:i.observacoes||'', idIndicador:i.indicador_id||'', idIndicado:i.indicado_id||'' })),
     fidelidade: fidDb.map(f=>({ nome:f.nome||'', telefone:f.telefone||'', carimbos:Number(f.carimbos)||0, premios:Number(f.premios)||0, atualizado:f.atualizado||'', observacao:f.observacao||'', clienteId:f.cliente_id||'' })),
-    estoque: estoque.map(e=>{ const y = { id:e.id, nome:e.ingrediente, quantidade:Number(e.quantidade), minimo:Number(e.quantidade_minima), unidade:e.unidade||'un', custo:Number(e.custo_unitario)||0, ativo:e.status!=='Inativo' }; if(!gestor) delete y.custo; return y; }),
+    estoque: estoque.map(e=>{ const y = { id:e.id, nome:e.ingrediente, quantidade:Number(e.quantidade), minimo:Number(e.quantidade_minima), unidade:e.unidade||'un', custo:Number(e.custo_unitario)||0, ativo:e.status!=='Inativo', soCusto:!!e.so_custo }; if(!gestor) delete y.custo; return y; }),
     movimentacoesEstoque: movs.map(m=>({ id:m.id, ingredienteNome:nomeIng[m.ingrediente_id]||'', tipo:m.tipo, quantidade:Number(m.quantidade), qtdAntes:Number(m.qtd_antes), qtdDepois:Number(m.qtd_depois), motivo:m.motivo_referencia||'', usuario:loginDe[m.usuario_id]||'', data:m.data })).sort((a,b)=>new Date(b.data)-new Date(a.data)),
     mesas: mesas.map(m=>({ id:m.id, numero:m.numero, status:m.status||'Livre', capacidade:m.capacidade||'', observacao:m.observacao||'', garcomResponsavel:m.garcom_responsavel||'', chamadoEm: m.chamado_em ? (Date.parse(m.chamado_em)||0) : 0 })).sort((a,b)=>Number(a.numero)-Number(b.numero)),
     feedbacks: fbDb.map(f=>({ id:f.id, vendaId:f.venda_id||'', telefone:f.telefone_cliente||'', nota:Number(f.nota)||0, comentario:f.comentario||'', data:sbDataBr_(f.data), status:f.status||'Novo', clienteId:f.cliente_id||'', origem:f.origem||'formulario', userId:f.user_id||'', resposta:f.resposta||'', respondidoEm:f.respondido_em?sbDataBr_(f.respondido_em):'', respondidoPor:f.respondido_por||'' })),
@@ -847,7 +866,7 @@ async function sbCardapioPublico_(){
     comboPrecos: precos.filter(x=>x.tipo==='combo').map(x=>({ comboId:x.item_id, formaPagamentoId:x.forma_pagamento_id, preco:Number(x.preco) })),
     adicionais, produtoAdicionais,
     comboItens: citens.map(x=>({ comboId:x.combo_id, produtoId:x.produto_id, quantidade:Number(x.quantidade)||1, escolha:!!x.escolha })),
-    config: { kicker: cfgv.CardapioKicker || 'DELIVERY · SABOR QUE CONQUISTA', frase: cfgv.CardapioFrase || 'Peça pelo cardápio — rápido, sem complicação.', tempoEntrega: cfgv.CardapioTempoEntrega || '40-60 min', tempoRetirada: cfgv.CardapioTempoRetirada || '20-30 min', tempoMesa: cfgv.CardapioTempoMesa || '20-30 min', taxaEntrega: Number(cfgv.TaxaEntregaPadrao)||0, restaurante: { nome: cfgv.RestauranteNome||'', endereco: cfgv.RestauranteEndereco||'', telefone: cfgv.RestauranteTelefone||'', horario: cfgv.RestauranteHorario||'', redes: cfgv.RestauranteRedes||'' } },
+    config: { kicker: cfgv.CardapioKicker || 'DELIVERY · SABOR QUE CONQUISTA', frase: cfgv.CardapioFrase || 'Peça pelo cardápio — rápido, sem complicação.', tempoEntrega: cfgv.CardapioTempoEntrega || '40-60 min', tempoRetirada: cfgv.CardapioTempoRetirada || '20-30 min', tempoMesa: cfgv.CardapioTempoMesa || '20-30 min', faixaPromo: cfgv.CardapioFaixaPromo || '', taxaEntrega: Number(cfgv.TaxaEntregaPadrao)||0, restaurante: { nome: cfgv.RestauranteNome||'', endereco: cfgv.RestauranteEndereco||'', telefone: cfgv.RestauranteTelefone||'', horario: cfgv.RestauranteHorario||'', redes: cfgv.RestauranteRedes||'' } },
     maisPedidos: maisDb.map(m=>({ tipo:m.tipo, id:m.id })), caixaAberto: !!(st[0] && st[0].caixa_aberto), cardapioBloqueio: (st[0] && st[0].cardapio_bloqueio) || '',
     esgotados: { produtos: esgDb.filter(x=>x.tipo==='produto').map(x=>x.id), combos: esgDb.filter(x=>x.tipo==='combo').map(x=>x.id) }
   };

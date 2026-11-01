@@ -151,6 +151,7 @@ function renderConfigCardapio(){
   document.getElementById('cfgTempoEntrega').value = configCardapio.tempoEntrega || '';
   document.getElementById('cfgTempoRetirada').value = configCardapio.tempoRetirada || '';
   document.getElementById('cfgTempoMesa').value = configCardapio.tempoMesa || '';
+  const fp = document.getElementById('cfgFaixaPromo'); if(fp) fp.value = configCardapio.faixaPromo || '';
   renderDadosRestaurante_();
 }
 /* ---------- COMPRAS E FORNECEDORES (só Admin / Desenvolvedor) ----------
@@ -921,8 +922,9 @@ async function salvarConfigCardapioUI(){
   const tempoEntrega = document.getElementById('cfgTempoEntrega').value.trim();
   const tempoRetirada = document.getElementById('cfgTempoRetirada').value.trim();
   const tempoMesa = document.getElementById('cfgTempoMesa').value.trim();
+  const faixaPromo = ((document.getElementById('cfgFaixaPromo')||{}).value||'').trim();
   try{
-    const r = await apiCall('salvarConfigCardapio', { kicker, frase, tempoEntrega, tempoRetirada, tempoMesa });
+    const r = await apiCall('salvarConfigCardapio', { kicker, frase, tempoEntrega, tempoRetirada, tempoMesa, faixaPromo });
     if(r.ok){ configCardapio = r.config || configCardapio; salvarCache(); showMsg('cfgCardapioMsg', r.message, 'ok'); }
     else showMsg('cfgCardapioMsg', r.message, 'warn');
   } catch(e){ showMsg('cfgCardapioMsg','Não foi possível salvar agora.','warn'); }

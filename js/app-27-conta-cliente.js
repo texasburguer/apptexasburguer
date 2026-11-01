@@ -119,8 +119,33 @@ function qtdBrindes(){
   var b = estado.brindes; if(!b || !b.ok) return 0;
   return (b.fidelidadeDisponivel && (b.produtosFid || []).length ? 1 : 0) + ((b.produtosInd || []).length ? (b.indicacao || []).length : 0);
 }
+/* v1.24 — incentivo para entrar com o Google: mostra só vantagens que estão LIGADAS no sistema (cupom de boas-vindas, fidelidade). */
+var _incentivo = null;
+function carregarIncentivo_(){
+  if(_incentivo) return;
+  _incentivo = {};
+  rpcPublico('api_conta_incentivo', { p:{} }).then(function(r){ if(r && r.ok){ _incentivo = r; atualizarBotao(); } });
+}
+function textoBoasVindas_(){
+  var b = _incentivo && _incentivo.boasVindas; if(!b) return '';
+  return (b.tipo === 'percentual' ? Number(b.valor) + '% de desconto' : b.tipo === 'fixo' ? dinheiro(b.valor) + ' de desconto' : b.tipo === 'frete' ? 'frete grátis' : 'um desconto') + ' no 1º pedido';
+}
+function textoConvite_(curto){
+  var bv = textoBoasVindas_();
+  if(curto) return bv ? '🎁 Entre com o Google e ganhe <b>' + esc(bv) + '</b>' : '⭐ Entre com o Google: <b>cupons</b>, seus <b>carimbos</b> e pedido em 1 toque';
+  return (bv ? '🎁 <b>Ganhe ' + esc(bv) + '</b> entrando com o Google.<br>' : '👤 <b>Peça mais rápido com a sua conta Google:</b><br>')
+    + 'nome e telefone já preenchidos, endereços salvos, repetir pedido em 1 toque, <b>cupons exclusivos</b>'
+    + (_incentivo && _incentivo.fidelidade ? ' e o seu <b>cartão fidelidade</b> (' + esc(_incentivo.fidelidade) + ')' : '') + '.';
+}
+window.contaConvitePosPedido_ = function(){
+  if(estado.conta || lerSessao()) return null;
+  var d = document.createElement('div'); d.className = 'ct-chamada'; d.style.marginTop = '10px';
+  d.innerHTML = '<span>⭐ <b>Guarde este pedido na sua conta:</b> repita com 1 toque da próxima vez' + (_incentivo && _incentivo.fidelidade ? ' e acompanhe os carimbos do cartão fidelidade' : '') + '.</span><button type="button" class="small-gold" onclick="contaGoogle_(\'conta\')">Entrar com Google</button>';
+  return d;
+};
 function atualizarBotao(){
   var b = $('cdContaBtn'); if(!b) return;
+  if(!estado.conta && !lerSessao()) carregarIncentivo_();
   var bar = $('cdContaBar'), t = $('cdContaTxt'), logada = !!(estado.conta || lerSessao());
   if(estado.conta) b.textContent = 'Minha conta';
   else if(logada) b.textContent = 'Minha conta';
@@ -131,7 +156,7 @@ function atualizarBotao(){
       var n = qtdBrindes();
       t.innerHTML = '👤 Olá, <b>' + esc(primeiroNome(estado.conta.nome) || 'cliente') + '</b>' + (n ? ' · <b>🎁 ' + n + (n === 1 ? ' brinde' : ' brindes') + ' para você</b>' : '');
     }else if(logada) t.textContent = '👤 Sua conta';
-    else t.innerHTML = 'Entre para usar <b>cupons</b> e juntar <b>carimbos</b>';
+    else t.innerHTML = textoConvite_(true);
   }
 }
 async function carregarBrindes(){
@@ -281,7 +306,7 @@ function textoAviso(d){
     '<h3>10. Mudanças neste aviso</h3><p>Se algo importante mudar, você verá a nova versão e será convidado(a) a aceitar de novo.</p></div>';
 }
 /* v1.15 — funil e mapa do cardápio: aviso só aqui, dentro de "Privacidade" (decisão do dono) */
-var AVISO_LOCAL_ = '<div class="ct-chamada" style="margin-top:10px;"><span>📍 <b>Localização:</b> Usamos sua localização aproximada só para saber de onde vêm os pedidos. Ela é apagada ao fim do turno.</span></div>';
+var AVISO_LOCAL_ = '<div class="ct-chamada" style="margin-top:10px;"><span>📍 <b>Localização:</b> Usamos sua localização aproximada só para saber de onde vêm os pedidos. Ela é apagada ao fim do turno; fica guardada apenas a contagem de acessos por região (cerca de 500 m), sem identificar você nem o seu aparelho.</span></div>';
 window.abrirAvisoPrivacidade = async function(){
   janela('contaAvisoModal', cab('Aviso de Privacidade', 'contaAvisoModal') + '<p class="sub">Carregando...</p>');
   var d = await rpcPublico('api_aviso_privacidade', {});
@@ -404,6 +429,7 @@ window.contaRepetir_ = function(i){
 function textoBeneficio(c){
   var t = c.tipo === 'percentual' ? (Number(c.valor) + '% de desconto') : c.tipo === 'fixo' ? (dinheiro(c.valor) + ' de desconto') : c.tipo === 'frete' ? 'Frete grátis' : c.tipo === 'combo' ? ('Combo por ' + dinheiro(c.valor)) : 'Desconto progressivo';
   if(Number(c.minimo) > 0) t += ' · pedido a partir de ' + dinheiro(c.minimo);
+  if(c.formasNomes) t += ' · só pagando em ' + c.formasNomes;
   return t;
 }
 async function carregarCupons(){ var r = await rpc('api_conta_cupons', {}); if(r.ok) estado.cupons = r; return r; }
@@ -578,7 +604,7 @@ window.contaPreencherCheckout_ = async function(){
   if(!estado.conta){
     if(lerSessao()) return;
     var d = document.createElement('div'); d.id = 'cdContaChamada'; d.className = 'ct-chamada cd-hide-mesa';
-    d.innerHTML = '<span>👤 Entre com o Google para usar <b>cupons exclusivos</b>, repetir pedidos e guardar endereços.</span><button type="button" class="small-gold" onclick="contaGoogle_(\'carrinho\')">Entrar</button>';
+    d.innerHTML = '<span>' + textoConvite_(false) + '<small style="display:block;color:var(--muted);margin-top:2px;">Leva 5 segundos e o seu carrinho fica guardado. Pedir sem conta continua valendo.</small></span><button type="button" class="small-gold" onclick="contaGoogle_(\'carrinho\')">Entrar com Google</button>';
     form.insertBefore(d, form.firstChild);
     return;
   }

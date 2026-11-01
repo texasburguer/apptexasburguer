@@ -70,7 +70,7 @@ const ADMIN_GRUPOS = [
   { nome:'Hoje',               ico:'painel',     subs:['visaogeral', 'ocorrencias', 'feedbacks'] },
   { nome:'Dinheiro',           ico:'financeiro', subs:['historico', 'financeiro', 'ajustes', 'ifoodfin', 'relatorios', 'analise'] },
   { nome:'Produtos',           ico:'catalogo',   subs:['produtos', 'estoque', 'compras', 'custosprecificacao'] },
-  { nome:'Vendas e cardápio',  ico:'campanhas',  subs:['cardapiodigital', 'pagamentos', 'promocoes', 'eventos'] },
+  { nome:'Vendas e cardápio',  ico:'campanhas',  subs:['cardapiodigital', 'cardapioperiodo', 'pagamentos', 'promocoes', 'eventos'] },
   { nome:'Loja e equipe',      ico:'operacao',   subs:['ponto', 'escala', 'equipe', 'taxasentregas', 'restaurante', 'usuarios', 'notifadmin'] },
   { nome:'Sistema',            ico:'sistema',    subs:['contas', 'auditoria', 'integridade'] }
 ];
@@ -80,7 +80,7 @@ const ADMIN_SUBABAS_ROTULOS = {
   visaogeral:'Visão Geral', ocorrencias:'Ocorrências', feedbacks:'Feedbacks',
   financeiro:'Contas a pagar e despesas', historico:'Histórico', ajustes:'Reembolsos e ajustes', analise:'Previsto e metas', relatorios:'Relatórios e DRE', ifoodfin:'iFood: vendas e repasses',
   produtos:'Produtos, combos e adicionais', estoque:'Estoque', compras:'Compras e fornecedores', custosprecificacao:'Custos e precificação',
-  cardapiodigital:'Cardápio Digital', pagamentos:'Formas de pagamento', promocoes:'Promoções e cupons', eventos:'Eventos',
+  cardapiodigital:'Cardápio Digital', cardapioperiodo:'Cardápio: funil e mapa', pagamentos:'Formas de pagamento', promocoes:'Promoções e cupons', eventos:'Eventos',
   restaurante:'Mesas e QR Codes', taxasentregas:'Entregadores e taxas', equipe:'Equipe e pagamentos', escala:'Escala da equipe', ponto:'Ponto', usuarios:'Usuários e permissões', notifadmin:'Configurar avisos',
   contas:'Integrações e contas', integridade:'Backup e espaço', auditoria:'Auditoria'
 };
@@ -91,7 +91,7 @@ const ADMIN_SUBABAS_DESCRICOES = {
   visaogeral:'Resumo do dia e saúde do sistema', ocorrencias:'Problemas registrados e como tratar', feedbacks:'O que os clientes escreveram; responder',
   financeiro:'Boletos, aluguel e despesas fixas', historico:'Vendas, despesas e caixas já feitos', ajustes:'Devolver dinheiro, dar crédito ou cortesia', analise:'Quanto entra e sai nos próximos 30 dias, e metas', relatorios:'DRE, imposto, mais vendidos e Excel', ifoodfin:'Comissões, taxas, repasses, antecipações e arquivo mensal do iFood',
   produtos:'Cadastro de produtos, combos e adicionais', estoque:'Ingredientes, bebidas e movimentações', compras:'Registrar compras e fornecedores', custosprecificacao:'Simular custo e preço de venda',
-  cardapiodigital:'O que o cliente vê no cardápio: dados, visual, ordem e destaques', pagamentos:'Taxas, prazos, troco e o que aparece no cardápio', promocoes:'Cupons e cupons automáticos', eventos:'Custos e recebimentos por evento',
+  cardapiodigital:'O que o cliente vê no cardápio: dados, visual, ordem e destaques', cardapioperiodo:'Acessos, onde o cliente desiste e mapa das entregas por período', pagamentos:'Taxas, prazos, troco e o que aparece no cardápio', promocoes:'Cupons e cupons automáticos', eventos:'Custos e recebimentos por evento',
   restaurante:'Mesas do salão e QR Codes', taxasentregas:'Taxa, ajuda diária e fechamento dos entregadores', equipe:'Funcionários, salários, pagamentos, encargos e recibos', escala:'Quem trabalha em cada dia e horário', ponto:'Entradas e saídas, horas feitas e horas extras', usuarios:'Quem acessa o sistema, o que pode fazer e a privacidade (LGPD) das contas', notifadmin:'Quais avisos ligam, para quem, e os alertas automáticos',
   contas:'iFood, Nota fiscal, Mercado Pago, chaves das IAs e contas do sistema', integridade:'Uso do espaço, backup, cópia na planilha e contingência', auditoria:'Ações sensíveis registradas'
 };
@@ -106,7 +106,7 @@ const ADMIN_BUSCA_PALAVRAS_ = {
   analise:'meta previsto fluxo categoria', ifoodfin:'ifood financeiro repasse liquidacao antecipacao comissao taxa conciliacao arquivo csv boleto recebiveis lancamento venda', relatorios:'dre imposto lucro excel mercado pago resumo mensal produtos mais vendidos',
   produtos:'combo categoria adicional receita foto preco cardapio item lanche', estoque:'ingrediente bebida inventario entrada perda minimo', compras:'fornecedor nota compra comprei',
   custosprecificacao:'calculadora margem custo preco simulador', cardapiodigital:'cardapio online cliente qr logo banner horario fechamento dados do restaurante razao social cnpj', pagamentos:'pix cartao credito debito dinheiro taxa troco prazo online ifood',
-  promocoes:'cupom desconto indicacao fidelidade brinde', eventos:'evento festa',
+  promocoes:'cupom desconto indicacao fidelidade brinde', cardapioperiodo:'funil mapa visitas acessos entregas regiao bairro conversao desistencia finalizar periodo historico', eventos:'evento festa',
   restaurante:'mesa qr code salao', taxasentregas:'entregador motoboy frete taxa ajuda diaria fechamento', ponto:'ponto bater entrada saida horas extras banco de horas atraso esqueceu', escala:'troca de turno trocar escala turno horario folga ferias falta atestado quem trabalha semana padrao escalar', equipe:'funcionario funcionarios salario pagamento folha pagar recibo encargos fgts inss ferias decimo terceiro adiantamento vale diaria comissao equipe', usuarios:'usuario login senha acesso perfil garcom cozinha operador permissao lgpd privacidade anonimizar aviso', notifadmin:'aviso notificacao alerta push pedido parado vencimento repetir',
   contas:'ifood nota fiscal nfce mercado pago ia chave gemini groq senha conta email supabase github integracao', integridade:'backup restaurar sincronizar sincronizacao contingencia planilha espelho integridade conferir copia drive foto fotos espaco storage arquivo arquivar arquivamento banco celulas compactacao vacuum previsao plano limite uso',
   auditoria:'log registro historico acao'
@@ -205,6 +205,7 @@ function abrirAdministrador(sub){
   if((alvo==='visaogeral' || alvo==='relatorios') && apiConfigurada()) sincronizarEmSegundoPlano(); // ITEM 92: atualiza ao entrar, sem refresh periódico
   if(alvo==='taxasentregas'){ renderEntregasFinanceiro(); if(apiConfigurada()) atualizarAoEntrar_(); }
   if(alvo==='promocoes'){ renderCuponsUI(); }
+  if(alvo==='cardapioperiodo' && typeof abrirCardapioPeriodo_ === 'function') abrirCardapioPeriodo_();
   if(alvo==='usuarios' || alvo==='cardapiodigital'){ lgpdCarregarUI_(); }
   if(alvo==='eventos'){ renderEventosUI(); }
   if(alvo==='custosprecificacao'){ prepararCalculadoraUI(); }
@@ -299,7 +300,7 @@ function carregarCache(){
 /* ============================================================
    CLIENTES
    ============================================================ */
-const FILTROS_CLIENTES_ = { todos:'filtroTodosBtn', inativos:'filtroInativosBtn', risco:'filtroRiscoBtn', vip:'filtroVipBtn', fiel:'filtroFielBtn', novo:'filtroNovoBtn' };
+const FILTROS_CLIENTES_ = { todos:'filtroTodosBtn', inativos:'filtroInativosBtn', risco:'filtroRiscoBtn', vip:'filtroVipBtn', fiel:'filtroFielBtn', novo:'filtroNovoBtn', ifood:'filtroIfoodBtn' };
 const FILTRO_SEGMENTO_ = { risco:'Em risco', vip:'VIP', fiel:'Fiel', novo:'Novo' };
 function filtroClientesAtual_(){
   for(const k in FILTROS_CLIENTES_){ const b = document.getElementById(FILTROS_CLIENTES_[k]); if(b && b.classList.contains('active')) return k; }
@@ -365,10 +366,16 @@ function renderCuponsUI(){
   if(ab) ab.innerHTML=Object.keys(CUP_AUTO_).map(k=>{ const c=autos.find(x=>x.automatico===k); if(!c) return `<div class="notif-card"><b>${CUP_AUTO_[k].t}</b><div class="obs-line">Ainda não configurado no banco.</div></div>`;
     return `<div class="notif-card"><b>${CUP_AUTO_[k].t}</b> · ${c.ativa?'<b>LIGADO</b>':'desligado'}<div class="obs-line">${escH(CUP_AUTO_[k].d)}</div><div class="obs-line">Benefício: ${escH(cupBeneficio_(c))}${c.valorMinimo?' · pedido mínimo R$ '+Number(c.valorMinimo).toFixed(2).replace('.',','):''} · vale ${c.validadeDias} dias${c.mensagem?' · “'+escH(c.mensagem)+'”':''}</div><button class="small-gold" onclick="abrirCupomUI('${c.id}')">Editar</button> <button class="ghost" onclick="alternarCupomUI('${c.id}',${!c.ativa})">${c.ativa?'Desligar':'Ligar'}</button></div>`; }).join('');
   box.innerHTML=comuns.length?comuns.map(c=>{
-    const tags=[c.somenteConta?'🔐 só com conta':'',c.clienteId?'👤 só para '+escH(cupClienteNome_(c.clienteId)):'',c.visivelConta?'👁 visível na conta':''].filter(Boolean).join(' · ');
+    const tags=[(c.formasIds||[]).length?'💳 só '+escH(cupFormasNomes_(c.formasIds)):'',c.somenteConta?'🔐 só com conta':'',c.clienteId?'👤 só para '+escH(cupClienteNome_(c.clienteId)):'',c.visivelConta?'👁 visível na conta':''].filter(Boolean).join(' · ');
     return `<div class="notif-card"><b>${escH(c.codigo)}</b> — ${escH(c.nome)} · ${escH(cupBeneficio_(c))} · ${c.ativa?'ATIVO':'INATIVO'}<div class="obs-line">Uso: ${c.limiteTotal?c.limiteTotal:'ilimitado'} · por cliente: ${c.limitePorCliente?c.limitePorCliente:'ilimitado'} · mínimo: R$ ${Number(c.valorMinimo).toFixed(2)}${tags?' · '+tags:''}</div><button class="small-gold" onclick="abrirCupomUI('${c.id}')">Editar</button> <button class="ghost" onclick="alternarCupomUI('${c.id}',${!c.ativa})">${c.ativa?'Desativar':'Ativar'}</button> <button class="ghost" onclick="excluirCupomUI('${c.id}')">🗑️ Excluir</button></div>`; }).join(''):'<div class="notif-empty">Nenhum cupom cadastrado.</div>';
   if(excluidos.length) box.insertAdjacentHTML('beforeend', '<details class="mt-2"><summary class="fs-sm">🗑️ Cupons excluídos ('+excluidos.length+') — arquivados porque já tinham sido usados</summary>'
     + excluidos.map(c=>'<div class="obs-line"><b>'+escH(c.codigoOriginal||c.codigo)+'</b> — '+escH(c.nome)+' <button class="ghost" style="width:auto;padding:2px 8px;min-height:28px;" onclick="restaurarCupomUI(\''+c.id+'\')">Restaurar</button></div>').join('') + '</details>');
+}
+function cupFormasNomes_(ids){ const n=(formasPagamento||[]).filter(f=>(ids||[]).indexOf(String(f.id))!==-1).map(f=>f.nome); return n.length>1 ? n.slice(0,-1).join(', ')+' ou '+n[n.length-1] : (n[0]||''); }
+function cupRenderFormas_(sel){
+  const box=document.getElementById('cupFormasBox'); if(!box) return;
+  const fs=(formasPagamento||[]).filter(f=>f.ativa!==false && f.visivelCardapio!==false);
+  box.innerHTML=fs.length?fs.map(f=>`<label class="d-flex gap-2 ai-centro" style="width:auto;margin:0;"><input type="checkbox" class="largura-auto cup-forma" value="${escH(f.id)}" ${(sel||[]).indexOf(String(f.id))!==-1?'checked':''}> ${escH(f.nome)}</label>`).join(''):'<span class="obs-line">Nenhuma forma de pagamento ativa no cardápio.</span>';
 }
 function cupClienteLabel_(c){ return (c.nome||'Sem nome')+' — '+(c.telefone||'sem telefone'); }
 function abrirCupomUI(id){
@@ -386,6 +393,7 @@ function abrirCupomUI(id){
   const av=document.getElementById('cupAutoAviso'); av.style.display=auto?'':'none'; av.textContent=auto?(CUP_AUTO_[c.automatico].t+' — '+CUP_AUTO_[c.automatico].d):'';
   document.getElementById('cupTitulo').textContent=c?(auto?'Cupom automático':'Editar cupom'):'Novo cupom'; document.getElementById('cupSalvarBtn').textContent=c?'Salvar alterações':'Criar cupom';
   document.getElementById('cupMsg').className='msg'; document.getElementById('cupMsg').textContent='';
+  cupRenderFormas_(c?c.formasIds:[]);
   onMudarTipoCupom_(); abrirFormModal('cupomNovoModal');
 }
 async function salvarCupomUI(){
@@ -393,7 +401,7 @@ async function salvarCupomUI(){
   const txt=cupCliente.value.trim();
   if(txt){ const f=(clientes||[]).find(x=>cupClienteLabel_(x)===txt); if(!f) return showMsg('cupMsg','Escolha o cliente na lista que aparece ao digitar.','warn'); clienteId=f.id; }
   const p={id,codigo:cupCodigo.value,nome:cupNome.value,tipo:cupTipo.value,valor:cupValor.value,faixas:cupTipo.value==='progressivo'?faixasDoTexto_(cupFaixas.value):[],regraTexto:cupTipo.value==='combo'?cupRegra.value:'',freteGratis:cupFrete.checked,dataInicio:cupInicio.value,dataFim:cupFim.value,horaInicio:'',horaFim:'',limiteTotal:cupLimite.value,limitePorCliente:cupLimiteCliente.value,valorMinimo:cupMinimo.value,ativa:cupAtiva.checked,acumula:false,
-    automatico:cupAuto.value,validadeDias:cupValidadeDias.value,mensagem:cupMensagem.value,somenteConta:cupSomenteConta.checked,visivelConta:cupVisivelConta.checked,clienteId};
+    automatico:cupAuto.value,validadeDias:cupValidadeDias.value,mensagem:cupMensagem.value,somenteConta:cupSomenteConta.checked,visivelConta:cupVisivelConta.checked,clienteId,formasIds:Array.from(document.querySelectorAll('#cupFormasBox .cup-forma:checked')).map(x=>x.value)};
   try{const r=await apiCall(id?'editarCupom':'salvarCupom',p);showMsg('cupMsg',r.message,r.ok?'ok':'warn');if(r.ok){cupons=r.cupons||[];renderCuponsUI();fecharFormModal('cupomNovoModal');showMsg('cupMsgLista',r.message,'ok');}}catch(e){showMsg('cupMsg','Erro ao salvar cupom.','warn');}
 }
 /* ---- Privacidade (LGPD) das contas — só Administrador ---- */
@@ -519,13 +527,14 @@ function renderClientes(){
     const agora = Date.now();
     lista = lista.filter(c=>{ const ult = ultimaAtividadeCliente(c); return !ult || (agora - ult) / 86400000 > dias; });
   }
+  if(modo==='ifood') lista = lista.filter(c=>!!c.ifoodId);   // v1.24: só quem pediu pelo iFood
   if(segAlvo){
     if(!arqPodeLer_()){ tbody.innerHTML = '<tr class="empty-row"><td colspan="3">' + estadoVazio_('Os segmentos precisam do servidor principal (Supabase) e de um perfil de gestão. Agora ele não está disponível.') + '</td></tr>'; return; }
     if(!_segTel_){ tbody.innerHTML = '<tr class="empty-row"><td colspan="3">' + estadoVazio_('⏳ Calculando os segmentos…') + '</td></tr>'; return; }
     lista = lista.filter(c=>{ const s = _segTel_[chaveCliente_(c)]; return s && s.segmento===segAlvo; });
   }
   lista = lista.slice().reverse();
-  if(lista.length===0){ tbody.innerHTML = '<tr class="empty-row"><td colspan="3">' + ((filtro || modo!=='todos') ? estadoVazio_(segAlvo ? 'Nenhum cliente '+segAlvo+' agora ('+SEG_REGRAS_[segAlvo]+').' : 'Nenhum cliente encontrado.') : estadoVazio_('Nenhum cliente ainda. Eles entram na lista quando fazem um pedido.')) + '</td></tr>'; return; }
+  if(lista.length===0){ tbody.innerHTML = '<tr class="empty-row"><td colspan="3">' + ((filtro || modo!=='todos') ? estadoVazio_(segAlvo ? 'Nenhum cliente '+segAlvo+' agora ('+SEG_REGRAS_[segAlvo]+').' : modo==='ifood' ? 'Nenhum cliente do iFood encontrado.' : 'Nenhum cliente encontrado.') : estadoVazio_('Nenhum cliente ainda. Eles entram na lista quando fazem um pedido.')) + '</td></tr>'; return; }
   tbody.innerHTML = lista.map(c=>`<tr><td>${c.nome?escH(c.nome):'<em class="txt-muted">(sem nome)</em>'}${seloSegmento_(chaveCliente_(c))}${c.ifoodId?' <span class="selo-ifood" title="Cliente que pediu pelo iFood">iFood</span>':''}</td><td>${c.ifoodId && !c.telefone ? '<span class="txt-muted">iFood (sem telefone)</span>' : escH(c.telefone)}</td><td><button class="small-gold" onclick="abrirPerfilCliente('${c.id}')">abrir</button></td></tr>`).join('');
 }
 /* ---------- PERFIL 360 (Fase 4): ficha do cliente no topo do perfil ---------- */

@@ -109,7 +109,48 @@ function alMontarCartaoAdmin_(){
         <button class="ghost" type="button" onclick="alTeste_()">Enviar aviso de teste</button>
       </div></div>`);
     alCarregarCfg_();
+    rtMontar_();
   }catch(e){}
+}
+
+/* ---------- v1.24 · Resumo do turno (ao fechar o caixa, os Admins recebem no celular) ---------- */
+function rtMontar_(){
+  const aba = document.getElementById('tab-notifadmin');
+  if(!aba || document.getElementById('rtCard')) return;
+  aba.insertAdjacentHTML('beforeend', `<div class="card" id="rtCard"><h2>📊 Resumo do turno</h2>
+    <p class="sub">Ao fechar o caixa, todos os Admins recebem no celular: faturamento do turno (sem a taxa de entrega), número de pedidos, ticket médio, pedidos do iFood, cancelados e se o caixa bateu.</p>
+    <label style="display:flex;gap:6px;align-items:center;"><input type="checkbox" id="rtLigado" onchange="rtSalvar_()"> Mandar o resumo ao fechar o caixa</label>
+    <div class="obs-line" id="rtExemplo" style="margin-top:6px;">Carregando…</div>
+    <div class="msg" id="rtMsg"></div>
+    <div class="btnrow" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;"><button class="ghost" type="button" onclick="rtTeste_()">Enviar teste com o último turno</button></div></div>`);
+  rtCarregar_();
+}
+function rtMostrar_(r){
+  const cb = document.getElementById('rtLigado'), ex = document.getElementById('rtExemplo'); if(!cb || !ex) return;
+  cb.checked = r.ligado !== false;
+  ex.innerHTML = r.exemplo ? 'Último turno: <b>' + escH(r.exemplo.titulo || '') + '</b> — ' + escH(r.exemplo.texto || '') : 'Ainda não há turno fechado para mostrar de exemplo.';
+}
+async function rtCarregar_(){
+  try{
+    const r = await sbRpc_('api_resumo_turno_config', { p:{} });
+    if(!r || r.ok !== true){ showMsg('rtMsg', '⚠️ ' + ((r && r.message) || 'Não consegui carregar o resumo do turno.'), 'warn'); return; }
+    rtMostrar_(r);
+  }catch(e){ showMsg('rtMsg', '📡 Sem conexão para carregar o resumo do turno.', 'warn'); }
+}
+async function rtSalvar_(){
+  const cb = document.getElementById('rtLigado'); if(!cb) return;
+  try{
+    const r = await sbRpc_('api_resumo_turno_config', { p:{ ligado: !!cb.checked } });
+    if(r && r.ok){ rtMostrar_(r); showMsg('rtMsg', cb.checked ? 'Ligado: o resumo chega ao fechar o caixa.' : 'Desligado.', 'ok'); }
+    else { cb.checked = !cb.checked; showMsg('rtMsg', '⚠️ ' + ((r && r.message) || 'Não foi possível salvar.'), 'warn'); }
+  }catch(e){ cb.checked = !cb.checked; showMsg('rtMsg', '⚠️ Não foi possível salvar agora. Confira a internet e tente de novo.', 'warn'); }
+}
+async function rtTeste_(){
+  try{
+    const r = await sbRpc_('api_resumo_turno_config', { p:{ testar:true } });
+    showMsg('rtMsg', (r && r.ok ? '' : '⚠️ ') + ((r && r.message) || 'Não foi possível testar.'), r && r.ok ? 'ok' : 'warn');
+    if(r && r.ok) rtMostrar_(r);
+  }catch(e){ showMsg('rtMsg', '⚠️ Não foi possível testar agora.', 'warn'); }
 }
 let _alCfg_ = null;
 async function alCarregarCfg_(){

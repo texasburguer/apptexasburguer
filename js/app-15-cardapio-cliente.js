@@ -148,6 +148,7 @@ function cdPintar_(deCache){
   if(cdDados.config){
     document.getElementById('cdKicker').textContent = cdDados.config.kicker;
     document.getElementById('cdFrase').textContent = cdDados.config.frase;
+    try{ cdRenderFaixaPromo_(); }catch(e){}
     const infoEl = document.getElementById('cdInfoRestaurante'), infoH = cdInfoRestauranteHtml_(cdDados.config.restaurante);
     if(infoEl){ infoEl.innerHTML = infoH; infoEl.style.display = infoH ? '' : 'none'; }
   }
@@ -300,14 +301,21 @@ function cdFormaIcone_(f, online){
 }
 function cdRenderFormas_(){
   const box = document.getElementById('cdFormasBox'), sel = document.getElementById('cdFormaPagamento'); if(!box || !sel) return;
-  const usar = !(typeof mesaQr !== 'undefined' && mesaQr) && cdMpAtivo_();
+  /* v1.24: os botões valem SEMPRE (não só com pagamento pelo site): a lista nativa (select) falhava em alguns celulares,
+     principalmente no navegador do Instagram no iPhone, e o cliente não conseguia trocar a forma depois de aplicar o cupom. */
+  const usar = !(typeof mesaQr !== 'undefined' && mesaQr);
   sel.classList.toggle('mp-oculto', !!usar);
   box.style.display = usar ? '' : 'none';
   if(!usar){ box.innerHTML = ''; return; }
   const fs = cdDados.formasPagamento || [], atual = sel.value;
   const online = fs.filter(f=>cdMpTipoForma_(f.id)), entrega = fs.filter(f=>!cdMpTipoForma_(f.id));
-  const btn = (f, on)=>`<button type="button" class="mp-forma" data-id="${escH(f.id)}" aria-pressed="${String(f.id)===String(atual)}" onclick="cdEscolherForma_(this.dataset.id)"><span class="mp-ico" aria-hidden="true">${cdFormaIcone_(f,on)}</span><span class="mp-txt">${escH(f.nome)}<small>${on ? (cdPagProvedor_(f.id)==='infinitepay' ? 'Pague no site da InfinitePay' : cdMpTipoForma_(f.id)==='pix' ? 'Pague agora pelo site' : 'Digite o cartão aqui no site') : 'Pague ao receber'}</small></span><span class="mp-tag${on?'':' off'}">${on?'Online':'Na entrega'}</span></button>`;
-  box.innerHTML = '<p class="mp-grupo">Pagar agora, pelo site</p>' + online.map(f=>btn(f,true)).join('')
+  const cupF = cdCupomFormas_();   // cupom que vale só em algumas formas: marca onde ele vale
+  const tagCupom = f => cupF.length ? (cupF.indexOf(String(f.id)) !== -1 ? '<span class="mp-tag mp-tag-cupom">🎟️ cupom vale</span>' : '<span class="mp-tag off mp-tag-semcupom">sem cupom</span>') : '';
+  const btn = (f, on)=>`<button type="button" class="mp-forma" data-id="${escH(f.id)}" aria-pressed="${String(f.id)===String(atual)}" onclick="cdEscolherForma_(this.dataset.id)"><span class="mp-ico" aria-hidden="true">${cdFormaIcone_(f,on)}</span><span class="mp-txt">${escH(f.nome)}<small>${on ? (cdPagProvedor_(f.id)==='infinitepay' ? 'Pague no site da InfinitePay' : cdMpTipoForma_(f.id)==='pix' ? 'Pague agora pelo site' : 'Digite o cartão aqui no site') : 'Pague ao receber'}</small></span>${tagCupom(f) || `<span class="mp-tag${on?'':' off'}">${on?'Online':'Na entrega'}</span>`}</button>`;
+  const cupNomes = (cdCupomAplicado && cdCupomAplicado.formasNomes) || (_cdCupomFormasPend_ && _cdCupomFormasPend_.formasNomes) || '';
+  const avisoCupom = (cupF.length && cupF.indexOf(String(atual)) === -1 && cupNomes)
+    ? '<div class="msg warn" role="alert" style="display:block;margin:6px 0 4px;">⚠️ Seu cupom vale só pagando em <b>' + escH(cupNomes) + '</b>. Escolha uma dessas formas para ganhar o desconto.</div>' : '';
+  box.innerHTML = avisoCupom + (online.length ? '<p class="mp-grupo">Pagar agora, pelo site</p>' + online.map(f=>btn(f,true)).join('') : '')
     + (entrega.length ? '<p class="mp-grupo">Pagar na entrega</p>' + entrega.map(f=>btn(f,false)).join('') : '');
 }
 function cdEscolherForma_(id){
@@ -630,15 +638,39 @@ function cdCardHTML(tipo, item){
   const esg = cdEsgotado_(tipo, item.id);
   return `<div class="cd-card${esg?' esgotado':''}">
     ${foto?`<img src="${fotoSrc_(foto, 500)}" onerror="fotoFalhou_(this)" loading="lazy" decoding="async" alt="" onclick="cdAmpliarFoto_('${tipo}','${item.id}')" style="cursor:zoom-in;">`:''}
-    <div class="cd-info">
+    <div class="cd-info"${esg?'':` onclick="abrirCdItemModal('${tipo}','${item.id}')" style="cursor:pointer;"`}>
       <div class="cd-nome">${escH(item.nome)}</div>
       ${item.descricao?`<div class="cd-desc">${escH(item.descricao)}</div>`:''}
       <div class="cd-linha"><div class="cd-preco">${cdFormatarPreco(preco)}</div>
-      ${esg?'<button class="cd-add esg" disabled>Esgotado</button>':`<button class="cd-add" aria-label="Adicionar ${escH(item.nome)}" onclick="abrirCdItemModal('${tipo}','${item.id}')">+</button>`}</div>
+      ${esg?'<button class="cd-add esg" disabled>Esgotado</button>':`<button class="cd-add" aria-label="Adicionar ${escH(item.nome)}" onclick="event.stopPropagation();abrirCdItemModal('${tipo}','${item.id}')">+</button>`}</div>
     </div>
   </div>`;
 }
 
+/* v1.24 — vitrine e faixa de promoção (o visual do cardápio continua o mesmo: só um destaque maior no topo) */
+function cdEscolherVitrine_(lista){
+  const ok = lista.filter(x=>x.item && x.item.id && !cdEsgotado_(x.tipo, x.item.id) && cdPrecoDe(x.tipo, x.item.id) != null);
+  return ok.find(x=>x.item.fotoUrl) || null;          // só com foto: sem foto o destaque grande não chama atenção
+}
+function cdRenderVitrine_(v){
+  const el = document.getElementById('cdVitrine'); if(!el) return;
+  if(!v){ el.innerHTML = ''; return; }
+  const it = v.item, preco = cdFormatarPreco(cdPrecoDe(v.tipo, it.id));
+  el.innerHTML = `<div class="cd-vitrine" onclick="abrirCdItemModal('${v.tipo}','${it.id}')" role="button" tabindex="0" aria-label="${escH(v.rotulo.replace(/^\S+\s/, ''))}: ${escH(it.nome)}, ${escH(preco)}" onkeydown="if(event.key==='Enter'){abrirCdItemModal('${v.tipo}','${it.id}')}">
+    <img src="${fotoSrc_(it.fotoUrl, 800)}" onerror="fotoFalhou_(this)" alt="" decoding="async" fetchpriority="high">
+    <div class="cd-vitrine-info">
+      <span class="cd-vitrine-selo">${escH(v.rotulo)}</span>
+      <div class="cd-vitrine-nome">${escH(it.nome)}</div>
+      ${it.descricao?`<div class="cd-vitrine-desc">${escH(it.descricao)}</div>`:''}
+      <div class="cd-vitrine-linha"><b class="cd-vitrine-preco">${escH(preco)}</b><button type="button" class="cd-vitrine-btn" onclick="event.stopPropagation();abrirCdItemModal('${v.tipo}','${it.id}')">Adicionar</button></div>
+    </div></div>`;
+}
+function cdRenderFaixaPromo_(){
+  const el = document.getElementById('cdFaixaPromo'); if(!el) return;
+  const t = String((cdDados && cdDados.config && cdDados.config.faixaPromo) || '').trim();
+  if(!t || mesaQr){ el.style.display = 'none'; el.textContent = ''; return; }
+  el.textContent = t; el.style.display = '';
+}
 function renderCdSecoes(){
   const visaoTodas = cdCategoriaAtiva==='todas';
 
@@ -663,14 +695,20 @@ function renderCdSecoes(){
 
   const maisPedidosEl = document.getElementById('cdMaisPedidos');
   const destaquesEl = document.getElementById('cdDestaques');
-  if(maisPedidos.length){
+  /* v1.24 — VITRINE: o item nº 1 (mais pedido; se não houver, o primeiro destaque) em tamanho grande no topo, com foto */
+  const vit = visaoTodas ? cdEscolherVitrine_(maisPedidos.map(m=>({ tipo:m.tipo, item:completo(m), rotulo:'🔥 O mais pedido' })).concat(destaques.map(d=>({ tipo:d.tipo, item:d.item, rotulo:'⭐ Destaque da casa' })))) : null;
+  cdRenderVitrine_(vit);
+  const fora = (t, id)=> vit && vit.tipo===t && vit.item.id===id;
+  const maisMostrar = maisPedidos.filter(m=>!fora(m.tipo, m.id));
+  const destMostrar = destaques.filter(d=>!fora(d.tipo, d.item.id));
+  if(maisMostrar.length){
     maisPedidosEl.innerHTML = '<div class="cd-secao-titulo">⭐ Mais pedidos</div><div class="cd-grid cd-cat-lista">' +
-      maisPedidos.map(m=>cdCardHTML(m.tipo, completo(m))).join('') + '</div>';
+      maisMostrar.map(m=>cdCardHTML(m.tipo, completo(m))).join('') + '</div>';
   } else maisPedidosEl.innerHTML = '';
 
-  if(visaoTodas && destaques.length){
+  if(visaoTodas && destMostrar.length){
     destaquesEl.innerHTML = '<div class="cd-secao-titulo">📌 Destaques</div><div class="cd-grid cd-cat-lista">' +
-      destaques.map(d=>cdCardHTML(d.tipo, d.item)).join('') + '</div>';
+      destMostrar.map(d=>cdCardHTML(d.tipo, d.item)).join('') + '</div>';
   } else destaquesEl.innerHTML = '';
 
   const listaEl = document.getElementById('cdListaProdutos');
@@ -941,7 +979,7 @@ function abrirCarrinhoPublico(){
     const av = document.getElementById('cdAvisoMesa'); if(av){ av.textContent = '🍽️ Pedido da Mesa '+mesaQr.numero+'. O restaurante confirma antes de preparar e você paga no caixa, no final.'; av.style.display = ''; }
     const nm = document.getElementById('cdNome'); if(nm && !nm.value){ try{ nm.value = localStorage.getItem('cdNomeMesa')||''; }catch(e){} }
   }else{ cdPreencherContato_(); }
-  cdCupomAplicado=null; if(document.getElementById('cdCupom'))document.getElementById('cdCupom').value=''; if(document.getElementById('cdCupomMsg'))document.getElementById('cdCupomMsg').textContent=''; if(document.getElementById('cdCupomResumo'))document.getElementById('cdCupomResumo').textContent='';
+  cdCupomAplicado=null; try{ _cdCupomFormasPend_=null; }catch(e){} if(document.getElementById('cdCupom'))document.getElementById('cdCupom').value=''; if(document.getElementById('cdCupomMsg'))document.getElementById('cdCupomMsg').textContent=''; if(document.getElementById('cdCupomResumo'))document.getElementById('cdCupomResumo').textContent='';
   renderCdCarrinho();
   onMudarTipoCdEntrega();
   _cdLateralFechado_ = false;
@@ -1061,6 +1099,7 @@ function onMudarTipoCdEntregaBase_(){
 function onMudarFormaPagamentoCd(){
   const sel = document.getElementById('cdFormaPagamento');
   try{ cdAtualizarTotal_(); }catch(e){}
+  try{ cdCupomReconferir_(); }catch(e){}
   const forma = (cdDados.formasPagamento||[]).find(f=>f.id===sel.value);
   const ehDinheiro = forma && forma.nome.toLowerCase()==='dinheiro';
   document.getElementById('cdTrocoBox').style.display = ehDinheiro ? 'block' : 'none';
@@ -1196,12 +1235,49 @@ async function finalizarPedidoPublico(){
 
 
 let cdCupomAplicado = null;
-async function aplicarCupomPublicoUI(){
+/* v1.24 — cupom: guarda em quais formas ele vale; ao trocar a forma de pagamento, o cupom é conferido de novo sozinho
+   (sai se a forma nova não vale, volta sozinho se a pessoa escolher uma forma que vale) e a mensagem diz claramente o porquê. */
+let _cdCupomFormasPend_ = null, _cdCupomConferindo_ = false, _cdCupomUltForma_ = '';
+function cdCupomFormas_(){ const f = (cdCupomAplicado && cdCupomAplicado.formasIds) || (_cdCupomFormasPend_ && _cdCupomFormasPend_.formasIds) || []; return Array.isArray(f) ? f.map(String) : []; }
+function cdCupomReconferir_(){
+  const forma = (document.getElementById('cdFormaPagamento')||{}).value || '';
+  if(forma === _cdCupomUltForma_) return;
+  const cod = ((document.getElementById('cdCupom')||{}).value || '').trim();
+  if(!cod || !(cdCupomAplicado || _cdCupomFormasPend_)) { _cdCupomUltForma_ = forma; return; }
+  aplicarCupomPublicoUI(true);
+}
+function cdCupomResumoTxt_(r){ return [r.desconto>0 ? 'Desconto: -R$ '+Number(r.desconto).toFixed(2).replace('.',',') : '', r.freteGratis ? 'Frete grátis' : ''].filter(Boolean).join(' · '); }
+async function aplicarCupomPublicoUI(automatico){
   const codigo=document.getElementById('cdCupom').value.trim(); const msg=document.getElementById('cdCupomMsg');
-  if(!codigo){msg.textContent='Digite o código do cupom.';msg.className='msg warn';return;}
+  const resumo=document.getElementById('cdCupomResumo');
+  const formaId=(document.getElementById('cdFormaPagamento')||{}).value||'';
+  const limpar=()=>{ cdCupomAplicado=null; if(resumo) resumo.textContent=''; try{ document.getElementById('cdCarrinhoTotal').textContent=cdFormatarPreco(Math.max(0.01,totalCarrinhoCd())); onMudarTipoCdEntrega(); }catch(e){} };
+  if(!codigo){ if(automatico===true) return; msg.textContent='Digite o código do cupom.'; msg.className='msg warn'; return; }
   if(modoContingenciaAtivo){msg.textContent='Cupons ficam indisponíveis durante a contingência. Envie o pedido sem cupom ou tente novamente quando normalizar.';msg.className='msg warn';return;}
+  if(_cdCupomConferindo_) return; _cdCupomConferindo_ = true; _cdCupomUltForma_ = formaId;
   const telefone=document.getElementById('cdTelefone').value.trim(); const subtotal=subtotalElegivelCd_(); const tipo=document.getElementById('cdTipoEntrega').value;
-  try{const r=await apiCall('validarCupomCardapio',{codigo,telefone,subtotal,tipoEntrega:tipo,formaPagamentoId:(document.getElementById('cdFormaPagamento')||{}).value||'',itens:cdCarrinho.map(it=>({tipo:it.tipo,id:it.id,qtd:it.qtd,precoBase:it.precoBase}))}); if(r.ok && !(Number(r.desconto)>0) && !r.freteGratis && subtotal<=0){cdCupomAplicado=null;msg.textContent='Os itens do carrinho têm preço promocional e não aceitam cupom.';msg.className='msg warn';}else if(r.ok){cdCupomAplicado=r;msg.textContent='Cupom aplicado: '+r.codigo+(subtotal<subtotalCarrinhoCd()?' (vale só para os itens sem preço promocional)':'');msg.className='msg ok';document.getElementById('cdCupomResumo').textContent=(r.desconto>0?'Desconto: -R$ '+Number(r.desconto).toFixed(2).replace('.',',')+' · ':'')+(r.freteGratis?'Frete grátis':'');document.getElementById('cdCarrinhoTotal').textContent=cdFormatarPreco(Math.max(0.01,totalCarrinhoCd()));onMudarTipoCdEntrega();}else{cdCupomAplicado=null;msg.textContent=r.message;msg.className='msg warn';document.getElementById('cdCupomResumo').textContent='';}}catch(e){msg.textContent='Não foi possível validar o cupom agora.';msg.className='msg warn';}
+  const tinha=!!cdCupomAplicado;
+  try{
+    const r=await apiCall('validarCupomCardapio',{codigo,telefone,subtotal,tipoEntrega:tipo,formaPagamentoId:formaId,itens:cdCarrinho.map(it=>({tipo:it.tipo,id:it.id,qtd:it.qtd,precoBase:it.precoBase}))});
+    if(r.ok && !(Number(r.desconto)>0) && !r.freteGratis && subtotal<=0){
+      _cdCupomFormasPend_=null; limpar(); msg.textContent='Os itens do carrinho têm preço promocional e não aceitam cupom.'; msg.className='msg warn';
+    } else if(r.ok){
+      _cdCupomFormasPend_=null; cdCupomAplicado=r;
+      const so = (r.formasNomes ? ' · vale só para pagamento em '+r.formasNomes : '');
+      msg.textContent=(automatico===true && !tinha ? '✅ Cupom de volta: ' : 'Cupom aplicado: ')+r.codigo+so+(subtotal<subtotalCarrinhoCd()?' (vale só para os itens sem preço promocional)':''); msg.className='msg ok';
+      if(resumo) resumo.textContent=cdCupomResumoTxt_(r);
+      document.getElementById('cdCarrinhoTotal').textContent=cdFormatarPreco(Math.max(0.01,totalCarrinhoCd())); onMudarTipoCdEntrega();
+    } else {
+      limpar();
+      if(r.motivo==='forma'){
+        _cdCupomFormasPend_ = { formasIds: r.formasIds || [], formasNomes: r.formasNomes || '' };
+        const botoes = (r.formasIds||[]).map(id=>{ const f=(cdDados.formasPagamento||[]).find(x=>String(x.id)===String(id)); return f ? `<button type="button" class="small-gold" style="width:auto;margin:6px 6px 0 0;padding:6px 12px;" onclick="cdEscolherForma_('${escH(f.id)}')">Pagar com ${escH(f.nome)}</button>` : ''; }).join('');
+        msg.innerHTML='⚠️ '+escH(r.message)+(tinha?' O desconto foi tirado do total.':'')+(botoes?'<div>'+botoes+'</div>':'');
+        msg.className='msg warn';
+      } else { _cdCupomFormasPend_=null; msg.textContent=r.message; msg.className='msg warn'; }
+    }
+  }catch(e){ msg.textContent='Não foi possível conferir o cupom agora. Confira a internet e toque em "Aplicar cupom" de novo.'; msg.className='msg warn'; }
+  finally{ _cdCupomConferindo_ = false; try{ cdRenderFormas_(); }catch(e){} }
 }
 function cdEnderecoTexto_(){
   const v = id => ((document.getElementById(id)||{}).value||'').trim();
@@ -1297,6 +1373,7 @@ function cdMostrarConfirmacaoPedido_(url, numero, contingencia, vendaId){
   const dica = document.createElement('div'); dica.className = 'cd-conf-dica';
   dica.textContent = contingencia ? 'Guarde este código: ele identifica o seu pedido.' : 'Para ver o status a qualquer momento, toque em "Acompanhe seu pedido", no rodapé.';
   card.appendChild(dica);
+  try{ if(!contingencia && window.contaConvitePosPedido_){ const cv = window.contaConvitePosPedido_(); if(cv) card.appendChild(cv); } }catch(e){}   // v1.24: convite para entrar com o Google
   host.appendChild(card);
   try{ card.scrollIntoView({ behavior:'smooth', block:'center' }); }catch(e){}
   let resta = 3;
@@ -1381,7 +1458,7 @@ async function enviarFeedbackPublico(){
   function aplicar_(){
     const inp = document.getElementById('cdBuscaProduto'); if(!inp) return;
     const q = norm_(inp.value), lista = document.getElementById('cdListaProdutos'), vazio = document.getElementById('cdBuscaVazio');
-    ['cdMaisPedidos','cdDestaques'].forEach(function(id){ const e = document.getElementById(id); if(e) e.style.display = q ? 'none' : ''; });
+    ['cdMaisPedidos','cdDestaques','cdVitrine'].forEach(function(id){ const e = document.getElementById(id); if(e) e.style.display = q ? 'none' : ''; });
     if(!lista) return;
     let achou = 0;
     lista.querySelectorAll('.cd-card').forEach(function(c){

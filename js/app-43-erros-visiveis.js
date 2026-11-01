@@ -65,7 +65,7 @@
   window.msgErroPrograma_ = msgErroPrograma_;
 
   /* ---------- 1) erros de programa não tratados ---------- */
-  var IGNORAR_ = /ResizeObserver loop|^Script error\.?$|Non-Error promise rejection|NotAllowedError|play\(\) request|interrupted by a call to pause|The play\(\) request|AbortError|SbSessaoExpirada|Extension context|chrome-extension|moz-extension|safari-extension|webkit-masked-url|__gCrWeb|instantSearchSDKJSBridgeClearHighlight|Can't find variable: (?:gmo|_AutofillCallbackHandler)/i;
+  var IGNORAR_ = /ResizeObserver loop|^Script error\.?$|Non-Error promise rejection|NotAllowedError|play\(\) request|interrupted by a call to pause|The play\(\) request|AbortError|SbSessaoExpirada|Extension context|chrome-extension|moz-extension|safari-extension|webkit-masked-url|__gCrWeb|instantSearchSDKJSBridgeClearHighlight|Can't find variable: (?:gmo|_AutofillCallbackHandler)|_META\.IABInnerFrame|IABInnerFrame|FBNavigation|fbq is not defined/i;
   function tratarNaoCapturado_(det, arquivo){
     try{
       det = texto_(det);
