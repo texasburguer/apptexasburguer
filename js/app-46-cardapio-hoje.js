@@ -120,7 +120,7 @@
     const f = r.funil || {}, base = Math.max(1, Number(f.visita) || 0);
     const etapas = [['visita', 'Entraram no cardápio'], ['item', 'Abriram um item'], ['carrinho', 'Puseram no carrinho'], ['finalizar', 'Abriram o finalizar'], ['pedido', 'Enviaram o pedido']];
     const desde = r.desde ? new Date(r.desde).toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }) : '';
-    let h = r.periodo ? serieHtml_(r) : '<p class="sub fs-xs" style="margin:0 0 8px;">' + (r.turno ? 'Desde a abertura do caixa (' + escH(desde) + ').' : 'Caixa fechado: últimas 24 horas.') + ' Cada aparelho conta uma vez. Aparelhos da equipe não contam.</p>';
+    let h = r.periodo ? serieHtml_(r) : '<p class="sub fs-xs" style="margin:0 0 8px;">Turno: desde o fechamento do caixa anterior (' + escH(desde) + '), para contar também quem olhou o cardápio antes de abrir. Cada aparelho conta uma vez. Aparelhos da equipe não contam.</p>';
     h += '<div>' + etapas.map(function(e, i){
       const n = Number(f[e[0]]) || 0, pct = Math.round(n / base * 100);
       const ant = i ? (Number(f[etapas[i - 1][0]]) || 0) : 0, perda = i && ant ? Math.round((1 - n / ant) * 100) : 0;
@@ -173,7 +173,7 @@
     const tentou = Number(per.tentou) || 0;
     h += '<div class="btnrow" style="display:flex;gap:6px;margin:2px 0 6px;"><button type="button" class="' + (ckVer30 ? 'ghost' : 'small-gold') + '" onclick="cdHojeCk30_(false)">Este período</button><button type="button" class="' + (ckVer30 ? 'small-gold' : 'ghost') + '" onclick="cdHojeCk30_(true)">Últimos 30 dias</button></div>';
     if(ckVer30 && ck.desde30) h += '<p class="sub fs-xs" style="margin:0 0 4px;">O detalhe do finalizar começou a ser medido em ' + escH(new Date(ck.desde30).toLocaleDateString('pt-BR')) + '.</p>';
-    if(!abriu){ return h + '<div class="obs-line">Ninguém abriu o finalizar ' + (ckVer30 ? 'nos últimos 30 dias' : 'neste período') + '.</div>'; }
+    if(!abriu){ return h + '<div class="obs-line">Ninguém abriu o finalizar ' + (ckVer30 ? 'nos últimos 30 dias' : 'neste turno') + '.</div>'; }
     h += ckBarra_('Enviaram o pedido', pediu, abriu);
     h += ckBarra_('Tocaram em "Enviar pedido"', Math.min(tentou, abriu), abriu);
     const semTocar = Math.max(0, abriu - tentou);

@@ -570,7 +570,7 @@ function renderInicio(){
   // 4) Cardápio hoje (visitas) | Mesas (com a conta das mesas junto)
   if(staff){
     const vh = window._visitasCd_;
-    blocos.push(`<div class="resumo-box" ${clique("abrirCardapioHoje_()")} title="Ver funil e mapa do cardápio"><span class="rot">Cardápio hoje</span><b>${vh && vh.n != null ? vh.n : '—'}</b><small>visita(s) · toque para ver o funil e o mapa</small></div>`);
+    blocos.push(`<div class="resumo-box" ${clique("abrirCardapioHoje_()")} title="Ver funil e mapa do cardápio"><span class="rot">Cardápio hoje</span><b>${vh && vh.n != null ? vh.n : '—'}</b><small>visita(s) no turno · toque para ver o funil e o mapa</small></div>`);
     if(!currentUser.emergencia && (!vh || Date.now() - vh.t > 60000)) inicioCarregarVisitas_();
   }
   if(nivel==='Admin' || nivel==='Operador' || nivel==='Garçom'){
