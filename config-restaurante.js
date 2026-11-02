@@ -19,7 +19,9 @@ window.RESTAURANTE = {
     assistente: 'Tex',
     tema: 'brasa',
     cores: { destaque: '#e0b53a', botao: '#d20807', fundo: '#0b0705' },
-    logos: { cardapio: 'img/logo-texas-burger.webp', impressao: '', icone: 'img/icon-512.png' }
+    logos: { cardapio: 'img/logo-texas-burger.webp', impressao: '', icone: 'img/icon-512.png' },
+    // Tema dos mini jogos do cliente (generico, burger ou churros)
+    jogos: { tema: 'burger', nomes: { memoria: 'Memória Texas' } }
   },
   modulos: { ifood: true, nfce: true, mercadopago: true, infinitepay: true, mesas: true, ponto: true, eventos: true, planilhas: true, ia: true }
 };
