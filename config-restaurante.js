@@ -1,7 +1,7 @@
 /* CONFIGURAÇÃO DE Texas Burger — gerado pelo Painel de Revenda em 02/11/2026, 20:26:36.
    Só endereços e chaves PÚBLICAS. Marca e módulos também vêm do painel na hora; para mudar o resto, gere de novo. */
 window.RESTAURANTE = {
-  "motor": "https://lucassricardo95.github.io/motor/texas-estavel/",
+  "motor": "https://lucassricardo95.github.io/motor/texas-v1.82/",
   "slug": "texas-burger",
   "nome": "Texas Burger",
   "siteUrl": "https://texasburguer.github.io/apptexasburguer/",
